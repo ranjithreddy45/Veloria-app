@@ -16,6 +16,7 @@ import {
   isCollectibleInvoice,
   NOT_ISSUED_INVOICE_STATUSES,
 } from "@/lib/finance/issued-invoices";
+import { CANCELLED_BOOKING_CHECKOUT_ERROR, bookingIsCancelled } from "@/lib/holds/checkout-guard";
 
 // ============================================================
 // Helper: Get contact IDs linked to this user's VERIFIED identity.
@@ -594,7 +595,7 @@ export async function submitPaymentProof(
 
   const invoice = await prisma.invoice.findFirst({
     where: { id: data.invoiceId, contactId: { in: contactIds } },
-    select: { id: true, status: true, balanceDue: true, invoiceNumber: true },
+    select: { id: true, status: true, balanceDue: true, invoiceNumber: true, booking: { select: { status: true } } },
   });
   // A DRAFT is still being prepared, so to the customer it does not exist yet.
   if (!invoice || invoice.status === "DRAFT") return { success: false as const, error: "Invoice not found." };
@@ -603,6 +604,10 @@ export async function submitPaymentProof(
   // fully refunded invoice, even though a full refund restores its balance.
   if (!isCollectibleInvoice(invoice.status)) {
     return { success: false as const, error: "This invoice is not open for payment." };
+  }
+  // Same rule as the portal and public checkouts: no payment is taken for a cancelled booking.
+  if (bookingIsCancelled(invoice.booking)) {
+    return { success: false as const, error: CANCELLED_BOOKING_CHECKOUT_ERROR };
   }
   if (data.amount > Number(invoice.balanceDue) + 0.01) {
     return { success: false as const, error: "Amount exceeds the balance due." };

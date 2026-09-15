@@ -7,7 +7,9 @@ import {
   CHECKOUT_CLOSE_MARGIN_MS,
   CHECKOUT_TIMED_OUT_MESSAGE,
   RAZORPAY_CHECKOUT_TIMEOUT_SECONDS,
+  checkoutCloseFallbackMs,
   checkoutClosedByTimeout,
+  checkoutTimeoutForOrder,
   checkoutTimeoutSeconds,
 } from "./checkout-timeout";
 import { CHECKOUT_GRACE_MS, isHoldLapsed, type HoldFacts } from "./lapsed-hold";
@@ -97,6 +99,38 @@ describe("checkoutClosedByTimeout", () => {
   });
 });
 
+describe("a checkout on an order the server handed back", () => {
+  it("uses the seconds the server gave for a reopened order", () => {
+    expect(checkoutTimeoutForOrder(300)).toBe(300);
+    expect(checkoutTimeoutForOrder(180)).toBe(180);
+  });
+
+  it("falls back to the usual timeout when the server gave no number", () => {
+    for (const none of [undefined, null, "300", Number.NaN, {}]) {
+      expect(checkoutTimeoutForOrder(none)).toBe(RAZORPAY_CHECKOUT_TIMEOUT_SECONDS);
+    }
+  });
+
+  it("is never longer than the usual timeout, nor under a second, in whole seconds", () => {
+    expect(checkoutTimeoutForOrder(5000)).toBe(RAZORPAY_CHECKOUT_TIMEOUT_SECONDS);
+    expect(checkoutTimeoutForOrder(Number.POSITIVE_INFINITY)).toBe(RAZORPAY_CHECKOUT_TIMEOUT_SECONDS);
+    expect(checkoutTimeoutForOrder(0)).toBe(1);
+    expect(checkoutTimeoutForOrder(-20)).toBe(1);
+    expect(checkoutTimeoutForOrder(299.9)).toBe(299);
+  });
+
+  it("the page's own close follows the checkout's timeout, inside the margin", () => {
+    expect(checkoutCloseFallbackMs()).toBe(CHECKOUT_CLOSE_FALLBACK_MS);
+    expect(checkoutCloseFallbackMs(300)).toBe(315_000);
+    expect(checkoutCloseFallbackMs(300)).toBeLessThan(300_000 + CHECKOUT_CLOSE_MARGIN_MS);
+  });
+
+  it("a close after a reopened checkout's shorter timeout counts as the timeout", () => {
+    expect(checkoutClosedByTimeout(1_000_000, 1_000_000 + 300_000, undefined, 300)).toBe(true);
+    expect(checkoutClosedByTimeout(1_000_000, 1_000_000 + 200_000, undefined, 300)).toBe(false);
+  });
+});
+
 describe("the timed-out message", () => {
   it("says the checkout timed out and asks to try again, without claiming a payment went through or didn't", () => {
     expect(CHECKOUT_TIMED_OUT_MESSAGE).toMatch(/timed out/i);
@@ -129,9 +163,12 @@ describe("every Razorpay checkout in the app closes on the timeout and says so",
   for (const file of checkouts) {
     it(file.slice(SRC.length), () => {
       const code = readFileSync(file, "utf8");
-      expect(code).toContain("timeout: RAZORPAY_CHECKOUT_TIMEOUT_SECONDS");
+      // Either the fixed timeout and fallback, or the ones that follow the
+      // order's own timeout (a reopened order's is shorter), which fall back to it.
+      const fixed = code.includes("timeout: RAZORPAY_CHECKOUT_TIMEOUT_SECONDS") && code.includes("CHECKOUT_CLOSE_FALLBACK_MS");
+      const perOrder = code.includes("checkoutTimeoutForOrder(") && code.includes("checkoutCloseFallbackMs(");
+      expect(fixed || perOrder).toBe(true);
       expect(code).toContain("checkoutClosedByTimeout(");
-      expect(code).toContain("CHECKOUT_CLOSE_FALLBACK_MS");
     });
   }
 });

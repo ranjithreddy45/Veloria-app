@@ -11,18 +11,34 @@ import {
   verifyPublicRazorpayPayment,
 } from "@/actions/payment.actions";
 import {
-  CHECKOUT_CLOSE_FALLBACK_MS,
   CHECKOUT_TIMED_OUT_DETAIL,
   CHECKOUT_TIMED_OUT_TITLE,
-  RAZORPAY_CHECKOUT_TIMEOUT_SECONDS,
+  checkoutCloseFallbackMs,
   checkoutClosedByTimeout,
+  checkoutTimeoutForOrder,
 } from "@/lib/holds/checkout-timeout";
 import { getPublicPaymentOutcome, type PaymentOutcome } from "../outcome.actions";
 import { CANCELLED_BOOKING_TITLE, cancelledBookingNotice } from "../outcome-state";
 
 /** Shape every order-creation action returns (public invoice link + split links). */
 export type PublicOrderResult =
-  | { success: true; data: { orderId: string; amount: number; currency: string; keyId: string | undefined } }
+  | {
+      success: true;
+      data: {
+        orderId: string;
+        amount: number;
+        currency: string;
+        keyId: string | undefined;
+        /**
+         * Set when the action reopened an order the customer already started:
+         * how long its checkout may stay open, in seconds, because its
+         * protection counts from when that order was created
+         * (src/lib/holds/checkout-reopen.ts). Absent for a new order, which
+         * gets RAZORPAY_CHECKOUT_TIMEOUT_SECONDS.
+         */
+        checkoutTimeoutSeconds?: number;
+      };
+    }
   | { success: false; error: string };
 
 /** Published contact channels: load with getPublicContact() on the server and pass down. */
@@ -56,6 +72,13 @@ interface PublicPayProps {
    * Off for someone paying a share of another person's event (/pay/split).
    */
   eventLinks?: boolean;
+  /**
+   * Called with what actually happened once it has been read back after a
+   * verified payment (null when it couldn't be read), so a host that shows its
+   * own confirmation (the /hold page) says what the records say. Called even if
+   * the host has already replaced this component's view.
+   */
+  onOutcome?: (outcome: PaymentOutcome | null) => void;
 }
 
 interface RazorpayResponse {
@@ -86,7 +109,7 @@ const inr = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
 
 /** Contact options: the business's published channels, or the env-configured HelpChip when none were passed. */
-function ContactOptions({ contact, context, banner }: { contact?: PayContact | null; context: string; banner?: boolean }) {
+export function ContactOptions({ contact, context, banner }: { contact?: PayContact | null; context: string; banner?: boolean }) {
   if (!contact) return <HelpChip variant={banner ? "banner" : "inline"} message={context} />;
   const reachable = !!(contact.phone || contact.whatsapp);
   return (
@@ -120,6 +143,7 @@ export function PublicPay({
   description,
   contact,
   eventLinks = true,
+  onOutcome,
 }: PublicPayProps) {
   const [loading, setLoading] = useState(false);
   // "timeout": the checkout closed on its time limit (src/lib/holds/checkout-timeout.ts).
@@ -147,12 +171,15 @@ export function PublicPay({
         ? await createOrder()
         : await createPublicRazorpayOrder(invoiceId, amount);
       if (!orderRes.success) throw new Error(orderRes.error || "Couldn't start the payment.");
-      const { orderId, amount: paise, currency, keyId } = orderRes.data;
+      const { orderId, amount: paise, currency, keyId, checkoutTimeoutSeconds } = orderRes.data;
 
       // The checkout closes before the 15-minute protection a started checkout
       // gives a hold runs out, so nobody pays onto a hold that may already have
-      // been released (src/lib/holds/checkout-timeout.ts). A close on that
-      // timeout says so: never a silent reset, never a success.
+      // been released (src/lib/holds/checkout-timeout.ts). A reopened order has
+      // less of that protection left, so the order action says how long its
+      // checkout may stay open (src/lib/holds/checkout-reopen.ts). A close on
+      // that timeout says so: never a silent reset, never a success.
+      const timeout = checkoutTimeoutForOrder(checkoutTimeoutSeconds);
       let openedAt = 0;
       let paid = false; // Razorpay handed back a payment: the verify call decides what shows
       let closed = false;
@@ -171,7 +198,7 @@ export function PublicPay({
         order_id: orderId,
         prefill: { name: customerName, email: customerEmail, contact: customerPhone || "" },
         theme: { color: "#7c3aed" },
-        timeout: RAZORPAY_CHECKOUT_TIMEOUT_SECONDS,
+        timeout,
         handler: async (resp: RazorpayResponse) => {
           paid = true;
           window.clearTimeout(closeTimer.current);
@@ -191,15 +218,13 @@ export function PublicPay({
                 razorpayOrderId: resp.razorpay_order_id,
                 razorpayPaymentId: resp.razorpay_payment_id,
               })
+                .catch(() => null)
                 .then((r) => {
-                  if (r.success) {
-                    setOutcome(r.data);
-                    setOutcomeState("ready");
-                  } else {
-                    setOutcomeState("error");
-                  }
-                })
-                .catch(() => setOutcomeState("error"));
+                  const read = r && r.success ? r.data : null;
+                  setOutcome(read);
+                  setOutcomeState(read ? "ready" : "error");
+                  onOutcome?.(read);
+                });
             } else throw new Error(v.error || "Payment could not be confirmed.");
           } catch (e) {
             setStatus("error");
@@ -213,7 +238,7 @@ export function PublicPay({
             closed = true;
             window.clearTimeout(closeTimer.current);
             setLoading(false);
-            if (!paid && checkoutClosedByTimeout(openedAt, Date.now(), reason)) timedOut();
+            if (!paid && checkoutClosedByTimeout(openedAt, Date.now(), reason, timeout)) timedOut();
           },
         },
       };
@@ -236,13 +261,13 @@ export function PublicPay({
           // Already closed.
         }
         timedOut();
-      }, CHECKOUT_CLOSE_FALLBACK_MS);
+      }, checkoutCloseFallbackMs(timeout));
     } catch (e) {
       setStatus("error");
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setLoading(false);
     }
-  }, [invoiceId, amount, invoiceNumber, customerName, customerEmail, customerPhone, onSuccess, createOrder, description]);
+  }, [invoiceId, amount, invoiceNumber, customerName, customerEmail, customerPhone, onSuccess, onOutcome, createOrder, description]);
 
   if (status === "success") {
     const o = outcome;

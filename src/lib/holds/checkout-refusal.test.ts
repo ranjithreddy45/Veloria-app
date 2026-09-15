@@ -1,13 +1,16 @@
 import { describe, it, expect } from "vitest";
 import {
+  CANCELLED_BOOKING_CHECKOUT_ERROR,
   CUSTOMER_HOLD_CHECKOUT_ERROR,
   HOLD_LAPSED_CHECKOUT_ERROR,
   HOLD_WINDOW_CLOSED_CHECKOUT_ERROR,
   STAFF_HOLD_CHECKOUT_ERROR,
+  bookingIsCancelled,
   holdCheckoutRefusal,
   newCheckoutWouldExtendHold,
   type HoldCheckoutRefusal,
 } from "./checkout-guard";
+import { EXTEND_HOLD_LABEL } from "./hold-extension";
 import { isHoldLapsed, type HoldFacts, type HoldInvoiceFacts, type HoldPaymentFacts } from "./lapsed-hold";
 
 // ============================================================
@@ -86,5 +89,29 @@ describe("the words", () => {
       expect(message).toMatch(/extend the hold/i);
       expect(message).toMatch(/start a new one/i);
     }
+  });
+
+  it("the team is pointed to the Extend hold item on the booking page", () => {
+    for (const message of Object.values(STAFF_HOLD_CHECKOUT_ERROR)) {
+      expect(message).toContain(EXTEND_HOLD_LABEL);
+      expect(message).toMatch(/booking page/i);
+    }
+  });
+});
+
+describe("a cancelled booking", () => {
+  it("is refused in the invoice link's words, which the portal uses too", () => {
+    expect(CANCELLED_BOOKING_CHECKOUT_ERROR).toBe(
+      "This booking has been cancelled, so the date is no longer reserved and it can't be paid online. Please contact us to book again."
+    );
+  });
+
+  it("is read from the booking's status alone", () => {
+    expect(bookingIsCancelled({ status: "CANCELLED" })).toBe(true);
+    for (const status of ["HOLD", "TENTATIVE", "CONFIRMED", "IN_PROGRESS", "COMPLETED"]) {
+      expect(bookingIsCancelled({ status })).toBe(false);
+    }
+    expect(bookingIsCancelled(null)).toBe(false);
+    expect(bookingIsCancelled(undefined)).toBe(false);
   });
 });

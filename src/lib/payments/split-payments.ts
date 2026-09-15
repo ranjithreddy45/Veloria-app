@@ -10,6 +10,7 @@
 // Money is integer paise throughout; Decimal ↔ paise only at the boundary.
 // ============================================================
 
+import { splitIdFromPaymentNotes } from "@/lib/payments/split-format";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { notifyAwait } from "@/lib/notify";
@@ -93,20 +94,29 @@ export async function settleSplitOnCapture(opts: {
   razorpayOrderId: string;
   razorpayPaymentId?: string | null;
 }): Promise<void> {
-  const split = await prisma.paymentSplit.findFirst({
-    where: { razorpayOrderId: opts.razorpayOrderId },
-    select: {
-      id: true,
-      status: true,
-      amountPaise: true,
-      payerName: true,
-      invoiceId: true,
-      parentLinkId: true,
-      bookingId: true,
-      createdById: true,
-      createdBy: true,
-    },
-  });
+  const select = {
+    id: true,
+    status: true,
+    amountPaise: true,
+    payerName: true,
+    invoiceId: true,
+    parentLinkId: true,
+    bookingId: true,
+    createdById: true,
+    createdBy: true,
+  } as const;
+  let split = await prisma.paymentSplit.findFirst({ where: { razorpayOrderId: opts.razorpayOrderId }, select });
+  if (!split) {
+    // A late capture on an order this split later replaced: the pending Payment
+    // minted with that order names the split (splitPaymentNote). Only a split on
+    // the same invoice is accepted.
+    const pay = await prisma.payment.findUnique({ where: { id: opts.paymentId }, select: { notes: true, invoiceId: true } });
+    const splitId = splitIdFromPaymentNotes(pay?.notes);
+    if (pay && splitId) {
+      const byId = await prisma.paymentSplit.findFirst({ where: { id: splitId }, select });
+      if (byId && (byId.invoiceId ?? byId.parentLinkId) === pay.invoiceId) split = byId;
+    }
+  }
   if (!split) return; // an ordinary (non-split) capture
 
   // Money WAS captured: whatever the split says (PENDING, or CANCELLED /

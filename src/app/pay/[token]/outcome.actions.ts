@@ -5,8 +5,8 @@ import { BOOKING_STATUS_LABEL, INVOICE_STATUS_LABEL, customerLabel } from "@/lib
 import { CALENDAR_TOKEN_TTL_MS, calendarTokenSecret, signCalendarToken } from "@/app/api/guest/calendar/calendar-token";
 import { money } from "@/app/api/guest/receipt/guest-money";
 import { HOLD_FACTS_SELECT } from "@/lib/holds/lapsed-hold";
-import { PAID_WITHOUT_SLOT_ACTION } from "@/lib/holds/paid-without-slot";
 import { outcomeBookingState, type OutcomeBookingState } from "./outcome-state";
+import { cancelledBookingAlertOnRecord } from "./payment-alert";
 
 // ============================================================
 // /pay: what actually happened, read back after a verified payment.
@@ -90,7 +90,7 @@ export async function getPublicPaymentOutcome(input: {
     // "We've told our team" is said only when the alert about this payment is on
     // record: alertPaymentOnCancelledBooking records it on the Payment before
     // alerting the booking's owner and the admins.
-    const teamAlerted = state === "CANCELLED" ? await paymentAlertOnRecord(p.id) : false;
+    const teamAlerted = state === "CANCELLED" ? await cancelledBookingAlertOnRecord([p.id]) : false;
     const secret = calendarTokenSecret();
     const calendarUrl =
       b && state === "LIVE" && secret
@@ -131,23 +131,5 @@ export async function getPublicPaymentOutcome(input: {
   } catch (e) {
     console.error("[PAY_OUTCOME_ERROR]", e);
     return { success: false, error: "We couldn't load the receipt details." };
-  }
-}
-
-/** Is the team's alert about this payment landing on a cancelled booking on record? false when it can't be read. */
-async function paymentAlertOnRecord(paymentId: string): Promise<boolean> {
-  try {
-    const row = await prisma.activityLog.findFirst({
-      where: {
-        entityType: "Payment",
-        entityId: paymentId,
-        action: PAID_WITHOUT_SLOT_ACTION.PAYMENT_ON_CANCELLED_BOOKING,
-      },
-      select: { id: true },
-    });
-    return row !== null;
-  } catch (e) {
-    console.error("[PAY_OUTCOME_ALERT_LOOKUP_ERROR]", e);
-    return false;
   }
 }

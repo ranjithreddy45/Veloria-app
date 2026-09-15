@@ -1,4 +1,5 @@
 import { holdMoneyState, isHoldLapsed, isHoldPastExpiry, type HoldFacts, type HoldInvoiceFacts } from "./lapsed-hold";
+import { EXTEND_HOLD_LABEL } from "./hold-extension";
 
 // ============================================================
 // Opening a NEW checkout on a HOLD booking — pure.
@@ -70,10 +71,28 @@ export const CUSTOMER_HOLD_CHECKOUT_ERROR: Record<HoldCheckoutRefusal, string> =
   HOLD_WINDOW_CLOSED: HOLD_WINDOW_CLOSED_CHECKOUT_ERROR,
 };
 
+/** Where the team finds the fix: the Extend hold item in the booking page's actions menu (hold-extension.ts). */
+const EXTEND_HOLD_WHERE = `${EXTEND_HOLD_LABEL}, in the actions menu on the booking page`;
+
 /** What the team is told when they start an online payment: the fix is on the booking. */
 export const STAFF_HOLD_CHECKOUT_ERROR: Record<HoldCheckoutRefusal, string> = {
-  HOLD_LAPSED:
-    "This hold has lapsed: its window passed with no payment, so the date is no longer reserved. Extend the hold first (or start a new one), then take the payment.",
-  HOLD_WINDOW_CLOSED:
-    "This hold's window has passed, so a new online payment can't be started on it. Extend the hold first (or start a new one), then take the payment. A payment the customer has already completed will still be applied.",
+  HOLD_LAPSED: `This hold has lapsed: its window passed with no payment, so the date is no longer reserved. Extend the hold first (${EXTEND_HOLD_WHERE}) or start a new one, then take the payment.`,
+  HOLD_WINDOW_CLOSED: `This hold's window has passed, so a new online payment can't be started on it. Extend the hold first (${EXTEND_HOLD_WHERE}) or start a new one, then take the payment. A payment the customer has already completed will still be applied.`,
 };
+
+// ---- A cancelled booking -------------------------------------------------------
+
+/**
+ * A cancelled booking's date is no longer reserved, so no checkout opens on any
+ * of its invoices. These are the invoice link's words
+ * (createPublicRazorpayOrder); the portal's order route and its invoice pages
+ * use the same. The split link keeps its own words, written for someone paying
+ * a share of another person's event.
+ */
+export const CANCELLED_BOOKING_CHECKOUT_ERROR =
+  "This booking has been cancelled, so the date is no longer reserved and it can't be paid online. Please contact us to book again.";
+
+/** true for a CANCELLED booking; false for any other status, and for no booking. */
+export function bookingIsCancelled(b: { status: string } | null | undefined): boolean {
+  return b?.status === "CANCELLED";
+}

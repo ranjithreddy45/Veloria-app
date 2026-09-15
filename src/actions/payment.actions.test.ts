@@ -172,7 +172,7 @@ describe("createPublicRazorpayOrder and lapsed holds", () => {
 
     expect(res).toEqual({
       success: false,
-      error: "This hold has expired and the date is no longer reserved. Please request a fresh link.",
+      error: "This booking has been cancelled, so the date is no longer reserved and it can't be paid online. Please contact us to book again.",
     });
     expect(ordersCreate).not.toHaveBeenCalled();
   });

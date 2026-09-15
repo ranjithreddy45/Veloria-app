@@ -1,4 +1,5 @@
 "use server";
+import { splitPaymentNote } from "@/lib/payments/split-format";
 
 // ============================================================
 // Split payments — several people paying parts of ONE amount due.
@@ -41,11 +42,8 @@ import {
   type SplitTarget,
 } from "@/lib/payments/split-format";
 import { HOLD_FACTS_SELECT, isHoldLapsed } from "@/lib/holds/lapsed-hold";
-import {
-  HOLD_LAPSED_CHECKOUT_ERROR,
-  HOLD_WINDOW_CLOSED_CHECKOUT_ERROR,
-  newCheckoutWouldExtendHold,
-} from "@/lib/holds/checkout-guard";
+import { CUSTOMER_HOLD_CHECKOUT_ERROR, HOLD_LAPSED_CHECKOUT_ERROR } from "@/lib/holds/checkout-guard";
+import { openOrderDecision } from "@/lib/holds/checkout-reopen";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -463,7 +461,16 @@ export async function getPublicSplitForPayment(token: string): Promise<Result<Pu
 // ============================================================
 export async function createSplitRazorpayOrder(
   token: string
-): Promise<Result<{ orderId: string; amount: number; currency: string; keyId: string | undefined }>> {
+): Promise<
+  Result<{
+    orderId: string;
+    amount: number;
+    currency: string;
+    keyId: string | undefined;
+    /** Only when an open order is reopened: how long its checkout may stay open (src/lib/holds/checkout-reopen.ts). */
+    checkoutTimeoutSeconds?: number;
+  }>
+> {
   try {
     if (!razorpayConfigured()) return { success: false, error: "Online payment is not configured" };
     if (!TOKEN_RE.test(token ?? "")) return { success: false, error: "Invalid link" };
@@ -520,27 +527,42 @@ export async function createSplitRazorpayOrder(
     }
 
     // ---- Reuse the open order for this split (a dismissed checkout can be
-    // reopened on the same order) instead of piling up pending rows ----
+    // reopened on the same order) instead of piling up pending rows. That
+    // order's checkout protection counts from when it was CREATED, not from
+    // now, so it is reopened only with at least 4 minutes of protection left,
+    // and its checkout closes a minute before that protection ends: at least
+    // 3 minutes to pay (src/lib/holds/checkout-reopen.ts). ----
+    let openOrder: { orderId: string; createdAt: Date } | null = null;
     if (split.razorpayOrderId) {
       const open = await prisma.payment.findFirst({
         where: { razorpayOrderId: split.razorpayOrderId, status: "PENDING", invoiceId: invoice.id },
-        select: { amount: true },
+        select: { amount: true, createdAt: true },
       });
       if (open && rupeesToPaise(Number(open.amount)) === amountPaise) {
-        return {
-          success: true,
-          data: { orderId: split.razorpayOrderId, amount: amountPaise, currency: "INR", keyId: razorpayKeyId() },
-        };
+        openOrder = { orderId: split.razorpayOrderId, createdAt: open.createdAt };
       }
     }
 
-    // A NEW order starts a new 15-minute checkout grace, and that grace keeps a
-    // hold from lapsing. Once the window has passed, only reopening this share's
-    // own open order (above) is allowed, unless money that doesn't depend on the
-    // grace is already against the booking (src/lib/holds/checkout-guard.ts).
+    // Otherwise a NEW order starts a new 15-minute checkout grace, and that
+    // grace keeps a hold from lapsing. Once the window has passed, a new order
+    // is refused unless money that doesn't depend on the grace is already
+    // against the booking (holdCheckoutRefusal, src/lib/holds/checkout-guard.ts).
     // Same rule and words as the invoice link.
-    if (invoice.booking && newCheckoutWouldExtendHold(invoice.booking, now)) {
-      return { success: false, error: HOLD_WINDOW_CLOSED_CHECKOUT_ERROR };
+    const decision = openOrderDecision({ booking: invoice.booking, openOrderCreatedAt: openOrder?.createdAt ?? null, now });
+    if (decision.kind === "REFUSE") {
+      return { success: false, error: CUSTOMER_HOLD_CHECKOUT_ERROR[decision.refusal] };
+    }
+    if (decision.kind === "REOPEN" && openOrder) {
+      return {
+        success: true,
+        data: {
+          orderId: openOrder.orderId,
+          amount: amountPaise,
+          currency: "INR",
+          keyId: razorpayKeyId(),
+          checkoutTimeoutSeconds: decision.timeoutSeconds,
+        },
+      };
     }
 
     const Razorpay = (await import("razorpay")).default;
@@ -568,7 +590,7 @@ export async function createSplitRazorpayOrder(
           method: "RAZORPAY",
           status: "PENDING",
           razorpayOrderId: order.id,
-          notes: `Split payment by ${split.payerName}`,
+          notes: splitPaymentNote(split.payerName, split.id),
         },
       }),
       prisma.paymentSplit.update({

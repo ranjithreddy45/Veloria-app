@@ -16,6 +16,7 @@
 // ============================================================
 
 import { invoicePresentation } from "@/lib/finance/invoice-presentation";
+import { CANCELLED_BOOKING_CHECKOUT_ERROR, bookingIsCancelled } from "@/lib/holds/checkout-guard";
 
 export type InvoiceBalance =
   /** Owed: `amount` is still due (0 when nothing is left). */
@@ -38,4 +39,27 @@ export function invoiceBalance(inv: { status: string; balanceDue: number }): Inv
 /** Owed with a balance left: the only invoices the portal offers to pay (submitPaymentProof takes no others). */
 export function hasAmountDue(inv: { status: string; balanceDue: number }): boolean {
   return invoicePresentation(inv).owed > 0;
+}
+
+export interface PortalPayState {
+  /** Show the Pay button (and the payment proof upload). */
+  payable: boolean;
+  /** Why an owed invoice can't be paid here; null when it can, or when nothing is owed. */
+  reason: string | null;
+}
+
+/**
+ * Whether the portal offers to pay this invoice. Finance's owed rule first
+ * (hasAmountDue), then the public pay links' rule for a cancelled booking: its
+ * date is no longer reserved, so nothing is paid online on it, and the customer
+ * is told why in the words POST /api/payments/create-order and the invoice link
+ * refuse with. `bookingStatus` is the invoice's booking status; null or absent
+ * when it has none.
+ */
+export function portalPayState(inv: { status: string; balanceDue: number; bookingStatus?: string | null }): PortalPayState {
+  if (!hasAmountDue(inv)) return { payable: false, reason: null };
+  if (inv.bookingStatus && bookingIsCancelled({ status: inv.bookingStatus })) {
+    return { payable: false, reason: CANCELLED_BOOKING_CHECKOUT_ERROR };
+  }
+  return { payable: true, reason: null };
 }

@@ -6,7 +6,12 @@ import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { razorpayKeyId, razorpayKeySecret } from "@/lib/payments/razorpay-creds";
 import { HOLD_FACTS_SELECT } from "@/lib/holds/lapsed-hold";
-import { CUSTOMER_HOLD_CHECKOUT_ERROR, holdCheckoutRefusal } from "@/lib/holds/checkout-guard";
+import {
+  CANCELLED_BOOKING_CHECKOUT_ERROR,
+  CUSTOMER_HOLD_CHECKOUT_ERROR,
+  bookingIsCancelled,
+  holdCheckoutRefusal,
+} from "@/lib/holds/checkout-guard";
 
 // ============================================================
 // Razorpay Instance (lazy init to avoid build-time errors)
@@ -94,6 +99,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, error: "Cannot create order for this invoice" },
         { status: 400 }
+      );
+    }
+
+    // A cancelled booking's date is no longer reserved. The public pay links
+    // refuse a checkout on any of its invoices, and so does the portal, in the
+    // invoice link's words (createPublicRazorpayOrder); the portal's invoice
+    // pages hide the Pay button with the same words (portalPayState). Checked
+    // after the ownership guard, so nobody learns the state of someone else's
+    // booking.
+    if (bookingIsCancelled(invoice.booking)) {
+      return NextResponse.json(
+        { success: false, error: CANCELLED_BOOKING_CHECKOUT_ERROR },
+        { status: 409 }
       );
     }
 

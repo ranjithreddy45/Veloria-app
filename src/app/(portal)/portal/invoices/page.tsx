@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  AlertCircle,
   FileText,
   ArrowUpRight,
   CreditCard,
@@ -15,7 +16,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { INVOICE_STATUS_COLORS } from "@/lib/constants";
 import { isCollectibleInvoice } from "@/lib/finance/issued-invoices";
 import { formatINR } from "@/lib/utils";
-import { hasAmountDue, invoiceBalance } from "./_components/invoice-balance";
+import { invoiceBalance, portalPayState } from "./_components/invoice-balance";
+import { bookingStatusByInvoice } from "./invoice-booking-status";
 
 export const metadata: Metadata = { title: "My Invoices" };
 
@@ -33,6 +35,9 @@ export default async function PortalInvoicesPage() {
   // paying. Paid and refunded ones sit under "Other invoices".
   const unpaidInvoices = invoices.filter((inv) => isCollectibleInvoice(inv.status));
   const otherInvoices = invoices.filter((inv) => !isCollectibleInvoice(inv.status));
+  // The public pay links' rule for a cancelled booking: an owed invoice on one
+  // says why it can't be paid instead of offering "Pay now" (portalPayState).
+  const bookingStatuses = await bookingStatusByInvoice(unpaidInvoices.map((inv) => inv.id));
 
   return (
     <div className="space-y-10">
@@ -70,7 +75,12 @@ export default async function PortalInvoicesPage() {
               </h2>
               <div className="space-y-3">
                 {unpaidInvoices.map((inv) => (
-                  <InvoiceRow key={inv.id} invoice={inv} showPayButton />
+                  <InvoiceRow
+                    key={inv.id}
+                    invoice={inv}
+                    bookingStatus={bookingStatuses.get(inv.id) ?? null}
+                    showPayButton
+                  />
                 ))}
               </div>
             </section>
@@ -115,11 +125,17 @@ interface InvoiceRowProps {
     eventName: string | null;
     bookingNumber: string | null;
   };
+  /** The invoice's booking status, when it has a booking (read for owed invoices). */
+  bookingStatus?: string | null;
   showPayButton?: boolean;
 }
 
-function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
+function InvoiceRow({ invoice, bookingStatus = null, showPayButton }: InvoiceRowProps) {
   const isOverdue = invoice.status === "OVERDUE";
+  // Finance's owed rule, then the pay links' cancelled-booking rule.
+  const pay = portalPayState({ status: invoice.status, balanceDue: invoice.balanceDue, bookingStatus });
+  const showPay = !!showPayButton && pay.payable;
+  const payUnavailable = showPayButton ? pay.reason : null;
   const dueDate = new Date(invoice.dueDate);
   const issueDate = new Date(invoice.issueDate);
 
@@ -201,7 +217,7 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
               </div>
 
               {/* Pay Button or Arrow */}
-              {showPayButton && hasAmountDue(invoice) ? (
+              {showPay ? (
                 <span className="bg-primary text-primary-foreground hidden items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-opacity group-hover:opacity-90 sm:inline-flex">
                   <CreditCard className="size-3.5" />
                   Pay now
@@ -232,13 +248,21 @@ function InvoiceRow({ invoice, showPayButton }: InvoiceRowProps) {
             </span>
             {isOverdue && <span className="font-semibold">Overdue</span>}
             {/* Mobile Pay Button */}
-            {showPayButton && hasAmountDue(invoice) && (
+            {showPay && (
               <span className="bg-primary text-primary-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold sm:hidden">
                 <CreditCard className="size-3" />
                 Pay now
               </span>
             )}
           </div>
+
+          {/* Owed, but the booking is cancelled: why there is no Pay button. */}
+          {payUnavailable && (
+            <p className="text-muted-foreground flex items-start gap-2 border-t px-5 py-2.5 text-xs leading-relaxed">
+              <AlertCircle className="text-warning mt-px size-3.5 shrink-0" aria-hidden />
+              <span>{payUnavailable}</span>
+            </p>
+          )}
         </CardContent>
       </Card>
     </Link>

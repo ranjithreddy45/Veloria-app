@@ -22,6 +22,7 @@ import { postPaymentReceived } from "@/lib/finance/receivables";
 import { isCollectibleInvoice } from "@/lib/finance/issued-invoices";
 import { HOLD_FACTS_SELECT, isHoldLapsed } from "@/lib/holds/lapsed-hold";
 import {
+  CANCELLED_BOOKING_CHECKOUT_ERROR,
   HOLD_LAPSED_CHECKOUT_ERROR,
   HOLD_WINDOW_CLOSED_CHECKOUT_ERROR,
   STAFF_HOLD_CHECKOUT_ERROR,
@@ -902,7 +903,7 @@ export async function createPublicRazorpayOrder(invoiceId: string, amount: numbe
     // the booking. Refuse to take an advance for a slot that's already been
     // cancelled/re-sold — otherwise money is captured with no confirmable slot.
     if (invoice.booking && invoice.booking.status === "CANCELLED") {
-      return { success: false as const, error: "This hold has expired and the date is no longer reserved. Please request a fresh link." };
+      return { success: false as const, error: CANCELLED_BOOKING_CHECKOUT_ERROR };
     }
     // Same for a hold that has LAPSED but not been released yet (window passed,
     // no money on any invoice, no proof awaiting verification, no checkout in

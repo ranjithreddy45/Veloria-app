@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { bookingBalance } from "@/lib/finance/issued-invoices";
 import { invoicePresentation } from "@/lib/finance/invoice-presentation";
-import { hasAmountDue, invoiceBalance } from "./invoice-balance";
+import { CANCELLED_BOOKING_CHECKOUT_ERROR } from "@/lib/holds/checkout-guard";
+import { hasAmountDue, invoiceBalance, portalPayState } from "./invoice-balance";
 
 describe("invoiceBalance: one invoice by finance's owed rule", () => {
   const owed: [string, number][] = [
@@ -64,4 +65,44 @@ describe("invoiceBalance: one invoice by finance's owed rule", () => {
       expect(hasAmountDue(invoice)).toBe(shared.owed > 0);
     }
   );
+});
+
+describe("portalPayState: the Pay button, and why it's missing", () => {
+  it.each(["HOLD", "TENTATIVE", "CONFIRMED", "IN_PROGRESS", "COMPLETED"])("an owed invoice on a %s booking can be paid", (bookingStatus) => {
+    expect(portalPayState({ status: "SENT", balanceDue: 5000, bookingStatus })).toEqual({ payable: true, reason: null });
+  });
+
+  it("an owed invoice with no booking can be paid", () => {
+    expect(portalPayState({ status: "OVERDUE", balanceDue: 5000, bookingStatus: null })).toEqual({ payable: true, reason: null });
+    expect(portalPayState({ status: "OVERDUE", balanceDue: 5000 })).toEqual({ payable: true, reason: null });
+  });
+
+  it.each(["SENT", "PARTIALLY_PAID", "OVERDUE"])(
+    "a %s invoice on a cancelled booking can't be paid, in the words the order route and the invoice link refuse with",
+    (status) => {
+      expect(portalPayState({ status, balanceDue: 5000, bookingStatus: "CANCELLED" })).toEqual({
+        payable: false,
+        reason: CANCELLED_BOOKING_CHECKOUT_ERROR,
+      });
+    }
+  );
+
+  it("an invoice with nothing owed offers no payment and has nothing to explain, whatever its booking", () => {
+    for (const inv of [
+      { status: "PAID", balanceDue: 0 },
+      { status: "REFUNDED", balanceDue: 5000 },
+      { status: "SENT", balanceDue: 0 },
+      { status: "DRAFT", balanceDue: 5000 },
+    ]) {
+      expect(portalPayState({ ...inv, bookingStatus: "CANCELLED" })).toEqual({ payable: false, reason: null });
+      expect(portalPayState({ ...inv, bookingStatus: "CONFIRMED" })).toEqual({ payable: false, reason: null });
+    }
+  });
+
+  it("never offers payment on an invoice finance doesn't count as owed", () => {
+    for (const status of ["DRAFT", "SENT", "PARTIALLY_PAID", "PAID", "OVERDUE", "CANCELLED", "REFUNDED"]) {
+      const inv = { status, balanceDue: 1200 };
+      expect(portalPayState({ ...inv, bookingStatus: "CONFIRMED" }).payable).toBe(hasAmountDue(inv));
+    }
+  });
 });

@@ -42,8 +42,33 @@ export const RAZORPAY_CHECKOUT_TIMEOUT_SECONDS = checkoutTimeoutSeconds();
 /** How long after Razorpay's timeout the page closes a checkout that is somehow still open. */
 const FALLBACK_AFTER_TIMEOUT_MS = 15 * 1000;
 
+/**
+ * The page's own close for a checkout with this Razorpay timeout: 15 seconds
+ * after Razorpay's own close, so still inside the one-minute margin.
+ */
+export function checkoutCloseFallbackMs(timeoutSeconds: number = RAZORPAY_CHECKOUT_TIMEOUT_SECONDS): number {
+  return timeoutSeconds * 1000 + FALLBACK_AFTER_TIMEOUT_MS;
+}
+
 /** The page's own close for a checkout Razorpay left open: 855 seconds after opening, still inside the 15 minutes. */
-export const CHECKOUT_CLOSE_FALLBACK_MS = RAZORPAY_CHECKOUT_TIMEOUT_SECONDS * 1000 + FALLBACK_AFTER_TIMEOUT_MS;
+export const CHECKOUT_CLOSE_FALLBACK_MS = checkoutCloseFallbackMs();
+
+// ---- A reopened order's checkout ----------------------------------------------
+// Reopening an order the customer already started (the split link does) adds no
+// protection: it still counts from when that order was created
+// (src/lib/holds/checkout-reopen.ts). The order action then says how long the
+// reopened checkout may stay open, and the page uses that.
+
+/**
+ * Razorpay's `timeout` for a checkout on an order the server handed back: the
+ * whole seconds it gave (a reopened order has less protection left), clamped to
+ * 1..RAZORPAY_CHECKOUT_TIMEOUT_SECONDS, or RAZORPAY_CHECKOUT_TIMEOUT_SECONDS when
+ * it gave no number. Never longer than that constant.
+ */
+export function checkoutTimeoutForOrder(serverSeconds: unknown): number {
+  if (typeof serverSeconds !== "number" || !Number.isFinite(serverSeconds)) return RAZORPAY_CHECKOUT_TIMEOUT_SECONDS;
+  return Math.min(RAZORPAY_CHECKOUT_TIMEOUT_SECONDS, Math.max(1, Math.floor(serverSeconds)));
+}
 
 /** A close this near the timeout, by the page's clock, still counts as the timeout. */
 const TIMEOUT_TOLERANCE_MS = 2 * 1000;

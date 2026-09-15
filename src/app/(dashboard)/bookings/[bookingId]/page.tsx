@@ -306,6 +306,7 @@ export default async function BookingDetailPage({
           bookingId={booking.id}
           currentStatus={booking.status}
           canOverride={isSuperAdmin}
+          holdExpiresAt={booking.holdExpiresAt ? new Date(booking.holdExpiresAt).toISOString() : null}
         />
       </PageHeader>
 
