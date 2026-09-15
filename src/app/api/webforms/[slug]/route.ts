@@ -7,6 +7,8 @@ import { calculateLeadScore } from "@/lib/lead-scoring";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { attachAttributionToLead, parseAttributionFromRequest } from "@/lib/attribution";
+import { recordConsent } from "@/lib/privacy/consent";
+import { CONSENT_TEXT_ENQUIRY } from "@/lib/privacy/consent-text";
 import type { Prisma, LeadSource } from "@prisma/client";
 
 // ============================================================
@@ -209,6 +211,23 @@ export async function POST(
           },
         });
         contactId = newContact.id;
+      }
+
+      // Consent ledger (DPDP) — only when the form says the box was ticked.
+      // Never blocks: an embedding site owns its own consent UI. Awaited so a
+      // serverless freeze can't drop the write; the helper never throws.
+      if (contactId && submissionData.consent === true) {
+        await recordConsent({
+          subjectType: "CONTACT",
+          subjectId: contactId,
+          email: email || null,
+          phone: phone || null,
+          purpose: "ENQUIRY_RESPONSE",
+          source: `/form/${webform.slug}`,
+          consentText: submissionData.consentText?.trim() || CONSENT_TEXT_ENQUIRY,
+          ip,
+          userAgent: request.headers.get("user-agent"),
+        });
       }
 
       // Create Lead if we have a contact

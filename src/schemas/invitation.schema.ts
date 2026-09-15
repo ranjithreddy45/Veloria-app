@@ -52,6 +52,9 @@ export const rsvpResponseSchema = z.object({
     .max(1000)
     .optional()
     .or(z.literal("")),
+  // DPDP consent — required (checked in the action, not via .default(): a
+  // default would make the field mandatory in the inferred input type).
+  consent: z.boolean().optional(),
 });
 
 export type RsvpResponseInput = z.infer<typeof rsvpResponseSchema>;

@@ -14,6 +14,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
+import { storeIncomingFile } from "@/lib/storage/data-url";
 
 const CATEGORY = "HANDBOOK";
 // The platform's server-action body cap is ~4.5MB; base64 inflates by ~33%,
@@ -67,6 +68,14 @@ export async function uploadHandbook(input: {
   const fileName = (input.fileName?.trim() || "employee-handbook.pdf").replace(/[^\w.\- ]/g, "");
   const name = input.name?.trim() || "Employee Handbook";
 
+  // Validated above. With object storage enabled the PDF goes to the bucket
+  // and the row holds the ref; otherwise the data-URL is stored inline as before.
+  const url = await storeIncomingFile(dataUrl, {
+    prefix: "hr/handbook",
+    ownerType: "Document",
+    createdById: session.user.id as string,
+  });
+
   const created = await prisma.document.create({
     data: {
       name,
@@ -74,7 +83,7 @@ export async function uploadHandbook(input: {
       mimeType: "application/pdf",
       size,
       category: CATEGORY,
-      url: dataUrl,
+      url,
       isPublic: false,
       uploadedById: session.user.id as string,
       tags: ["hr", "handbook"],

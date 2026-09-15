@@ -23,6 +23,7 @@ const JOBS = [
   "sentiment-analysis",
   "anomaly-detection",
   "trash-purge",
+  "whatsapp-inbound-prune", // delete raw WhatsApp webhook captures (WhatsAppInboundEvent) older than 30 days
   "event-triggers",
   "event-lifecycle", // CONFIRMED→IN_PROGRESS on the day; auto-COMPLETE clean past events; nudge unclean ones
   "reconcile-ops", // backstop: re-provision ops for CONFIRMED/IN_PROGRESS bookings whose ops weren't fully created

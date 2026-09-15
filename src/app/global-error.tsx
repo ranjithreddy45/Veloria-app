@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { AlertTriangle, RotateCcw, Home } from "lucide-react";
 
 // ============================================================
@@ -17,6 +18,8 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error("[GLOBAL_ERROR]", error);
+    // No-op unless NEXT_PUBLIC_SENTRY_DSN is set (the SDK is never initialised then).
+    Sentry.captureException(error);
   }, [error]);
 
   return (

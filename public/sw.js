@@ -69,3 +69,75 @@ self.addEventListener("fetch", (event) => {
 
   // Everything else (static assets) falls through to the network untouched.
 });
+
+/* ============================================================
+ * Web Push
+ * ------------------------------------------------------------
+ * Payload is JSON from src/lib/push/send.ts: { title, body, url, tag? }.
+ * Icons come from the manifest set. Click focuses an open app tab (navigating
+ * it to the target) or opens a new one; only same-origin targets are honoured.
+ * ============================================================ */
+
+const NOTIFICATION_ICON = "/icons/icon-192x192.svg";
+const NOTIFICATION_BADGE = "/icons/icon-96x96.svg";
+const NOTIFICATION_DEFAULT_URL = "/notifications";
+
+function parsePushData(event) {
+  if (!event.data) return {};
+  try {
+    return event.data.json() || {};
+  } catch {
+    return { body: event.data.text() };
+  }
+}
+
+function resolveSameOrigin(url) {
+  try {
+    const target = new URL(url || NOTIFICATION_DEFAULT_URL, self.location.origin);
+    if (target.origin !== self.location.origin) throw new Error("cross-origin");
+    return target.href;
+  } catch {
+    return new URL(NOTIFICATION_DEFAULT_URL, self.location.origin).href;
+  }
+}
+
+self.addEventListener("push", (event) => {
+  const data = parsePushData(event);
+  const title = data.title || "Veloria Grand";
+  const options = {
+    body: data.body || "",
+    icon: NOTIFICATION_ICON,
+    badge: NOTIFICATION_BADGE,
+    data: { url: resolveSameOrigin(data.url) },
+  };
+  if (data.tag) {
+    options.tag = String(data.tag);
+    options.renotify = true;
+  }
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = resolveSameOrigin(event.notification.data && event.notification.data.url);
+
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => {
+        const exact = clients.find((client) => client.url === target);
+        if (exact) return exact.focus();
+
+        const appTab = clients.find(
+          (client) => new URL(client.url).origin === self.location.origin
+        );
+        if (appTab && "navigate" in appTab) {
+          return appTab
+            .focus()
+            .then((focused) => focused.navigate(target))
+            .catch(() => self.clients.openWindow(target));
+        }
+        return self.clients.openWindow(target);
+      })
+  );
+});

@@ -1,13 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import crypto from "crypto";
-import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { processWefluxEvent } from "@/lib/whatsapp/inbound-pipeline";
 import {
-  recordInboundWhatsAppMessage,
-  recordOutboundWhatsAppMessage,
-  applyWhatsAppStatusUpdate,
-} from "@/lib/whatsapp/inbound";
-import { captureLeadFromExternal } from "@/lib/lead-capture";
+  captureInboundEvent,
+  updateInboundEvent,
+  errorMessage,
+} from "@/lib/whatsapp/inbound-capture";
 
 // ============================================================
 // Weflux → CRM webhook (Inbox sync)
@@ -21,6 +20,13 @@ import { captureLeadFromExternal } from "@/lib/lead-capture";
 //      settings page bakes into the webhook URL (read from the saved config).
 //   2. HMAC signature — X-Weflux-Signature: sha256=<hex of `${ts}.${raw}`> with
 //      env WEFLUX_ENDPOINT_SECRET, X-Weflux-Timestamp within 300s (anti-replay).
+//
+// OBSERVABILITY: every POST is persisted as a WhatsAppInboundEvent BEFORE auth
+// or parsing (best-effort — logging can never change a response code), then
+// that row is updated with the auth result, the parsed summary and any error.
+// Viewer + replay: /settings/integrations/whatsapp-inbound. The parse/dispatch
+// step itself lives in @/lib/whatsapp/inbound-pipeline so replay runs the same
+// code this route does.
 // ============================================================
 
 export const runtime = "nodejs";
@@ -34,10 +40,6 @@ function timingSafe(a: string, b: string): boolean {
 
 function hmacHex(secret: string, data: string): string {
   return crypto.createHmac("sha256", secret).update(data, "utf8").digest("hex");
-}
-
-function str(v: unknown): string {
-  return typeof v === "string" ? v : v == null ? "" : String(v);
 }
 
 /** Auth material from the saved WhatsApp config (in-app, no env vars needed):
@@ -74,10 +76,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const raw = await request.text();
+
+  // Persist FIRST — before auth, before JSON.parse — so a payload we reject or
+  // cannot read is still on record with its (redacted) headers.
+  const captureId = await captureInboundEvent({
+    provider: "WEFLUX",
+    rawBody: raw,
+    headers: request.headers,
+    url: request.nextUrl,
+  });
+
   const { token: configToken, signingSecret: envSecret } = await getWebhookAuth();
 
   // Fail closed only if there's genuinely nothing to authenticate against.
   if (!configToken && !envSecret) {
+    await updateInboundEvent(captureId, {
+      parseError: "Webhook not configured — no verify token or signing secret saved",
+    });
     return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
   }
 
@@ -100,6 +115,14 @@ export async function POST(request: NextRequest) {
   }
 
   if (!tokenOk && !sigOk) {
+    await updateInboundEvent(captureId, {
+      signatureValid: false,
+      parseError: [
+        "Unauthorized:",
+        providedToken ? "URL/header token did not match the saved verify token" : "no token supplied",
+        sig ? "; X-Weflux-Signature did not verify" : "; no X-Weflux-Signature header",
+      ].join(" "),
+    });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -107,96 +130,22 @@ export async function POST(request: NextRequest) {
   try {
     payload = JSON.parse(raw) as Record<string, unknown>;
   } catch {
+    await updateInboundEvent(captureId, { signatureValid: true, parseError: "Invalid JSON body" });
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
+
+  await updateInboundEvent(captureId, { signatureValid: true });
 
   // ACK immediately; process after the response is sent (15s Weflux timeout).
   after(async () => {
     try {
-      await processWefluxEvent(payload);
+      const summary = await processWefluxEvent(payload);
+      await updateInboundEvent(captureId, { parsedOk: true, ...summary });
     } catch (e) {
       console.error("[Weflux Webhook] processing error:", e);
+      await updateInboundEvent(captureId, { parseError: `Processing threw: ${errorMessage(e)}` });
     }
   });
 
   return NextResponse.json({ ok: true });
-}
-
-async function processWefluxEvent(payload: Record<string, unknown>): Promise<void> {
-  const event = str(payload.event ?? payload.type).toLowerCase();
-  const m = (payload.message ?? payload.data ?? payload) as Record<string, unknown>;
-  const contactObj = (payload.contact ?? m.contact ?? null) as Record<string, unknown> | null;
-
-  console.log("[Weflux Webhook]", event || "(no event)", "keys:", Object.keys(payload).join(","));
-
-  const phone = str(
-    m.phone ?? m.waid ?? m.wa_id ?? m.to ?? m.from ?? payload.phone ?? contactObj?.phone
-  )
-    .replace(/^\+/, "")
-    .trim();
-  const waId = str(m.id ?? m.message_id ?? m.wamid ?? payload.message_id) || null;
-  const textField = m.text ?? m.body ?? m.content ?? payload.text;
-  const text =
-    (typeof textField === "string" && textField) ||
-    (textField && typeof textField === "object" ? str((textField as Record<string, unknown>).body) : "") ||
-    "[message]";
-  const status = str(m.status ?? payload.status);
-  const templateName = str(m.template ?? m.template_name ?? payload.template) || null;
-
-  switch (event) {
-    case "message.received":
-    case "message_received": {
-      if (phone) await recordInboundWhatsAppMessage({ from: phone, waId, text, interactive: null });
-      break;
-    }
-    case "message.sent":
-    case "message_sent": {
-      if (phone) await recordOutboundWhatsAppMessage({ to: phone, waId, text, templateName, status: status || "sent" });
-      break;
-    }
-    case "message.status":
-    case "message_status": {
-      await applyWhatsAppStatusUpdate(waId, status);
-      break;
-    }
-    case "contact.opted_out":
-    case "unsubscribe": {
-      if (phone) {
-        const contact = await prisma.contact.findFirst({
-          where: { OR: [{ phone }, { phone: `+${phone}` }, { phone: `+91${phone}` }] },
-          select: { id: true, tags: true },
-        });
-        if (contact && !contact.tags.includes("opted-out")) {
-          await prisma.contact.update({
-            where: { id: contact.id },
-            data: { tags: { set: [...contact.tags, "opted-out"] } },
-          });
-        }
-      }
-      break;
-    }
-    case "lead.created":
-    case "new_lead":
-    case "lead_created": {
-      // WhatsApp-first / imported lead reaches the CRM. Only capture if the
-      // number is new — avoids echoing back leads WE pushed to Weflux.
-      if (phone) {
-        const existing = await prisma.contact.findFirst({
-          where: { OR: [{ phone }, { phone: `+${phone}` }, { phone: `+91${phone}` }] },
-          select: { id: true },
-        });
-        if (!existing) {
-          await captureLeadFromExternal({
-            name: str(contactObj?.name ?? m.name ?? payload.name) || phone,
-            phone: `+${phone}`,
-            source: "whatsapp",
-            message: text !== "[message]" ? text : undefined,
-          });
-        }
-      }
-      break;
-    }
-    default:
-      break;
-  }
 }

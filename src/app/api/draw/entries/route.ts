@@ -13,6 +13,8 @@ import { hasPermission } from "@/lib/permissions";
 import { clientIpFromHeaders } from "@/lib/hr/geo";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { reportSystemFailure } from "@/lib/ops-alert";
+import { recordConsent } from "@/lib/privacy/consent";
+import { CONSENT_TEXT_DRAW } from "@/lib/privacy/consent-text";
 import {
   validateDrawEntry, formatEntryCode, hashDrawIp, DRAW_SOURCES, drawEventLabel,
 } from "@/lib/draw";
@@ -65,7 +67,7 @@ export async function POST(req: Request) {
   try {
     // Insert then stamp the human entry code from the PK (unique + monotonic),
     // both in one transaction so a code is never missing or duplicated.
-    const entryCode = await prisma.$transaction(async (tx) => {
+    const { entryCode, entryId } = await prisma.$transaction(async (tx) => {
       const created = await tx.drawEntry.create({
         data: {
           entryCode: `pending-${randomUUID()}`, // unique placeholder; replaced with VG-<id> below
@@ -83,7 +85,19 @@ export async function POST(req: Request) {
       });
       const code = formatEntryCode(created.id);
       await tx.drawEntry.update({ where: { id: created.id }, data: { entryCode: code } });
-      return code;
+      return { entryCode: code, entryId: created.id };
+    });
+    // Consent ledger (DPDP): the entry row already stamps consentTs; this adds
+    // the sentence they ticked to the app-wide ledger. Awaited, never throws.
+    await recordConsent({
+      subjectType: "GUEST",
+      subjectId: String(entryId),
+      phone: v.data.phone,
+      purpose: "DRAW_WHATSAPP",
+      source: "/draw",
+      consentText: CONSENT_TEXT_DRAW,
+      ip,
+      userAgent: h.get("user-agent"),
     });
     return json({ entry_code: entryCode }, 201);
   } catch (e) {

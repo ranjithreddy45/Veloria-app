@@ -9,6 +9,7 @@ import {
   Calendar,
   Webhook,
   PhoneCall,
+  Inbox,
 } from "lucide-react";
 import {
   Card,
@@ -44,6 +45,17 @@ const integrations = [
     icon: MessageSquare,
     color:
       "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
+    status: "Active",
+    statusColor: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
+  },
+  {
+    title: "WhatsApp Inbound Log",
+    description:
+      "Every webhook event Weflux/Meta delivered — auth, parse and contact-match result, raw payload, replay. Verify replies are captured.",
+    href: "/settings/integrations/whatsapp-inbound",
+    icon: Inbox,
+    color:
+      "bg-teal-100 text-teal-600 dark:bg-teal-950 dark:text-teal-400",
     status: "Active",
     statusColor: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
   },

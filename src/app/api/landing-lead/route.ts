@@ -22,6 +22,7 @@ import { clientIpFromHeaders } from "@/lib/hr/geo";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { mintEnrichToken, readEnrichToken } from "@/lib/enquiry-enrich-token";
 import { enrichLandingLead } from "@/lib/landing-lead-enrich";
+import { CONSENT_TEXT_ENQUIRY } from "@/lib/privacy/consent-text";
 
 /**
  * Origins allowed to post.
@@ -243,6 +244,20 @@ export async function POST(req: Request) {
         eventDate ? `Preferred date: ${eventDate}` : null,
         body.page ? `Page: ${String(body.page)}` : null,
       ].filter(Boolean).join(" · ") || undefined,
+      // Consent ledger (DPDP): the landing page owns its checkbox, so this
+      // endpoint never blocks on it — it records the evidence when the site
+      // says the box was ticked (`consent: true`, optional `consentText`).
+      consent:
+        body.consent === true
+          ? {
+              given: true,
+              source: "/api/landing-lead",
+              purpose: "ENQUIRY_RESPONSE",
+              text: String(body.consentText ?? "").trim() || CONSENT_TEXT_ENQUIRY,
+              ip,
+              userAgent: h.get("user-agent"),
+            }
+          : undefined,
       attribution: {
         source: str("utm_source") ?? "website",
         medium: str("utm_medium"),

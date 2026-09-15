@@ -9,6 +9,14 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { leadSchema, type LeadInput } from "@/schemas/lead.schema";
 import { isSafeReceiptDataUrl } from "@/lib/sales/receipt";
+import {
+  isDataUrl,
+  isProxyFileUrl,
+  isStorageRef,
+  normalizeFileValueForStorage,
+  resolveFileValues,
+  storeIncomingFile,
+} from "@/lib/storage/data-url";
 import { calculateLeadScore } from "@/lib/lead-scoring";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -56,15 +64,36 @@ function nextBusinessDay(from: Date = new Date()): Date {
   return d;
 }
 
-// Keep only safe image data-URLs (base64 image/PDF). Anything else — a bare
+// Keep only safe image values. A NEW upload must be a base64 image data-URL.
+// An ALREADY-STORED photo comes back from the edit form as an object-storage
+// ref (s3://…) or as the /api/files proxy URL the UI was handed for it — both
+// are kept and normalised to the ref, otherwise a round-trip through the edit
+// form would silently drop every migrated photo. Anything else — a bare
 // string, an https link, a data:text/html payload — is dropped so a tampered
-// client can't write an unsafe value into Lead.images. Caps the count too.
-function sanitizeLeadImages(images: unknown): string[] {
+// client can't write an unsafe value into Lead.images. Caps the count BEFORE
+// uploading so nothing over the cap lands in the bucket as an orphan. With
+// object storage enabled, data-URLs are uploaded here and the ref is stored;
+// otherwise the data-URL is stored inline exactly as before.
+const MAX_LEAD_IMAGES = 24;
+function isAcceptableLeadImage(v: string): boolean {
+  return (isSafeReceiptDataUrl(v) && v.startsWith("data:image/")) || isStorageRef(v) || isProxyFileUrl(v);
+}
+async function sanitizeLeadImages(images: unknown, owner: { leadId?: string; userId: string }): Promise<string[]> {
   if (!Array.isArray(images)) return [];
-  return images
+  const candidates = images
     .filter((v): v is string => typeof v === "string")
-    .filter((v) => isSafeReceiptDataUrl(v) && v.startsWith("data:image/"))
-    .slice(0, 24);
+    .filter(isAcceptableLeadImage)
+    .slice(0, MAX_LEAD_IMAGES);
+  const out: string[] = [];
+  for (const v of candidates) {
+    if (isDataUrl(v)) {
+      out.push(await storeIncomingFile(v, { prefix: "leads", ownerType: "Lead", ownerId: owner.leadId, createdById: owner.userId }));
+    } else {
+      const ref = await normalizeFileValueForStorage(v);
+      if (ref) out.push(ref);
+    }
+  }
+  return out;
 }
 
 // Returns an error string if the id is not a real, active, assignable user; null if OK.
@@ -341,7 +370,10 @@ export async function getLead(id: string) {
       return { success: false as const, error: "Lead not found" };
     }
 
-    return { success: true as const, data: serialize(lead) };
+    // Object-storage refs become URLs the browser can load; inline data-URLs
+    // pass through untouched. The edit form echoes these back and the
+    // sanitizer turns proxy URLs into refs again.
+    return { success: true as const, data: serialize({ ...lead, images: await resolveFileValues(lead.images) }) };
   } catch (error) {
     console.error("[GET_LEAD_ERROR]", error);
     return { success: false as const, error: "Failed to fetch lead" };
@@ -413,7 +445,7 @@ export async function createLead(data: LeadInput & { images?: string[] }) {
         vegNonVeg: leadData.vegNonVeg || null,
         perPlateBudget: leadData.perPlateBudget || null,
         description: leadData.description || null,
-        images: sanitizeLeadImages(data.images),
+        images: await sanitizeLeadImages(data.images, { userId: session.user.id as string }),
         score,
         firstContactDue: leadSlaDeadline(),
         // Default next follow-up so the lead lands in the Follow-ups queue (S-11).
@@ -593,7 +625,7 @@ export async function updateLead(
     if (data.description !== undefined)
       updateData.description = data.description || null;
     if (data.images !== undefined)
-      updateData.images = sanitizeLeadImages(data.images);
+      updateData.images = await sanitizeLeadImages(data.images, { leadId: id, userId: session.user.id as string });
     if (data.assignedToId !== undefined) {
       if (data.assignedToId) {
         const bad = await assigneeInvalid(data.assignedToId);

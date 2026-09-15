@@ -110,6 +110,11 @@ export type WebformInput = z.infer<typeof webformSchema>;
 export const webformSubmissionSchema = z.object({
   data: z.record(z.string(), z.unknown()),
   honeypot: z.string().optional(),
+  // DPDP consent. Optional here on purpose: the hosted /form/[slug] page
+  // requires the tick client-side, while the API stays open to external sites
+  // embedding the form that own their own consent UI (recorded when true).
+  consent: z.boolean().optional(),
+  consentText: z.string().max(500).optional(),
 });
 
 export type WebformSubmissionInput = z.infer<typeof webformSubmissionSchema>;

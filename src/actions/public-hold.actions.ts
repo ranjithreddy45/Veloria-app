@@ -35,6 +35,8 @@ import { generateBookingNumber } from "@/actions/booking.actions";
 import { utcDayRange } from "@/lib/sales/slot-util";
 import { SLOT_LABEL, plannerSlotToEnum } from "@/lib/sales/slot";
 import { publicHoldSchema, type PublicHoldInput } from "@/schemas/public-hold.schema";
+import { recordConsent } from "@/lib/privacy/consent";
+import { CONSENT_TEXT_ENQUIRY } from "@/lib/privacy/consent-text";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -370,6 +372,11 @@ export async function createPublicHold(
   }
   const data = parsed.data;
 
+  // DPDP consent. NOT enforced here on purpose: the public /hold form requires
+  // the tick client-side, but this action is ALSO called by the guest app's
+  // reserve stepper (src/app/(guest)/app/book), whose signed-in hosts are
+  // covered by its own terms flow. Recorded below whenever `consent: true`.
+
   // Rate-limit (best-effort, per instance) before any DB work.
   const ip = await clientIp();
   if (rateLimited(ip)) {
@@ -441,6 +448,20 @@ export async function createPublicHold(
       });
       contactId = created.id;
       mintedContactId = created.id;
+    }
+
+    // Consent ledger (DPDP) — attached to the resolved contact (new or matched).
+    // Awaited (one insert) so a serverless freeze can't drop it; never throws.
+    if (data.consent === true) {
+      await recordConsent({
+        subjectType: "CONTACT",
+        subjectId: contactId,
+        email,
+        phone,
+        purpose: "DATE_HOLD",
+        source: "/hold",
+        consentText: CONSENT_TEXT_ENQUIRY,
+      });
     }
 
     // (e) Create the HOLD Booking inside a Serializable $transaction, replicating

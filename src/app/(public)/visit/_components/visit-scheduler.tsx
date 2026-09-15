@@ -12,6 +12,7 @@ import {
   type VisitKindOption,
 } from "@/actions/public-site-visit.actions";
 import type { VisitSlotOption } from "@/lib/site-visit/slots";
+import { ConsentCheckbox } from "@/components/public/consent-checkbox";
 
 // ============================================================
 // PUBLIC client — visit/tasting booking wizard.
@@ -63,6 +64,8 @@ export function VisitScheduler({ venues, kinds }: Props) {
   const [eventType, setEventType] = useState("");
   const [guestCount, setGuestCount] = useState("");
   const [notes, setNotes] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
 
   const utm = useMemo(
     () => ({
@@ -99,6 +102,10 @@ export function VisitScheduler({ venues, kinds }: Props) {
       toast.error("Please pick a time and enter your name and phone.");
       return;
     }
+    if (!consent) {
+      setConsentError("Please agree to the privacy notice to book your visit.");
+      return;
+    }
     startTransition(async () => {
       const res = await submitVisitBooking({
         name: name.trim(),
@@ -113,6 +120,7 @@ export function VisitScheduler({ venues, kinds }: Props) {
         utmSource: utm.utmSource || undefined,
         utmMedium: utm.utmMedium || undefined,
         utmCampaign: utm.utmCampaign || undefined,
+        consent: true,
       });
       if (res.success) {
         toast.success("Visit booked! Redirecting…");
@@ -252,6 +260,18 @@ export function VisitScheduler({ venues, kinds }: Props) {
           />
         </Field>
       </div>
+
+      {/* DPDP consent */}
+      <ConsentCheckbox
+        id="visit-consent"
+        checked={consent}
+        onCheckedChange={(v) => {
+          setConsent(v);
+          if (v) setConsentError(null);
+        }}
+        error={consentError}
+        disabled={pending}
+      />
 
       <Button
         onClick={handleSubmit}

@@ -23,6 +23,20 @@ export interface InboundWhatsAppMessage {
   interactive?: { buttonReplyId?: string | null; listReplyId?: string | null } | null;
 }
 
+/** What recordInboundWhatsAppMessage did — returned (not thrown) so the
+ *  webhook capture log can record the contact match. Callers may ignore it. */
+export interface InboundRecordResult {
+  /** Contact the message was linked to (existing, or freshly captured as a lead). */
+  contactId: string | null;
+  outcome: "STORED" | "DEDUPED" | "LEAD_CAPTURED" | "CAPTURE_FAILED";
+}
+
+/** What recordOutboundWhatsAppMessage did. */
+export interface OutboundRecordResult {
+  contactId: string | null;
+  outcome: "STORED" | "DEDUPED" | "NO_CONTACT";
+}
+
 const STATUS_MAP: Record<string, "SENT" | "DELIVERED" | "READ" | "FAILED"> = {
   sent: "SENT",
   delivered: "DELIVERED",
@@ -60,7 +74,7 @@ export async function applyWhatsAppStatusUpdate(
  */
 export async function recordInboundWhatsAppMessage(
   msg: InboundWhatsAppMessage
-): Promise<void> {
+): Promise<InboundRecordResult> {
   const from = msg.from;
   const waId = msg.waId || null;
   const text = msg.text || "[Media message]";
@@ -88,7 +102,7 @@ export async function recordInboundWhatsAppMessage(
     const existing = waId
       ? await prisma.whatsAppMessage.findFirst({ where: { whatsappId: waId } })
       : null;
-    if (existing) return;
+    if (existing) return { contactId: contact.id, outcome: "DEDUPED" };
 
     const created = await prisma.whatsAppMessage.create({
       data: {
@@ -143,6 +157,7 @@ export async function recordInboundWhatsAppMessage(
     }
 
     console.log(`[WhatsApp inbound] message from ${from} → contact ${contact.id}`);
+    return { contactId: contact.id, outcome: "STORED" };
   } else {
     // Unknown number → a brand-new inbound lead (WhatsApp is the #1 inbound
     // channel in India; never drop it). Capture creates the contact + lead,
@@ -168,7 +183,9 @@ export async function recordInboundWhatsAppMessage(
       } catch (e) {
         console.error("[WhatsApp inbound] catalog first-inbound error:", e);
       }
+      return { contactId: capture.contactId ?? null, outcome: "LEAD_CAPTURED" };
     }
+    return { contactId: null, outcome: "CAPTURE_FAILED" };
   }
 }
 
@@ -201,13 +218,13 @@ export async function recordOutboundWhatsAppMessage(msg: {
   text: string;
   templateName?: string | null;
   status?: string | null;
-}): Promise<void> {
+}): Promise<OutboundRecordResult> {
   const contact = await findContactByPhone(msg.to);
-  if (!contact) return;
+  if (!contact) return { contactId: null, outcome: "NO_CONTACT" };
   const waId = msg.waId || null;
   if (waId) {
     const existing = await prisma.whatsAppMessage.findFirst({ where: { whatsappId: waId } });
-    if (existing) return;
+    if (existing) return { contactId: contact.id, outcome: "DEDUPED" };
   }
   const status = msg.status ? STATUS_MAP[msg.status.trim().toLowerCase()] || "SENT" : "SENT";
   await prisma.whatsAppMessage.create({
@@ -220,4 +237,5 @@ export async function recordOutboundWhatsAppMessage(msg: {
       contactId: contact.id,
     },
   });
+  return { contactId: contact.id, outcome: "STORED" };
 }

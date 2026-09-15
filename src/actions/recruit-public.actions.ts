@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
+import { recordConsent } from "@/lib/privacy/consent";
+import { CONSENT_TEXT_CAREERS } from "@/lib/privacy/consent-text";
 
 // ============================================================
 // Public recruitment actions — power the PUBLIC /careers site.
@@ -109,6 +111,8 @@ export type ApplyInput = {
   phone?: string;
   city?: string;
   resumeUrl?: string;
+  /** DPDP consent — must be true; the hosted form ticks it, the action enforces it. */
+  consent?: boolean;
 };
 
 // Public apply flow. Creates (or reuses) a RecCandidate sourced from the
@@ -132,6 +136,8 @@ export async function applyToRole(
   if (!EMAIL_RE.test(email)) return { success: false, error: "Please enter a valid email address." };
   if (phone && !/^[0-9+()\-\s]{6,20}$/.test(phone))
     return { success: false, error: "Please enter a valid phone number." };
+  if (input.consent !== true)
+    return { success: false, error: "Please agree to the privacy notice to submit your application." };
 
   // Validate the (optional) resume BEFORE any DB work — never store raw input.
   const resumeCheck = validateResumeUrl(input.resumeUrl);
@@ -175,6 +181,18 @@ export async function applyToRole(
     });
     candidateId = candidate.id;
   }
+
+  // Consent ledger (DPDP) — attached to the candidate (new or reused). A later
+  // duplicate-application error does not undo the fact that they agreed.
+  await recordConsent({
+    subjectType: "CANDIDATE",
+    subjectId: candidateId,
+    email,
+    phone,
+    purpose: "JOB_APPLICATION",
+    source: `/careers/${jobOpeningId}`,
+    consentText: CONSENT_TEXT_CAREERS,
+  });
 
   // Link the application (SCREENING). Duplicate → friendly "already applied".
   try {

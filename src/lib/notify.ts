@@ -8,6 +8,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import type { NotificationType } from "@prisma/client";
+import { sendPushToUser } from "@/lib/push/send";
 
 interface NotifyParams {
   userId: string;
@@ -16,6 +17,23 @@ interface NotifyParams {
   message: string;
   actionUrl?: string;
   metadata?: Prisma.InputJsonValue;
+}
+
+/**
+ * Mirror the in-app row to the user's push-subscribed devices. Runs only
+ * after the DB write succeeded (so push never outruns the bell), is a no-op
+ * when VAPID keys are missing, and never rejects.
+ */
+function pushMirror(params: NotifyParams): Promise<void> {
+  return sendPushToUser(params.userId, {
+    title: params.title,
+    body: params.message,
+    url: params.actionUrl || "/notifications",
+  })
+    .then(() => undefined)
+    .catch((err) => {
+      console.error("[PUSH_ERROR]", err);
+    });
 }
 
 /**
@@ -34,6 +52,7 @@ export function notify(params: NotifyParams): void {
         metadata: params.metadata ?? Prisma.JsonNull,
       },
     })
+    .then(() => pushMirror(params))
     .catch((err) => {
       console.error("[NOTIFY_ERROR]", err);
     });
@@ -56,7 +75,9 @@ export function notifyAwait(params: NotifyParams): Promise<void> {
         metadata: params.metadata ?? Prisma.JsonNull,
       },
     })
-    .then(() => undefined)
+    // Awaited here on purpose: in a serverless cron/webhook a detached push
+    // would be dropped when the function freezes. Each request is time-boxed.
+    .then(() => pushMirror(params))
     .catch((err) => {
       console.error("[NOTIFY_ERROR]", err);
     });

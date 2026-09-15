@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Gem } from "lucide-react";
 
 // ============================================================
@@ -41,6 +42,11 @@ export default function PublicLayout({
         </p>
         <p className="text-muted-foreground/60 mt-1 text-meta uppercase tracking-[0.16em]">
           Every detail, considered
+        </p>
+        <p className="mt-3 text-meta">
+          <Link href="/privacy" className="text-muted-foreground/70 underline-offset-2 hover:text-foreground hover:underline">
+            Privacy Policy
+          </Link>
         </p>
       </footer>
     </div>

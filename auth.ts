@@ -3,6 +3,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import bcryptjs from "bcryptjs";
+import { randomUUID } from "crypto";
 import prisma from "@/lib/prisma";
 import { signInSchema } from "@/schemas/auth.schema";
 import authConfig from "./auth.config";
@@ -12,9 +13,29 @@ import {
   findActiveUserByPhone,
 } from "@/lib/otp";
 import { getEffectivePermissions } from "@/lib/rbac";
+import {
+  consumeVerifiedChallenge,
+  isTwoFactorEnabled,
+  loadTwoFactorTokenFlags,
+  verifySecondFactor,
+} from "@/lib/security/two-factor-login";
+import {
+  TwoFactorInvalidError,
+  TwoFactorRateLimitedError,
+  TwoFactorRequiredError,
+  TwoFactorReusedError,
+} from "@/lib/security/two-factor-errors";
 import type { UserRole } from "@prisma/client";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+// Two-factor flags carried in the JWT (see src/types/next-auth.d.ts):
+//   tfa        — the user has an enabled authenticator (drives the policy banner)
+//   tfaPending — this session signed in via Google / WhatsApp OTP and still owes
+//                a code; auth.config `authorized` bounces it to /two-factor
+//   tfaSid     — random id binding the pending state to THIS session; the
+//                /two-factor page writes a UserTwoFactorChallenge row for it
+type TwoFactorToken = { tfa?: boolean; tfaPending?: boolean; tfaSid?: string };
+
+export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
   ...authConfig,
 
   trustHost: true,
@@ -23,7 +44,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // the edge middleware can enforce per-route access without a DB read.
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user }) {
+    async jwt({ token, user, account, trigger }) {
+      const tfaToken = token as TwoFactorToken;
       const bakePerms = async (role?: string) => {
         try {
           (token as { perms?: string[] }).perms =
@@ -36,6 +58,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           (token as { perms?: string[] }).perms = undefined; // fall back to defaults
         }
       };
+      // Re-read the user's 2FA enrolment; clear a pending challenge once the
+      // /two-factor page has verified a code for this exact session id.
+      const refreshTwoFactor = async (userId: string) => {
+        const { enabled } = await loadTwoFactorTokenFlags(userId);
+        tfaToken.tfa = enabled;
+        if (!tfaToken.tfaPending) return;
+        if (!enabled) {
+          delete tfaToken.tfaPending;
+          delete tfaToken.tfaSid;
+          return;
+        }
+        if (tfaToken.tfaSid) {
+          try {
+            if (await consumeVerifiedChallenge(tfaToken.tfaSid, userId)) {
+              delete tfaToken.tfaPending;
+              delete tfaToken.tfaSid;
+            }
+          } catch (error) {
+            console.error("[2FA_CHALLENGE_CHECK_ERROR]", error);
+          }
+        }
+      };
 
       if (user) {
         token.id = user.id as string;
@@ -43,14 +87,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (token as { role?: unknown }).role = role;
         await bakePerms(role);
         (token as { checkedAt?: number }).checkedAt = Date.now();
+
+        // The email+password provider verified the TOTP inside `authorize`.
+        // Google OAuth and the WhatsApp "otp" provider could not, so an
+        // enrolled user owes a code before the session is usable.
+        const { enabled } = await loadTwoFactorTokenFlags(String(token.id));
+        tfaToken.tfa = enabled;
+        if (enabled && account?.provider !== "credentials") {
+          tfaToken.tfaPending = true;
+          tfaToken.tfaSid = randomUUID();
+        }
         return token;
       }
 
       // On later requests, periodically re-validate against the DB so a
       // deactivated user is locked out and role/permission changes take effect
       // without waiting for the JWT to expire (throttled to once / 5 min).
+      // `trigger === "update"` (unstable_update from a server action) forces
+      // the re-check — used right after a 2FA enrol / disable / challenge.
       const last = (token as { checkedAt?: number }).checkedAt ?? 0;
-      if (token.id && Date.now() - last > 5 * 60 * 1000) {
+      const forceRefresh = trigger === "update";
+      if (token.id && (forceRefresh || Date.now() - last > 5 * 60 * 1000)) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.id as string },
@@ -65,6 +122,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           }
           (token as { role?: unknown }).role = dbUser.role;
           await bakePerms(dbUser.role);
+          await refreshTwoFactor(token.id as string);
           (token as { checkedAt?: number }).checkedAt = Date.now();
         } catch {
           // Transient DB error — keep the existing token, re-check next cycle.
@@ -100,6 +158,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        // Second step: 6-digit authenticator code or a recovery code. Only
+        // consulted once the password has checked out, so 2FA status is never
+        // revealed to someone who doesn't know the password.
+        totp: { label: "Authentication code", type: "text" },
       },
       async authorize(credentials) {
         // Validate credentials shape
@@ -134,6 +196,23 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!isPasswordValid) {
           return null;
+        }
+
+        // Two-factor: enrolled users must also present a code. The thrown
+        // errors carry a `code` the sign-in form reads to reveal the input.
+        const totp =
+          typeof credentials?.totp === "string" ? credentials.totp.trim() : "";
+        if (!totp) {
+          // Fail closed: a DB error here surfaces as a failed sign-in rather
+          // than a silent skip of the second factor.
+          if (await isTwoFactorEnabled(user.id)) throw new TwoFactorRequiredError();
+        } else {
+          const second = await verifySecondFactor(user.id, totp);
+          if (!second.ok && second.reason !== "not_enabled") {
+            if (second.reason === "rate_limited") throw new TwoFactorRateLimitedError();
+            if (second.reason === "reused") throw new TwoFactorReusedError();
+            throw new TwoFactorInvalidError();
+          }
         }
 
         return {

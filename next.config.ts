@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
@@ -77,4 +78,29 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+const config = withNextIntl(nextConfig);
+
+// Sentry build plugin — applied ONLY when a DSN is configured, so a deployment
+// without Sentry builds byte-for-byte as before. There is deliberately no auth
+// token: source maps are not uploaded and no release is created/finalised on
+// Sentry's side; the wrapper only wires the SDK into the build (instrumentation
+// hooks, release-name injection when SENTRY_RELEASE / a git SHA is available).
+export default process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? withSentryConfig(config, {
+      silent: true,
+      telemetry: false,
+      sourcemaps: { disable: true },
+      release: {
+        name:
+          process.env.SENTRY_RELEASE ||
+          process.env.GIT_COMMIT_SHA ||
+          process.env.VERCEL_GIT_COMMIT_SHA ||
+          undefined,
+        create: false,
+        finalize: false,
+      },
+      disableLogger: true,
+      automaticVercelMonitors: false,
+      widenClientFileUpload: false,
+    })
+  : config;

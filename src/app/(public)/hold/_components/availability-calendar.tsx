@@ -15,6 +15,7 @@ import {
   type PublicVenueMonth,
   type PublicVenueDay,
 } from "@/actions/public-hold.actions";
+import { ConsentCheckbox } from "@/components/public/consent-checkbox";
 
 // ============================================================
 // PUBLIC availability + hold widget (no auth).
@@ -371,12 +372,18 @@ function HoldForm({
   const [guestCount, setGuestCount] = useState("");
   const [eventType, setEventType] = useState("");
   const [notes, setNotes] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if (!consent) {
+      setConsentError("Please agree to the privacy notice to hold your date.");
+      return;
+    }
     startTransition(async () => {
       const res = await createPublicHold({
         venueId,
@@ -391,6 +398,7 @@ function HoldForm({
         utmSource: utm.source,
         utmMedium: utm.medium,
         utmCampaign: utm.campaign,
+        consent: true,
       });
       if (res.success) {
         onSuccess(res.data.token);
@@ -442,6 +450,18 @@ function HoldForm({
           <Textarea id="ph-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Optional" />
         </div>
       </div>
+
+      {/* DPDP consent */}
+      <ConsentCheckbox
+        id="hold-consent"
+        checked={consent}
+        onCheckedChange={(v) => {
+          setConsent(v);
+          if (v) setConsentError(null);
+        }}
+        error={consentError}
+        disabled={pending}
+      />
 
       {error && (
         <p className="flex items-center gap-1.5 text-sm text-destructive">

@@ -21,6 +21,7 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
+import { readFileValueAsDataUrl, storeIncomingFile } from "@/lib/storage/data-url";
 import { REIMBURSEMENT_CATEGORIES, type ReimbursementCategory } from "@/lib/hr/reimbursement";
 import {
   awaitingLevel,
@@ -164,6 +165,12 @@ export async function submitReimbursement(input: SubmitReimbursementInput): Prom
   const claim = new Date(input.claimDate);
   if (Number.isNaN(claim.getTime())) return { success: false, error: "Pick a valid claim date." };
   if (input.billUrl && !isSafeReceiptUrl(input.billUrl)) return { success: false, error: "That receipt file isn't a supported image/PDF." };
+  // Validated above. With object storage enabled the bill goes to the bucket
+  // and the column holds the ref; otherwise the data-URL is stored inline as
+  // before (an https reference passes through either way).
+  const billUrl = input.billUrl
+    ? await storeIncomingFile(input.billUrl, { prefix: "hr/claims", ownerType: "HrReimbursementClaim", createdById: u.id })
+    : null;
 
   const created = await prisma.hrReimbursementClaim.create({
     data: {
@@ -173,7 +180,7 @@ export async function submitReimbursement(input: SubmitReimbursementInput): Prom
       title,
       amount: new Prisma.Decimal(amount.toFixed(2)),
       claimDate: claim,
-      billUrl: input.billUrl || null,
+      billUrl,
       note: input.note?.trim() || null,
       createdById: u.id,
     },
@@ -712,7 +719,9 @@ export async function getClaimAttachment(attachmentId: string) {
   if (!att) return { success: false as const, error: "Attachment not found." };
   const access = await canReadClaim(u, att.claim);
   if (!access.ok) return { success: false as const, error: "Insufficient permissions" };
-  return { success: true as const, data: { fileName: att.fileName, mimeType: att.mimeType, data: att.data } };
+  // Same contract as before (a data-URL): an object-storage ref is fetched and
+  // re-encoded here so the viewer never has to know where the bytes live.
+  return { success: true as const, data: { fileName: att.fileName, mimeType: att.mimeType, data: await readFileValueAsDataUrl(att.data) } };
 }
 
 /** The legacy single bill (claims raised before multi-attachments), same access rule. */
@@ -726,7 +735,7 @@ export async function getClaimLegacyBill(claimId: string) {
   if (!claim?.billUrl) return { success: false as const, error: "No bill on this claim." };
   const access = await canReadClaim(u, claim);
   if (!access.ok) return { success: false as const, error: "Insufficient permissions" };
-  return { success: true as const, data: { data: claim.billUrl } };
+  return { success: true as const, data: { data: await readFileValueAsDataUrl(claim.billUrl) } };
 }
 
 /** Attach one or more supporting documents to a claim. */
@@ -759,13 +768,23 @@ export async function addClaimAttachments(
   const check = checkAttachments(files, claim.attachments.length, existingBytes);
   if (!check.ok) return { success: false, error: check.error ?? "Those attachments could not be accepted." };
 
+  // Every file passed checkAttachments. With object storage enabled the bytes
+  // go to the bucket and `data` holds the ref; otherwise the data-URL is
+  // stored inline exactly as before.
+  const stored: string[] = [];
+  for (const f of files) {
+    stored.push(
+      await storeIncomingFile(f.data, { prefix: "hr/claims", ownerType: "HrClaimAttachment", ownerId: claimId, createdById: u.id })
+    );
+  }
+
   await prisma.hrClaimAttachment.createMany({
     data: files.map((f, i) => ({
       claimId,
       fileName: f.fileName.slice(0, 180),
       mimeType: f.mimeType,
       sizeBytes: check.sizes[i] ?? 0,
-      data: f.data,
+      data: stored[i] ?? f.data,
       uploadedById: u.id,
     })),
   });

@@ -22,6 +22,8 @@ import {
   buildRsvpUrl,
 } from "@/lib/invitation-message-builder";
 import { scheduleReminders } from "@/lib/reminder-engine";
+import { recordConsent } from "@/lib/privacy/consent";
+import { CONSENT_TEXT_RSVP } from "@/lib/privacy/consent-text";
 import { nanoid } from "nanoid";
 import { format } from "date-fns";
 
@@ -465,7 +467,16 @@ export async function processRsvpResponse(data: RsvpResponseInput) {
       };
     }
 
-    const { token, response, plusOnes, dietaryRestrictions, message } = parsed.data;
+    const { token, response, plusOnes, dietaryRestrictions, message, consent } = parsed.data;
+
+    // DPDP: the guest must agree before we store their response. This is our
+    // own hosted page, so the tick is enforced here, not just in the UI.
+    if (consent !== true) {
+      return {
+        success: false as const,
+        error: "Please agree to the privacy notice to send your response.",
+      };
+    }
 
     // Find GuestInvitation by rsvpToken
     const invitation = await prisma.guestInvitation.findUnique({
@@ -529,6 +540,18 @@ export async function processRsvpResponse(data: RsvpResponseInput) {
         ...(plusOnes !== undefined && { plusOnes }),
         ...(dietaryRestrictions && { dietaryRestrictions }),
       },
+    });
+
+    // Consent ledger (DPDP). Awaited (one insert) so a serverless freeze
+    // can't drop it; the helper never throws.
+    await recordConsent({
+      subjectType: "GUEST",
+      subjectId: guest.id,
+      email: guest.email ?? null,
+      phone: guest.phone ?? null,
+      purpose: "RSVP",
+      source: "/rsvp",
+      consentText: CONSENT_TEXT_RSVP,
     });
 
     // Notify the booking creator about the RSVP (fire-and-forget)

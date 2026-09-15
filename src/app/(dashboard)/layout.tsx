@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
 import { AIChatWrapper } from "@/components/ai/ai-chat-wrapper";
+import { TwoFactorGate } from "@/components/security/two-factor-gate";
 
 export default async function DashboardLayout({
   children,
@@ -30,6 +31,9 @@ export default async function DashboardLayout({
       <AppSidebar />
       <SidebarInset>
         <AppHeader />
+        {/* Two-factor: bounces a Google/WhatsApp session that still owes a code
+            to /two-factor, and shows the "required for your role" banner. */}
+        <TwoFactorGate />
         {/* pb: base padding PLUS the iOS home-indicator inset. Installed as a
             PWA there is no browser chrome, so the last row of any page (a Save
             button, the final table row) sat under the home indicator and could

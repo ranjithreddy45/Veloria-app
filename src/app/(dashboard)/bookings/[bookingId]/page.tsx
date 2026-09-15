@@ -67,6 +67,8 @@ import { HandoverCard, type HandoverMeeting } from "./_components/handover-card"
 import { BookingPhotos } from "./_components/booking-photos";
 import { GuestFeedbackCard } from "./_components/guest-feedback-card";
 import { getGalleryItems } from "@/actions/gallery.actions";
+import { getBookingSplitTargets } from "@/actions/payment-split.actions";
+import { SplitPaymentsPanel } from "@/components/payments/split-payments-panel";
 import { hasPermission } from "@/lib/permissions";
 import { formatINR, cn } from "@/lib/utils";
 
@@ -222,6 +224,11 @@ export default async function BookingDetailPage({
   const role = (session?.user as { role?: string } | undefined)?.role ?? "";
   const canUploadPhotos = hasPermission(role, "gallery:create");
   const canModerate = hasPermission(role, "reviews:moderate");
+  // Split payments: open invoices on this booking + their split links (staff
+  // with payments:read see the list; payments:create can mint/cancel links).
+  const canReadPayments = hasPermission(role, "payments:read");
+  const canSplitPayments = hasPermission(role, "payments:create");
+  const splitTargets = canReadPayments ? await getBookingSplitTargets(booking.id) : [];
   const workOrders = workOrdersResult.success ? workOrdersResult.data : [];
   const vendorOptions = vendorsResult.success
     ? vendorsResult.data.data.map((v) => ({ id: v.id, name: v.name }))
@@ -446,6 +453,26 @@ export default async function BookingDetailPage({
             </Card>
           );
         })()}
+
+      {/* ============================================================
+          Split payments — several payers, one amount due. One panel per open
+          invoice; the outstanding figure is invoice.balanceDue, already net of
+          paid splits (they record normal Payments).
+          ============================================================ */}
+      {splitTargets.length > 0 && (
+        <div className="space-y-3">
+          {splitTargets.map((t) => (
+            <SplitPaymentsPanel
+              key={t.invoiceId}
+              target={t}
+              canCreate={canSplitPayments}
+              requesterName={`${booking.contact.firstName} (via Veloria Grand)`}
+              variant="staff"
+              className="shadow-card"
+            />
+          ))}
+        </div>
+      )}
 
       {/* Readiness checklist (poka-yoke) — informational, never blocking */}
       <BookingReadinessCard

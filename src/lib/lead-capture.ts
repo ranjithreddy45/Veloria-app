@@ -14,6 +14,7 @@ import { pushLeadToWeflux } from "@/lib/integrations/weflux-crm";
 import { normalizePhone } from "@/lib/sales/lead-import";
 import { coarseContactWhere, matchesContactKey, phoneDigits } from "@/lib/dedup";
 import { toEnquirySource, eventTypeTag, classifyWebChannel } from "@/lib/enquiry-source";
+import { recordConsent, type ConsentPurpose } from "@/lib/privacy/consent";
 
 /**
  * An email is only worth storing if it could plausibly be delivered to. Same
@@ -68,6 +69,24 @@ const KNOWN_COUNTRY_CODES = new Set([
   "91", "1", "44", "971", "65", "61", "60", "966", "974", "968", "973", "94", "977", "880", "92", "49", "33", "39", "31", "27", "254", "255", "234", "64", "81", "82", "86", "7",
 ]);
 
+/**
+ * DPDP consent evidence captured by the form that produced this lead. Written
+ * as a ConsentRecord against the resolved contact (new OR matched) so the
+ * ledger answers "did this person agree, on which form, when" — it never
+ * blocks or fails the capture. External webhooks simply leave it undefined.
+ */
+export interface LeadConsentInput {
+  given: boolean;
+  /** Route / form slug the person ticked the box on, e.g. "/api/landing-lead". */
+  source: string;
+  purpose?: ConsentPurpose;
+  /** The exact sentence shown. Defaults to the shared enquiry wording. */
+  text?: string | null;
+  /** Raw IP (hashed before storage) / UA when the caller already has them. */
+  ip?: string | null;
+  userAgent?: string | null;
+}
+
 interface ExternalLeadData {
   /**
    * Answer the caller as soon as the lead row is durably saved, and run the
@@ -105,6 +124,8 @@ interface ExternalLeadData {
    * `[ext:<externalId>]` and matched on subsequent deliveries.
    */
   externalId?: string;
+  /** Consent evidence from the capturing form — recorded, never enforced here. */
+  consent?: LeadConsentInput;
 }
 
 /**
@@ -304,6 +325,24 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         .update({ where: { id: contact.id }, data: { enquirySource: channel } })
         .catch(() => {}); // best-effort: never fail a capture over attribution
       contact.enquirySource = channel;
+    }
+
+    // Consent ledger (DPDP). Recorded once the contact is known — every path
+    // below (fold into an open lead, create, or lose the race) keeps this same
+    // contact, so the evidence is attached to the right person either way.
+    // Awaited (one insert) so a serverless freeze can't drop it; never throws.
+    if (data.consent?.given) {
+      await recordConsent({
+        subjectType: "CONTACT",
+        subjectId: contact.id,
+        email: cleanEmail ?? null,
+        phone: cleanPhone ?? null,
+        purpose: data.consent.purpose ?? "ENQUIRY_RESPONSE",
+        source: data.consent.source,
+        consentText: data.consent.text ?? null,
+        ip: data.consent.ip,
+        userAgent: data.consent.userAgent,
+      });
     }
 
     // ------------------------------------------------------------------

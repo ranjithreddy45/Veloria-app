@@ -5,6 +5,7 @@ import { postPaymentReceived } from "@/lib/finance/receivables";
 import { reportSystemFailure } from "@/lib/ops-alert";
 import { allocateReceiptNumber } from "@/lib/finance/receipt-number";
 import { finalizeOneTapBlock } from "@/lib/sales/quote-onetap";
+import { settleSplitOnCapture } from "@/lib/payments/split-payments";
 
 /**
  * Allocate an invoice's cumulative paidAmount across its Installments,
@@ -165,6 +166,15 @@ export async function applyRazorpayCapture(opts: {
 
   // BookMyShow-style: confirm the held slot once the advance is covered.
   await maybeConfirmBookingOnPayment(payment.invoiceId);
+
+  // ---- Split payments: if this order belongs to a PaymentSplit, flip it PAID
+  // and notify the host + staff. Idempotent (status-guarded), best-effort — the
+  // invoice credit above is the source of truth and has already committed.
+  await settleSplitOnCapture({
+    paymentId: payment.id,
+    razorpayOrderId: opts.razorpayOrderId,
+    razorpayPaymentId: opts.razorpayPaymentId,
+  }).catch((e) => console.error("[SPLIT_SETTLE_HOOK_ERROR]", e));
 
   // Self-serve configurator (C6): a paid advance must never be silently dropped.
   // Mark the draft PAID and alert the team to reserve + confirm (re-checks the

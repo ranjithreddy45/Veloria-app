@@ -36,6 +36,8 @@ import {
   type VisitSlotOption,
 } from "@/lib/site-visit/slots";
 import { createSiteVisitBooking } from "@/lib/site-visit/public-booking";
+import { recordConsent } from "@/lib/privacy/consent";
+import { CONSENT_TEXT_ENQUIRY } from "@/lib/privacy/consent-text";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -160,6 +162,11 @@ export async function submitVisitBooking(
   }
   const data = parsed.data;
 
+  // DPDP: our own hosted form — the tick is enforced server-side, not just in UI.
+  if (data.consent !== true) {
+    return { success: false, error: "Please agree to the privacy notice to book your visit." };
+  }
+
   // (b) Rate-limit before any DB work.
   const ip = await clientIp();
   if (rateLimited(ip)) {
@@ -212,6 +219,22 @@ export async function submitVisitBooking(
       utmCampaign: data.utmCampaign || null,
     });
     if (!created.success) return created;
+
+    // Consent ledger (DPDP). The engine stamps contactId onto the booking row,
+    // so read it back to attach the evidence to the right person. Awaited (one
+    // read + one insert); the helper never throws.
+    const linked = await prisma.siteVisitBooking
+      .findUnique({ where: { token: created.data.token }, select: { contactId: true } })
+      .catch(() => null);
+    await recordConsent({
+      subjectType: "CONTACT",
+      subjectId: linked?.contactId ?? null,
+      email: data.email || null,
+      phone: normPhone,
+      purpose: "SITE_VISIT",
+      source: "/visit",
+      consentText: CONSENT_TEXT_ENQUIRY,
+    });
 
     revalidatePath("/site-visits");
     return { success: true, data: { token: created.data.token, deduped: false } };
