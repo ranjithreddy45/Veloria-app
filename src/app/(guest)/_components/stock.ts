@@ -1,14 +1,19 @@
 // ============================================================
-// Default photography for the guest app.
+// Illustration photos for the guest app.
 //
-// These are the licensed Unsplash photos the approved design shipped with
-// (credits in /public/guest/photos/CREDITS.txt). They are ambience, not
-// Veloria's halls: every place that uses them prefers a real, public
-// GalleryItem first and falls back here only when none exists — so publishing
-// real photos replaces them per hall with no code change.
+// These are licensed Unsplash photos the approved design shipped with
+// (credits in /public/guest/photos/CREDITS.txt). They are NOT photos of
+// Veloria Grand. The rules, carried by the helpers below:
+//   - a real public photo (a GalleryItem marked public, or a property photo of
+//     a live hall) always wins;
+//   - illustrations are used only when a hall, or the gallery, has no real
+//     photo at all, and are never mixed into a real set;
+//   - wherever one is shown it carries a visible "Illustration" label
+//     (IllustrationBadge in ui.tsx), and nothing implies a real photo set.
 // ============================================================
 
-const P = (n: string) => `/guest/photos/${n}.jpg`;
+const DIR = "/guest/photos/";
+const P = (n: string) => `${DIR}${n}.jpg`;
 
 export const STOCK = {
   welcome: P("welcome"), orchid: P("orchid"), stage: P("stage"), banquet: P("banquet"), chairs: P("chairs"),
@@ -16,6 +21,14 @@ export const STOCK = {
   dance: P("dance"), confetti: P("confetti"), terrace: P("terrace"), tentnight: P("tentnight"), flowers: P("flowers"), tables: P("tables"),
 } as const;
 export type StockKey = keyof typeof STOCK;
+
+/** The visible label on every illustration photo. */
+export const ILLUSTRATION_LABEL = "Illustration";
+
+/** True for one of the bundled illustration photos (never a photo of Veloria Grand). */
+export function isStockPhoto(url: string | null | undefined): boolean {
+  return typeof url === "string" && url.startsWith(DIR);
+}
 
 const HALL_SETS: { cover: StockKey; shots: StockKey[] }[] = [
   { cover: "orchid", shots: ["stage", "banquet", "entrance", "chandelier"] },
@@ -32,7 +45,7 @@ function hash(s: string): number {
   return Math.abs(h);
 }
 
-/** A stable cover + four detail shots for a hall, chosen by its id. */
+/** A stable illustration cover + four detail shots for a hall, chosen by its id. */
 export function hallStock(seed: string): { cover: string; shots: string[] } {
   const set = HALL_SETS[hash(seed) % HALL_SETS.length];
   return { cover: STOCK[set.cover], shots: set.shots.map((k) => STOCK[k]) };
@@ -54,7 +67,34 @@ export const GALLERY_STOCK: { src: string; tag: (typeof STOCK_TAGS)[number]; lab
   { src: STOCK.tables, tag: "Corporate", label: "Dinner tables" },
 ];
 
-/** Category → thumbnail for partner packages without their own image. */
+export interface PhotoLike {
+  id: string;
+  url: string;
+  title: string | null;
+}
+
+/** A hall's card or hero image: its first real photo, else an illustration (label it when isStock). */
+export function hallCover(realUrl: string | null | undefined, seed: string): { src: string; isStock: boolean } {
+  return realUrl ? { src: realUrl, isStock: false } : { src: hallStock(seed).cover, isStock: true };
+}
+
+/**
+ * A hall's detail imagery. With real photos: the first is the hero, the next
+ * eight form the strip. Without: an illustration hero and no strip — detail
+ * shots of somewhere else would read as this hall's interiors.
+ */
+export function hallPhotoSet(real: readonly PhotoLike[], seed: string): { hero: string; strip: PhotoLike[]; isStock: boolean } {
+  if (real.length > 0) return { hero: real[0].url, strip: real.slice(1, 9), isStock: false };
+  return { hero: hallStock(seed).cover, strip: [], isStock: true };
+}
+
+/** Home teaser: up to `max` real photos; illustrations only when there is no real photo at all. */
+export function teaserPhotos(real: readonly PhotoLike[], max = 3): { items: PhotoLike[]; isStock: boolean } {
+  if (real.length > 0) return { items: real.slice(0, max), isStock: false };
+  return { items: GALLERY_STOCK.slice(0, max).map((g) => ({ id: g.src, url: g.src, title: g.label })), isStock: true };
+}
+
+/** Category → thumbnail for partner packages without their own image (an illustration — label it). */
 export function packageStock(category: string): string {
   const c = category.toLowerCase();
   if (/cater|food|menu|cuisine/.test(c)) return STOCK.banquet;

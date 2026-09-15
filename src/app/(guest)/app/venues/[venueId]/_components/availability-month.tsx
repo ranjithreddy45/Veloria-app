@@ -9,11 +9,12 @@ import { toISODateLocal } from "../../../../_components/format";
 
 // Month grid: booked days grey + struck, auspicious days carry a gold dot,
 // picking a free day arms the sticky "Hold this date" bar. Availability and
-// peak dates come from the same sources the staff calendar uses.
+// peak dates come from the same sources the staff calendar uses. priceLabel is
+// the hall's "from" price from the team's pricing engine, or null (no price).
 
 const DOW = ["S", "M", "T", "W", "T", "F", "S"];
 
-export function AvailabilityMonth({ venueId, venueName, priceLabel }: { venueId: string; venueName: string; priceLabel: string }) {
+export function AvailabilityMonth({ venueId, venueName, priceLabel }: { venueId: string; venueName: string; priceLabel: string | null }) {
   const today = React.useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
   const [offset, setOffset] = React.useState(0);
   const [busy, setBusy] = React.useState<Record<string, "busy" | "full">>({});
@@ -49,6 +50,9 @@ export function AvailabilityMonth({ venueId, venueName, priceLabel }: { venueId:
 
   const cells: (number | null)[] = [...Array<null>(first).fill(null), ...Array.from({ length: dim }, (_, i) => i + 1)];
   const pickLabel = pick ? new Date(pick + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }) : null;
+  // Day status is only known for the month on screen.
+  const pickDay = pick && pick.startsWith(fromISO.slice(0, 8)) ? Number(pick.slice(8, 10)) : null;
+  const pickStatus = pickDay == null ? "" : `${peak[pickDay] ? " · auspicious" : ""} · ${busy[pickDay] === "busy" ? "some slots taken" : "available"}`;
   const bookHref = pick ? `/app/book?venueId=${venueId}&date=${pick}` : `/app/book?venueId=${venueId}`;
 
   return (
@@ -104,8 +108,12 @@ export function AvailabilityMonth({ venueId, venueName, priceLabel }: { venueId:
       {/* Sticky CTA — bottom:0 because the tab bar is hidden on inner screens. */}
       <div className="vg-glass fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-md items-center gap-2.5 px-5 pb-[calc(var(--sab)+12px)] pt-3">
         <div className="min-w-0 flex-1">
-          <div className="text-meta text-[#6e6e73]">{pickLabel ? `${pickLabel} · ${peak[Number(pick!.slice(8, 10))] ? "auspicious · " : ""}available` : "Pick a date above"}</div>
-          <div className="numeric text-copy font-semibold text-[#6d1b52]">{priceLabel} <span className="text-meta font-medium text-[#8a8a8e]">/ slot</span></div>
+          <div className="text-meta text-[#6e6e73]">{pickLabel ? `${pickLabel}${pickStatus}` : "Pick a date above"}</div>
+          {priceLabel ? (
+            <div className="numeric text-copy font-semibold text-[#6d1b52]">{priceLabel} <span className="text-meta font-medium text-[#8a8a8e]">/ slot</span></div>
+          ) : (
+            <div className="text-copy font-semibold text-[#6d1b52]">Price on request</div>
+          )}
         </div>
         <NavLink href={bookHref} kind="push" className="vg-primary vg-press rounded-[14px] px-5 py-[15px] text-body font-semibold" aria-label={pick ? `Hold ${pickLabel} at ${venueName}` : `Check availability at ${venueName}`}>
           {pick ? "Hold this date" : "Reserve a date"}

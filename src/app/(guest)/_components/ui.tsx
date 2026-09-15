@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavLink, BackButton } from "./nav-transition";
+import { ILLUSTRATION_LABEL } from "./stock";
 
 // ============================================================
 // Guest-app primitives — the v3 design's recurring objects, composed once
@@ -151,16 +152,29 @@ export function KeyValue({ rows, total }: { rows: { k: string; v: React.ReactNod
 }
 
 /**
+ * Visible "Illustration" label for a stock photo from stock.ts, so it can
+ * never pass as a photo of Veloria Grand. Position it with className.
+ */
+export function IllustrationBadge({ className }: { className?: string }) {
+  return (
+    <span className={cn("pointer-events-none inline-flex items-center rounded-full bg-[#1d1d1f]/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[.06em] text-white backdrop-blur", className)}>
+      {ILLUSTRATION_LABEL}
+    </span>
+  );
+}
+
+/**
  * A photo as a CSS background (v4: "dynamic photos render as background
  * images"). A missing or slow file shows the gradient beneath instead of a
  * broken-image glyph, and base64 data URLs — how uploads are stored here —
- * work without an image optimiser.
+ * work without an image optimiser. `illustration` labels a stock photo.
  */
-export function Photo({ src, alt, className, children }: { src?: string | null; alt: string; className?: string; children?: React.ReactNode }) {
+export function Photo({ src, alt, className, children, illustration }: { src?: string | null; alt: string; className?: string; children?: React.ReactNode; illustration?: boolean }) {
   const safe = src ? src.replace(/["\\]/g, "\\$&") : null;
   return (
-    <div role="img" aria-label={alt} className={cn("relative overflow-hidden bg-gradient-to-br from-[#7a2160] via-[#6d1b52] to-[#4d1239]", className)}>
+    <div role="img" aria-label={illustration ? `${alt} (illustration)` : alt} className={cn("relative overflow-hidden bg-gradient-to-br from-[#7a2160] via-[#6d1b52] to-[#4d1239]", className)}>
       {safe && <div aria-hidden className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url("${safe}")` }} />}
+      {illustration && <IllustrationBadge className="absolute right-2 top-2" />}
       {children}
     </div>
   );
