@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { isCredibleSlotPrice } from "@/lib/pricing/credible-slot-price";
 import {
   Card,
   CardContent,
@@ -255,6 +256,11 @@ export function VenuesList({ venues }: VenuesListProps) {
                       <p className="text-sm font-medium">
                         {formatINR(venue.pricePerSlot)}
                       </p>
+                      {!isCredibleSlotPrice(Number(venue.pricePerSlot)) && (
+                        <p className="text-xs font-medium text-amber-600">
+                          Placeholder — customers see &quot;Price on request&quot;
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
