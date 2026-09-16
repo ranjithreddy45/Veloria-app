@@ -23,7 +23,12 @@ function canManage(role?: string) {
 export async function getRateCard() {
   const u = await requireUser();
   if (!canRead(u?.role)) return [];
-  return prisma.projectRateCard.findMany({ orderBy: [{ order: "asc" }, { label: "asc" }] });
+  const items = await prisma.projectRateCard.findMany({ orderBy: [{ order: "asc" }, { label: "asc" }] });
+  return items.map((i) => ({
+    ...i,
+    rate: Number(i.rate),
+    luxuryMinPerSqft: i.luxuryMinPerSqft != null ? Number(i.luxuryMinPerSqft) : null,
+  }));
 }
 
 // Idempotent seed from the capex-calc constants — the single source of truth

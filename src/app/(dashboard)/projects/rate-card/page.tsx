@@ -22,7 +22,7 @@ export default async function RateCardPage() {
         title="CapEx Rate Card"
         description="The standard Veloria build rates, luxury floors and trade durations that seed every venue's CapEx estimate — and the build timeline they imply."
       />
-      <RateCardManager items={items as never} canManage={canManage} />
+      <RateCardManager items={items} canManage={canManage} />
     </div>
   );
 }
