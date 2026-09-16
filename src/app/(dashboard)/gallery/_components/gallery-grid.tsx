@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition, useMemo } from "react";
+import React, { useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import {
   ImageIcon,
@@ -81,16 +81,20 @@ type Venue = {
 interface GalleryGridProps {
   data: GalleryItem[];
   venues: Venue[];
+  /** Hall to show first, from ?venue=<id> — the "Add photos" link on Settings → Venues. */
+  initialVenueId?: string | null;
 }
 
 // ============================================================
 // Gallery Grid Component
 // ============================================================
 
-export function GalleryGrid({ data, venues }: GalleryGridProps) {
+export function GalleryGrid({ data, venues, initialVenueId = null }: GalleryGridProps) {
   const [search, setSearch] = useState("");
   const [mediaTypeFilter, setMediaTypeFilter] = useState<string>("all");
-  const [venueFilter, setVenueFilter] = useState<string>("all");
+  const [venueFilter, setVenueFilter] = useState<string>(
+    initialVenueId && venues.some((v) => v.id === initialVenueId) ? initialVenueId : "all"
+  );
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);

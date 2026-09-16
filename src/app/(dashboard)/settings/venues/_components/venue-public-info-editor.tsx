@@ -7,6 +7,7 @@
 // ============================================================
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ExternalLink, Loader2, MapPin, Pencil } from "lucide-react";
@@ -68,7 +69,14 @@ function toValues(venue: VenuePublicInfoRow): Values {
   return Object.fromEntries(VENUE_PUBLIC_INFO_FIELDS.map((field) => [field, venue[field] ?? ""])) as Values;
 }
 
-export function VenuePublicInfoEditor({ venues }: { venues: VenuePublicInfoRow[] }) {
+export function VenuePublicInfoEditor({
+  venues,
+  photoCounts = {},
+}: {
+  venues: VenuePublicInfoRow[];
+  /** Photos each hall shows in the customer app, by venue id. */
+  photoCounts?: Record<string, number>;
+}) {
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const editing = venues.find((v) => v.id === editingId) ?? null;
 
@@ -90,6 +98,7 @@ export function VenuePublicInfoEditor({ venues }: { venues: VenuePublicInfoRow[]
           <ul className="divide-y divide-border/70">
             {venues.map((venue) => {
               const filled = countFilledPublicInfo(venue);
+              const photos = photoCounts[venue.id] ?? 0;
               const missing = VENUE_PUBLIC_INFO_FIELDS.filter((field) => !venue[field]?.trim());
               return (
                 <li key={venue.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
@@ -111,6 +120,19 @@ export function VenuePublicInfoEditor({ venues }: { venues: VenuePublicInfoRow[]
                       {missing.length > 0 && missing.length < VENUE_PUBLIC_INFO_FIELDS.length
                         ? ` · hidden: ${missing.map((field) => VENUE_PUBLIC_INFO_LABELS[field].toLowerCase()).join(", ")}`
                         : ""}
+                    </p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                      <span>
+                        {photos === 0
+                          ? "No photos yet — the customer app shows an illustration for this hall"
+                          : `${photos} photo${photos === 1 ? "" : "s"} shown to customers`}
+                      </span>
+                      <Link
+                        href={`/gallery?venue=${venue.id}`}
+                        className="font-medium text-primary underline-offset-2 hover:underline"
+                      >
+                        {photos === 0 ? "Add photos" : "Manage photos"}
+                      </Link>
                     </p>
                   </div>
                   <Button variant="outline" size="sm" onClick={() => setEditingId(venue.id)}>
