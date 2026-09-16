@@ -72,8 +72,8 @@
   .vg-gutter .vg-split .vg-bleed { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
 }
 
-.vg-glass { background: rgba(243, 240, 236, .86); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border-top: .5px solid rgba(0, 0, 0, .08); }
-.vg-glass-white { background: rgba(255, 255, 255, .86); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border-top: .5px solid rgba(0, 0, 0, .1); }
+.vg-glass { background: rgba(243, 240, 236, .86); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); border-top: .5px solid rgba(0, 0, 0, .08); }
+.vg-glass-white { background: rgba(255, 255, 255, .86); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); border-top: .5px solid rgba(0, 0, 0, .1); }
 .vg-divide > * + * { border-top: .5px solid rgba(60, 60, 67, .12); }
 
 .vg-press { transition: transform .12s ease; }
