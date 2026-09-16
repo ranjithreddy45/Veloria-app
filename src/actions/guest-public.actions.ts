@@ -4,9 +4,20 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPublicContact } from "@/lib/public/business-contact";
 import type { YieldRuleInput } from "@/lib/pricing/yield-engine";
-import { addDaysISO, FROM_PRICE_WINDOW_DAYS, hallFromPrice, istTodayISO, type HallDemandSignal } from "@/app/(guest)/app/venues/_lib/hall-pricing";
+import { addDaysISO, FROM_PRICE_WINDOW_DAYS, hallFromPrice, istTodayISO, type HallDemandSignal, type HallPricingInputs } from "@/app/(guest)/app/venues/_lib/hall-pricing";
 import { resolveHallAddress, safeHttpUrl, textOrNull, type ResolvedAddress } from "@/app/(guest)/app/venues/_lib/hall-info";
 import { videoTarget, type VideoTarget } from "@/app/(guest)/app/venues/_lib/video";
+import {
+  HALL_CAP_BANDS,
+  capacityInBand,
+  hallMatchesSearch,
+  parseHallSearch,
+  topAmenities,
+  type HallAvailability,
+  type HallSearch,
+} from "@/app/(guest)/app/venues/_lib/hall-search";
+import { getStorefrontVenues } from "@/actions/storefront.actions";
+import { getPublicAvailabilityGrid } from "@/actions/public-hold.actions";
 
 // ============================================================
 // Guest app — PUBLIC reads (no session). Everything here is customer-safe by
@@ -186,100 +197,111 @@ export interface GuestHallPrice {
 const SIGNAL_RULE_TYPES = new Set(["OCCUPANCY", "DEMAND"]);
 
 /**
+ * The rows the team's price simulator (calculateYieldPrice) prices a hall
+ * from: Venue.pricePerSlot, the hall's active PricingRules, its
+ * VenueDemandSignals and the default RatePlan. Loaded once and handed to
+ * hallFromPrice, so every customer-facing price — the "from" figure and a
+ * searched date's figure — comes out of the one engine with one set of rows.
+ */
+async function loadHallPricingInputs(venueIds?: string[]): Promise<HallPricingInputs[]> {
+  const ids = cleanIds(venueIds);
+  if (ids && ids.length === 0) return [];
+  const venues = await prisma.venue.findMany({
+    where: { isActive: true, ...(ids ? { id: { in: ids } } : {}) },
+    select: { id: true, name: true, pricePerSlot: true },
+  });
+  if (venues.length === 0) return [];
+  const hallIds = venues.map((v) => v.id);
+  const startISO = istTodayISO();
+  const endISO = addDaysISO(startISO, FROM_PRICE_WINDOW_DAYS);
+
+  const [rules, plans] = await Promise.all([
+    prisma.pricingRule.findMany({
+      where: { venueId: { in: hallIds }, isActive: true },
+      orderBy: { priority: "asc" },
+      select: { id: true, name: true, ruleType: true, multiplier: true, conditions: true, startDate: true, endDate: true, dayOfWeek: true, minDaysAhead: true, venueId: true },
+    }),
+    // The exact default-plan lookup calculateYieldPrice runs, hall by hall, so both always pick the same plan.
+    Promise.all(
+      venues.map((v) =>
+        prisma.ratePlan.findFirst({
+          where: { OR: [{ venueId: v.id, isDefault: true, isActive: true }, { venueId: null, isDefault: true, isActive: true }] },
+          orderBy: { venueId: "desc" },
+          select: { name: true, perGuestRate: true },
+        })
+      )
+    ),
+  ]);
+
+  // A signal only changes a price through its manual override, or through an OCCUPANCY / DEMAND rule.
+  const readsSignals = [...new Set(rules.filter((r) => SIGNAL_RULE_TYPES.has(r.ruleType)).map((r) => r.venueId))];
+  const signals = await prisma.venueDemandSignal.findMany({
+    where: {
+      venueId: { in: hallIds },
+      date: { gte: new Date(`${startISO}T00:00:00.000Z`), lt: new Date(`${endISO}T00:00:00.000Z`) },
+      OR: [{ manualMultiplier: { not: null } }, ...(readsSignals.length > 0 ? [{ venueId: { in: readsSignals } }] : [])],
+    },
+    select: { venueId: true, date: true, timeSlot: true, occupancyPct: true, demandScore: true, manualMultiplier: true, source: true },
+  });
+
+  const rulesByHall = new Map<string, YieldRuleInput[]>();
+  for (const r of rules) {
+    const list = rulesByHall.get(r.venueId) ?? [];
+    list.push({
+      id: r.id,
+      name: r.name,
+      ruleType: r.ruleType,
+      multiplier: Number(r.multiplier),
+      conditions: r.conditions,
+      startDate: r.startDate,
+      endDate: r.endDate,
+      dayOfWeek: r.dayOfWeek,
+      minDaysAhead: r.minDaysAhead,
+    });
+    rulesByHall.set(r.venueId, list);
+  }
+  const signalsByHall = new Map<string, HallDemandSignal[]>();
+  for (const s of signals) {
+    const list = signalsByHall.get(s.venueId) ?? [];
+    list.push({
+      dateISO: s.date.toISOString().slice(0, 10),
+      timeSlot: s.timeSlot,
+      occupancyPct: Number(s.occupancyPct),
+      demandScore: Number(s.demandScore),
+      manualMultiplier: s.manualMultiplier !== null ? Number(s.manualMultiplier) : null,
+      source: s.source,
+    });
+    signalsByHall.set(s.venueId, list);
+  }
+
+  return venues.map((v, i) => {
+    const plan = plans[i];
+    return {
+      venueId: v.id,
+      venueName: v.name,
+      basePrice: Number(v.pricePerSlot),
+      rules: rulesByHall.get(v.id) ?? [],
+      signals: signalsByHall.get(v.id) ?? [],
+      ratePlan: plan ? { name: plan.name, perGuestRate: Number(plan.perGuestRate) } : null,
+    };
+  });
+}
+
+/**
  * "From" prices for halls, from the same engine and the same rows as the
- * team's price simulator (calculateYieldPrice): Venue.pricePerSlot, the hall's
- * active PricingRules, its VenueDemandSignals and the default RatePlan, run
- * through computeYieldPrice for every date and slot a customer can book. Only
- * the resulting figures are returned — never the rules or multipliers.
+ * team's price simulator (calculateYieldPrice), run through computeYieldPrice
+ * for every date and slot a customer can book. Only the resulting figures are
+ * returned — never the rules or multipliers.
  */
 export async function getGuestHallPrices(venueIds?: string[]): Promise<Record<string, GuestHallPrice>> {
   try {
-    const ids = cleanIds(venueIds);
-    if (ids && ids.length === 0) return {};
-    const venues = await prisma.venue.findMany({
-      where: { isActive: true, ...(ids ? { id: { in: ids } } : {}) },
-      select: { id: true, name: true, pricePerSlot: true },
-    });
-    if (venues.length === 0) return {};
-    const hallIds = venues.map((v) => v.id);
+    const inputs = await loadHallPricingInputs(venueIds);
     const startISO = istTodayISO();
-    const endISO = addDaysISO(startISO, FROM_PRICE_WINDOW_DAYS);
-
-    const [rules, plans] = await Promise.all([
-      prisma.pricingRule.findMany({
-        where: { venueId: { in: hallIds }, isActive: true },
-        orderBy: { priority: "asc" },
-        select: { id: true, name: true, ruleType: true, multiplier: true, conditions: true, startDate: true, endDate: true, dayOfWeek: true, minDaysAhead: true, venueId: true },
-      }),
-      // The exact default-plan lookup calculateYieldPrice runs, hall by hall, so both always pick the same plan.
-      Promise.all(
-        venues.map((v) =>
-          prisma.ratePlan.findFirst({
-            where: { OR: [{ venueId: v.id, isDefault: true, isActive: true }, { venueId: null, isDefault: true, isActive: true }] },
-            orderBy: { venueId: "desc" },
-            select: { name: true, perGuestRate: true },
-          })
-        )
-      ),
-    ]);
-
-    // A signal only changes a price through its manual override, or through an OCCUPANCY / DEMAND rule.
-    const readsSignals = [...new Set(rules.filter((r) => SIGNAL_RULE_TYPES.has(r.ruleType)).map((r) => r.venueId))];
-    const signals = await prisma.venueDemandSignal.findMany({
-      where: {
-        venueId: { in: hallIds },
-        date: { gte: new Date(`${startISO}T00:00:00.000Z`), lt: new Date(`${endISO}T00:00:00.000Z`) },
-        OR: [{ manualMultiplier: { not: null } }, ...(readsSignals.length > 0 ? [{ venueId: { in: readsSignals } }] : [])],
-      },
-      select: { venueId: true, date: true, timeSlot: true, occupancyPct: true, demandScore: true, manualMultiplier: true, source: true },
-    });
-
-    const rulesByHall = new Map<string, YieldRuleInput[]>();
-    for (const r of rules) {
-      const list = rulesByHall.get(r.venueId) ?? [];
-      list.push({
-        id: r.id,
-        name: r.name,
-        ruleType: r.ruleType,
-        multiplier: Number(r.multiplier),
-        conditions: r.conditions,
-        startDate: r.startDate,
-        endDate: r.endDate,
-        dayOfWeek: r.dayOfWeek,
-        minDaysAhead: r.minDaysAhead,
-      });
-      rulesByHall.set(r.venueId, list);
-    }
-    const signalsByHall = new Map<string, HallDemandSignal[]>();
-    for (const s of signals) {
-      const list = signalsByHall.get(s.venueId) ?? [];
-      list.push({
-        dateISO: s.date.toISOString().slice(0, 10),
-        timeSlot: s.timeSlot,
-        occupancyPct: Number(s.occupancyPct),
-        demandScore: Number(s.demandScore),
-        manualMultiplier: s.manualMultiplier !== null ? Number(s.manualMultiplier) : null,
-        source: s.source,
-      });
-      signalsByHall.set(s.venueId, list);
-    }
-
     const out: Record<string, GuestHallPrice> = {};
-    venues.forEach((v, i) => {
-      const plan = plans[i];
-      const price = hallFromPrice(
-        {
-          venueId: v.id,
-          venueName: v.name,
-          basePrice: Number(v.pricePerSlot),
-          rules: rulesByHall.get(v.id) ?? [],
-          signals: signalsByHall.get(v.id) ?? [],
-          ratePlan: plan ? { name: plan.name, perGuestRate: Number(plan.perGuestRate) } : null,
-        },
-        { startISO }
-      );
-      out[v.id] = { venueId: v.id, fromSlotPrice: price.fromSlotPrice, perGuestRate: price.perGuestRate };
-    });
+    for (const input of inputs) {
+      const price = hallFromPrice(input, { startISO });
+      out[input.venueId] = { venueId: input.venueId, fromSlotPrice: price.fromSlotPrice, perGuestRate: price.perGuestRate };
+    }
     return out;
   } catch {
     return {};
@@ -527,5 +549,211 @@ export async function getGuestPeakDates(fromISO: string, toISO: string, venueId?
     return rows.map((r) => ({ dateISO: r.date.toISOString().slice(0, 10), label: r.label, type: r.type }));
   } catch {
     return [];
+  }
+}
+
+// ------------------------------------------------------------ the halls feed
+//
+// Everything the discovery screen (/app/venues) shows about every hall, in one
+// read, from the records the team already keeps: the published halls, their
+// own photos, the team's pricing engine, approved public reviews, and — when a
+// date is searched — the SAME availability the customer booking flow enforces
+// (lapsed unpaid holds free their date; blackouts block). Nothing is invented:
+// a hall with no photo, no price, no address or no review simply carries null,
+// and the screen says so.
+
+/** A hall's own photos that ride along in the card's carousel. */
+const FEED_PHOTOS_PER_HALL = 5;
+/** How many amenity chips the feed offers, taken from what the halls really list. */
+const FEED_AMENITY_CHIPS = 6;
+/** The part-day slots a customer can book; FULL_DAY is free only when all three are. */
+const PART_DAY_SLOTS = ["MORNING", "AFTERNOON", "EVENING"] as const;
+
+export interface GuestHallFeedItem {
+  id: string;
+  name: string;
+  description: string | null;
+  capacity: number;
+  amenities: string[];
+  /** Venue.publicAddress when the team has filled it in — never guessed from the hall's name. */
+  locality: string | null;
+  /** This hall's OWN published photos; empty when it has none (the card then shows a labelled illustration). */
+  photos: { url: string; title: string | null }[];
+  /** Lowest slot price the team's engine gives over the next twelve months; null = no usable price. */
+  priceFrom: number | null;
+  /** Per-guest rate the default rate plan adds (0 = none). */
+  perGuestRate: number;
+  /** Lowest slot price on the searched date; null when no date was searched, or there is no usable price. */
+  priceForDate: number | null;
+  /** Only ever set when a date was searched, and only from the booking rules. */
+  availability: HallAvailability | null;
+  /** Part-day slots still open on the searched date. */
+  freeSlots: string[];
+  /** Average of approved public reviews; null when the hall has none. */
+  rating: { rating: number; count: number } | null;
+}
+
+export interface GuestHallFeed {
+  /** The halls that match, free ones first when a date was searched. */
+  halls: GuestHallFeedItem[];
+  /** Every published hall, before any filter — the denominator in "3 of 11 spaces". */
+  totalPublished: number;
+  /** Amenity values the halls really list, most widely shared first. */
+  amenityOptions: string[];
+  /** Capacity-band keys at least one published hall falls into — so no chip leads nowhere. */
+  capacityOptions: string[];
+  /** The search actually applied: anything unreal in the request was dropped. */
+  applied: HallSearch;
+}
+
+/** Trimmed, de-duplicated amenity labels in the team's own spelling. */
+function cleanAmenities(list: readonly string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of list) {
+    if (typeof raw !== "string") continue;
+    const text = raw.trim().replace(/\s+/g, " ");
+    if (!text || seen.has(text.toLowerCase())) continue;
+    seen.add(text.toLowerCase());
+    out.push(text);
+  }
+  return out;
+}
+
+/**
+ * Each hall's own publicAddress. Deliberately NOT getGuestHallInfo's resolved
+ * address: that falls back to the venue-wide address, which would print the
+ * same line under every hall in the feed and read as eleven localities.
+ */
+async function loadHallLocalities(): Promise<Record<string, string>> {
+  try {
+    const rows = await prisma.venue.findMany({ where: { isActive: true }, select: { id: true, publicAddress: true } });
+    const out: Record<string, string> = {};
+    for (const r of rows) {
+      const text = textOrNull(r.publicAddress);
+      if (text) out[r.id] = text.replace(/\s+/g, " ");
+    }
+    return out;
+  } catch {
+    // The column may not exist in this database yet — a hall simply shows no location line.
+    return {};
+  }
+}
+
+/**
+ * FREE / PARTIAL / TAKEN per hall for one date, from getPublicAvailabilityGrid
+ * — the same public availability the hold flow re-checks inside its
+ * Serializable transaction, so the feed can never promise a date the booking
+ * screen refuses. When a slot is searched, the verdict is about that slot.
+ */
+async function loadHallAvailability(
+  dateISO: string,
+  slot: string | null
+): Promise<Record<string, { availability: HallAvailability; freeSlots: string[] }>> {
+  try {
+    const grid = await getPublicAvailabilityGrid(dateISO);
+    if (!grid.success) return {};
+    const out: Record<string, { availability: HallAvailability; freeSlots: string[] }> = {};
+    for (const row of grid.data) {
+      const free = new Set(row.slots.filter((s) => s.status === "FREE").map((s) => String(s.slot)));
+      const freeSlots = PART_DAY_SLOTS.filter((s) => free.has(s));
+      const availability: HallAvailability = slot
+        ? free.has(slot)
+          ? "FREE"
+          : "TAKEN"
+        : freeSlots.length === PART_DAY_SLOTS.length
+          ? "FREE"
+          : freeSlots.length > 0
+            ? "PARTIAL"
+            : "TAKEN";
+      out[row.venueId] = { availability, freeSlots: [...freeSlots] };
+    }
+    return out;
+  } catch {
+    // Availability could not be read — say nothing rather than guess.
+    return {};
+  }
+}
+
+/**
+ * The halls feed. `search` is untrusted (this is a public action), so it is
+ * re-validated here and the search actually applied comes back with the
+ * results. Halls are never hidden because they are busy: a searched date sorts
+ * the free ones first and labels the rest.
+ */
+export async function getGuestHallFeed(search?: HallSearch | null): Promise<GuestHallFeed> {
+  const raw = (search ?? {}) as Partial<Record<keyof HallSearch, unknown>>;
+  const requested = parseHallSearch({ date: raw.dateISO, slot: raw.slot, guests: raw.guests, amenity: raw.amenity, cap: raw.cap });
+  try {
+    const [venues, ratings, photos, covers, pricing, localities, availability] = await Promise.all([
+      getStorefrontVenues(),
+      getGuestVenueRatings(),
+      getGuestPhotos({ limit: 80 }),
+      getGuestHallCovers(),
+      // A pricing failure must not empty the feed: those halls read "Price on request".
+      loadHallPricingInputs().catch(() => [] as HallPricingInputs[]),
+      loadHallLocalities(),
+      requested.dateISO
+        ? loadHallAvailability(requested.dateISO, requested.slot)
+        : Promise.resolve<Record<string, { availability: HallAvailability; freeSlots: string[] }>>({}),
+    ]);
+
+    const listed = venues.map((v) => ({ ...v, amenities: cleanAmenities(v.amenities) }));
+    const amenityOptions = topAmenities(listed, FEED_AMENITY_CHIPS);
+    // Re-read the amenity against what the halls really list, so an unknown one is dropped rather than filtering everything away.
+    const applied = parseHallSearch(
+      { date: raw.dateISO, slot: raw.slot, guests: raw.guests, amenity: raw.amenity, cap: raw.cap },
+      { knownAmenities: [...new Set(listed.flatMap((v) => v.amenities))] }
+    );
+
+    const pricingByHall = new Map(pricing.map((p) => [p.venueId, p]));
+    const photosByHall = new Map<string, { url: string; title: string | null }[]>();
+    for (const p of photos) {
+      if (!p.venueId) continue; // a gallery photo not attached to a hall belongs to no card
+      const list = photosByHall.get(p.venueId) ?? [];
+      if (list.length >= FEED_PHOTOS_PER_HALL) continue;
+      list.push({ url: p.url, title: p.title });
+      photosByHall.set(p.venueId, list);
+    }
+
+    const startISO = istTodayISO();
+    const items: GuestHallFeedItem[] = listed.map((v) => {
+      const inputs = pricingByHall.get(v.id) ?? null;
+      const from = inputs ? hallFromPrice(inputs, { startISO }) : null;
+      // The same engine and the same rows as the "from" figure, over a one-day window.
+      const onDate = inputs && applied.dateISO ? hallFromPrice(inputs, { startISO: applied.dateISO, days: 1 }) : null;
+      const own = photosByHall.get(v.id) ?? [];
+      const cover = covers[v.id];
+      const rating = ratings[v.id];
+      const slots = availability[v.id] ?? null;
+      return {
+        id: v.id,
+        name: v.name,
+        description: textOrNull(v.description),
+        capacity: v.capacity,
+        amenities: v.amenities,
+        locality: localities[v.id] ?? null,
+        // Its own photos; else the cover lookup, which asks hall by hall so a hall is never starved by another's gallery.
+        photos: own.length > 0 ? own : cover ? [{ url: cover, title: null }] : [],
+        priceFrom: from?.fromSlotPrice ?? null,
+        perGuestRate: from?.perGuestRate ?? 0,
+        priceForDate: onDate?.fromSlotPrice ?? null,
+        availability: slots?.availability ?? null,
+        freeSlots: slots?.freeSlots ?? [],
+        rating: rating && rating.count > 0 ? rating : null,
+      };
+    });
+
+    // Free first on a searched date; otherwise the order the team lists halls in (smallest first).
+    const rank = (i: GuestHallFeedItem) => (i.availability === "PARTIAL" ? 1 : i.availability === "TAKEN" ? 2 : 0);
+    const halls = items
+      .filter((i) => hallMatchesSearch(i, applied))
+      .sort((a, b) => rank(a) - rank(b) || a.capacity - b.capacity || a.name.localeCompare(b.name));
+
+    const capacityOptions = HALL_CAP_BANDS.filter((b) => items.some((i) => capacityInBand(i.capacity, b.key))).map((b) => b.key);
+
+    return { halls, totalPublished: items.length, amenityOptions, capacityOptions, applied };
+  } catch {
+    return { halls: [], totalPublished: 0, amenityOptions: [], capacityOptions: [], applied: requested };
   }
 }

@@ -1,23 +1,38 @@
 import Link from "next/link";
-import { NavLink } from "../_components/nav-transition";
-import { Bell, ChevronRight } from "lucide-react";
-import { getStorefrontVenues } from "@/actions/storefront.actions";
+import { Bell } from "lucide-react";
 import {
-  getGuestHallCovers,
-  getGuestHallPrices,
+  getGuestHallFeed,
   getGuestMostBookedVenueId,
   getGuestPeakDates,
   getGuestPhotos,
-  type GuestHallPrice,
 } from "@/actions/guest-public.actions";
 import { getGuestOverview } from "@/actions/guest-host.actions";
-import { VenueImage } from "../_components/venue-image";
 import { ContactChip } from "../_components/contact-chip";
-import { PrimaryButton, ProgressBar, Card, SectionTitle, Photo } from "../_components/ui";
-import { hallPriceText, inr, initials, toISODateIST } from "../_components/format";
-import { hallCover, teaserPhotos } from "../_components/stock";
-import { daysUntilEvent, formatIstDate } from "./event/_components/event-view";
+import { Card, Chip, Photo, PrimaryButton, SectionTitle } from "../_components/ui";
+import { initials, inr, toISODateIST } from "../_components/format";
+import { teaserPhotos } from "../_components/stock";
+import { formatIstDate } from "./event/_components/event-view";
 import { PlanLinks } from "./venues/_components/plan-links";
+import { HallSearchPill } from "./venues/_components/search-sheet";
+import { EMPTY_HALL_SEARCH, HALL_CAP_BANDS } from "./venues/_lib/hall-search";
+import { browseSubtitle, capacityRangeText } from "./_components/home-browse";
+import { browseHref } from "./_components/home-links";
+import { SpacesRail } from "./_components/spaces-rail";
+import { EventStrip, EventSummary, NextTaskRow } from "./_components/your-event";
+
+// ============================================================
+// The customer app's home screen — browse first.
+//
+// The screen opens on the spaces: a heading, the feed's own search (a date and
+// a party size), the halls themselves in a rail, then the size bands. A
+// visitor who has never spoken to us sees real halls without signing in or
+// scrolling.
+//
+// A host who already has a booking still reaches it in one tap — EventStrip
+// sits above the browse block, and the full summary (countdown, readiness,
+// next task) follows it below. A signed-out visitor is shown none of that
+// shell: every event block is gated on a booking that really exists.
+// ============================================================
 
 export const dynamic = "force-dynamic";
 
@@ -39,26 +54,21 @@ function greeting(name: string | null) {
 
 export default async function GuestHomePage() {
   const now = new Date();
-  const [venues, photos, mostBooked, peaks, ov] = await Promise.all([
-    getStorefrontVenues(),
-    getGuestPhotos({ limit: 3 }),
+  const todayISO = toISODateIST(now);
+  // The feed the halls screen itself renders — same halls, same photos, same
+  // prices — plus the signals the rail and the season row are ordered by.
+  const [feed, mostBooked, peaks, photos, ov] = await Promise.all([
+    getGuestHallFeed(),
     getGuestMostBookedVenueId(),
-    getGuestPeakDates(toISODateIST(now), toISODateIST(new Date(now.getTime() + 60 * 86400000))),
+    getGuestPeakDates(todayISO, toISODateIST(new Date(now.getTime() + 60 * 86400000))),
+    getGuestPhotos({ limit: 3 }),
     getGuestOverview(),
   ]);
-  const hero = venues.find((v) => v.id === mostBooked) ?? [...venues].sort((a, b) => b.capacity - a.capacity)[0] ?? null;
-  // The hero's picture and price come from the same sources as its hall page.
-  const [covers, prices] = await Promise.all([
-    hero ? getGuestHallCovers([hero.id]) : Promise.resolve<Record<string, string>>({}),
-    hero ? getGuestHallPrices([hero.id]) : Promise.resolve<Record<string, GuestHallPrice>>({}),
-  ]);
-  const heroCover = hero ? hallCover(covers[hero.id], hero.id) : null;
-  const heroPrice = hallPriceText(hero ? prices[hero.id] : null);
   // Real public photos; labelled illustrations appear only when none are published.
   const teaser = teaserPhotos(photos);
+  // Only the size bands a published hall really falls into.
+  const sizeBands = HALL_CAP_BANDS.filter((band) => feed.capacityOptions.includes(band.key));
   const b = ov?.booking ?? null;
-  // India calendar days, with the same helper the event screen uses, so both always show the same count.
-  const days = b ? daysUntilEvent(b.date, now) : 0;
 
   return (
     <div className="vg-rise flex flex-col gap-[22px] px-5 pt-[calc(var(--sat)+0.75rem)]">
@@ -79,62 +89,60 @@ export default async function GuestHomePage() {
         </div>
       </div>
 
-      {/* Editorial hero */}
-      <h1 className="-mt-1.5 font-editorial text-[30px] font-medium leading-[1.1] tracking-[-.018em] [text-wrap:pretty]">Your celebration, arranged with care.</h1>
-      {hero && heroCover && (
-        <NavLink href={`/app/venues/${hero.id}`} kind="push" className="relative block h-[360px] overflow-hidden rounded-[22px] shadow-[0_1px_2px_rgba(29,29,31,.06),0_28px_48px_-24px_rgba(109,27,82,.45)]">
-          <VenueImage seed={hero.id} alt={hero.name} name={hero.name} src={heroCover.src} illustration={heroCover.isStock} badgeClassName="right-3.5 top-3.5" priority className="h-full w-full" />
-          <div aria-hidden className="absolute inset-0 bg-[linear-gradient(180deg,rgba(29,29,31,0)_40%,rgba(29,29,31,.82)_100%)]" />
-          {mostBooked === hero.id && <span className="absolute left-3.5 top-3.5 rounded-full bg-[#fdf5f3]/[.92] px-2.5 py-1.5 text-[10.5px] font-bold uppercase tracking-[.08em] text-[#6d1b52] backdrop-blur">Most booked</span>}
-          <div className="absolute inset-x-0 bottom-0 p-[18px] text-white">
-            <div className="font-editorial text-[26px] font-semibold tracking-[-.01em]">{hero.name}</div>
-            <div className="mt-1 flex items-end justify-between gap-3">
-              <span className="text-detail text-white/80">Up to {hero.capacity.toLocaleString("en-IN")} guests</span>
-              <span className="text-right">
-                <span className="numeric block text-copy font-semibold">{heroPrice.main}</span>
-                {heroPrice.perGuest && <span className="block text-meta text-white/75">{heroPrice.perGuest}</span>}
-              </span>
-            </div>
-          </div>
-        </NavLink>
-      )}
-      <div className="vg-scroll-x vg-bleed -mt-1.5 pb-1">
-        {OCCASIONS.map((o) => (
-          <Link key={o} href={`/app/book?occasion=${encodeURIComponent(o)}`} className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-black/[.08] bg-white px-4 py-2.5 text-detail font-medium">{o.replace(" Party", "").replace(" Event", "")}</Link>
-        ))}
+      {/* A host's own event is one tap away, without pushing the halls off the screen. */}
+      {b && <EventStrip booking={b} now={now} />}
+
+      {/* ---- Browse. The screen opens here. ---- */}
+      <div className="-mt-1">
+        <h1 className="font-editorial text-[30px] font-medium leading-[1.1] tracking-[-.018em] [text-wrap:pretty]">Find your space.</h1>
+        <p className="mt-2 text-detail leading-[1.5] text-[#6e6e73]">{browseSubtitle(feed.totalPublished, capacityRangeText(feed.halls))}</p>
       </div>
 
+      {/* The feed's OWN search entry — same pill, same sheet, same availability
+          calendar — writing the search into /app/venues, so the date and party
+          size chosen here are the results that open. Home starts from an empty
+          search; it is not showing one in progress. Laid inline rather than
+          stuck under the status bar, which is the feed's job, not this one's. */}
+      {feed.totalPublished > 0 && (
+        <HallSearchPill
+          search={EMPTY_HALL_SEARCH}
+          amenityOptions={feed.amenityOptions}
+          // Inline here, so the pill drops the sticky header's frosted panel,
+          // its rule and the status-bar inset — it is a control on the page,
+          // not a bar over it.
+          className="relative z-auto border-b-0 bg-transparent px-0 pb-0 pt-0 backdrop-blur-none backdrop-saturate-100"
+        />
+      )}
+
+      <SpacesRail halls={feed.halls} mostBookedId={mostBooked} total={feed.totalPublished} />
+
+      {/* Straight into the filtered feed — the feed's own capacity bands, so a
+          chip here and a chip there filter the same halls. Only bands a hall
+          actually falls into are offered (capacityOptions), so no shortcut
+          leads to an empty screen. */}
+      {sizeBands.length > 1 && (
+        <div className="-mt-2.5">
+          <div className="text-meta font-semibold uppercase tracking-[.08em] text-[#8a8a8e]">Browse by guest count</div>
+          <nav aria-label="Browse spaces by guest count" className="vg-scroll-x vg-bleed mt-2.5 pb-1">
+            {sizeBands.map((band) => (
+              <Chip key={band.key} href={browseHref({ cap: band.key })} className="min-h-11">{band.label}</Chip>
+            ))}
+          </nav>
+        </div>
+      )}
+
+      {/* ---- Everything the screen already carried, now below the browsing. ---- */}
+
       {/* Your event — only for a signed-in host with a booking */}
-      {b && (
-        <NavLink href="/app/event" kind="push" className="vg-hero vg-press block rounded-[22px] p-5 text-left">
-          <div className="text-[10.5px] font-semibold uppercase tracking-[.12em] text-[#e8b631]">Your event</div>
-          <div className="mt-1.5 font-editorial text-[24px] font-semibold tracking-[-.01em]">{b.eventName}</div>
-          <div className="mt-1 text-detail text-[#fdf5f3]/75">{formatIstDate(b.date)} · {b.venueName}</div>
-          <div className="mt-[18px] flex items-end justify-between">
-            <div>
-              <div className="numeric text-[42px] font-semibold leading-none tracking-[-.02em]">{days === 0 ? "Today" : Math.abs(days)}</div>
-              <div className="mt-1 text-meta text-[#fdf5f3]/75">{days === 0 ? "is your event day" : days > 0 ? `day${days === 1 ? "" : "s"} to go` : `day${days === -1 ? "" : "s"} ago`}</div>
-            </div>
-            {ov?.readiness != null && <div className="w-[130px] text-right"><div className="text-meta text-[#fdf5f3]/75">Readiness {ov.readiness}%</div><ProgressBar pct={ov.readiness} className="mt-1.5 h-1" track="bg-white/20" fill="bg-[#e8b631]" /></div>}
-          </div>
-        </NavLink>
-      )}
-      {ov?.nextTask && (
-        <NavLink href="/app/event/checklist" kind="push" className="vg-card vg-press flex items-center gap-3.5 rounded-[18px] px-4 py-3.5">
-          <span className="flex size-12 shrink-0 flex-col items-center justify-center rounded-[14px] bg-[#faf3e1]">
-            {ov.nextTask.dueDate ? <><span className="text-[10px] font-bold tracking-[.06em] text-[#b88513]">{formatIstDate(ov.nextTask.dueDate, { month: "short" }).toUpperCase()}</span><span className="numeric text-[19px] font-semibold leading-none">{formatIstDate(ov.nextTask.dueDate, { day: "numeric" })}</span></> : <span className="text-[10px] font-bold text-[#b88513]">NEXT</span>}
-          </span>
-          <span className="min-w-0 flex-1"><span className="block text-meta font-semibold uppercase tracking-[.08em] text-[#b88513]">Next up</span><span className="mt-0.5 block truncate text-body font-semibold">{ov.nextTask.title}</span><span className="block text-meta text-[#6e6e73]">{ov.openTasks} task{ov.openTasks === 1 ? "" : "s"} still open</span></span>
-          <ChevronRight className="size-5 text-[#c7c7cc]" />
-        </NavLink>
-      )}
+      {b && <EventSummary booking={b} readiness={ov?.readiness ?? null} now={now} />}
+      {b && ov?.nextTask && <NextTaskRow task={ov.nextTask} openTasks={ov.openTasks} />}
 
       {/* This season — only what is true */}
       <div>
         <SectionTitle title="This season" action={{ label: "All packages", href: "/app/packages" }} />
         <div className="vg-scroll-x vg-bleed mt-3 gap-2.5 pb-1.5">
           {peaks.length > 0 && (
-            <Link href={hero ? `/app/venues/${hero.id}` : "/app/venues"} className="vg-hero flex min-h-[120px] w-[220px] shrink-0 flex-col justify-between rounded-[18px] p-4">
+            <Link href={browseHref({ dateISO: peaks[0].dateISO })} className="vg-hero flex min-h-[120px] w-[220px] shrink-0 flex-col justify-between rounded-[18px] p-4">
               <span className="text-[10.5px] font-bold uppercase tracking-[.1em] opacity-75">Auspicious dates</span>
               <span><span className="block font-editorial text-[19px] font-semibold leading-[1.15]">{peaks.length} muhurtham date{peaks.length === 1 ? "" : "s"} in the next 60 days</span><span className="mt-1 block text-meta opacity-80">Next: {formatIstDate(`${peaks[0].dateISO}T00:00:00.000Z`)} · {peaks[0].label}</span></span>
             </Link>
@@ -154,6 +162,11 @@ export default async function GuestHomePage() {
       <div>
         <SectionTitle title="Plan your visit" />
         <PlanLinks className="mt-3" venueId={b?.venueId ?? null} eventType={b?.eventType ?? null} />
+        <nav aria-label="Start a reservation by occasion" className="vg-scroll-x vg-bleed mt-3 pb-1">
+          {OCCASIONS.map((o) => (
+            <Link key={o} href={`/app/book?occasion=${encodeURIComponent(o)}`} className="inline-flex min-h-11 shrink-0 items-center rounded-full border border-black/[.08] bg-white px-4 py-2.5 text-detail font-medium">{o.replace(" Party", "").replace(" Event", "")}</Link>
+          ))}
+        </nav>
       </div>
 
       {/* Gallery teaser — real photos; labelled illustrations only when none are published */}

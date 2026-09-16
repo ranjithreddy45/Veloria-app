@@ -69,7 +69,7 @@ export function GhostButton({ children, href, className, onClick, type = "button
 /** Selectable pill — plum when active. */
 export function Chip({ children, active, href, onClick, className }: { children: React.ReactNode; active?: boolean; href?: string; onClick?: () => void; className?: string }) {
   const cls = cn(
-    "inline-flex min-h-10 shrink-0 items-center rounded-full border px-3.5 py-2 text-detail font-semibold transition-colors",
+    "inline-flex min-h-11 shrink-0 items-center rounded-full border px-3.5 py-2 text-detail font-semibold transition-colors",
     active ? "border-[#6d1b52] bg-[#6d1b52] text-[#fdf5f3]" : "border-black/[.08] bg-white text-[#1d1d1f]",
     className
   );

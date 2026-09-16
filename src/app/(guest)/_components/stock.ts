@@ -37,6 +37,11 @@ const HALL_SETS: { cover: StockKey; shots: StockKey[] }[] = [
   { cover: "chandelier", shots: ["banquet", "stage", "chairs", "confetti"] },
   { cover: "stage", shots: ["tents", "entrance", "banquet", "dance"] },
   { cover: "banquet", shots: ["chairs", "tables", "chandelier", "flowers"] },
+  { cover: "arch", shots: ["flowers", "jasmine", "entrance", "chairs"] },
+  { cover: "entrance", shots: ["arch", "chandelier", "banquet", "tables"] },
+  { cover: "tents", shots: ["terrace", "tentnight", "dance", "flowers"] },
+  { cover: "dance", shots: ["confetti", "stage", "tentnight", "chairs"] },
+  { cover: "welcome", shots: ["orchid", "jasmine", "flowers", "tables"] },
 ];
 
 function hash(s: string): number {
