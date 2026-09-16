@@ -131,6 +131,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { Skeleton } from "@/components/ui/skeleton";
+import React from "react";
 
 // ============================================================
 // Icon map: maps string icon names from nav config to components
@@ -325,12 +326,13 @@ const ROLE_LABELS: Record<string, string> = {
 function SidebarNavItem({
   item,
   isActive,
+  onNavigate,
 }: {
   item: NavItem;
   isActive: boolean;
+  onNavigate: (href: string) => void;
 }) {
   const Icon = getIcon(item.icon);
-  const closeDrawer = useCloseDrawerOnNavigate();
 
   return (
     <SidebarMenuItem>
@@ -344,10 +346,10 @@ function SidebarNavItem({
           "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
           "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
           isActive &&
-            "bg-primary font-semibold text-primary-foreground shadow-[0_1px_2px_oklch(0.4_0.12_352/0.22)] hover:bg-primary hover:text-primary-foreground"
+          "data-[active=true]:bg-primary data-[active=true]:font-semibold data-[active=true]:text-primary-foreground shadow-[0_1px_2px_oklch(0.4_0.12_352/0.22)] data-[active=true]:hover:bg-primary data-[active=true]:hover:text-primary-foreground"
         )}
       >
-        <Link href={item.href} onClick={closeDrawer}>
+        <Link href={item.href} onClick={() => onNavigate(item.href)}>
           <span
             className={cn(
               "flex size-6 shrink-0 items-center justify-center transition-colors duration-200",
@@ -372,65 +374,66 @@ function SidebarNavItem({
 function SidebarCollapsibleItem({
   item,
   pathname,
+  onNavigate,
 }: {
   item: NavItem;
   pathname: string;
+  onNavigate: (href: string) => void;
 }) {
   const Icon = getIcon(item.icon);
   const isGroupActive = pathname.startsWith(item.href);
-  const closeDrawer = useCloseDrawerOnNavigate();
 
   return (
-      <Collapsible defaultOpen={isGroupActive} className="group/collapsible">
-        <SidebarMenuItem>
-          <CollapsibleTrigger asChild>
-            <SidebarMenuButton
-              tooltip={item.title}
-              className={cn(
-                "group/nav rounded-xl px-2 font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
-                NAV_ROW_TOUCH,
-                "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-                "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
-                isGroupActive &&
-                  "bg-primary/[0.07] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.14)]"
-              )}
-            >
-              <span className={cn("flex size-6 shrink-0 items-center justify-center transition-colors duration-200", isGroupActive ? "text-primary" : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-foreground")}>
-                <Icon className="size-[18px]" strokeWidth={2} />
-              </span>
-              <span className={cn(isGroupActive && "tracking-[-0.01em]")}>{item.title}</span>
-              <ChevronRight className="ml-auto size-3.5 text-sidebar-foreground/40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-            </SidebarMenuButton>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <SidebarMenuSub className="border-sidebar-border/40">
-              {item.children?.map((child) => {
-                const ChildIcon = getIcon(child.icon);
-                const isChildActive = pathname === child.href;
-                return (
-                  <SidebarMenuSubItem key={child.href}>
-                    <SidebarMenuSubButton
-                      asChild
-                      isActive={isChildActive}
-                      className={cn(
-                        "rounded-lg text-sidebar-foreground/70 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
-                        NAV_SUBROW_TOUCH,
-                        "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-                        isChildActive && "bg-primary/[0.11] font-semibold text-primary shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.16)] hover:bg-primary/[0.14] hover:text-primary"
-                      )}
-                    >
-                      <Link href={child.href} onClick={closeDrawer}>
-                        <ChildIcon className={cn("size-3.5", isChildActive ? "text-primary" : "text-sidebar-foreground/50")} />
-                        <span>{child.title}</span>
-                      </Link>
-                    </SidebarMenuSubButton>
-                  </SidebarMenuSubItem>
-                );
-              })}
-            </SidebarMenuSub>
-          </CollapsibleContent>
-        </SidebarMenuItem>
-      </Collapsible>
+    <Collapsible defaultOpen={isGroupActive} className="group/collapsible">
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton
+            tooltip={item.title}
+            className={cn(
+              "group/nav rounded-xl px-2 font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+              NAV_ROW_TOUCH,
+              "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+              "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
+              isGroupActive &&
+              "bg-primary/[0.07] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.14)]"
+            )}
+          >
+            <span className={cn("flex size-6 shrink-0 items-center justify-center transition-colors duration-200", isGroupActive ? "text-primary" : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-foreground")}>
+              <Icon className="size-[18px]" strokeWidth={2} />
+            </span>
+            <span className={cn(isGroupActive && "tracking-[-0.01em]")}>{item.title}</span>
+            <ChevronRight className="ml-auto size-3.5 text-sidebar-foreground/40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenuSub className="border-sidebar-border/40">
+            {item.children?.map((child) => {
+              const ChildIcon = getIcon(child.icon);
+              const isChildActive = pathname === child.href;
+              return (
+                <SidebarMenuSubItem key={child.href}>
+                  <SidebarMenuSubButton
+                    asChild
+                    isActive={isChildActive}
+                    className={cn(
+                      "rounded-lg text-sidebar-foreground/70 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+                      NAV_SUBROW_TOUCH,
+                      "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                      isChildActive && "bg-primary/[0.11] font-semibold text-primary shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.16)] hover:bg-primary/[0.14] hover:text-primary"
+                    )}
+                  >
+                    <Link href={child.href} onClick={() => onNavigate(child.href)}>
+                      <ChildIcon className={cn("size-3.5", isChildActive ? "text-primary" : "text-sidebar-foreground/50")} />
+                      <span>{child.title}</span>
+                    </Link>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              );
+            })}
+          </SidebarMenuSub>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
   );
 }
 
@@ -462,7 +465,22 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { user, isLoading } = useCurrentUser();
   const { permissions } = usePermissions();
-  const closeDrawer = useCloseDrawerOnNavigate();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const [optimisticPath, setOptimisticPath] = React.useState<string | null>(null);
+
+  const handleNavigate = useCallback(
+    (href: string) => {
+      setOptimisticPath(href);
+      if (isMobile) setOpenMobile(false);
+    },
+    [isMobile, setOpenMobile]
+  );
+
+  React.useEffect(() => {
+    setOptimisticPath(null);
+  }, [pathname]);
+
+  const currentPath = optimisticPath ?? pathname;
 
   // Filter navigation based on user permissions
   const filteredNavigation = filterNavigationByPermissions(
@@ -480,17 +498,11 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-material-sidebar">
-      {/* Header with logo.
-          Safe-area top: installed as a PWA the drawer runs edge-to-edge with no
-          browser chrome, so without this the wordmark sits under the status bar
-          / notch. Written as calc(base + inset) rather than the `pad-safe-top`
-          utility because that utility REPLACES padding-top and would drop the
-          14px of breathing room the desktop sidebar needs (--sat is 0px in a
-          browser, so desktop is untouched). */}
+      {/* Header with logo. */}
       <SidebarHeader className="px-3 pb-3.5 pt-[calc(0.875rem+max(var(--sat),0px))]">
         <Link
           href="/dashboard"
-          onClick={closeDrawer}
+          onClick={() => handleNavigate("/dashboard")}
           className="group/brand flex items-center gap-2.5 rounded-xl transition-all duration-200 hover:opacity-95 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           {/* Collapsed (icon-only) sidebar — compact mark */}
@@ -522,40 +534,29 @@ export function AppSidebar() {
         <div className="divider-fade mt-3 group-data-[collapsible=icon]:hidden" />
       </SidebarHeader>
 
-      {/* Navigation.
-          `overscroll-contain` stops a flick at the end of this ~80-item list
-          from chaining into the page behind the drawer (which on iOS shows as
-          the whole app rubber-banding under the overlay). */}
+      {/* Navigation. */}
       <SidebarContent className="overscroll-contain px-2">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               {(() => {
                 let prevSection: string | undefined;
-                // Compared against EVERY band already emitted, not just the
-                // previous item's. The old `section !== prevSection` test meant
-                // a band that reappeared later in the nav printed its heading a
-                // second time — the sidebar showed "SALES & CRM" twice. A
-                // heading is a promise that everything under it belongs
-                // together; printing it twice breaks that promise.
                 const seenSections = new Set<string>();
                 return filteredNavigation.map((item) => {
                   const section = SECTIONS[item.href];
                   const showHeader = !!section && !seenSections.has(section);
                   if (section) seenSections.add(section);
-                  // Each item's icon-tile hue follows the section it belongs to
-                  // (items that don't start a section inherit the running one).
                   const effectiveSection = section ?? prevSection;
                   if (section) prevSection = section;
 
                   const node =
                     item.children && item.children.length > 0 ? (
-                      <SidebarCollapsibleItem item={item} pathname={pathname} />
+                      <SidebarCollapsibleItem item={item} pathname={currentPath} onNavigate={handleNavigate} />
                     ) : (
                       <SidebarNavItem
                         item={item}
-                        isActive={pathname === item.href || pathname.startsWith(item.href + "/")}
-                       
+                        isActive={currentPath === item.href || currentPath.startsWith(item.href + "/")}
+                        onNavigate={handleNavigate}
                       />
                     );
 
@@ -584,7 +585,7 @@ export function AppSidebar() {
             attendance check-in happens on mobile. */}
         <Link
           href="/get-app"
-          onClick={closeDrawer}
+          onClick={() => handleNavigate("/get-app")}
           className="flex min-h-11 items-center gap-2.5 rounded-xl px-2.5 py-2 text-body font-medium text-sidebar-foreground/70 transition-colors duration-150 hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0 md:min-h-0 md:text-detail"
           title="Get the app on your phone"
         >
