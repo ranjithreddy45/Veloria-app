@@ -867,6 +867,14 @@ model Venue {
   pricePerSlot  Decimal  @db.Decimal(10, 2)
   amenities     String[]
   isActive      Boolean  @default(true)
+  // What kind of property this is, which is what decides the GST rate. A 4- or
+  // 5-star hotel is a "specified premises" under GST (it let rooms above the
+  // ₹7,500/night threshold), so its banquet and catering package carries 18%
+  // with input credit, while an ordinary banquet hall or lawn is 5% without it.
+  // Stored as a plain string, not an enum, so adding a category later needs no
+  // migration — the accepted values live in src/lib/sales/property-type.ts.
+  propertyType String?
+
   // In-house catering requirement: some halls (e.g. HHI) don't charge hall rent
   // but require food to be purchased from their own caterer. Surfaces an advisory
   // on the quote so the correct in-house food vendor is used.

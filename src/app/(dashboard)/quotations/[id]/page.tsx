@@ -45,6 +45,20 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
         name: true,
         inHouseCateringRequired: true,
         inHouseCateringNote: true,
+        // Needed by the editable calculator so a draft reopened here shows the
+        // same GST picker the new-quotation screen does.
+        taxSlabs: {
+          where: { isActive: true },
+          orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+          select: {
+            id: true,
+            name: true,
+            cgstRate: true,
+            sgstRate: true,
+            igstRate: true,
+            isDefault: true,
+          },
+        },
       },
       orderBy: { name: "asc" },
     }),

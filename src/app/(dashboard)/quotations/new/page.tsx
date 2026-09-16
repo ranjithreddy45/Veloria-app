@@ -42,6 +42,20 @@ export default async function NewQuotationPage({
         name: true,
         inHouseCateringRequired: true,
         inHouseCateringNote: true,
+        // The GST rates this property offers. The calculator preselects the
+        // default one and asks when a property has more than one.
+        taxSlabs: {
+          where: { isActive: true },
+          orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+          select: {
+            id: true,
+            name: true,
+            cgstRate: true,
+            sgstRate: true,
+            igstRate: true,
+            isDefault: true,
+          },
+        },
       },
       orderBy: { name: "asc" },
     }),

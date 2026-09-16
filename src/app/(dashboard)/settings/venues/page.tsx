@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: "Venue Management" };
 
 export default async function VenuesPage() {
   const [venuesResult, hierarchyResult, photoCounts] = await Promise.all([
-    getVenues({ activeOnly: false }), // management screen — show inactive venues too
+    getVenues({ activeOnly: false, includeTaxSlabs: true }), // management screen — inactive venues and GST rates too
     getVenueHierarchy(),
     getPublicPhotoCountsByVenue(),
   ]);

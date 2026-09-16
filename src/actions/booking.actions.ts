@@ -21,6 +21,8 @@ import {
   isValidHoldHours,
 } from "@/lib/holds/hold-extension";
 import { revalidatePath } from "next/cache";
+
+import { ensureVenueSlabs } from "@/lib/sales/venue-tax";
 import { bookingSchema, type BookingInput } from "@/schemas/booking.schema";
 import type { BookingStatus, TimeSlot } from "@prisma/client";
 import { serialize, formatINR } from "@/lib/utils";
@@ -1534,7 +1536,7 @@ export async function getLeadsForCalendar(
 // Venue CRUD
 // ============================================================
 
-export async function getVenues(opts?: { activeOnly?: boolean }) {
+export async function getVenues(opts?: { activeOnly?: boolean; includeTaxSlabs?: boolean }) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -1554,6 +1556,24 @@ export async function getVenues(opts?: { activeOnly?: boolean }) {
       orderBy: { name: "asc" },
       include: {
         _count: { select: { bookings: true } },
+        // Only the settings screen asks for these — every picker that calls
+        // getVenues would otherwise pay for a join it never reads.
+        ...(opts?.includeTaxSlabs
+          ? {
+              taxSlabs: {
+                where: { isActive: true },
+                orderBy: [{ isDefault: "desc" as const }, { name: "asc" as const }],
+                select: {
+                  id: true,
+                  name: true,
+                  cgstRate: true,
+                  sgstRate: true,
+                  igstRate: true,
+                  isDefault: true,
+                },
+              },
+            }
+          : {}),
       },
     });
 
@@ -1572,6 +1592,8 @@ export async function createVenue(data: {
   amenities?: string[];
   inHouseCateringRequired?: boolean;
   inHouseCateringNote?: string;
+  /** Decides the GST rate — see src/lib/sales/property-type.ts. */
+  propertyType?: string;
 }) {
   try {
     const session = await auth();
@@ -1592,8 +1614,16 @@ export async function createVenue(data: {
         amenities: data.amenities || [],
         inHouseCateringRequired: data.inHouseCateringRequired ?? false,
         inHouseCateringNote: data.inHouseCateringNote?.trim() || null,
+        propertyType: data.propertyType || null,
       },
     });
+
+    // A new property starts with the two GST rates its type implies, so the
+    // first quotation raised against it has a rate to use instead of falling
+    // back to whatever the person typing picks.
+    await ensureVenueSlabs(venue.id, data.propertyType).catch((e) =>
+      console.error("[CREATE_VENUE_TAX_SLABS]", venue.id, e),
+    );
 
     revalidatePath("/settings/venues");
     revalidatePath("/bookings/new");
@@ -1615,6 +1645,8 @@ export async function updateVenue(
     isActive?: boolean;
     inHouseCateringRequired?: boolean;
     inHouseCateringNote?: string;
+    /** Decides the GST rate — see src/lib/sales/property-type.ts. */
+    propertyType?: string;
   }
 ) {
   try {
@@ -1646,8 +1678,20 @@ export async function updateVenue(
         ...(data.inHouseCateringNote !== undefined && {
           inHouseCateringNote: data.inHouseCateringNote.trim() || null,
         }),
+        ...(data.propertyType !== undefined && {
+          propertyType: data.propertyType || null,
+        }),
       },
     });
+
+    // Only fills a property that has no rates yet. One that already has them
+    // keeps them: someone may have set them deliberately, and rewriting a rate
+    // under a live quotation is exactly the silent change to avoid.
+    if (data.propertyType !== undefined) {
+      await ensureVenueSlabs(venue.id, data.propertyType).catch((e) =>
+        console.error("[UPDATE_VENUE_TAX_SLABS]", venue.id, e),
+      );
+    }
 
     revalidatePath("/settings/venues");
     return { success: true as const, data: serialize(venue) };

@@ -18,6 +18,8 @@ import {
 import { updateLeadStatus } from "@/actions/lead.actions";
 import { updateDeal } from "@/actions/pipeline.actions";
 import { validatePackageLinesAgainstCatalog } from "@/actions/quote-packages.actions";
+import { blocksApproval, resolveTaxSlab, totalRate } from "@/lib/sales/tax-slab";
+import { getVenueSlabs } from "@/lib/sales/venue-tax";
 import { ensureQuoteShareLink, quotationPdfShareUrl } from "@/lib/quote-radar/share-link";
 import { Prisma } from "@prisma/client";
 
@@ -58,6 +60,57 @@ export interface QuotationMeta {
   leadId?: string | null;
   contactId?: string | null;
   venueId?: string | null;
+  /** Which of the property's GST rates to use. Omitted = let the property decide. */
+  taxSlabId?: string | null;
+}
+
+// ------------------------------------------------------------
+// Which GST rate does this quotation carry?
+//
+// The property decides. One rate applies itself, a property with several needs
+// someone to pick, and a property with none falls back to the planner's 5% —
+// which is every quotation raised before rates existed, so nothing moves under
+// a quote that was already sent.
+//
+// The resolved rate is written INTO the stored input, so every later recompute
+// (the approval freeze, the PDF, the public view) reproduces the same number
+// without having to re-resolve it against a property whose rates may since
+// have changed.
+// ------------------------------------------------------------
+interface QuoteTaxResolution {
+  /** Fraction, e.g. 0.18. Null = no rates configured, use the fallback. */
+  taxRate: number | null;
+  taxSlabId: string | null;
+  /** Several rates and nobody has picked — must not go for approval. */
+  mustAsk: boolean;
+  options: { id: string; name: string; total: number }[];
+}
+
+async function resolveQuoteTax(
+  venueId: string | null | undefined,
+  chosenSlabId?: string | null
+): Promise<QuoteTaxResolution> {
+  const empty: QuoteTaxResolution = { taxRate: null, taxSlabId: null, mustAsk: false, options: [] };
+  if (!venueId) return empty;
+  try {
+    const slabs = await getVenueSlabs(venueId);
+    const res = resolveTaxSlab(slabs, chosenSlabId);
+    if (res.kind === "NONE") return empty;
+    if (res.kind === "MUST_ASK") {
+      return {
+        taxRate: null,
+        taxSlabId: null,
+        mustAsk: blocksApproval(res),
+        options: res.options.map((o) => ({ id: o.id, name: o.name, total: totalRate(o) })),
+      };
+    }
+    return { taxRate: totalRate(res.slab) / 100, taxSlabId: res.slab.id, mustAsk: false, options: [] };
+  } catch (e) {
+    // A quotation must never fail because the rate lookup did. Falling back is
+    // the same behaviour as a property with no rates.
+    console.error("[QUOTE_TAX_RESOLVE]", venueId, e);
+    return empty;
+  }
 }
 
 // Denormalised headline figures derived from the engine — kept in sync on
@@ -258,7 +311,11 @@ export async function createSalesQuotation(
   // client's), so the stored snapshot and headline totals can't be forged.
   const { errors: pkgErrs, lines: safeLines } = await validatePackageLinesAgainstCatalog(input.packageLines, meta.venueId ?? null);
   if (pkgErrs.length) return { success: false, error: pkgErrs.join(" ") };
-  const safeInput: QuotationInput = input.packageLines ? { ...input, packageLines: safeLines } : input;
+  const baseInput: QuotationInput = input.packageLines ? { ...input, packageLines: safeLines } : input;
+
+  const tax = await resolveQuoteTax(meta.venueId, meta.taxSlabId);
+  const safeInput: QuotationInput =
+    tax.taxRate != null ? { ...baseInput, taxRate: tax.taxRate } : baseInput;
 
   const row = await createQuotationRow((quoteNumber) => ({
     quoteNumber,
@@ -267,6 +324,7 @@ export async function createSalesQuotation(
     leadId: meta.leadId || null,
     contactId: meta.contactId || null,
     venueId: meta.venueId || null,
+    taxSlabId: tax.taxSlabId,
     createdById: user.id,
     ...headline(safeInput, meta),
   }));
@@ -297,7 +355,15 @@ export async function updateSalesQuotation(
   if (errs.length) return { success: false, error: errs.join(" ") };
   const { errors: pkgErrs, lines: safeLines } = await validatePackageLinesAgainstCatalog(input.packageLines, meta.venueId !== undefined ? meta.venueId : row.venueId);
   if (pkgErrs.length) return { success: false, error: pkgErrs.join(" ") };
-  const safeInput: QuotationInput = input.packageLines ? { ...input, packageLines: safeLines } : input;
+  const baseInput: QuotationInput = input.packageLines ? { ...input, packageLines: safeLines } : input;
+
+  const venueForTax = meta.venueId !== undefined ? meta.venueId : row.venueId;
+  const tax = await resolveQuoteTax(
+    venueForTax,
+    meta.taxSlabId !== undefined ? meta.taxSlabId : row.taxSlabId
+  );
+  const safeInput: QuotationInput =
+    tax.taxRate != null ? { ...baseInput, taxRate: tax.taxRate } : baseInput;
 
   // (Audit fix) Guarded write: the DRAFT check above is a plain read, so a
   // concurrent submit could land between check and write and the edit would
@@ -311,6 +377,7 @@ export async function updateSalesQuotation(
       leadId: meta.leadId !== undefined ? meta.leadId || null : row.leadId,
       contactId: meta.contactId !== undefined ? meta.contactId || null : row.contactId,
       venueId: meta.venueId !== undefined ? meta.venueId || null : row.venueId,
+      taxSlabId: tax.taxSlabId,
       ...headline(safeInput, {
         clientName: meta.clientName ?? row.clientName ?? undefined,
         clientPhone: meta.clientPhone ?? row.clientPhone ?? undefined,
@@ -341,6 +408,21 @@ export async function submitSalesQuotation(id: string): Promise<Result<{ status:
 
   const errs = validateQuotationInput(row.inputsJson as unknown as QuotationInput);
   if (errs.length) return { success: false, error: errs.join(" ") };
+
+  // A quote sent at the wrong GST rate is a number the customer has already
+  // agreed to, and correcting it afterwards means reissuing the quote or
+  // absorbing the difference. So an undecided rate stops here, not later.
+  const storedInput = row.inputsJson as unknown as QuotationInput;
+  if (storedInput.taxRate == null) {
+    const tax = await resolveQuoteTax(row.venueId, row.taxSlabId);
+    if (tax.mustAsk) {
+      const names = tax.options.map((o) => `${o.name} (${o.total}%)`).join(" or ");
+      return {
+        success: false,
+        error: `This property charges more than one GST rate. Choose ${names} on the quotation before sending it for approval.`,
+      };
+    }
+  }
 
   const guarded = await prisma.$transaction(async (tx) => {
     const { count } = await tx.salesQuotation.updateMany({
@@ -403,7 +485,18 @@ export async function approveSalesQuotation(id: string): Promise<Result<{ status
   // (re-priced) lines so the stored input and frozen output agree.
   const { errors: pkgErrs, lines: safeLines } = await validatePackageLinesAgainstCatalog(input.packageLines, row.venueId);
   if (pkgErrs.length) return { success: false, error: pkgErrs.join(" ") };
-  const frozenInput: QuotationInput = input.packageLines ? { ...input, packageLines: safeLines } : input;
+  const withLines: QuotationInput = input.packageLines ? { ...input, packageLines: safeLines } : input;
+  // The rate stored on the draft wins. Only a draft raised before rates existed
+  // has none, and for that one the property decides at freeze time.
+  const frozenTax =
+    withLines.taxRate != null
+      ? { taxRate: withLines.taxRate, taxSlabId: row.taxSlabId }
+      : await resolveQuoteTax(row.venueId, row.taxSlabId).then((t) => ({
+          taxRate: t.taxRate,
+          taxSlabId: t.taxSlabId,
+        }));
+  const frozenInput: QuotationInput =
+    frozenTax.taxRate != null ? { ...withLines, taxRate: frozenTax.taxRate } : withLines;
   const out = computeQuotation(frozenInput);
 
   const guarded = await prisma.$transaction(async (tx) => {
@@ -424,6 +517,7 @@ export async function approveSalesQuotation(id: string): Promise<Result<{ status
         discountPct: new Prisma.Decimal(out.discountPct),
         taxAmount: new Prisma.Decimal(out.tax),
         grandTotal: new Prisma.Decimal(out.grandTotal),
+        taxSlabId: frozenTax.taxSlabId,
         pdfUrl: `/api/quotations/${id}/pdf`,
       },
     });
@@ -666,6 +760,9 @@ export async function newSalesQuotationVersion(id: string): Promise<Result<{ id:
     leadId: row.leadId,
     contactId: row.contactId,
     venueId: row.venueId,
+    // A revision keeps the rate the previous version was built on; the stored
+    // input carries the same number, so the two cannot drift apart.
+    taxSlabId: row.taxSlabId,
     createdById: user.id,
   }));
   await prisma.salesQuotationTransition.create({

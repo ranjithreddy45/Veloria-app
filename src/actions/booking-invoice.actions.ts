@@ -183,6 +183,26 @@ export async function createBookingInvoiceFromQuotation(
       return { success: false, error: "Quotation has no line items to invoice." };
     }
 
+    // GST for the invoice. The property's slab is authoritative: it carries the
+    // exact CGST/SGST/IGST split a GST invoice has to print, which is why the
+    // rate is stored split rather than as one percentage. Without a slab, halve
+    // the rate the quotation actually used — the same thing the flat 5% did as
+    // 2.5 + 2.5 — so a quote raised before rates existed invoices unchanged.
+    const slab = q.taxSlabId
+      ? await prisma.venueTaxSlab.findUnique({
+          where: { id: q.taxSlabId },
+          select: { cgstRate: true, sgstRate: true, igstRate: true },
+        })
+      : null;
+    const quotedRatePct = round2(Number(result.taxRate ?? 0) * 100);
+    const gst = slab
+      ? {
+          cgstRate: Number(slab.cgstRate),
+          sgstRate: Number(slab.sgstRate),
+          igstRate: Number(slab.igstRate),
+        }
+      : { cgstRate: round2(quotedRatePct / 2), sgstRate: round2(quotedRatePct / 2), igstRate: 0 };
+
     const effectivePerPlate = Math.round(result.grandTotal / guests);
     const dueNow = new Date();
     dueNow.setDate(dueNow.getDate() + 1);
@@ -195,10 +215,10 @@ export async function createBookingInvoiceFromQuotation(
       dueDate: dueNow,
       lineItems,
       discountPercent: Number(q.discountPct) || 0,
-      // Planner's 5% tax, split as intra-state CGST + SGST.
-      cgstRate: 2.5,
-      sgstRate: 2.5,
-      igstRate: 0,
+      // From the quotation's own rate — see the split derived above.
+      cgstRate: gst.cgstRate,
+      sgstRate: gst.sgstRate,
+      igstRate: gst.igstRate,
       notes: `Generated from quotation ${q.quoteNumber}. Effective per-plate: ₹${effectivePerPlate.toLocaleString("en-IN")} (grand total ÷ ${guests} guests).`,
       terms: PAYMENT_TERMS_SENTENCE,
     });

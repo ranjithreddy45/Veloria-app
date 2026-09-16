@@ -9,7 +9,17 @@
 // ============================================================
 
 // 5% tax on the (post-discount) subtotal — matches the planner's "Tax 5%".
+// This is the FALLBACK now, not the rule: the rate comes from the property's
+// GST slab when it has one (a 4- or 5-star hotel charges 18%), and drops back
+// here for a property that has no rates configured, which is every quotation
+// raised before this existed.
 export const QUOTE_TAX_RATE = 0.05;
+
+/** Guard a caller-supplied rate: a fraction between 0 and 1, else the default. */
+function normaliseTaxRate(rate?: number | null): number {
+  if (rate == null || !Number.isFinite(rate) || rate < 0 || rate > 1) return QUOTE_TAX_RATE;
+  return rate;
+}
 
 // Default hotel room charge (planner "Hotel Room Charges").
 export const DEFAULT_ROOM_CHARGE = 2500;
@@ -193,6 +203,10 @@ export interface QuotationInput {
   packageLines?: PackageLine[];
   // 0..100 — applied to the subtotal before tax.
   discountPct?: number;
+  // GST as a FRACTION (0.18 for 18%), from the property's chosen slab. Omitted
+  // or out of range falls back to QUOTE_TAX_RATE, so every existing caller and
+  // every stored input keeps the number it had.
+  taxRate?: number;
 }
 
 // ---- Output ----
@@ -468,7 +482,8 @@ export function computeQuotation(
   const discountPct = Math.min(100, Math.max(0, input.discountPct ?? 0));
   const discountAmount = r2(subtotal * (discountPct / 100));
   const taxableAmount = subtotal - discountAmount;
-  const tax = r2(taxableAmount * QUOTE_TAX_RATE);
+  const taxRate = normaliseTaxRate(input.taxRate);
+  const tax = r2(taxableAmount * taxRate);
   const grandTotal = taxableAmount + tax;
 
   return {
@@ -478,7 +493,7 @@ export function computeQuotation(
     discountAmount,
     lineDiscountsTotal,
     taxableAmount,
-    taxRate: QUOTE_TAX_RATE,
+    taxRate,
     tax,
     grandTotal,
     paymentSchedule: buildPaymentSchedule(grandTotal),
