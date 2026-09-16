@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { convertLeadToDeal } from "@/actions/lead.actions";
-import { initiateRunoCall } from "@/actions/runo.actions";
+import { sendLeadToCallVibe } from "@/actions/callvibe.actions";
 
 interface LeadQuickActionsProps {
   leadId: string;
@@ -33,6 +33,7 @@ export function LeadQuickActions({
 }: LeadQuickActionsProps) {
   const router = useRouter();
   const [converting, setConverting] = React.useState(false);
+  const [sending, setSending] = React.useState(false);
 
   function handleSendEmail() {
     if (!contactEmail) {
@@ -44,17 +45,22 @@ export function LeadQuickActions({
     window.location.href = `mailto:${contactEmail}?subject=${subject}`;
   }
 
-  async function handleRunoCall() {
-    toast.info("Initiating call via Runo...");
+  // CallVibe has no dial API — agents call from their own handsets — so this
+  // puts the lead in front of them there, with the context attached, and says
+  // so plainly rather than claiming to have placed a call.
+  async function handleSendToCallVibe() {
+    setSending(true);
     try {
-      const result = await initiateRunoCall(leadId);
+      const result = await sendLeadToCallVibe(leadId);
       if (result.success) {
-        toast.success("Call allocated in Runo app. Please check your phone.");
+        toast.success("Sent to CallVibe. It's in the agent's list to call.");
       } else {
-        toast.error(result.error || "Failed to initiate call.");
+        toast.error(result.error || "Could not send this lead to CallVibe.");
       }
     } catch {
-      toast.error("Failed to initiate call.");
+      toast.error("Could not send this lead to CallVibe.");
+    } finally {
+      setSending(false);
     }
   }
 
@@ -82,9 +88,13 @@ export function LeadQuickActions({
 
   return (
     <>
-      <Button size="sm" variant="outline" onClick={handleRunoCall}>
-        <PhoneIcon className="mr-2 size-4" />
-        Call via Runo
+      <Button size="sm" variant="outline" onClick={handleSendToCallVibe} disabled={sending}>
+        {sending ? (
+          <Loader2Icon className="mr-2 size-4 animate-spin" />
+        ) : (
+          <PhoneIcon className="mr-2 size-4" />
+        )}
+        Send to CallVibe
       </Button>
       <Button size="sm" variant="outline" onClick={handleSendEmail}>
         <MailIcon className="mr-2 size-4" />

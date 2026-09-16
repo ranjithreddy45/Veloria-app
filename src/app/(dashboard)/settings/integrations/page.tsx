@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CreditCard } from "lucide-react";
+import { CreditCard, AudioLines } from "lucide-react";
 import type { Metadata } from "next";
 import {
   Calculator,
@@ -106,6 +106,19 @@ const integrations = [
     href: "/payments",
     icon: CreditCard,
     color: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
+    status: "Active",
+    statusColor: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
+  },
+  {
+    // CallVibe replaced Runo. It is DB-configured (an account email + password,
+    // because CallVibe issues no API key) and it cannot push to us, so the card
+    // links to the page where the import is switched on and tested.
+    title: "CallVibe",
+    description:
+      "AI call recording, transcripts and scoring. Imports calls onto the contact timeline and pushes leads out to agents.",
+    href: "/settings/integrations/callvibe",
+    icon: AudioLines,
+    color: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     status: "Active",
     statusColor: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40",
   },
