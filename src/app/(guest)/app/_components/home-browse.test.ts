@@ -71,8 +71,8 @@ describe("seeAllLabel", () => {
 
 describe("browseSubtitle", () => {
   it("says how many spaces there are and what they seat", () => {
-    expect(browseSubtitle(11, "100–2,000 guests")).toBe("11 spaces at one address, seating 100–2,000 guests.");
-    expect(browseSubtitle(1, null)).toBe("One space at one address.");
+    expect(browseSubtitle(11, "100–2,000 guests")).toBe("11 spaces, seating 100–2,000 guests.");
+    expect(browseSubtitle(1, null)).toBe("One space to choose from.");
   });
 
   it("claims no seating range when the halls carry none", () => {

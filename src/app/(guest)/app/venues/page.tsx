@@ -67,7 +67,7 @@ export default async function VenuesPage({
         <div>
           <Title>Our halls</Title>
           <p className="mt-1.5 text-detail text-[#6e6e73]">
-            {feed.totalPublished > 1 ? `${feed.totalPublished} spaces, one address.` : "One address."} Pick the one that fits your celebration.
+            {feed.totalPublished > 1 ? `${feed.totalPublished} spaces to choose from.` : "One space."} Pick the one that fits your celebration.
           </p>
         </div>
 

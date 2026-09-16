@@ -56,7 +56,7 @@ export function seeAllLabel(total: number): string {
 export function browseSubtitle(total: number, capacityRange?: string | null): string {
   if (total <= 0) return "Our spaces appear here as soon as the team publishes them.";
   const spaces = total === 1 ? "One space" : `${total.toLocaleString("en-IN")} spaces`;
-  return capacityRange ? `${spaces} at one address, seating ${capacityRange}.` : `${spaces} at one address.`;
+  return capacityRange ? `${spaces}, seating ${capacityRange}.` : `${spaces} to choose from.`;
 }
 
 /**

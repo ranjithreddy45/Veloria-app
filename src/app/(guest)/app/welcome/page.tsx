@@ -48,7 +48,7 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
           Where your<br /><em className="italic text-[#f3d489]">celebration</em><br />begins.
         </h1>
         <p className="text-body leading-[1.55] text-[#fdf5f3]/[.78]">
-          {halls > 0 ? `${halls === 1 ? "One hall" : `${halls} halls`}, one address.` : "One address."} Hold a date in minutes, plan every detail from your phone.
+          {halls > 0 ? `${halls === 1 ? "One hall" : `${halls} halls`} to choose from.` : ""} Hold a date in minutes, plan every detail from your phone.
         </p>
         <OtpSignIn next={dest} contact={contact} />
         <Link href="/app" className="block rounded-2xl border border-[#fdf5f3]/35 py-[15px] text-center text-body font-medium text-[#fdf5f3]">
