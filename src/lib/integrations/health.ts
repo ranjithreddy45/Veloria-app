@@ -79,6 +79,15 @@ export async function getIntegrationHealth(): Promise<IntegrationStatus[]> {
     })
     .catch(() => null);
 
+  // CallVibe (call recording, transcripts, scoring) is DB-configured as well:
+  // it issues no API key, so the row holds an account login.
+  const cvConfig = await prisma.callVibeConfig
+    .findFirst({
+      where: { isActive: true },
+      select: { email: true, password: true, syncEnabled: true, lastSyncAt: true },
+    })
+    .catch(() => null);
+
   const out: IntegrationStatus[] = [];
 
   // ---- Messaging ---------------------------------------------------------
@@ -173,6 +182,31 @@ export async function getIntegrationHealth(): Promise<IntegrationStatus[]> {
     impact:
       "Click-to-call does nothing, and calls are never logged — so lead engagement counts undercount real activity.",
     authority: "Telephony settings has a Test Connection button that calls the provider directly.",
+  });
+
+  // CallVibe replaced Runo, which was env-configured and had no health row at
+  // all — the failure mode this registry exists to prevent. Two ways it can be
+  // half-on: credentials saved but the import switched off, or on but never
+  // having run, which looks identical from a screen that only checks config.
+  const cvLive = has(cvConfig?.email) && has(cvConfig?.password);
+  const cvIdle = cvLive && (!cvConfig?.syncEnabled || !cvConfig?.lastSyncAt);
+  out.push({
+    key: "callvibe",
+    label: "CallVibe (call recording, transcripts, scoring)",
+    category: "Messaging",
+    state: !cvLive ? "NOT_CONFIGURED" : cvIdle ? "PARTIAL" : "LIVE",
+    detail: !cvLive
+      ? "No CallVibe account saved, so no calls are imported."
+      : !cvConfig?.syncEnabled
+        ? "Credentials saved, but the hourly import is switched off."
+        : !cvConfig?.lastSyncAt
+          ? "Credentials saved and the import is on, but it has never completed a run."
+          : `Importing calls. Last run ${cvConfig.lastSyncAt.toISOString()}.`,
+    missing: !cvLive ? ["CallVibeConfig.email / password (saved in CallVibe settings, not env)"] : [],
+    impact:
+      "Calls, transcripts and call scores never reach the CRM, and an inbound call from an unknown number never becomes a lead.",
+    authority:
+      "CallVibe settings has a Test connection button that signs in and reads a real call.",
   });
 
   // ---- Payments ----------------------------------------------------------

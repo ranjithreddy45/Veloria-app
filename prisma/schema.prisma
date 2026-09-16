@@ -117,6 +117,11 @@ enum TelephonyProvider {
   EXOTEL
   KNOWLARITY
   MYOPERATOR
+  // Retired 2026-09-16 when CallVibe replaced Runo. The value stays because
+  // dropping an enum member is a destructive migration for zero benefit —
+  // nothing in the app has ever written it (no zod value, no adapter, no
+  // dropdown entry). CallVibe is not listed here at all: it is not a dialer,
+  // so it has its own config model rather than a TelephonyConfig row.
   RUNO
 }
 
@@ -393,6 +398,7 @@ model User {
   callLogs                CallLog[]              @relation("AgentCallLogs")
   apiKeys                 ApiKey[]               @relation("UserApiKeys")
   telephonyConfigs        TelephonyConfig[]      @relation("UserTelephonyConfigs")
+  callVibeConfigs         CallVibeConfig[]       @relation("UserCallVibeConfigs")
   whatsappConfigs         WhatsAppConfig[]       @relation("UserWhatsAppConfigs")
   hallOwnersManaged       HallOwner[]            @relation("HallOwnerBD")
 
@@ -4087,6 +4093,51 @@ model AutoWelcomeConfig {
 // ============================================================
 // TELEPHONY: Cloud telephony provider configuration
 // ============================================================
+
+// ============================================================
+// CallVibe — AI call intelligence (replaces Runo).
+// ------------------------------------------------------------
+// CallVibe records, transcribes and scores calls that its own telephony
+// connectors capture. It has NO outbound webhook to a customer endpoint
+// (notifications are Slack/email only), so this integration PULLS: a cron job
+// signs in with these credentials and reads GET /calls, then writes the usual
+// Communication + CallLog rows.
+//
+// Credentials live here rather than in env because the operator has to be able
+// to change them without a deploy — same reasoning as WhatsAppConfig. Use a
+// dedicated CallVibe user for the integration, not a person's own login.
+// ============================================================
+model CallVibeConfig {
+  id      String @id @default(cuid())
+  /// API base. Constant for every CallVibe tenant; overridable for staging.
+  baseUrl String @default("https://api.callvibe.ai")
+  /// CallVibe account the sync signs in as (POST /auth/signin).
+  email    String
+  password String
+  /// Tenant id, read from GET /api/tenant/info. Only needed to PUSH call logs
+  /// into CallVibe via POST /webhooks/calls/{tenantId}.
+  tenantId  String?
+  /// Token for that push endpoint, when used.
+  pushToken String?
+
+  /// Pull the call history on the cron lane.
+  syncEnabled Boolean @default(true)
+  /// How far back each run looks when there is no cursor yet.
+  syncWindowHours Int @default(24)
+  /// Cursor: the start time of the most recent call already imported.
+  lastCallAt   DateTime?
+  lastSyncAt   DateTime?
+  lastSyncNote String?   @db.Text
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String
+  createdBy   User   @relation("UserCallVibeConfigs", fields: [createdById], references: [id])
+
+  @@index([isActive])
+}
 
 model TelephonyConfig {
   id            String            @id @default(cuid())
