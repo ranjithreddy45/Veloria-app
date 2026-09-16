@@ -1,8 +1,10 @@
 "use server";
 
+import { unstable_cache } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getPublicContact } from "@/lib/public/business-contact";
+import { isCredibleSlotPrice } from "@/lib/pricing/credible-slot-price";
 import type { YieldRuleInput } from "@/lib/pricing/yield-engine";
 import { addDaysISO, FROM_PRICE_WINDOW_DAYS, hallFromPrice, istTodayISO, type HallDemandSignal, type HallPricingInputs } from "@/app/(guest)/app/venues/_lib/hall-pricing";
 import { resolveHallAddress, safeHttpUrl, textOrNull, type ResolvedAddress } from "@/app/(guest)/app/venues/_lib/hall-info";
@@ -16,7 +18,6 @@ import {
   type HallAvailability,
   type HallSearch,
 } from "@/app/(guest)/app/venues/_lib/hall-search";
-import { getStorefrontVenues } from "@/actions/storefront.actions";
 import { getPublicAvailabilityGrid } from "@/actions/public-hold.actions";
 
 // ============================================================
@@ -78,7 +79,10 @@ export async function getGuestPhotos(params?: { venueId?: string; limit?: number
         where: { deletedAt: null, venueId: params?.venueId ? params.venueId : { not: null } },
         select: {
           venueId: true, propertyName: true,
-          deal: { select: { attachments: { where: { kind: "PHOTO" }, orderBy: { createdAt: "asc" }, select: { id: true, url: true, label: true } } } },
+          // `take` matters: url holds a base64 data URL, so an unbounded read
+          // pulled every property photo in the business — megabytes each — to
+          // fill a list that is then sliced to `limit` anyway.
+          deal: { select: { attachments: { where: { kind: "PHOTO" }, orderBy: { createdAt: "asc" }, take: limit, select: { id: true, url: true, label: true } } } },
         },
       }),
     ]);
@@ -107,55 +111,164 @@ export async function getGuestPhotos(params?: { venueId?: string; limit?: number
   }
 }
 
+// ------------------------------------------------------------ hall photos, without the base64
+//
+// Uploads in this system are base64 data URLs stored in Postgres, and
+// /api/guest/photo streams them by id. Nothing on a list screen needs the
+// bytes — only whether the stored url IS a data image, which is its first
+// eleven characters. So the two queries below split the rows by that prefix in
+// SQL and read the heavy column ONLY from the rows that turn out to be
+// ordinary links. Before this, one browse request read up to 80 gallery rows
+// plus every property photo attachment in the business, base64 and all, to
+// keep at most five pictures per hall.
+
+const DATA_IMAGE_PREFIX = "data:image/";
 /**
- * The first real photo of each hall, in getGuestPhotos' order (the hall's
+ * A generous scan cap. The feed keeps five pictures per hall; this is only a
+ * ceiling on how many rows are examined, and it is ten times what the feed
+ * used to read. Beyond it a hall falls back to its property photos and then to
+ * a labelled illustration — never to another hall's photo.
+ */
+const FEED_PHOTO_SCAN = 800;
+
+/** The url forms servable() turns into an ordinary link (everything else is a data url, or unservable). */
+const LINK_PREFIXES = ["http://", "https://", "/"] as const;
+
+/**
+ * Rows whose SERVABLE url (thumbnailUrl when it has one, else url) starts with
+ * one of these. Deliberately positive: `NOT (col LIKE …)` is unknown rather
+ * than true when the column is NULL, so a negated form would quietly drop
+ * every photo with no thumbnail.
+ */
+function galleryEffectiveStartsWith(prefixes: readonly string[]): Prisma.GalleryItemWhereInput {
+  return {
+    OR: prefixes.flatMap((p) => [
+      { thumbnailUrl: { startsWith: p } },
+      { AND: [{ OR: [{ thumbnailUrl: null }, { thumbnailUrl: "" }] }, { url: { startsWith: p } }] },
+    ]),
+  };
+}
+
+interface FeedPhotoRow {
+  venueId: string;
+  url: string;
+  title: string | null;
+  /** GalleryItem.order; property photos sort after every gallery photo. */
+  order: number;
+  /** createdAt, so the merged list sorts exactly as one query would have. */
+  at: number;
+}
+
+const byFeedPhotoOrder = (a: FeedPhotoRow, b: FeedPhotoRow) => a.order - b.order || b.at - a.at;
+
+/** Public gallery photos of the given halls — two queries, neither reading a base64 column it does not need. */
+async function loadGalleryFeedPhotos(hallIds: readonly string[]): Promise<FeedPhotoRow[]> {
+  const base: Prisma.GalleryItemWhereInput = { isPublic: true, mediaType: "PHOTO", venueId: { in: [...hallIds] } };
+  const [stored, linked] = await Promise.all([
+    prisma.galleryItem.findMany({
+      // Base64 images: the route serves them by id, so the column stays unread.
+      where: { ...base, ...galleryEffectiveStartsWith([DATA_IMAGE_PREFIX]) },
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      take: FEED_PHOTO_SCAN,
+      select: { id: true, venueId: true, title: true, order: true, createdAt: true },
+    }),
+    prisma.galleryItem.findMany({
+      // Ordinary links — short, so reading them costs nothing. A row matching
+      // neither query is one servable() would have dropped anyway.
+      where: { ...base, ...galleryEffectiveStartsWith(LINK_PREFIXES) },
+      orderBy: [{ order: "asc" }, { createdAt: "desc" }],
+      take: FEED_PHOTO_SCAN,
+      select: { id: true, venueId: true, title: true, order: true, createdAt: true, url: true, thumbnailUrl: true },
+    }),
+  ]);
+
+  const out: FeedPhotoRow[] = [];
+  for (const r of stored) {
+    if (!r.venueId) continue;
+    out.push({ venueId: r.venueId, url: `/api/guest/photo/g/${r.id}`, title: r.title, order: r.order, at: r.createdAt.getTime() });
+  }
+  for (const r of linked) {
+    const url = servable(r.thumbnailUrl || r.url, "g", r.id);
+    if (url && r.venueId) out.push({ venueId: r.venueId, url, title: r.title, order: r.order, at: r.createdAt.getTime() });
+  }
+  return out.sort(byFeedPhotoOrder);
+}
+
+/** Property photos (PHOTO attachments on a live hall's acquisition deal) — the fallback for halls with no gallery photo. */
+async function loadPropertyFeedPhotos(hallIds: readonly string[]): Promise<FeedPhotoRow[]> {
+  if (hallIds.length === 0) return [];
+  const base: Prisma.AcqAttachmentWhereInput = {
+    kind: "PHOTO",
+    deal: { property: { deletedAt: null, venueId: { in: [...hallIds] } } },
+  };
+  const [stored, linked] = await Promise.all([
+    prisma.acqAttachment.findMany({
+      where: { ...base, url: { startsWith: DATA_IMAGE_PREFIX } },
+      orderBy: { createdAt: "asc" },
+      take: FEED_PHOTO_SCAN,
+      select: { id: true, label: true, createdAt: true, deal: { select: { property: { select: { venueId: true } } } } },
+    }),
+    prisma.acqAttachment.findMany({
+      where: { ...base, OR: LINK_PREFIXES.map((p) => ({ url: { startsWith: p } })) },
+      orderBy: { createdAt: "asc" },
+      take: FEED_PHOTO_SCAN,
+      select: { id: true, label: true, createdAt: true, url: true, deal: { select: { property: { select: { venueId: true } } } } },
+    }),
+  ]);
+
+  const out: FeedPhotoRow[] = [];
+  const push = (venueId: string | null | undefined, url: string | null, label: string | null, at: Date) => {
+    if (!venueId || !url) return;
+    // Property photos sort after every gallery photo of the same hall.
+    out.push({ venueId, url, title: textOrNull(label), order: Number.MAX_SAFE_INTEGER, at: -at.getTime() });
+  };
+  for (const a of stored) push(a.deal.property?.venueId, `/api/guest/photo/p/${a.id}`, a.label, a.createdAt);
+  for (const a of linked) push(a.deal.property?.venueId, servable(a.url, "p", a.id), a.label, a.createdAt);
+  return out.sort(byFeedPhotoOrder);
+}
+
+/**
+ * Up to `perHall` pictures for each hall, in the order the guest app has
+ * always used: the hall's own public GalleryItems first, then its property
+ * photos. A hall with none is simply absent — the card then shows a labelled
+ * illustration. Two queries, plus two more only when some hall has no gallery
+ * photo at all.
+ */
+async function loadFeedPhotos(hallIds: readonly string[], perHall: number): Promise<Map<string, { url: string; title: string | null }[]>> {
+  const byHall = new Map<string, { url: string; title: string | null }[]>();
+  if (hallIds.length === 0) return byHall;
+  const seen = new Set<string>();
+  const add = (rows: readonly FeedPhotoRow[]) => {
+    for (const r of rows) {
+      const list = byHall.get(r.venueId) ?? [];
+      if (list.length >= perHall || seen.has(r.url)) continue;
+      seen.add(r.url);
+      list.push({ url: r.url, title: r.title });
+      byHall.set(r.venueId, list);
+    }
+  };
+
+  add(await loadGalleryFeedPhotos(hallIds));
+  // Property photos top up any hall the gallery did not fill, exactly as the
+  // old getGuestPhotos ordering did — gallery first, then the property's.
+  const short = hallIds.filter((id) => (byHall.get(id)?.length ?? 0) < perHall);
+  if (short.length > 0) add(await loadPropertyFeedPhotos(short));
+  return byHall;
+}
+
+/**
+ * The first real photo of each hall, in the guest app's order (the hall's
  * public GalleryItems first, then its property photos), for hall cards and
- * heroes. Every hall's own photos are looked up, so a hall is never shown an
- * illustration just because other halls have many photos. Halls without a
- * real photo are absent from the result.
+ * heroes. Halls without a real photo are absent from the result.
  */
 export async function getGuestHallCovers(venueIds?: string[]): Promise<Record<string, string>> {
   try {
     const ids = cleanIds(venueIds);
     if (ids && ids.length === 0) return {};
     const venues = await prisma.venue.findMany({ where: { isActive: true, ...(ids ? { id: { in: ids } } : {}) }, select: { id: true } });
+    const photos = await loadFeedPhotos(venues.map((v) => v.id), 1);
     const out: Record<string, string> = {};
-    const gallery = await Promise.all(
-      venues.map((v) =>
-        prisma.galleryItem.findMany({
-          where: { isPublic: true, mediaType: "PHOTO", venueId: v.id },
-          orderBy: [{ order: "asc" }, { createdAt: "desc" }],
-          take: 3,
-          select: { id: true, url: true, thumbnailUrl: true },
-        })
-      )
-    );
-    venues.forEach((v, i) => {
-      for (const g of gallery[i]) {
-        const url = servable(g.thumbnailUrl || g.url, "g", g.id);
-        if (url) {
-          out[v.id] = url;
-          break;
-        }
-      }
-    });
-    const missing = venues.map((v) => v.id).filter((id) => !out[id]);
-    if (missing.length > 0) {
-      const props = await prisma.acqProperty.findMany({
-        where: { deletedAt: null, venueId: { in: missing } },
-        select: { venueId: true, deal: { select: { attachments: { where: { kind: "PHOTO" }, orderBy: { createdAt: "asc" }, take: 3, select: { id: true, url: true } } } } },
-      });
-      for (const p of props) {
-        if (!p.venueId || out[p.venueId]) continue;
-        for (const a of p.deal.attachments) {
-          const url = servable(a.url, "p", a.id);
-          if (url) {
-            out[p.venueId] = url;
-            break;
-          }
-        }
-      }
-    }
+    for (const [venueId, list] of photos) if (list[0]) out[venueId] = list[0].url;
     return out;
   } catch {
     return {};
@@ -197,23 +310,53 @@ export interface GuestHallPrice {
 const SIGNAL_RULE_TYPES = new Set(["OCCUPANCY", "DEMAND"]);
 
 /**
- * The rows the team's price simulator (calculateYieldPrice) prices a hall
- * from: Venue.pricePerSlot, the hall's active PricingRules, its
- * VenueDemandSignals and the default RatePlan. Loaded once and handed to
- * hallFromPrice, so every customer-facing price — the "from" figure and a
- * searched date's figure — comes out of the one engine with one set of rows.
+ * A slot price fit to print. Two live halls carry a placeholder
+ * Venue.pricePerSlot (1 and 2), which printed as "from ₹1" under a
+ * 2,000-guest resort. A figure below the floor is treated as MISSING — every
+ * screen already words that as "Price on request" — and is never corrected,
+ * rounded or invented here. The team's record is untouched; their own venue
+ * list flags the placeholder where they can fix it.
  */
-async function loadHallPricingInputs(venueIds?: string[]): Promise<HallPricingInputs[]> {
+function customerSlotPrice(price: number | null | undefined): number | null {
+  return isCredibleSlotPrice(price) ? (price as number) : null;
+}
+
+/** Venue.pricePerSlot and the hall's name — the part of pricing that is not date-dependent. */
+interface HallPricingBase {
+  id: string;
+  name: string;
+  basePrice: number;
+}
+
+/** One query: the halls a price is wanted for. */
+async function loadPricingBases(venueIds?: string[]): Promise<HallPricingBase[]> {
   const ids = cleanIds(venueIds);
   if (ids && ids.length === 0) return [];
   const venues = await prisma.venue.findMany({
     where: { isActive: true, ...(ids ? { id: { in: ids } } : {}) },
     select: { id: true, name: true, pricePerSlot: true },
   });
-  if (venues.length === 0) return [];
-  const hallIds = venues.map((v) => v.id);
-  const startISO = istTodayISO();
-  const endISO = addDaysISO(startISO, FROM_PRICE_WINDOW_DAYS);
+  return venues.map((v) => ({ id: v.id, name: v.name, basePrice: Number(v.pricePerSlot) }));
+}
+
+/**
+ * The rows the team's price simulator (calculateYieldPrice) prices a hall
+ * from: the hall's active PricingRules, the VenueDemandSignals inside the
+ * window, and the default RatePlan. Handed to hallFromPrice, so every
+ * customer-facing price — the "from" figure and a searched date's figure —
+ * comes out of the one engine with one set of rows.
+ *
+ * THREE queries however many halls there are: the rate-plan lookup used to run
+ * once per hall (eleven halls, eleven round trips), and the signal window used
+ * to be a fixed twelve months even when only one day was being priced.
+ */
+async function loadPricingRows(
+  bases: readonly HallPricingBase[],
+  window: { startISO: string; days: number }
+): Promise<HallPricingInputs[]> {
+  if (bases.length === 0) return [];
+  const hallIds = bases.map((b) => b.id);
+  const endISO = addDaysISO(window.startISO, Math.max(1, window.days));
 
   const [rules, plans] = await Promise.all([
     prisma.pricingRule.findMany({
@@ -221,16 +364,16 @@ async function loadHallPricingInputs(venueIds?: string[]): Promise<HallPricingIn
       orderBy: { priority: "asc" },
       select: { id: true, name: true, ruleType: true, multiplier: true, conditions: true, startDate: true, endDate: true, dayOfWeek: true, minDaysAhead: true, venueId: true },
     }),
-    // The exact default-plan lookup calculateYieldPrice runs, hall by hall, so both always pick the same plan.
-    Promise.all(
-      venues.map((v) =>
-        prisma.ratePlan.findFirst({
-          where: { OR: [{ venueId: v.id, isDefault: true, isActive: true }, { venueId: null, isDefault: true, isActive: true }] },
-          orderBy: { venueId: "desc" },
-          select: { name: true, perGuestRate: true },
-        })
-      )
-    ),
+    // Every hall's default plan in ONE query. The where and the orderBy are
+    // calculateYieldPrice's own, so the DATABASE still decides the precedence
+    // between a hall's default plan and the global one; taking the first row
+    // that matches a hall preserves that order per hall exactly as findFirst
+    // did, and customer prices cannot drift from the staff simulator.
+    prisma.ratePlan.findMany({
+      where: { isDefault: true, isActive: true, OR: [{ venueId: { in: hallIds } }, { venueId: null }] },
+      orderBy: { venueId: "desc" },
+      select: { venueId: true, name: true, perGuestRate: true },
+    }),
   ]);
 
   // A signal only changes a price through its manual override, or through an OCCUPANCY / DEMAND rule.
@@ -238,7 +381,7 @@ async function loadHallPricingInputs(venueIds?: string[]): Promise<HallPricingIn
   const signals = await prisma.venueDemandSignal.findMany({
     where: {
       venueId: { in: hallIds },
-      date: { gte: new Date(`${startISO}T00:00:00.000Z`), lt: new Date(`${endISO}T00:00:00.000Z`) },
+      date: { gte: new Date(`${window.startISO}T00:00:00.000Z`), lt: new Date(`${endISO}T00:00:00.000Z`) },
       OR: [{ manualMultiplier: { not: null } }, ...(readsSignals.length > 0 ? [{ venueId: { in: readsSignals } }] : [])],
     },
     select: { venueId: true, date: true, timeSlot: true, occupancyPct: true, demandScore: true, manualMultiplier: true, source: true },
@@ -274,24 +417,31 @@ async function loadHallPricingInputs(venueIds?: string[]): Promise<HallPricingIn
     signalsByHall.set(s.venueId, list);
   }
 
-  return venues.map((v, i) => {
-    const plan = plans[i];
+  return bases.map((b) => {
+    const plan = plans.find((p) => p.venueId === null || p.venueId === b.id) ?? null;
     return {
-      venueId: v.id,
-      venueName: v.name,
-      basePrice: Number(v.pricePerSlot),
-      rules: rulesByHall.get(v.id) ?? [],
-      signals: signalsByHall.get(v.id) ?? [],
+      venueId: b.id,
+      venueName: b.name,
+      basePrice: b.basePrice,
+      rules: rulesByHall.get(b.id) ?? [],
+      signals: signalsByHall.get(b.id) ?? [],
       ratePlan: plan ? { name: plan.name, perGuestRate: Number(plan.perGuestRate) } : null,
     };
   });
+}
+
+/** Bases + rows for the twelve-month window, the shape most callers want. */
+async function loadHallPricingInputs(venueIds?: string[]): Promise<HallPricingInputs[]> {
+  const bases = await loadPricingBases(venueIds);
+  return loadPricingRows(bases, { startISO: istTodayISO(), days: FROM_PRICE_WINDOW_DAYS });
 }
 
 /**
  * "From" prices for halls, from the same engine and the same rows as the
  * team's price simulator (calculateYieldPrice), run through computeYieldPrice
  * for every date and slot a customer can book. Only the resulting figures are
- * returned — never the rules or multipliers.
+ * returned — never the rules or multipliers — and a figure too low to be a
+ * real banquet price is returned as null rather than shown.
  */
 export async function getGuestHallPrices(venueIds?: string[]): Promise<Record<string, GuestHallPrice>> {
   try {
@@ -300,7 +450,12 @@ export async function getGuestHallPrices(venueIds?: string[]): Promise<Record<st
     const out: Record<string, GuestHallPrice> = {};
     for (const input of inputs) {
       const price = hallFromPrice(input, { startISO });
-      out[input.venueId] = { venueId: input.venueId, fromSlotPrice: price.fromSlotPrice, perGuestRate: price.perGuestRate };
+      out[input.venueId] = {
+        venueId: input.venueId,
+        fromSlotPrice: customerSlotPrice(price.fromSlotPrice),
+        // The per-guest rate is a separate figure from a rate plan and is left exactly as the engine gives it.
+        perGuestRate: price.perGuestRate,
+      };
     }
     return out;
   } catch {
@@ -621,22 +776,53 @@ function cleanAmenities(list: readonly string[]): string[] {
 }
 
 /**
- * Each hall's own publicAddress. Deliberately NOT getGuestHallInfo's resolved
- * address: that falls back to the venue-wide address, which would print the
- * same line under every hall in the feed and read as eleven localities.
+ * The published halls, with everything about a hall that does not depend on a
+ * date — in ONE query. This replaced four separate reads of the same table
+ * (the storefront list, the pricing base prices, the cover lookup and the
+ * locality lookup).
+ *
+ * `locality` is each hall's own publicAddress, deliberately NOT
+ * getGuestHallInfo's resolved address: that falls back to the venue-wide
+ * address, which would print the same line under every hall and read as eleven
+ * localities.
  */
-async function loadHallLocalities(): Promise<Record<string, string>> {
+interface FeedHallRow {
+  id: string;
+  name: string;
+  description: string | null;
+  capacity: number;
+  amenities: string[];
+  basePrice: number;
+  locality: string | null;
+}
+
+const FEED_HALL_WHERE = { isActive: true, parentVenueId: null } as const;
+
+async function loadFeedHalls(): Promise<FeedHallRow[]> {
+  const shape = (v: { id: string; name: string; description: string | null; capacity: number; amenities: string[]; pricePerSlot: Prisma.Decimal; publicAddress?: string | null }): FeedHallRow => ({
+    id: v.id,
+    name: v.name,
+    description: textOrNull(v.description),
+    capacity: v.capacity,
+    amenities: cleanAmenities(v.amenities),
+    basePrice: Number(v.pricePerSlot),
+    locality: textOrNull(v.publicAddress)?.replace(/\s+/g, " ") ?? null,
+  });
   try {
-    const rows = await prisma.venue.findMany({ where: { isActive: true }, select: { id: true, publicAddress: true } });
-    const out: Record<string, string> = {};
-    for (const r of rows) {
-      const text = textOrNull(r.publicAddress);
-      if (text) out[r.id] = text.replace(/\s+/g, " ");
-    }
-    return out;
+    const rows = await prisma.venue.findMany({
+      where: FEED_HALL_WHERE,
+      orderBy: { capacity: "asc" },
+      select: { id: true, name: true, description: true, capacity: true, amenities: true, pricePerSlot: true, publicAddress: true },
+    });
+    return rows.map(shape);
   } catch {
-    // The column may not exist in this database yet — a hall simply shows no location line.
-    return {};
+    // publicAddress may not be in this database yet — a hall then shows no location line, rather than the feed emptying.
+    const rows = await prisma.venue.findMany({
+      where: FEED_HALL_WHERE,
+      orderBy: { capacity: "asc" },
+      select: { id: true, name: true, description: true, capacity: true, amenities: true, pricePerSlot: true },
+    });
+    return rows.map(shape);
   }
 }
 
@@ -676,71 +862,135 @@ async function loadHallAvailability(
 }
 
 /**
+ * The lowest slot price each hall's engine gives ON one searched date, read
+ * LIVE every time. Deliberately never cached: a date's price moves with that
+ * date's VenueDemandSignals — occupancy that changed when someone booked an
+ * hour ago, or a multiplier the team set this morning — so a cached figure
+ * would be quoting a date at a price that has already moved.
+ */
+async function loadDatePrices(dateISO: string): Promise<Record<string, number | null>> {
+  try {
+    const bases = await loadPricingBases();
+    const inputs = await loadPricingRows(bases, { startISO: dateISO, days: 1 });
+    const out: Record<string, number | null> = {};
+    for (const input of inputs) {
+      out[input.venueId] = customerSlotPrice(hallFromPrice(input, { startISO: dateISO, days: 1 }).fromSlotPrice);
+    }
+    return out;
+  } catch {
+    // A pricing failure must not empty the feed: those halls read "Price on request".
+    return {};
+  }
+}
+
+// ------------------------------------------------------------ the cached spine
+//
+// Everything about the published halls that does NOT depend on the date being
+// searched: the list itself, amenities, localities, their own photos, the
+// approved-review averages and the twelve-month "from" price. All of it
+// changes only when the team edits a venue, publishes a photo, approves a
+// review or edits a pricing rule — so it is cached for a minute, which is what
+// takes a warm browse request down to the live reads alone.
+//
+// NOT in here, and never cached:
+//   * availability for a searched date — read per request from the same rules
+//     the hold flow re-checks inside its Serializable transaction;
+//   * a searched date's price — see loadDatePrices.
+
+/** How long the published-hall spine may lag a team edit. */
+const FEED_CACHE_SECONDS = 60;
+/** Invalidate the spine early with revalidateTag(GUEST_FEED_CACHE_TAG) after a venue/gallery edit. */
+const GUEST_FEED_CACHE_TAG = "guest-hall-feed";
+
+type GuestHallSpineItem = Omit<GuestHallFeedItem, "priceForDate" | "availability" | "freeSlots">;
+
+interface GuestHallSpine {
+  halls: GuestHallSpineItem[];
+  amenityOptions: string[];
+  capacityOptions: string[];
+}
+
+const EMPTY_SPINE: GuestHallSpine = { halls: [], amenityOptions: [], capacityOptions: [] };
+
+async function loadHallSpine(): Promise<GuestHallSpine> {
+  const halls = await loadFeedHalls();
+  if (halls.length === 0) return EMPTY_SPINE;
+  const ids = halls.map((h) => h.id);
+
+  const [photos, ratings, pricing] = await Promise.all([
+    loadFeedPhotos(ids, FEED_PHOTOS_PER_HALL).catch(() => new Map<string, { url: string; title: string | null }[]>()),
+    getGuestVenueRatings(),
+    // A pricing failure must not empty the feed: those halls read "Price on request".
+    loadPricingRows(halls, { startISO: istTodayISO(), days: FROM_PRICE_WINDOW_DAYS }).catch(() => [] as HallPricingInputs[]),
+  ]);
+
+  const startISO = istTodayISO();
+  const pricingByHall = new Map(pricing.map((p) => [p.venueId, p]));
+  const items: GuestHallSpineItem[] = halls.map((v) => {
+    const inputs = pricingByHall.get(v.id) ?? null;
+    const from = inputs ? hallFromPrice(inputs, { startISO }) : null;
+    const rating = ratings[v.id];
+    return {
+      id: v.id,
+      name: v.name,
+      description: v.description,
+      capacity: v.capacity,
+      amenities: v.amenities,
+      locality: v.locality,
+      photos: photos.get(v.id) ?? [],
+      priceFrom: customerSlotPrice(from?.fromSlotPrice),
+      perGuestRate: from?.perGuestRate ?? 0,
+      rating: rating && rating.count > 0 ? rating : null,
+    };
+  });
+
+  return {
+    halls: items,
+    amenityOptions: topAmenities(items, FEED_AMENITY_CHIPS),
+    capacityOptions: HALL_CAP_BANDS.filter((b) => items.some((i) => capacityInBand(i.capacity, b.key))).map((b) => b.key),
+  };
+}
+
+const cachedHallSpine = unstable_cache(loadHallSpine, ["guest-hall-feed-spine"], {
+  revalidate: FEED_CACHE_SECONDS,
+  tags: [GUEST_FEED_CACHE_TAG],
+});
+
+/**
  * The halls feed. `search` is untrusted (this is a public action), so it is
  * re-validated here and the search actually applied comes back with the
  * results. Halls are never hidden because they are busy: a searched date sorts
  * the free ones first and labels the rest.
+ *
+ * The cached spine and the two live reads start together: which amenities
+ * exist cannot change which date was asked for, so the date's availability and
+ * price do not wait on the hall list.
  */
 export async function getGuestHallFeed(search?: HallSearch | null): Promise<GuestHallFeed> {
   const raw = (search ?? {}) as Partial<Record<keyof HallSearch, unknown>>;
-  const requested = parseHallSearch({ date: raw.dateISO, slot: raw.slot, guests: raw.guests, amenity: raw.amenity, cap: raw.cap });
+  const params = { date: raw.dateISO, slot: raw.slot, guests: raw.guests, amenity: raw.amenity, cap: raw.cap };
+  const requested = parseHallSearch(params);
   try {
-    const [venues, ratings, photos, covers, pricing, localities, availability] = await Promise.all([
-      getStorefrontVenues(),
-      getGuestVenueRatings(),
-      getGuestPhotos({ limit: 80 }),
-      getGuestHallCovers(),
-      // A pricing failure must not empty the feed: those halls read "Price on request".
-      loadHallPricingInputs().catch(() => [] as HallPricingInputs[]),
-      loadHallLocalities(),
+    const [spine, availability, datePrices] = await Promise.all([
+      // A failure in the cache layer must cost speed, not the hall list: fall
+      // back to reading the spine live before giving up on it.
+      cachedHallSpine().catch(() => loadHallSpine().catch(() => EMPTY_SPINE)),
       requested.dateISO
         ? loadHallAvailability(requested.dateISO, requested.slot)
         : Promise.resolve<Record<string, { availability: HallAvailability; freeSlots: string[] }>>({}),
+      requested.dateISO ? loadDatePrices(requested.dateISO) : Promise.resolve<Record<string, number | null>>({}),
     ]);
 
-    const listed = venues.map((v) => ({ ...v, amenities: cleanAmenities(v.amenities) }));
-    const amenityOptions = topAmenities(listed, FEED_AMENITY_CHIPS);
     // Re-read the amenity against what the halls really list, so an unknown one is dropped rather than filtering everything away.
-    const applied = parseHallSearch(
-      { date: raw.dateISO, slot: raw.slot, guests: raw.guests, amenity: raw.amenity, cap: raw.cap },
-      { knownAmenities: [...new Set(listed.flatMap((v) => v.amenities))] }
-    );
+    const applied = parseHallSearch(params, { knownAmenities: [...new Set(spine.halls.flatMap((v) => v.amenities))] });
 
-    const pricingByHall = new Map(pricing.map((p) => [p.venueId, p]));
-    const photosByHall = new Map<string, { url: string; title: string | null }[]>();
-    for (const p of photos) {
-      if (!p.venueId) continue; // a gallery photo not attached to a hall belongs to no card
-      const list = photosByHall.get(p.venueId) ?? [];
-      if (list.length >= FEED_PHOTOS_PER_HALL) continue;
-      list.push({ url: p.url, title: p.title });
-      photosByHall.set(p.venueId, list);
-    }
-
-    const startISO = istTodayISO();
-    const items: GuestHallFeedItem[] = listed.map((v) => {
-      const inputs = pricingByHall.get(v.id) ?? null;
-      const from = inputs ? hallFromPrice(inputs, { startISO }) : null;
-      // The same engine and the same rows as the "from" figure, over a one-day window.
-      const onDate = inputs && applied.dateISO ? hallFromPrice(inputs, { startISO: applied.dateISO, days: 1 }) : null;
-      const own = photosByHall.get(v.id) ?? [];
-      const cover = covers[v.id];
-      const rating = ratings[v.id];
+    const items: GuestHallFeedItem[] = spine.halls.map((v) => {
       const slots = availability[v.id] ?? null;
       return {
-        id: v.id,
-        name: v.name,
-        description: textOrNull(v.description),
-        capacity: v.capacity,
-        amenities: v.amenities,
-        locality: localities[v.id] ?? null,
-        // Its own photos; else the cover lookup, which asks hall by hall so a hall is never starved by another's gallery.
-        photos: own.length > 0 ? own : cover ? [{ url: cover, title: null }] : [],
-        priceFrom: from?.fromSlotPrice ?? null,
-        perGuestRate: from?.perGuestRate ?? 0,
-        priceForDate: onDate?.fromSlotPrice ?? null,
+        ...v,
+        priceForDate: datePrices[v.id] ?? null,
         availability: slots?.availability ?? null,
         freeSlots: slots?.freeSlots ?? [],
-        rating: rating && rating.count > 0 ? rating : null,
       };
     });
 
@@ -750,9 +1000,7 @@ export async function getGuestHallFeed(search?: HallSearch | null): Promise<Gues
       .filter((i) => hallMatchesSearch(i, applied))
       .sort((a, b) => rank(a) - rank(b) || a.capacity - b.capacity || a.name.localeCompare(b.name));
 
-    const capacityOptions = HALL_CAP_BANDS.filter((b) => items.some((i) => capacityInBand(i.capacity, b.key))).map((b) => b.key);
-
-    return { halls, totalPublished: items.length, amenityOptions, capacityOptions, applied };
+    return { halls, totalPublished: items.length, amenityOptions: spine.amenityOptions, capacityOptions: spine.capacityOptions, applied };
   } catch {
     return { halls: [], totalPublished: 0, amenityOptions: [], capacityOptions: [], applied: requested };
   }
