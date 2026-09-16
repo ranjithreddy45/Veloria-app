@@ -73,14 +73,15 @@ export function AvailabilityMonth({ venueId, venueName, priceLabel, title = "Ava
     <>
       <div>
         <div className="flex items-baseline justify-between">
-          <div className="text-copy font-semibold">{title} · {base.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</div>
+          {/* A heading, not a styled div: it is one of the hall page's sections. */}
+          <h2 className="text-copy font-semibold">{title} · {base.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</h2>
           <div className="flex gap-1">
             <button type="button" aria-label="Previous month" disabled={offset === 0} onClick={() => setOffset((o) => Math.max(0, o - 1))} className="flex size-[30px] items-center justify-center rounded-full border border-black/[.08] bg-white disabled:opacity-40"><ChevronLeft className="size-4" /></button>
             <button type="button" aria-label="Next month" disabled={offset >= 11} onClick={() => setOffset((o) => Math.min(11, o + 1))} className="flex size-[30px] items-center justify-center rounded-full border border-black/[.08] bg-white disabled:opacity-40"><ChevronRight className="size-4" /></button>
           </div>
         </div>
         <div className={`vg-card mt-2.5 rounded-2xl p-3 ${loading ? "opacity-60" : ""}`} aria-busy={loading}>
-          <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold tracking-[.06em] text-[#8a8a8e]">{DOW.map((d, i) => <div key={i}>{d}</div>)}</div>
+          <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold tracking-[.06em] text-[#636368]">{DOW.map((d, i) => <div key={i}>{d}</div>)}</div>
           <div className="grid grid-cols-7 gap-1">
             {cells.map((n, i) => {
               if (n === null) return <div key={`e${i}`} className="h-9" />;
@@ -122,11 +123,11 @@ export function AvailabilityMonth({ venueId, venueName, priceLabel, title = "Ava
       {/* Sticky CTA — bottom:0 because the tab bar is hidden on inner screens.
           Suppressed when a parent owns the bar (onPick), so only one shows. */}
       {!onPick && (
-        <div className="vg-glass fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-md items-center gap-2.5 px-5 pb-[calc(var(--sab)+12px)] pt-3">
+        <div className="vg-glass vg-col vg-gutter fixed inset-x-0 bottom-0 z-30 flex items-center gap-2.5 pb-[calc(var(--sab)+12px)] pt-3">
           <div className="min-w-0 flex-1">
             <div className="text-meta text-[#6e6e73]">{pickLabel ? `${pickLabel}${pickStatus}` : "Pick a date above"}</div>
             {priceLabel ? (
-              <div className="numeric text-copy font-semibold text-[#6d1b52]">{priceLabel} <span className="text-meta font-medium text-[#8a8a8e]">/ slot</span></div>
+              <div className="numeric text-copy font-semibold text-[#6d1b52]">{priceLabel} <span className="text-meta font-medium text-[#636368]">/ slot</span></div>
             ) : (
               <div className="text-copy font-semibold text-[#6d1b52]">Price on request</div>
             )}

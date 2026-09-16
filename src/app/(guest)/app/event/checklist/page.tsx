@@ -53,10 +53,10 @@ export default async function ChecklistPage({ searchParams }: { searchParams: Pr
                     <span className={`flex size-[22px] shrink-0 items-center justify-center rounded-full border-[1.5px] ${t.done ? "border-[#6d1b52] bg-[#6d1b52]" : "border-black/20"}`}>
                       {t.done && <Check className="size-3 text-white" strokeWidth={3} />}
                     </span>
-                    <span className={`flex-1 text-body ${t.done ? "text-[#8a8a8e] line-through" : ""}`}>{t.label}</span>
+                    <span className={`flex-1 text-body ${t.done ? "text-[#636368] line-through" : ""}`}>{t.label}</span>
                     <span className="flex shrink-0 flex-col items-end gap-1">
                       {!t.done && FLAG_TONE[t.status] && <Pill tone={FLAG_TONE[t.status]}>{t.statusLabel}</Pill>}
-                      <span className="text-meta text-[#8a8a8e]">{t.owner}</span>
+                      <span className="text-meta text-[#636368]">{t.owner}</span>
                     </span>
                   </div>
                 ))}

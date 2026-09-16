@@ -131,7 +131,7 @@ export default async function HeldPage({ params }: { params: Promise<{ token: st
         }`}
       >
         {ended ? (
-          <CalendarX2 className="size-9 text-[#8a8a8e]" strokeWidth={2.2} />
+          <CalendarX2 className="size-9 text-[#636368]" strokeWidth={2.2} />
         ) : moneyIn ? (
           <Check className="size-9 text-white" strokeWidth={3} />
         ) : (

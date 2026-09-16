@@ -104,7 +104,7 @@ export default async function HelpPage() {
           <SectionTitle title="Questions & answers" />
           {groups.map((group) => (
             <div key={group.title} className="flex flex-col gap-2">
-              {groups.length > 1 && <div className="px-1 text-meta font-semibold uppercase tracking-[.08em] text-[#8a8a8e]">{group.title}</div>}
+              {groups.length > 1 && <div className="px-1 text-meta font-semibold uppercase tracking-[.08em] text-[#636368]">{group.title}</div>}
               <Card className="vg-divide overflow-hidden">
                 {group.items.map((faq) => (
                   <details key={faq.id} className="group">

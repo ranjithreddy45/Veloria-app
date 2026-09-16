@@ -96,7 +96,7 @@ export function DeleteMyData({ requests, hasOpenRequest, retentionYears, action 
             <div key={r.id} className="flex items-center gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
                 <div className="truncate text-body font-medium">{r.kind}</div>
-                <div className="numeric text-meta text-[#8a8a8e]">Raised {r.date}</div>
+                <div className="numeric text-meta text-[#636368]">Raised {r.date}</div>
               </div>
               <Pill tone={r.open ? "amber" : "grey"}>{r.status}</Pill>
             </div>

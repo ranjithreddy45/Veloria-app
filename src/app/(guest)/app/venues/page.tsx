@@ -61,18 +61,22 @@ export default async function VenuesPage({
 
   return (
     <div className="vg-rise flex flex-col">
-      <HallSearchPill search={search} amenityOptions={feed.amenityOptions} basePath={BASE} />
+      {/* The pill sticks under the laptop's top bar (56px of row + its 1px rule),
+          and under nothing on a phone; its padding tracks the column's gutter so
+          the search box lines up with the headings below it. */}
+      <HallSearchPill search={search} amenityOptions={feed.amenityOptions} basePath={BASE} className="sm:px-7 lg:top-[57px] lg:px-8" />
 
-      <div className="flex flex-col gap-4 px-5 pt-2">
+      <div className="vg-gutter flex flex-col gap-4 pt-2">
         <div>
           <Title>Our halls</Title>
-          <p className="mt-1.5 text-detail text-[#6e6e73]">
+          <p className="mt-1.5 max-w-[60ch] text-detail text-[#6e6e73]">
             {feed.totalPublished > 1 ? `${feed.totalPublished} spaces to choose from.` : "One space."} Pick the one that fits your celebration.
           </p>
         </div>
 
+        {/* A rail on a phone; on a wider column every chip fits, so they wrap instead. */}
         {chips.length > 0 && (
-          <div className="vg-scroll-x vg-bleed">
+          <div className="vg-scroll-x vg-bleed sm:flex-wrap">
             {chips.map((c) => (
               <Chip key={c.key} active={c.active} href={c.href}>
                 {c.label}
@@ -99,10 +103,13 @@ export default async function VenuesPage({
           </div>
         )}
 
+        {/* role=status: applying a search from the sheet is a client navigation,
+            so this line changes with nothing else moving. A screen-reader user
+            has to be told what the search did. */}
         {countLine && (
-          <div className="-mb-1 flex items-baseline justify-between gap-3">
+          <div role="status" className="-mb-1 flex items-baseline justify-between gap-3">
             <p className="text-detail font-semibold text-[#1d1d1f]">{countLine}</p>
-            {search.dateISO && <p className="shrink-0 text-meta text-[#8a8a8e]">Free halls first</p>}
+            {search.dateISO && <p className="shrink-0 text-meta text-[#636368]">Free halls first</p>}
           </div>
         )}
 
@@ -116,7 +123,9 @@ export default async function VenuesPage({
             </NavLink>
           </EmptyNote>
         ) : (
-          <div className="flex flex-col gap-4">
+          // One column on a phone, two on a tablet, three on a laptop — the
+          // same card either way, so a hall never reads as two different halls.
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {feed.halls.map((hall, i) => (
               <HallCard
                 key={hall.id}
@@ -131,7 +140,7 @@ export default async function VenuesPage({
         )}
 
         {anyIllustration && feed.halls.length > 0 && (
-          <p className="text-meta leading-[1.5] text-[#8a8a8e]">
+          <p className="max-w-[70ch] text-meta leading-[1.5] text-[#636368]">
             Pictures marked &ldquo;Illustration&rdquo; are not photos of our halls. Each is replaced as soon as our team publishes a real photo of that hall.
           </p>
         )}

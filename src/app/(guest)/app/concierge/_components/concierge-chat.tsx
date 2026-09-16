@@ -229,7 +229,7 @@ export function ConciergeChat({
           <p className="rounded-2xl bg-white/70 px-4 py-3 text-detail leading-[1.5] text-[#6e6e73]">{intro}</p>
           {hasContactOptions && (
             <div className="flex flex-col gap-2">
-              <p className="px-1 text-meta font-semibold text-[#8a8a8e]">Prefer to talk?</p>
+              <p className="px-1 text-meta font-semibold text-[#636368]">Prefer to talk?</p>
               <ContactLinks contact={contact} context={contactContext} />
             </div>
           )}
@@ -240,7 +240,7 @@ export function ConciergeChat({
             return (
               <React.Fragment key={`${entry.type}-${entry.item.id}`}>
                 {showDay && (
-                  <p className="mt-2 self-center text-[10.5px] font-semibold uppercase tracking-[.08em] text-[#8a8a8e]">
+                  <p className="mt-2 self-center text-[10.5px] font-semibold uppercase tracking-[.08em] text-[#636368]">
                     {dayTitle(entry.item.createdAt)}
                   </p>
                 )}
@@ -263,7 +263,7 @@ export function ConciergeChat({
 
       {canWrite && (
         <>
-          <div className="vg-glass fixed inset-x-0 bottom-[calc(var(--sab)+66px)] z-30 mx-auto flex max-w-md flex-col gap-2.5 px-5 pb-3 pt-3">
+          <div className="vg-glass vg-col vg-gutter fixed inset-x-0 bottom-[calc(var(--sab)+66px)] z-30 flex flex-col gap-2.5 pb-3 pt-3 lg:bottom-[calc(var(--sab)+12px)]">
             {conv.booking && conv.messages.length === 0 && (
               <div className="vg-scroll-x vg-bleed gap-1.5">
                 {STARTERS.map((s) => (
@@ -326,7 +326,7 @@ function MessageBubble({ m }: { m: Shown }) {
   const label = customerSide ? (m.mine ? null : m.authorName) : m.authorName ? `${m.authorName} · Veloria team` : "Veloria team";
   return (
     <div className={cn("flex flex-col gap-1", customerSide ? "items-end" : "items-start")}>
-      {label && <span className="px-1 text-[10.5px] font-medium text-[#8a8a8e]">{label}</span>}
+      {label && <span className="px-1 text-[10.5px] font-medium text-[#636368]">{label}</span>}
       <div
         className={cn(
           "max-w-[80%] whitespace-pre-wrap break-words rounded-[18px] px-3.5 py-2.5 text-body leading-[1.45]",
@@ -336,7 +336,7 @@ function MessageBubble({ m }: { m: Shown }) {
       >
         {m.body}
       </div>
-      <span className="flex items-center gap-1 px-1 text-[10.5px] text-[#8a8a8e]">
+      <span className="flex items-center gap-1 px-1 text-[10.5px] text-[#636368]">
         {timeOf(m.createdAt)}
         {m.pending ? (
           <span>· Sending…</span>
@@ -368,7 +368,7 @@ function RequestCard({ r }: { r: RequestEntry }) {
         </span>
       </div>
       <p className="mt-0.5 line-clamp-3 whitespace-pre-wrap text-detail leading-[1.45] text-[#6e6e73]">{r.text}</p>
-      <p className="mt-1 text-[10.5px] text-[#8a8a8e]">{timeOf(r.createdAt)}</p>
+      <p className="mt-1 text-[10.5px] text-[#636368]">{timeOf(r.createdAt)}</p>
     </div>
   );
 }

@@ -32,7 +32,9 @@ export function SpacesRail({
   if (shown.length === 0) return null;
 
   return (
-    <ul className="vg-scroll-x vg-bleed snap-x snap-mandatory scroll-px-5 list-none pb-1.5">
+    // scroll-px matches the column's own gutter at each width, so a snapped
+    // card lands exactly where the headings above it start.
+    <ul className="vg-scroll-x vg-bleed snap-x snap-mandatory scroll-px-5 list-none pb-1.5 sm:scroll-px-7 lg:scroll-px-8">
       {shown.map((hall, i) => (
         // The card carries its own rail width; the item only has to snap.
         <li key={hall.id} className="flex shrink-0 snap-start">

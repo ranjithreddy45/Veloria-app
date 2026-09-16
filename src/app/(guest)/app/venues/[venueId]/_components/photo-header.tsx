@@ -50,20 +50,28 @@ export function PhotoHeader({
   const lead = photos.slice(0, GRID_MIN);
   const grid = lead.length >= GRID_MIN;
 
+  // When the grid takes over at 640px the photos are inset by the column's
+  // gutter, so the controls that sit on top of them have to move in with it.
+  // Without the grid the picture is still edge to edge and they do not.
+  const inset = grid ? " sm:top-[calc(var(--sat)+1.5rem)] sm:left-10 lg:left-11" : "";
+  const insetRight = grid ? " sm:top-[calc(var(--sat)+1.5rem)] sm:right-10 lg:right-11" : "";
+
   return (
     <header className="relative">
+      {/* A phone gets the 4:3 hero; a wider column would make that absurdly
+          tall, so the same picture gets wider and shallower as the column does. */}
       <PhotoCarousel
         photos={photos.map((p) => ({ url: p.url, title: p.title }))}
         name={venueName}
         seed={venueId}
         eager
         badgeClassName="bottom-9 left-4"
-        className={`aspect-[4/3] w-full${grid ? " sm:hidden" : ""}`}
+        className={`aspect-[4/3] w-full sm:aspect-[16/9] lg:aspect-[21/9]${grid ? " sm:hidden" : ""}`}
       />
 
       {/* Wider column: the large photo with four beside it. */}
       {grid && (
-        <div className="hidden h-[360px] gap-2 px-5 pt-[calc(var(--sat)+0.75rem)] sm:grid sm:grid-cols-4 sm:grid-rows-2">
+        <div className="vg-gutter hidden h-[360px] gap-2 pt-[calc(var(--sat)+0.75rem)] sm:grid sm:grid-cols-4 sm:grid-rows-2 lg:h-[440px]">
           {lead.map((p, i) => (
             <Photo
               key={p.id}
@@ -79,14 +87,16 @@ export function PhotoHeader({
         </div>
       )}
 
-      <BackButton href={backHref} light className="absolute left-4 top-[calc(var(--sat)+0.75rem)]" />
-      <SaveButton venueId={venueId} className="absolute right-4 top-[calc(var(--sat)+0.75rem)]" />
+      <BackButton href={backHref} light className={`absolute left-4 top-[calc(var(--sat)+0.75rem)]${inset}`} />
+      <SaveButton venueId={venueId} className={`absolute right-4 top-[calc(var(--sat)+0.75rem)]${insetRight}`} />
 
       {photos.length > 1 && (
         <NavLink
           href={photosHref}
           kind="push"
-          className="absolute bottom-9 right-4 inline-flex min-h-11 items-center gap-1.5 rounded-full border border-black/[.08] bg-white/[.94] px-4 py-2 text-detail font-semibold text-[#1d1d1f] shadow-sm backdrop-blur"
+          className={`absolute bottom-9 right-4 inline-flex min-h-11 items-center gap-1.5 rounded-full border border-black/[.08] bg-white/[.94] px-4 py-2 text-detail font-semibold text-[#1d1d1f] shadow-sm backdrop-blur${
+            grid ? " sm:bottom-10 sm:right-10 lg:right-11" : ""
+          }`}
         >
           <Images className="size-4" aria-hidden /> Show all photos
         </NavLink>

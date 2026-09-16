@@ -239,7 +239,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
           )}
 
           {d.invoices.length > 0 && (
-            <p className="text-center text-meta text-[#8a8a8e]">
+            <p className="text-center text-meta text-[#636368]">
               An invoice is a proforma until it is paid in full. The tax invoice is issued once the balance is cleared.
             </p>
           )}

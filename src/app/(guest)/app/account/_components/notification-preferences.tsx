@@ -61,7 +61,7 @@ export function NotificationPreferences({ rows: initial, disabled, action }: Pro
 
   return (
     <Card className="vg-divide mt-2.5 overflow-hidden">
-      <div className="flex items-center justify-end gap-6 px-4 pt-3 text-meta font-semibold uppercase tracking-[.08em] text-[#8a8a8e]">
+      <div className="flex items-center justify-end gap-6 px-4 pt-3 text-meta font-semibold uppercase tracking-[.08em] text-[#636368]">
         <span className="w-12 text-center">Email</span>
         <span className="w-12 text-center">Text</span>
       </div>

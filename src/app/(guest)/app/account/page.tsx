@@ -75,7 +75,7 @@ export default async function AccountPage() {
   }));
 
   return (
-    <Screen className="pt-[calc(var(--sat)+1rem)]">
+    <Screen className="vg-gutter pt-[calc(var(--sat)+1rem)]">
       <Title>Account</Title>
 
       {a.preview && (

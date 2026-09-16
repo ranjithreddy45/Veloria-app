@@ -50,7 +50,7 @@ export default async function EventMenuPage({ searchParams }: { searchParams: Pr
           <div className="text-[10.5px] font-semibold uppercase tracking-[.08em] text-[#b88513]">Your package · from your quotation</div>
           <div className="mt-1 flex items-baseline justify-between gap-3">
             <div className="text-body font-semibold">{rules.packageLabel}</div>
-            <div className="numeric text-detail font-semibold text-[#6d1b52]">{inr(rules.perPlate)} <span className="text-meta font-medium text-[#8a8a8e]">per plate</span></div>
+            <div className="numeric text-detail font-semibold text-[#6d1b52]">{inr(rules.perPlate)} <span className="text-meta font-medium text-[#636368]">per plate</span></div>
           </div>
           {rules.vegOnly && <p className="mt-1.5 text-meta leading-[1.45] text-[#6e6e73]">A vegetarian package: dishes the team marks non-vegetarian aren&apos;t offered.</p>}
         </Card>

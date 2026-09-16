@@ -63,7 +63,7 @@ export default async function RewardsPage() {
               {loyalty.progress.nextTier ? (
                 <div className="mt-4">
                   <ProgressBar pct={loyalty.progress.pct} className="h-1.5" track="bg-[#b88513]/[.18]" fill="bg-[#b88513]" />
-                  <div className="mt-2 flex justify-between text-meta font-semibold uppercase tracking-[.08em] text-[#8a8a8e]">
+                  <div className="mt-2 flex justify-between text-meta font-semibold uppercase tracking-[.08em] text-[#636368]">
                     <span>{tierName(loyalty.tier)}</span>
                     <span>
                       {loyalty.progress.toGo.toLocaleString("en-IN")} to {tierName(loyalty.progress.nextTier)}
@@ -97,7 +97,7 @@ export default async function RewardsPage() {
                 <div key={x.id} className="flex items-center gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <div className="line-clamp-2 text-body">{x.text}</div>
-                    <div className="numeric text-meta text-[#8a8a8e]">{fmtDate(x.createdAt, { day: "numeric", month: "short", year: "numeric" })}</div>
+                    <div className="numeric text-meta text-[#636368]">{fmtDate(x.createdAt, { day: "numeric", month: "short", year: "numeric" })}</div>
                   </div>
                   <Pill tone={x.status === "DONE" ? "green" : "plum"}>{customerLabel(CUSTOMER_REQUEST_STATUS_LABEL, x.status)}</Pill>
                 </div>
@@ -147,7 +147,7 @@ export default async function RewardsPage() {
                 <div key={x.id} className="flex items-center gap-3 px-4 py-3">
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-body font-medium">{x.name}</div>
-                    <div className="numeric text-meta text-[#8a8a8e]">{fmtDate(x.createdAt, { day: "numeric", month: "short", year: "numeric" })}</div>
+                    <div className="numeric text-meta text-[#636368]">{fmtDate(x.createdAt, { day: "numeric", month: "short", year: "numeric" })}</div>
                   </div>
                   <span className="rounded-full bg-[#f7eef2] px-2.5 py-1 text-meta font-semibold text-[#6d1b52]">{referralStatusWord(x.status)}</span>
                 </div>
@@ -165,7 +165,7 @@ export default async function RewardsPage() {
               <div key={a.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-body font-medium">{a.what}</div>
-                  <div className="numeric text-meta text-[#8a8a8e]">{fmtDate(a.when, { day: "numeric", month: "short", year: "numeric" })}</div>
+                  <div className="numeric text-meta text-[#636368]">{fmtDate(a.when, { day: "numeric", month: "short", year: "numeric" })}</div>
                 </div>
                 <div className={`numeric text-body font-semibold ${a.points > 0 ? "text-[#2a9d4a]" : "text-[#6e6e73]"}`}>{signed(a.points)}</div>
               </div>

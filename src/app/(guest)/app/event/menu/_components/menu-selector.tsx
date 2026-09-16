@@ -87,7 +87,7 @@ export function MenuSelector({ bookingId, guestCount, catalog, rules, preview, i
       </div>
 
       <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-black/[.08] bg-white px-3">
-        <Search className="size-4 text-[#8a8a8e]" />
+        <Search className="size-4 text-[#636368]" />
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search dishes or cuisines" aria-label="Search dishes" className="min-h-10 min-w-0 flex-1 bg-transparent text-body focus:outline-none" />
       </div>
 
@@ -119,11 +119,11 @@ export function MenuSelector({ bookingId, guestCount, catalog, rules, preview, i
                           {isNonVegetarian(d.dietaryTags) && <Pill tone="amber" className="px-2 py-0.5">Non-veg</Pill>}
                         </div>
                         {d.description && <div className="mt-0.5 line-clamp-2 text-meta leading-[1.45] text-[#6e6e73]">{d.description}</div>}
-                        <div className="mt-1 text-meta text-[#8a8a8e]">
+                        <div className="mt-1 text-meta text-[#636368]">
                           {[d.cuisine, ...tags].filter(Boolean).join(" · ") || (rules.vegOnly ? "Diet not marked — ask the team if unsure" : "")}
                         </div>
                         <div className="numeric mt-1 text-detail font-semibold text-[#6d1b52]">
-                          {inr(d.pricePerHead)} <span className="text-meta font-medium text-[#8a8a8e]">per head</span>
+                          {inr(d.pricePerHead)} <span className="text-meta font-medium text-[#636368]">per head</span>
                         </div>
                       </div>
                       <button
@@ -180,12 +180,12 @@ export function MenuSelector({ bookingId, guestCount, catalog, rules, preview, i
       {error && <p className="mt-2 text-meta text-[#b3261e]">{error}</p>}
       <div className="h-28" />
 
-      <div className="vg-glass fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-md items-center gap-3 px-5 pb-[calc(var(--sab)+12px)] pt-3">
+      <div className="vg-glass vg-col vg-gutter fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 pb-[calc(var(--sab)+12px)] pt-3">
         <div className="min-w-0 flex-1">
           <div className="text-meta text-[#6e6e73]">{picked.size} {picked.size === 1 ? "dish" : "dishes"}{full ? " (the most one request can hold)" : ""}</div>
           {chosen.length > 0 && (
             <div className="numeric text-copy font-semibold text-[#6d1b52]">
-              ≈ {inr(pricing.pricePerHead)} <span className="text-meta font-medium text-[#8a8a8e]">per head, estimate</span>
+              ≈ {inr(pricing.pricePerHead)} <span className="text-meta font-medium text-[#636368]">per head, estimate</span>
             </div>
           )}
         </div>

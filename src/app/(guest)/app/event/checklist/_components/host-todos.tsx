@@ -67,8 +67,8 @@ export function HostTodos({ bookingId, initial, readOnly = false }: { bookingId:
             <span className={`flex size-[22px] shrink-0 items-center justify-center rounded-full border-[1.5px] transition-colors ${t.done ? "border-[#6d1b52] bg-[#6d1b52]" : "border-black/20"}`}>
               {t.done && <Check className="size-3 text-white" strokeWidth={3} />}
             </span>
-            <span className={`flex-1 text-body ${t.done ? "text-[#8a8a8e] line-through" : ""}`}>{t.label}</span>
-            <span className="text-meta text-[#8a8a8e]">{t.done || t.status === "TODO" ? "You" : t.statusLabel}</span>
+            <span className={`flex-1 text-body ${t.done ? "text-[#636368] line-through" : ""}`}>{t.label}</span>
+            <span className="text-meta text-[#636368]">{t.done || t.status === "TODO" ? "You" : t.statusLabel}</span>
           </button>
         ))}
         {readOnly ? (

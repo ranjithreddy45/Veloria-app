@@ -35,7 +35,7 @@ function ReviewSummary({ review, firstName }: { review: GuestReviewView; firstNa
         <Card className="rounded-[18px] p-[18px]">
           <div className="text-meta font-semibold uppercase tracking-[.08em] text-[#6d1b52]">Reply from the team</div>
           <p className="mt-1.5 whitespace-pre-line text-body leading-[1.6]">{review.response}</p>
-          {review.respondedAt && <div className="numeric mt-1.5 text-meta text-[#8a8a8e]">{fmtDate(review.respondedAt, LONG_DATE)}</div>}
+          {review.respondedAt && <div className="numeric mt-1.5 text-meta text-[#636368]">{fmtDate(review.respondedAt, LONG_DATE)}</div>}
         </Card>
       )}
     </>

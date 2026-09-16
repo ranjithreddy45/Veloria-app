@@ -1,7 +1,7 @@
 import Form from "next/form";
 import { Check, Minus } from "lucide-react";
-import { NavLink } from "../../../_components/nav-transition";
-import { Card, EmptyNote, PrimaryButton, Screen, ScreenHeader } from "../../../_components/ui";
+import { BackButton, NavLink } from "../../../_components/nav-transition";
+import { Card, EmptyNote, PrimaryButton, Screen } from "../../../_components/ui";
 import { getStorefrontVenues, type StorefrontVenue } from "@/actions/storefront.actions";
 import { getGuestHallInfo, getGuestHallPrices, getGuestVenueRatings } from "@/actions/guest-public.actions";
 import { buildComparison, COMPARE_MAX, parseCompareIds, type CompareCell, type Comparison } from "../_lib/compare";
@@ -38,8 +38,14 @@ export default async function CompareHallsPage({ searchParams }: { searchParams:
   }
 
   return (
-    <Screen className="gap-4 pb-6">
-      <ScreenHeader title="Compare halls" backHref="/app/venues" />
+    // `flush` + vg-gutter: the responsive side gutter rather than Screen's
+    // fixed px-5, so the compare table sits in the same column as everything else.
+    <Screen flush className="vg-gutter gap-4 pb-6 pt-[calc(var(--sat)+0.5rem)]">
+      {/* ScreenHeader's title is a styled div; this screen needs a real h1. */}
+      <div className="flex items-center gap-3">
+        <BackButton href="/app/venues" />
+        <h1 className="min-w-0 flex-1 text-copy font-semibold">Compare halls</h1>
+      </div>
 
       {venues.length < 2 ? (
         <EmptyNote>There is only one hall to choose from, so there is nothing to compare.</EmptyNote>
@@ -53,7 +59,7 @@ export default async function CompareHallsPage({ searchParams }: { searchParams:
                 </p>
               )}
               <ComparisonTable comparison={comparison} />
-              <p className="text-meta leading-[1.5] text-[#8a8a8e]">
+              <p className="max-w-[80ch] text-meta leading-[1.5] text-[#636368]">
                 Prices are each hall&apos;s lowest slot price over the next 12 months; your final price depends on the date, slot, guest count and add-ons. Ratings come from published reviews. A tick means our team lists that amenity for the hall.
               </p>
             </>
@@ -83,7 +89,7 @@ function ComparisonTable({ comparison }: { comparison: Comparison }) {
       <FactRow label="Rating" cells={comparison.rating} cols={cols} />
       <FactRow label="In-house catering" cells={comparison.catering} cols={cols} />
       <div className="border-t border-black/[.06] px-3 pb-3 pt-2.5">
-        <div className="text-[10.5px] font-semibold uppercase tracking-[.08em] text-[#8a8a8e]">Amenities</div>
+        <div className="text-[10.5px] font-semibold uppercase tracking-[.08em] text-[#636368]">Amenities</div>
         {comparison.amenities.length === 0 ? (
           <p className="mt-1 text-meta text-[#6e6e73]">No amenities are listed for these halls.</p>
         ) : (
@@ -111,7 +117,7 @@ function ComparisonTable({ comparison }: { comparison: Comparison }) {
 function FactRow({ label, cells, cols }: { label: string; cells: CompareCell[]; cols: string }) {
   return (
     <div className="border-t border-black/[.06]">
-      <div className="px-3 pt-2.5 text-[10.5px] font-semibold uppercase tracking-[.08em] text-[#8a8a8e]">{label}</div>
+      <div className="px-3 pt-2.5 text-[10.5px] font-semibold uppercase tracking-[.08em] text-[#636368]">{label}</div>
       <div className={`grid ${cols} gap-3 px-3 pb-3 pt-1`}>
         {cells.map((c, i) => (
           <div key={i} className="min-w-0 break-words">
@@ -126,7 +132,8 @@ function FactRow({ label, cells, cols }: { label: string; cells: CompareCell[]; 
 
 function HallPicker({ venues, selected, collapsed }: { venues: StorefrontVenue[]; selected: string[]; collapsed: boolean }) {
   const form = (
-    <Form action="/app/venues/compare" className="flex flex-col gap-3">
+    // A checkbox list the width of a laptop is unreadable; it stops at a column.
+    <Form action="/app/venues/compare" className="flex w-full flex-col gap-3 sm:max-w-md">
       <Card className="vg-divide overflow-hidden">
         {venues.map((v) => (
           <label key={v.id} className="flex min-h-[52px] cursor-pointer items-center gap-3 px-4 py-3">

@@ -54,7 +54,7 @@ const RSVP_TONE: Record<Rsvp, string> = {
 };
 
 const FIELD =
-  "min-h-11 w-full min-w-0 rounded-[12px] border border-black/[.08] bg-white px-3.5 text-body text-[#1d1d1f] placeholder:text-[#8a8a8e] focus:border-[#6d1b52] focus:outline-none";
+  "min-h-11 w-full min-w-0 rounded-[12px] border border-black/[.08] bg-white px-3.5 text-body text-[#1d1d1f] placeholder:text-[#636368] focus:border-[#6d1b52] focus:outline-none";
 const GHOST_BTN =
   "flex h-10 items-center justify-center gap-2 rounded-[12px] border border-black/[.08] bg-white px-3 text-detail font-semibold text-[#1d1d1f] disabled:opacity-60";
 const PRIMARY_BTN =
@@ -326,7 +326,7 @@ export function GuestListClient({ initial }: { initial: HostGuestListData }) {
             {manualLink?.id === g.id && (
               <input readOnly value={manualLink.url} onFocus={(e) => e.currentTarget.select()} aria-label={`RSVP link for ${g.name}`} className={`${FIELD} min-h-10 text-meta`} />
             )}
-            <p className="text-meta text-[#8a8a8e]">A link you copy or share yourself isn&apos;t marked as sent. Their reply still shows up here.</p>
+            <p className="text-meta text-[#636368]">A link you copy or share yourself isn&apos;t marked as sent. Their reply still shows up here.</p>
           </>
         )}
 
@@ -413,7 +413,7 @@ export function GuestListClient({ initial }: { initial: HostGuestListData }) {
           {tally.checkedIn > 0 && <span><b className="text-[#1d1d1f]">{tally.checkedIn}</b> checked in</span>}
           {veg > 0 && <span><b className="text-[#1d1d1f]">{veg}</b> veg</span>}
         </div>
-        <p className="mt-2 text-meta text-[#8a8a8e]">Guests are the names on your list; people also counts their plus-ones.</p>
+        <p className="mt-2 text-meta text-[#636368]">Guests are the names on your list; people also counts their plus-ones.</p>
       </Card>
 
       {canManage && (
@@ -497,7 +497,7 @@ export function GuestListClient({ initial }: { initial: HostGuestListData }) {
           );
         })}
       </Card>
-      <p className="text-center text-meta text-[#8a8a8e]">
+      <p className="text-center text-meta text-[#636368]">
         {canManage
           ? "Tap a guest to record their reply, send their WhatsApp invitation or share their own RSVP link."
           : "Replies from each guest's RSVP link show up here."}

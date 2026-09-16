@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getStorefrontVenue } from "@/actions/storefront.actions";
 import { getGuestPhotos } from "@/actions/guest-public.actions";
-import { EmptyNote, GhostButton, Photo, Screen, ScreenHeader } from "../../../../_components/ui";
+import { BackButton } from "../../../../_components/nav-transition";
+import { EmptyNote, GhostButton, Photo, Screen } from "../../../../_components/ui";
 import { visitHref } from "../../_lib/links";
 
 // Every published photo of one hall, with the caption the team gave it.
@@ -27,25 +28,34 @@ export default async function VenuePhotosPage({ params }: { params: Params }) {
   const hallHref = `/app/venues/${venue.id}`;
 
   return (
-    <Screen className="gap-4 pb-8">
-      <ScreenHeader title="Photos" sub={venue.name} backHref={hallHref} />
+    <Screen flush className="vg-gutter gap-4 pb-8 pt-[calc(var(--sat)+0.5rem)]">
+      {/* A real h1 — ScreenHeader's title is a styled div. */}
+      <div className="flex items-center gap-3">
+        <BackButton href={hallHref} />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-copy font-semibold">Photos</h1>
+          <div className="text-meta text-[#6e6e73]">{venue.name}</div>
+        </div>
+      </div>
 
       {photos.length === 0 ? (
         <>
           <EmptyNote>We haven&apos;t published photos of {venue.name} yet.</EmptyNote>
-          <p className="text-meta leading-[1.5] text-[#8a8a8e]">
+          <p className="max-w-[70ch] text-meta leading-[1.5] text-[#636368]">
             Our team adds them here as soon as they are shot. Until then, the surest way to see the hall is to walk it.
           </p>
-          <GhostButton href={visitHref({ kind: "SITE_VISIT", venueId: venue.id })} className="w-full">
+          <GhostButton href={visitHref({ kind: "SITE_VISIT", venueId: venue.id })} className="w-full sm:max-w-xs">
             Book a site visit
           </GhostButton>
         </>
       ) : (
         <>
-          <p className="-mt-1 text-meta leading-[1.5] text-[#8a8a8e]">
+          <p className="-mt-1 max-w-[70ch] text-meta leading-[1.5] text-[#636368]">
             Photographed at {venue.name} and published by our team.
           </p>
-          <div className="flex flex-col gap-4">
+          {/* One photo per row on a phone; a wider column carries two or three,
+              so a 4:3 picture never grows to the height of the window. */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {photos.map((p) => (
               <figure key={p.id}>
                 <Photo src={p.url} alt={p.title ?? `${venue.name} photo`} className="aspect-[4/3] w-full rounded-[20px]" />

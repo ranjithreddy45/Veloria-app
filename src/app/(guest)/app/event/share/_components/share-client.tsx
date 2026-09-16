@@ -27,7 +27,7 @@ const STATUS_TONE: Record<ShareCollaboratorRow["status"], Tone> = { ACTIVE: "gre
 const ORDER: Record<ShareCollaboratorRow["status"], number> = { ACTIVE: 0, INVITED: 1, REVOKED: 2 };
 
 const FIELD =
-  "min-h-11 w-full min-w-0 rounded-[12px] border border-black/[.08] bg-white px-3.5 text-body text-[#1d1d1f] placeholder:text-[#8a8a8e] focus:border-[#6d1b52] focus:outline-none";
+  "min-h-11 w-full min-w-0 rounded-[12px] border border-black/[.08] bg-white px-3.5 text-body text-[#1d1d1f] placeholder:text-[#636368] focus:border-[#6d1b52] focus:outline-none";
 const GHOST_BTN =
   "flex h-10 items-center justify-center gap-2 rounded-[12px] border border-black/[.08] bg-white px-3 text-detail font-semibold text-[#1d1d1f] disabled:opacity-60";
 const PRIMARY_BTN =
@@ -260,7 +260,7 @@ export function ShareClient({ initial }: { initial: ShareScreenData }) {
                 </div>
                 <Pill tone={STATUS_TONE[r.status]}>{statusLabel(r.status)}</Pill>
               </div>
-              <div className="mt-1 pl-12 text-meta text-[#8a8a8e]">{dateLine(r)}</div>
+              <div className="mt-1 pl-12 text-meta text-[#636368]">{dateLine(r)}</div>
               {canManage && r.status !== "REVOKED" && (
                 confirming === r.id ? (
                   <div className="mt-2 flex items-center gap-2 pl-12">

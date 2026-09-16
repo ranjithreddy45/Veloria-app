@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { TopNav } from "./_components/app-nav";
 import { BottomNav } from "./_components/bottom-nav";
 import { TransitionProvider } from "./_components/nav-transition";
 import "./guest.css";
@@ -24,14 +25,23 @@ export const viewport: Viewport = {
  * Public routes (discover + book) need no login; Plan/Account screens sit
  * behind the WhatsApp-OTP sign-in and read the same portal actions /portal
  * uses, so the two surfaces can never disagree.
+ *
+ * v5 — one responsive column. The shell is still exactly a phone column below
+ * 640px; it widens to ~720px on a tablet and ~1120px on a laptop (.vg-col in
+ * guest.css, which the sticky booking bar and the navigation read too).
+ * Navigation follows the width: the fixed bottom tab bar below 1024px, the
+ * same five destinations in a slim top bar at 1024px and up.
  */
 export default function GuestLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="vg-shell min-h-screen">
-      <div className="relative mx-auto flex min-h-screen max-w-md flex-col bg-[#f3f0ec] shadow-sm">
-        {/* Bottom padding clears the tab bar PLUS the home-indicator inset. */}
+      <div className="vg-col relative flex min-h-screen flex-col bg-[#f3f0ec] shadow-sm sm:shadow-none">
         <TransitionProvider>
-          <main className="flex-1 pb-[calc(6rem+var(--sab))]">{children}</main>
+          {/* Laptop navigation, in the document before the content it leads to. */}
+          <TopNav />
+          {/* Bottom padding clears the tab bar PLUS the home-indicator inset;
+              at >= 1024px there is no bottom bar to clear. */}
+          <main className="flex-1 pb-[calc(6rem+var(--sab))] lg:pb-16">{children}</main>
           <BottomNav />
         </TransitionProvider>
       </div>

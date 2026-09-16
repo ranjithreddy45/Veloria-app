@@ -99,8 +99,14 @@ export function HallCard({
   const chip = availabilityChip(hall.availability, hall.freeSlots, slot);
   const amenities = highlights(hall, matchAmenity, rail ? 2 : 3);
 
+  // Unique per card, so a screen reader can list the halls by name. The variant
+  // is in the id because the home screen could one day show a hall in the rail
+  // and in a grid on the same page, and two elements may not share an id.
+  const nameId = `hall-${rail ? "rail" : "feed"}-${hall.id}`;
+
   return (
     <article
+      aria-labelledby={nameId}
       className={cn(
         "vg-press relative overflow-hidden rounded-[20px] border border-black/[.06] bg-white shadow-[0_12px_28px_-20px_rgba(29,29,31,.25)]",
         rail && "w-[268px] shrink-0",
@@ -118,8 +124,14 @@ export function HallCard({
         />
         {/* Labels only — they never swallow a tap meant for the picture. */}
         <SaveButton venueId={hall.id} className="absolute right-3 top-3 z-20 size-9 shadow-[0_1px_6px_rgba(0,0,0,.18)]" />
+        {/* Top-LEFT: the save button already owns top-right, and this pill does
+            not take pointer events, so sharing a corner would have made the
+            heart untappable on every hall that has a rating. */}
         {hall.rating && (
-          <span className="pointer-events-none absolute right-3 top-3 z-20 inline-flex items-center gap-1 rounded-full bg-white/[.94] px-2.5 py-1 text-meta font-semibold text-[#1d1d1f] backdrop-blur">
+          <span
+            aria-label={`Rated ${hall.rating.rating} out of 5, ${hall.rating.count} ${hall.rating.count === 1 ? "review" : "reviews"}`}
+            className="pointer-events-none absolute left-3 top-3 z-20 inline-flex items-center gap-1 rounded-full bg-white/[.94] px-2.5 py-1 text-meta font-semibold text-[#1d1d1f] backdrop-blur"
+          >
             <Star className="size-3 fill-[#b88513] text-[#b88513]" aria-hidden />
             <span className="numeric">{hall.rating.rating}</span>
             <span className="font-medium text-[#6e6e73]">({hall.rating.count})</span>
@@ -141,7 +153,11 @@ export function HallCard({
           rail ? "px-3.5 py-3" : "px-4 py-3.5"
         )}
       >
-        <h3 className={cn("truncate font-semibold", rail ? "text-copy" : "text-lede")}>{hall.name}</h3>
+        {/* h2: both callers (the feed and the home rail) put these directly
+            under the screen's own h1, so the outline stays in order. */}
+        <h2 id={nameId} className={cn("truncate font-semibold", rail ? "text-copy" : "text-lede")}>
+          {hall.name}
+        </h2>
 
         <div className="mt-1 flex min-w-0 items-center gap-1.5 text-detail text-[#6e6e73]">
           <Users className="size-3.5 shrink-0" strokeWidth={1.9} aria-hidden />
@@ -155,7 +171,7 @@ export function HallCard({
           )}
         </div>
 
-        {!rail && hall.description && <p className="mt-1 truncate text-detail text-[#8a8a8e]">{hall.description}</p>}
+        {!rail && hall.description && <p className="mt-1 truncate text-detail text-[#636368]">{hall.description}</p>}
 
         {amenities.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
@@ -169,7 +185,7 @@ export function HallCard({
 
         <div className="mt-2.5 flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
           <span className={cn("font-semibold text-[#6d1b52]", price.sub ? "numeric text-copy" : "text-detail")}>{price.main}</span>
-          {price.sub && <span className="text-meta text-[#8a8a8e]">{price.sub}</span>}
+          {price.sub && <span className="text-meta text-[#636368]">{price.sub}</span>}
         </div>
       </NavLink>
     </article>

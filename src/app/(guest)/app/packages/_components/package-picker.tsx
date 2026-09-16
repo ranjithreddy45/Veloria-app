@@ -156,7 +156,7 @@ export function PackagePicker(props: PackagePickerProps) {
                       <Pill tone={c.veg ? "green" : "amber"} className="px-2 py-0.5">{c.veg ? "Veg" : "Non-veg"}</Pill>
                     </div>
                     <div className="numeric mt-0.5 text-detail font-semibold text-[#6d1b52]">
-                      {inr(c.perPlate)} <span className="text-meta font-medium text-[#8a8a8e]">per plate</span>
+                      {inr(c.perPlate)} <span className="text-meta font-medium text-[#636368]">per plate</span>
                     </div>
                     {est && <div className="numeric mt-0.5 text-meta text-[#6e6e73]">{est}</div>}
                   </div>
@@ -194,12 +194,12 @@ export function PackagePicker(props: PackagePickerProps) {
       {note && <p className="text-meta text-[#b3261e]">{note}</p>}
       <div className="h-28" />
 
-      <div className="vg-glass fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-md items-center gap-3 px-5 pb-[calc(var(--sab)+12px)] pt-3">
+      <div className="vg-glass vg-col vg-gutter fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 pb-[calc(var(--sab)+12px)] pt-3">
         <div className="min-w-0 flex-1">
           <div className="text-meta text-[#6e6e73]">{count} selected</div>
           {estimate ? (
             <div className="numeric text-copy font-semibold text-[#6d1b52]">
-              ≈ {inr(estimate.subtotal)} <span className="text-meta font-medium text-[#8a8a8e]">before taxes</span>
+              ≈ {inr(estimate.subtotal)} <span className="text-meta font-medium text-[#636368]">before taxes</span>
             </div>
           ) : (
             <div className="text-meta text-[#6e6e73]">{count > 0 ? "Add a guest count for an estimate" : "Prices shown on each package"}</div>
@@ -243,9 +243,9 @@ function PackageCard({ pkg: p, on, guests, onToggle }: { pkg: PublicPackage; on:
           <div className="mt-auto flex items-end justify-between gap-2 pt-1.5">
             <div className="min-w-0">
               <div className="numeric text-detail font-semibold text-[#6d1b52]">
-                {inr(p.unitPrice)} <span className="text-meta font-medium text-[#8a8a8e]">{priceUnitLabel(p.priceUnit)}</span>
+                {inr(p.unitPrice)} <span className="text-meta font-medium text-[#636368]">{priceUnitLabel(p.priceUnit)}</span>
               </div>
-              {p.minPax != null && p.minPax > 1 && <div className="text-meta text-[#8a8a8e]">Minimum {quantityLabel(p.priceUnit, p.minPax)}</div>}
+              {p.minPax != null && p.minPax > 1 && <div className="text-meta text-[#636368]">Minimum {quantityLabel(p.priceUnit, p.minPax)}</div>}
             </div>
             <Toggle on={on} onClick={onToggle} labels={["Add", "Added"]} />
           </div>

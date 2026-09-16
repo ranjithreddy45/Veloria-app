@@ -8,7 +8,21 @@ import { ILLUSTRATION_LABEL } from "./stock";
 // Guest-app primitives — the v3 design's recurring objects, composed once
 // so every screen shares the same edges, radii and type. Server-safe:
 // nothing here uses hooks.
+//
+// Colour note (WCAG AA). Everything here is set at 11–14px, so all of it is
+// "normal" text and needs 4.5:1. Measured against the guest canvas (#f3f0ec)
+// and the white card, four values used to fail and were darkened just enough
+// to pass, keeping the hue:
+//   secondary ink #6e6e73 → #636368   (4.46 → 5.26 on the canvas)
+//   gold        #b88513 → #8a620c     (2.96 → 4.95 on #faf3e1)
+//   green       #2a9d4a → #1d7235     (3.11 → 5.34 on #e6f6ea)
+//   amber       #c77700 → #9c5d00     (3.15 → 4.80 on #fdf3e1)
+// The gold/green/amber INK moved; the tinted backgrounds did not, so the
+// design's palette is unchanged at a glance.
 // ============================================================
+
+/** Secondary ink. One value that clears 4.5:1 on the canvas, on white and on the grey chip. */
+export const GUEST_MUTED_INK = "#636368";
 
 export function Screen({ children, className, flush }: { children: React.ReactNode; className?: string; flush?: boolean }) {
   return (
@@ -25,7 +39,7 @@ export function ScreenHeader({ title, backHref, action, sub }: { title: string; 
       {backHref && <BackButton href={backHref} />}
       <div className="min-w-0 flex-1">
         <div className="text-copy font-semibold">{title}</div>
-        {sub && <div className="text-meta text-[#6e6e73]">{sub}</div>}
+        {sub && <div className="text-meta text-[#636368]">{sub}</div>}
       </div>
       {action}
     </div>
@@ -46,7 +60,7 @@ export function SectionTitle({ title, action, sub }: { title: string; action?: {
     <div className="flex items-baseline justify-between">
       <div className="text-copy font-semibold">{title}</div>
       {action && <Link href={action.href} className="text-detail font-semibold text-[#6d1b52]">{action.label}</Link>}
-      {sub && !action && <div className="text-detail text-[#6e6e73]">{sub}</div>}
+      {sub && !action && <div className="text-detail text-[#636368]">{sub}</div>}
     </div>
   );
 }
@@ -66,24 +80,28 @@ export function GhostButton({ children, href, className, onClick, type = "button
   return <button type={type} onClick={onClick} className={cls}>{children}</button>;
 }
 
-/** Selectable pill — plum when active. */
+/**
+ * Selectable pill — plum when active. "Active" was carried by the plum fill
+ * alone, so a screen reader could not tell an applied filter from an unapplied
+ * one: a link chip now says aria-current, a button chip aria-pressed.
+ */
 export function Chip({ children, active, href, onClick, className }: { children: React.ReactNode; active?: boolean; href?: string; onClick?: () => void; className?: string }) {
   const cls = cn(
     "inline-flex min-h-11 shrink-0 items-center rounded-full border px-3.5 py-2 text-detail font-semibold transition-colors",
     active ? "border-[#6d1b52] bg-[#6d1b52] text-[#fdf5f3]" : "border-black/[.08] bg-white text-[#1d1d1f]",
     className
   );
-  if (href) return <Link href={href} className={cls}>{children}</Link>;
-  return <button type="button" onClick={onClick} className={cls}>{children}</button>;
+  if (href) return <Link href={href} aria-current={active ? "true" : undefined} className={cls}>{children}</Link>;
+  return <button type="button" aria-pressed={active} onClick={onClick} className={cls}>{children}</button>;
 }
 
 export type Tone = "plum" | "gold" | "green" | "amber" | "grey" | "ink";
 const TONES: Record<Tone, string> = {
   plum: "bg-[#f7eef2] text-[#6d1b52]",
-  gold: "bg-[#faf3e1] text-[#b88513]",
-  green: "bg-[#e6f6ea] text-[#2a9d4a]",
-  amber: "bg-[#fdf3e1] text-[#c77700]",
-  grey: "bg-[#f0f0f2] text-[#6e6e73]",
+  gold: "bg-[#faf3e1] text-[#8a620c]",
+  green: "bg-[#e6f6ea] text-[#1d7235]",
+  amber: "bg-[#fdf3e1] text-[#9c5d00]",
+  grey: "bg-[#f0f0f2] text-[#636368]",
   ink: "bg-[#e9e9ec] text-[#1d1d1f]",
 };
 
@@ -101,15 +119,19 @@ export function Avatar({ text, tone = "plum", size = 36, className }: { text: st
 
 /** Icon tile with the soft plum gradient from the design. */
 export function IconTile({ children, tone = "plum", size = 32, className }: { children: React.ReactNode; tone?: Tone; size?: number; className?: string }) {
-  const bg = tone === "gold" ? "bg-[#faf3e1] text-[#b88513]" : tone === "green" ? "bg-[#e6f6ea] text-[#2a9d4a]" : tone === "amber" ? "bg-[#fdf3e1] text-[#c77700]" : tone === "ink" ? "bg-[#e9e9ec] text-[#1d1d1f]" : "bg-gradient-to-br from-[#fbf1f6] to-[#efdbe7] text-[#6d1b52] shadow-[inset_0_0_0_1px_rgba(109,27,82,.08)]";
+  const bg = tone === "gold" ? "bg-[#faf3e1] text-[#8a620c]" : tone === "green" ? "bg-[#e6f6ea] text-[#1d7235]" : tone === "amber" ? "bg-[#fdf3e1] text-[#9c5d00]" : tone === "ink" ? "bg-[#e9e9ec] text-[#1d1d1f]" : "bg-gradient-to-br from-[#fbf1f6] to-[#efdbe7] text-[#6d1b52] shadow-[inset_0_0_0_1px_rgba(109,27,82,.08)]";
   return <span className={cn("flex shrink-0 items-center justify-center rounded-[10px]", bg, className)} style={{ width: size, height: size }}>{children}</span>;
 }
 
-export function ProgressBar({ pct, className, track = "bg-[#e9e9ec]", fill = "bg-[#6d1b52]" }: { pct: number; className?: string; track?: string; fill?: string }) {
+/** `label` names what is progressing; without one the bar is decorative and hidden from readers. */
+export function ProgressBar({ pct, className, label, track = "bg-[#e9e9ec]", fill = "bg-[#6d1b52]" }: { pct: number; className?: string; label?: string; track?: string; fill?: string }) {
   const w = Math.max(0, Math.min(100, Math.round(pct)));
+  const a11y = label
+    ? { role: "progressbar" as const, "aria-label": label, "aria-valuenow": w, "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuetext": `${w}%` }
+    : { "aria-hidden": true };
   return (
-    <div className={cn("h-1.5 overflow-hidden rounded-full", track, className)} role="progressbar" aria-valuenow={w} aria-valuemin={0} aria-valuemax={100}>
-      <div className={cn("h-full rounded-full transition-[width] duration-500", fill)} style={{ width: `${w}%` }} />
+    <div className={cn("h-1.5 overflow-hidden rounded-full", track, className)} {...a11y}>
+      <div className={cn("h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none", fill)} style={{ width: `${w}%` }} />
     </div>
   );
 }
@@ -119,8 +141,8 @@ export function Row({ children, href, detail, className }: { children: React.Rea
   const inner = (
     <>
       <div className="min-w-0 flex-1 text-copy">{children}</div>
-      {detail && <div className="text-detail text-[#6e6e73]">{detail}</div>}
-      <ChevronRight className="size-4 text-[#c7c7cc]" />
+      {detail && <div className="text-detail text-[#636368]">{detail}</div>}
+      <ChevronRight aria-hidden className="size-4 shrink-0 text-[#8e8e93]" />
     </>
   );
   const cls = cn("flex min-h-[52px] w-full items-center gap-3 px-4 py-3.5 text-left text-[#1d1d1f]", className);
@@ -129,7 +151,7 @@ export function Row({ children, href, detail, className }: { children: React.Rea
 
 /** Honest empty state — says what is missing, never fills the gap with fiction. */
 export function EmptyNote({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <p className={cn("rounded-2xl border border-dashed border-black/[.12] bg-white/60 px-4 py-5 text-center text-body text-[#6e6e73]", className)}>{children}</p>;
+  return <p className={cn("rounded-2xl border border-dashed border-black/[.12] bg-white/60 px-4 py-5 text-center text-body text-[#636368]", className)}>{children}</p>;
 }
 
 export function KeyValue({ rows, total }: { rows: { k: string; v: React.ReactNode }[]; total?: { k: string; v: React.ReactNode } }) {
@@ -137,7 +159,7 @@ export function KeyValue({ rows, total }: { rows: { k: string; v: React.ReactNod
     <Card className="vg-divide overflow-hidden">
       {rows.map((r) => (
         <div key={r.k} className="flex justify-between gap-4 px-4 py-3 text-body">
-          <span className="text-[#6e6e73]">{r.k}</span>
+          <span className="text-[#636368]">{r.k}</span>
           <span className="text-right font-semibold">{r.v}</span>
         </div>
       ))}

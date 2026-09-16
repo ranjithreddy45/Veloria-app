@@ -128,7 +128,7 @@ export function ReserveStepper({ venues, prices, terms, holdTerms, initial, pref
     ? `/visit?${new URLSearchParams({ venueId: venue.id, kind: "SITE_VISIT", eventType: occasion, guests: String(guests), ...(dateISO ? { eventDate: dateISO } : {}) }).toString()}`
     : "/visit";
   const venuePrice = hallPriceText(venue ? prices[venue.id] : null);
-  const field = "w-full rounded-xl border border-black/[.08] bg-white px-3.5 py-3 text-copy text-[#1d1d1f] placeholder:text-[#8a8a8e] focus:border-[#6d1b52] focus:outline-none focus:ring-2 focus:ring-[#6d1b52]/15";
+  const field = "w-full rounded-xl border border-black/[.08] bg-white px-3.5 py-3 text-copy text-[#1d1d1f] placeholder:text-[#636368] focus:border-[#6d1b52] focus:outline-none focus:ring-2 focus:ring-[#6d1b52]/15";
   const h2 = "font-editorial text-[26px] font-semibold leading-[1.15] tracking-[-.015em]";
 
   return (
@@ -248,7 +248,7 @@ export function ReserveStepper({ venues, prices, terms, holdTerms, initial, pref
           <PrimaryButton className="mt-1" disabled={busy || name.trim().length < 2 || phone.replace(/\D/g, "").length < 7} onClick={hold}>
             {busy ? <Loader2 className="size-4 animate-spin" /> : "Hold this date"}
           </PrimaryButton>
-          <p className="text-center text-meta leading-[1.5] text-[#8a8a8e]">You&apos;ll pay the {inr(terms.tokenAmount)} token on the next screen.</p>
+          <p className="text-center text-meta leading-[1.5] text-[#636368]">You&apos;ll pay the {inr(terms.tokenAmount)} token on the next screen.</p>
           <Link href={visitHref} className="text-center text-detail font-semibold text-[#6d1b52]">Not ready? Book a site visit</Link>
           <Link href={`/app/book/enquire?venueId=${venue.id}&occasion=${encodeURIComponent(occasion)}`} className="text-center text-detail font-semibold text-[#6d1b52]">Prefer a callback first? Request one instead</Link>
         </div>

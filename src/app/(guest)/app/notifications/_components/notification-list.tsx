@@ -95,7 +95,7 @@ export function NotificationList({ initial, now }: { initial: CustomerNotificati
                 <span className="min-w-0 flex-1">
                   <span className="flex justify-between gap-2">
                     <span className="text-body font-semibold">{n.title}</span>
-                    <span className="shrink-0 text-meta text-[#8a8a8e]">{ago(n.createdAt, now)}</span>
+                    <span className="shrink-0 text-meta text-[#636368]">{ago(n.createdAt, now)}</span>
                   </span>
                   <span className="mt-0.5 block text-detail leading-[1.45] text-[#6e6e73]">{n.message}</span>
                 </span>

@@ -53,7 +53,7 @@ export default async function GalleryPage({ searchParams }: { searchParams: Prom
           ))}
         </div>
       )}
-      {stockMode && <p className="text-meta leading-[1.5] text-[#8a8a8e]">{CREDITS_LINE}</p>}
+      {stockMode && <p className="text-meta leading-[1.5] text-[#636368]">{CREDITS_LINE}</p>}
     </Screen>
   );
 }

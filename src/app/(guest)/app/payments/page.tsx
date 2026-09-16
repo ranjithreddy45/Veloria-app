@@ -243,7 +243,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
           )}
 
           {(p.invoices.length > 0 || p.unlinked) && (
-            <p className="text-center text-meta leading-[1.55] text-[#8a8a8e]">
+            <p className="text-center text-meta leading-[1.55] text-[#636368]">
               An invoice is a proforma until it is paid in full. The tax invoice is issued once the balance is cleared.
             </p>
           )}
@@ -254,7 +254,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
         <div className="flex flex-col gap-2">
           <div className="text-center text-detail text-[#6e6e73]">Questions about a payment?</div>
           <ContactLinks contact={contact} context={booking ? `Payments for ${booking.eventName}` : "My payments"} />
-          {contact.supportHours && <div className="text-center text-meta text-[#8a8a8e]">Support hours: {contact.supportHours}</div>}
+          {contact.supportHours && <div className="text-center text-meta text-[#636368]">Support hours: {contact.supportHours}</div>}
         </div>
       )}
     </Screen>

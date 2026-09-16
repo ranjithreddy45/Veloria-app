@@ -71,7 +71,7 @@ export default async function MyEventPage({ searchParams }: { searchParams: Prom
 
   if (!ev) {
     return (
-      <Screen className="pt-[calc(var(--sat)+1rem)]">
+      <Screen className="vg-gutter pt-[calc(var(--sat)+1rem)]">
         <Title>My event</Title>
         <EmptyNote>{bid ? "We couldn't find that booking on your account." : "No booking is linked to this account yet."}</EmptyNote>
         <PrimaryButton href="/app/book">Reserve a date</PrimaryButton>
@@ -87,7 +87,7 @@ export default async function MyEventPage({ searchParams }: { searchParams: Prom
   const hiddenInPreview = ev.preview && (ev.previewHidden.readiness || ev.previewHidden.plan || ev.previewHidden.documents);
 
   return (
-    <Screen className="pt-[calc(var(--sat)+1rem)]">
+    <Screen className="vg-gutter pt-[calc(var(--sat)+1rem)]">
       {ev.preview && (
         <div className="rounded-xl border border-[#b88513]/35 bg-[#faf3e1] px-3.5 py-2.5 text-detail text-[#6e4f0e]">
           <span className="font-semibold">Staff preview.</span> You&apos;re seeing {ev.hostName || "the host"}&apos;s view of this booking. Use Switch to pick another.

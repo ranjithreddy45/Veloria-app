@@ -38,11 +38,15 @@ export const dynamic = "force-dynamic";
 
 const OCCASIONS = ["Wedding", "Reception", "Engagement", "Sangeet", "Birthday Party", "Corporate Event"];
 
-/** Grid for one to three teaser photos; with three, the first spans both rows. */
+/**
+ * Grid for one to three teaser photos; with three, the first spans both rows.
+ * The rows grow with the column, so the strip keeps roughly its proportions
+ * on a tablet and a laptop instead of flattening into a letterbox.
+ */
 const TEASER_GRID: Record<number, string> = {
-  1: "grid-cols-1 grid-rows-[196px]",
-  2: "grid-cols-2 grid-rows-[160px]",
-  3: "grid-cols-[2fr_1fr] grid-rows-[96px_96px]",
+  1: "grid-cols-1 grid-rows-[196px] sm:grid-rows-[280px] lg:grid-rows-[340px]",
+  2: "grid-cols-2 grid-rows-[160px] sm:grid-rows-[240px] lg:grid-rows-[300px]",
+  3: "grid-cols-[2fr_1fr] grid-rows-[96px_96px] sm:grid-rows-[140px_140px] lg:grid-rows-[170px_170px]",
 };
 
 function greeting(name: string | null) {
@@ -71,7 +75,7 @@ export default async function GuestHomePage() {
   const b = ov?.booking ?? null;
 
   return (
-    <div className="vg-rise flex flex-col gap-[22px] px-5 pt-[calc(var(--sat)+0.75rem)]">
+    <div className="vg-rise vg-gutter flex flex-col gap-[22px] pt-[calc(var(--sat)+0.75rem)] sm:gap-7">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -94,8 +98,8 @@ export default async function GuestHomePage() {
 
       {/* ---- Browse. The screen opens here. ---- */}
       <div className="-mt-1">
-        <h1 className="font-editorial text-[30px] font-medium leading-[1.1] tracking-[-.018em] [text-wrap:pretty]">Find your space.</h1>
-        <p className="mt-2 text-detail leading-[1.5] text-[#6e6e73]">{browseSubtitle(feed.totalPublished, capacityRangeText(feed.halls))}</p>
+        <h1 className="font-editorial text-[30px] font-medium leading-[1.1] tracking-[-.018em] [text-wrap:pretty] sm:text-[38px] lg:text-[44px]">Find your space.</h1>
+        <p className="mt-2 max-w-[60ch] text-detail leading-[1.5] text-[#6e6e73]">{browseSubtitle(feed.totalPublished, capacityRangeText(feed.halls))}</p>
       </div>
 
       {/* The feed's OWN search entry — same pill, same sheet, same availability
@@ -109,8 +113,9 @@ export default async function GuestHomePage() {
           amenityOptions={feed.amenityOptions}
           // Inline here, so the pill drops the sticky header's frosted panel,
           // its rule and the status-bar inset — it is a control on the page,
-          // not a bar over it.
-          className="relative z-auto border-b-0 bg-transparent px-0 pb-0 pt-0 backdrop-blur-none backdrop-saturate-100"
+          // not a bar over it. Capped on a wide column: a search field the
+          // width of a laptop reads as a banner, not as something to type in.
+          className="relative z-auto border-b-0 bg-transparent px-0 pb-0 pt-0 backdrop-blur-none backdrop-saturate-100 sm:max-w-xl"
         />
       )}
 
@@ -122,7 +127,7 @@ export default async function GuestHomePage() {
           leads to an empty screen. */}
       {sizeBands.length > 1 && (
         <div className="-mt-2.5">
-          <div className="text-meta font-semibold uppercase tracking-[.08em] text-[#8a8a8e]">Browse by guest count</div>
+          <div className="text-meta font-semibold uppercase tracking-[.08em] text-[#636368]">Browse by guest count</div>
           <nav aria-label="Browse spaces by guest count" className="vg-scroll-x vg-bleed mt-2.5 pb-1">
             {sizeBands.map((band) => (
               <Chip key={band.key} href={browseHref({ cap: band.key })} className="min-h-11">{band.label}</Chip>
@@ -178,7 +183,7 @@ export default async function GuestHomePage() {
               <Photo key={p.id} src={p.url} alt={p.title ?? "Photo"} illustration={teaser.isStock} className={teaser.items.length === 3 && i === 0 ? "row-span-2" : ""} />
             ))}
           </div>
-          {teaser.isStock && <p className="mt-2 text-meta text-[#8a8a8e]">Illustrations, not photos of Veloria Grand.</p>}
+          {teaser.isStock && <p className="mt-2 text-meta text-[#636368]">Illustrations, not photos of Veloria Grand.</p>}
         </div>
       )}
 
@@ -191,7 +196,9 @@ export default async function GuestHomePage() {
         </Card>
       )}
 
-      <PrimaryButton href="/app/book">Reserve a date</PrimaryButton>
+      {/* Full width on a phone; on a wide column a button that runs the whole
+          way across stops reading as a button. */}
+      <PrimaryButton href="/app/book" className="sm:max-w-sm sm:self-center">Reserve a date</PrimaryButton>
       {ov && ov.balanceDue > 0 && <p className="-mt-3 text-center text-meta text-[#6e6e73]">Balance due {inr(ov.balanceDue)} · <Link href="/app/payments" className="font-semibold text-[#6d1b52]">Payments</Link></p>}
       <ContactChip context="Hi Veloria Grand, I have a question about an event." />
     </div>
