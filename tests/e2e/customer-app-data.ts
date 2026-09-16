@@ -4,7 +4,9 @@ import bcrypt from "bcryptjs";
 import { ADMIN, E2E_PREFIX } from "./helpers";
 
 // ============================================================
-// Data and customer sign-in for customer-app.spec.ts.
+// Data and customer sign-in for customer-app.spec.ts, plus the read-only
+// look-up customer-browse.spec.ts checks the halls feed against
+// (publishedHalls, at the foot of this file).
 //
 // The customer app signs in with a WhatsApp code and has no test bypass (and
 // must never get one). These specs use what the app already allows:
@@ -424,6 +426,56 @@ export async function restorePolicyRows(keys: readonly string[], snapshot: reado
     };
     await prisma.policyDocument.upsert({ where: { key: row.key }, create: { key: row.key, ...data }, update: data });
   }
+}
+
+// ------------------------------------------------------------
+// What the customer app publishes, read straight from the database
+// ------------------------------------------------------------
+
+export interface PublishedHall {
+  id: string;
+  name: string;
+  capacity: number;
+  /** The team's own amenity labels, blanks dropped — what the hall page prints. */
+  amenities: string[];
+  /** True when at least one approved, public review is attached to a booking of this hall. */
+  hasPublicReviews: boolean;
+}
+
+/**
+ * Every hall the customer app lists, and whether it may carry a rating.
+ *
+ * Deliberately the SAME rows the app reads, by the same rules, so the browse
+ * specs can say "the feed shows every published hall" rather than "the feed
+ * shows eleven cards":
+ *   - a hall is published when it is active and top-level
+ *     (getStorefrontVenues in src/actions/storefront.actions.ts);
+ *   - a rating exists only for approved public reviews of that hall's bookings
+ *     (publicReviewWhere in src/actions/guest-public.actions.ts).
+ * Ordered the way an unfiltered feed sorts: smallest first, then by name.
+ */
+export async function publishedHalls(): Promise<PublishedHall[]> {
+  const prisma = db();
+  const [venues, reviews] = await Promise.all([
+    prisma.venue.findMany({
+      where: { isActive: true, parentVenueId: null },
+      orderBy: [{ capacity: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, capacity: true, amenities: true },
+    }),
+    prisma.review.findMany({
+      where: { isPublic: true, isApproved: true },
+      select: { booking: { select: { venueId: true } } },
+    }),
+  ]);
+  const reviewed = new Set(reviews.map((row) => row.booking.venueId));
+  return venues.map((v) => ({
+    id: v.id,
+    name: v.name,
+    capacity: v.capacity,
+    // Trimmed and whitespace-collapsed, the way cleanAmenities() prints them.
+    amenities: v.amenities.map((a) => a.trim().replace(/\s+/g, " ")).filter(Boolean),
+    hasPublicReviews: reviewed.has(v.id),
+  }));
 }
 
 // ------------------------------------------------------------

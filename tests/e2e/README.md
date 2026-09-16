@@ -13,6 +13,7 @@ SUPER_ADMIN, drive the real UI, and create their own uniquely-named data
 | `hr-reimbursement.spec.ts` | `/me/reimbursements` claim → "Awaiting 1st approval" → History → `/me/approvals` Approve |
 | `people.spec.ts` | `/people` loads (seeds the org on first run), search filters, Employee Handbook opens |
 | `customer-app.spec.ts` | Customer app (`/app`) and team side show the same records: Business contact → Help, published policy → policy page, concierge message ↔ team reply, balance due (draft excluded), guest list, access boundary, VIEWER co-host limits |
+| `customer-browse.spec.ts` | Browsing halls, signed out: the feed's pill + size chips + count line, the "Find a hall" sheet writing a date into the URL, availability that agrees with the hall's own calendar, card → hall page → **Reserve**, illustration honesty, the home screen's browse block |
 | `smoke-routes.spec.ts` | ~40 key routes from `src/config/navigation.ts` render without the error boundary |
 
 ## Running locally
@@ -89,6 +90,25 @@ context (`asCustomer`). Everything is named `E2E … <stamp>` and deleted in
 `afterAll`; the Business contact and cancellation-policy rows the settings tests
 change are snapshotted and put back. `whenInteractive(locator)` waits until React
 has hydrated an element, because a click that lands before hydration is lost.
+
+`customer-browse.spec.ts` writes nothing at all. It runs signed out (browsing
+halls is public) at 390px, and only reads: `publishedHalls()` in the same file
+gives it the active, top-level venues the feed lists plus whether each may
+carry a rating, so it can assert "a card for every published hall" rather than
+a seeded number. It needs the same `DATABASE_URL`. Everything else is derived
+from the screen — the searched date from the calendar it was picked on, the
+capacity band from the chip's own URL.
+
+Reading rather than writing is also the safe side of the feed's cache: the list
+of halls is cached for 60s (`unstable_cache`, tag `guest-hall-feed`), so a spec
+that adds or removes a hall cannot expect the feed to show that straight away.
+A date's availability and prices are read per request and are always live.
+
+Two selector anchors are worth knowing before you change the components: the
+search sheet is `role="dialog"` named **Find a hall**, with its days in a
+`role="group"` named `Days in <month>`; and a month grid marks itself
+`aria-busy` until live availability lands, which the spec waits for, so a day
+it picks is genuinely offerable and a day it reads as free genuinely is.
 
 ## Adding a test
 
