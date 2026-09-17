@@ -38,7 +38,7 @@ export const pushCallActivityEndpoint = createPushEndpoint<PushCall>({
       status: created ? 201 : 200,
       outcome: created ? "created" : result.duplicate ? "duplicate" : "updated",
       resourceType: "Lead",
-      resourceId: result.leadId,
+      resourceId: result.leadId ?? undefined,
       body: {
         success: true,
         message: result.duplicate
@@ -51,7 +51,7 @@ export const pushCallActivityEndpoint = createPushEndpoint<PushCall>({
           call_id: result.callId,
           lead_id: result.leadId,
           contact_id: result.contactId,
-          external_call_id: call.externalCallId ?? null,
+          external_call_id: call.externalCallId,
           lead_created: created,
           duplicate: result.duplicate,
           matched_by: result.matchedBy,

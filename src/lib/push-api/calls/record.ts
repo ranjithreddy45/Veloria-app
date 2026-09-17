@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSystemUserId } from "@/lib/lead-capture";
 import { logActivity } from "@/lib/activity-logger";
 import { recordFirstContact } from "@/lib/crm/first-contact";
+import { insertCallOnce } from "@/lib/telephony/call-dedupe";
 import { PushApiError } from "../errors";
 import { ingestPushLead, samePhone, type IngestContext } from "../leads/ingest";
 import { withIngestLocks } from "../leads/ingest-lock";
@@ -19,7 +20,9 @@ import type { CallStatus, PushCall } from "./schema";
 // therefore recorded once, and the call-insights dialog renders both the same.
 //
 // Which lead:
-//   1. lead_id, when sent — it must exist (a wrong id is an error, not a guess)
+//   1. lead_id, when sent. If it no longer exists (merged/deleted) the phone is
+//      used instead; with no phone that's an error. A lead_id whose contact has
+//      a different phone than the one sent is refused.
 //   2. otherwise the phone INCLUDING country code: the contact's newest open
 //      lead, else its newest lead of any status
 //   3. otherwise a new lead, through the lead push's own ingest (its locks,
@@ -31,7 +34,8 @@ const CLOSED_STATUSES = ["WON", "LOST"];
 
 export interface RecordCallResult {
   callId: string;
-  leadId: string;
+  /** Null only for a call already recorded by the import on a contact with no lead. */
+  leadId: string | null;
   contactId: string;
   leadCreated: boolean;
   duplicate: boolean;
@@ -48,40 +52,38 @@ const DISPOSITION: Record<CallStatus, CallDisposition> = {
 };
 
 export async function recordPushCall(call: PushCall, ctx: IngestContext): Promise<RecordCallResult> {
-  const externalCallId = call.externalCallId ? `callvibe:${call.externalCallId}` : null;
-  // Two pushes of one call can't both write it. (The lead-creation step takes its own, different locks.)
-  const keys = externalCallId ? [`call:${externalCallId}`] : [];
-  return withIngestLocks(keys, () => recordLocked(call, externalCallId, ctx));
+  const externalCallId = `callvibe:${call.externalCallId}`;
+  // Two pushes of one call don't both resolve (and maybe create) its lead. The
+  // write itself is made atomic by insertCallOnce, which also covers the import.
+  return withIngestLocks([`call:${externalCallId}`], () => recordLocked(call, externalCallId, ctx));
 }
 
-async function recordLocked(call: PushCall, externalCallId: string | null, ctx: IngestContext): Promise<RecordCallResult> {
-  if (externalCallId) {
-    const existing = await prisma.callLog.findFirst({
-      where: { externalCallId },
-      select: { communicationId: true, contactId: true, communication: { select: { metadata: true } } },
-    });
-    if (existing) {
-      const meta = (existing.communication.metadata ?? {}) as { leadId?: string };
-      const leadId = meta.leadId ?? (await newestLeadFor([existing.contactId]))?.id ?? "";
-      return {
-        callId: existing.communicationId,
-        leadId,
-        contactId: existing.contactId,
-        leadCreated: false,
-        duplicate: true,
-        matchedBy: "external_call_id",
-      };
-    }
-  }
+async function duplicateOf(existing: { communicationId: string; contactId: string }): Promise<RecordCallResult> {
+  const comm = await prisma.communication.findUnique({ where: { id: existing.communicationId }, select: { metadata: true } });
+  const meta = (comm?.metadata ?? {}) as { leadId?: string };
+  const leadId = meta.leadId ?? (await newestLeadFor([existing.contactId]))?.id ?? null;
+  return {
+    callId: existing.communicationId,
+    leadId,
+    contactId: existing.contactId,
+    leadCreated: false,
+    duplicate: true,
+    matchedBy: "external_call_id",
+  };
+}
+
+async function recordLocked(call: PushCall, externalCallId: string, ctx: IngestContext): Promise<RecordCallResult> {
+  const already = await prisma.callLog.findFirst({ where: { externalCallId }, select: { communicationId: true, contactId: true } });
+  if (already) return duplicateOf(already);
 
   const target = await resolveLead(call, ctx);
-  const agentId = await resolveAgentId(call);
+  const agent = await resolveAgent(call);
   const at = new Date(call.callDate);
 
   const metadata = {
     provider: "CALLVIBE",
     via: "push_api",
-    callId: call.externalCallId ?? null,
+    callId: call.externalCallId,
     leadId: target.leadId,
     isAiTranscription: true,
     summary: call.summary,
@@ -95,45 +97,50 @@ async function recordLocked(call: PushCall, externalCallId: string | null, ctx: 
     requestId: ctx.requestId,
   } as Prisma.InputJsonValue;
 
-  const communication = await prisma.communication.create({
-    data: {
-      type: CommunicationType.CALL,
-      subject: call.summary.slice(0, 180),
-      content: call.summary,
-      direction: call.direction === "inbound" ? CommunicationDirection.INBOUND : CommunicationDirection.OUTBOUND,
-      contactId: target.contactId,
-      createdById: agentId.id,
-      createdAt: at,
-      metadata,
-      sentiment: call.sentiment ? call.sentiment.toUpperCase() : null,
-      sentimentAt: call.sentiment ? at : null,
-      callLog: {
-        create: {
-          disposition: DISPOSITION[call.status],
-          durationSeconds: call.durationSeconds,
-          recordingUrl: call.recordingUrl ?? null,
-          externalCallId,
-          notes: call.summary,
-          tags: ["callvibe", ...(call.sentiment ? [call.sentiment] : [])],
-          contactId: target.contactId,
-          agentId: agentId.id,
-          createdAt: at,
+  const written = await insertCallOnce(externalCallId, (tx) =>
+    tx.communication.create({
+      data: {
+        type: CommunicationType.CALL,
+        subject: call.summary.slice(0, 180),
+        content: call.summary,
+        direction: call.direction === "inbound" ? CommunicationDirection.INBOUND : CommunicationDirection.OUTBOUND,
+        contactId: target.contactId,
+        createdById: agent.id,
+        createdAt: at,
+        metadata,
+        sentiment: call.sentiment ? call.sentiment.toUpperCase() : null,
+        sentimentAt: call.sentiment ? at : null,
+        callLog: {
+          create: {
+            disposition: DISPOSITION[call.status],
+            durationSeconds: call.durationSeconds,
+            recordingUrl: call.recordingUrl ?? null,
+            externalCallId,
+            notes: call.summary,
+            tags: ["callvibe", ...(call.sentiment ? [call.sentiment] : [])],
+            contactId: target.contactId,
+            agentId: agent.id,
+            createdAt: at,
+          },
         },
       },
-    },
-    select: { id: true },
-  });
+      select: { id: true },
+    })
+  );
+  // The import (or a push whose lease had lapsed) wrote it first.
+  if (!written.inserted) return duplicateOf(written.existing);
+  const communication = written.value;
 
   try {
     await logActivity({
-      userId: agentId.id,
+      userId: agent.id,
       action: "CALLVIBE_CALL_RECORDED",
       entityType: "Lead",
       entityId: target.leadId,
       changes: {
         via: "push_api",
         communication_id: communication.id,
-        external_call_id: call.externalCallId ?? null,
+        external_call_id: call.externalCallId,
         status: call.status,
         ai_score: call.aiScore ?? null,
         request_id: ctx.requestId,
@@ -144,9 +151,10 @@ async function recordLocked(call: PushCall, externalCallId: string | null, ctx: 
   }
 
   // A connected outbound call by a known rep is a real first contact: it stops
-  // the lead's speed-to-lead clock (and scores it) the same way a logged call does.
-  if (call.direction === "outbound" && call.status === "completed" && agentId.known) {
-    await recordFirstContact(target.leadId, agentId.id);
+  // the lead's speed-to-lead clock at the time of the call. Never for a lead
+  // this very call created — that would score every cold call as an instant response.
+  if (call.direction === "outbound" && call.status === "completed" && agent.known && !target.created) {
+    await recordFirstContact(target.leadId, agent.id, at);
   }
 
   return {
@@ -166,10 +174,17 @@ async function resolveLead(
   if (call.leadId) {
     const lead = await prisma.lead.findFirst({
       where: { id: call.leadId, deletedAt: null },
-      select: { id: true, contactId: true },
+      select: { id: true, contactId: true, contact: { select: { phone: true } } },
     });
-    if (!lead) throw new PushApiError("VALIDATION_ERROR", "Invalid request", { lead_id: "No lead with this id" });
-    return { leadId: lead.id, contactId: lead.contactId, created: false, matchedBy: "lead_id" };
+    if (lead) {
+      // Both sent and they disagree: filing the call under either could be the wrong customer.
+      if (call.phone && lead.contact.phone && !samePhone(lead.contact.phone, call.phone)) {
+        throw new PushApiError("VALIDATION_ERROR", "Invalid request", { phone: "Doesn't match the phone of the lead given in lead_id" });
+      }
+      return { leadId: lead.id, contactId: lead.contactId, created: false, matchedBy: "lead_id" };
+    }
+    // A merged or deleted lead: fall back to the phone when there is one.
+    if (!call.phone) throw new PushApiError("VALIDATION_ERROR", "Invalid request", { lead_id: "No lead with this id" });
   }
 
   const phone = call.phone!;
@@ -205,15 +220,30 @@ async function newestLeadFor(contactIds: string[]) {
   return leads.find((l) => !CLOSED_STATUSES.includes(l.status)) ?? leads[0] ?? null;
 }
 
+/** Roles a call can be credited to. Admins are excluded so a key can't file calls (or earn points) as them. */
+const AGENT_ROLES = [
+  "SALES_EXEC",
+  "SALES_HEAD",
+  "EVENT_COORDINATOR",
+  "STAFF",
+  "BD_EXECUTIVE",
+  "BD_HEAD",
+  "OPERATIONS",
+  "OPERATIONS_HEAD",
+  "PROPERTY_MANAGER",
+  "MARKETING",
+] as const;
+
 /** The Veloria user who made the call: by email, then by exact name; else the system user. */
-async function resolveAgentId(call: PushCall): Promise<{ id: string; known: boolean }> {
+async function resolveAgent(call: PushCall): Promise<{ id: string; known: boolean }> {
+  const roleFilter = { isActive: true, role: { in: [...AGENT_ROLES] } };
   if (call.agentEmail) {
-    const byEmail = await prisma.user.findFirst({ where: { email: call.agentEmail, isActive: true }, select: { id: true } });
+    const byEmail = await prisma.user.findFirst({ where: { email: call.agentEmail, ...roleFilter }, select: { id: true } });
     if (byEmail) return { id: byEmail.id, known: true };
   }
   if (call.agentName) {
     const byName = await prisma.user.findMany({
-      where: { name: { equals: call.agentName, mode: "insensitive" }, isActive: true },
+      where: { name: { equals: call.agentName, mode: "insensitive" }, ...roleFilter },
       select: { id: true },
       take: 2,
     });

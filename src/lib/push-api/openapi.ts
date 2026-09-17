@@ -74,14 +74,14 @@ export const LEAD_REQUEST_PROPERTIES: Record<string, Record<string, unknown>> = 
 };
 
 export const CALL_REQUEST_PROPERTIES: Record<string, Record<string, unknown>> = {
-  lead_id: str("The CRM lead this call belongs to (the `lead_id` a lead push returned). Must exist. Send this or `phone`; when both are sent, `lead_id` wins.", { maxLength: 64, example: "cmf2x9k0p0001abcd" }),
+  lead_id: str("The CRM lead this call belongs to (the `lead_id` this API or a lead push returned). Send this or `phone`. When both are sent, the phone must be that lead's phone (else 422). If the lead no longer exists, the `phone` is used instead; without one, 422.", { maxLength: 64, example: "cmf2x9k0p0001abcd" }),
   phone: str(
     "The customer's phone number, matched the same way as a lead push (full number including country code). The call goes to that contact's newest open lead, else its newest lead; with no lead, one is created (source `callvibe`).",
     { example: "+919876543210" }
   ),
   contact_name: str("The customer's name. Only used when a new lead has to be created.", { maxLength: 200, example: "Rahul Sharma" }),
   external_call_id: str(
-    "CallVibe's id for this call. Strongly recommended: a call with an id already recorded (by an earlier push or by the CRM's own CallVibe import) is not recorded again.",
+    "CallVibe's id for this call. Required: a call whose id is already recorded (by an earlier push or by the CRM's own CallVibe import) is never recorded again.",
     { maxLength: 200, pattern: "^[A-Za-z0-9][A-Za-z0-9_.:-]*$", example: "cv_9f31ab2e" }
   ),
   call_summary: str("Plain-English recap of the call. Required.", { minLength: 1, maxLength: 10000, example: "Asked about Saturday availability for 250 guests; wants a site visit." }),
@@ -94,9 +94,9 @@ export const CALL_REQUEST_PROPERTIES: Record<string, Record<string, unknown>> = 
     example: { objections: ["Price felt high for Saturday"], budget_signal: "250000 mentioned", competitor_mentioned: null },
   },
   recording_url: str("Link to the recording. Must be https.", { format: "uri", maxLength: 2000, example: "https://storage.callvibe.ai/rec/9f31ab2e.mp3" }),
-  agent_name: str("Who took or made the call. Credited to the CRM user with exactly this name (if exactly one).", { maxLength: 200, example: "Riya Sharma" }),
+  agent_name: str("Who took or made the call. Credited to the CRM staff member with exactly this name (if exactly one; admin accounts are never credited).", { maxLength: 200, example: "Riya Sharma" }),
   agent_email: str("The agent's email. Matched to a CRM user before `agent_name`.", { format: "email", maxLength: 254, example: "riya@theveloriagrand.com" }),
-  call_date: str("When the call took place: ISO 8601 date-time with `Z` or an offset. Required. Not in the future.", {
+  call_date: str("When the call took place: ISO 8601 date-time with `Z` or an offset. Required. Not in the future, and not more than a year ago.", {
     format: "date-time",
     example: "2026-09-17T10:04:00Z",
   }),
@@ -110,7 +110,7 @@ export const CALL_REQUEST_PROPERTIES: Record<string, Record<string, unknown>> = 
   },
   direction: str("`outbound` (an agent called the customer, default) or `inbound`.", { enum: ["inbound", "outbound"], example: "outbound" }),
   call_status: str(
-    "Outcome of the dial. Default `completed`. A `completed` outbound call by a known agent counts as the lead's first contact (it stops the speed-to-lead clock).",
+    "Outcome of the dial. Default `completed`. A `completed` outbound call by a known agent, on a lead that already existed, counts as the lead's first contact at `call_date` (it stops the speed-to-lead clock).",
     { enum: ["completed", "no_answer", "busy", "voicemail", "wrong_number", "callback_requested"], example: "completed" }
   ),
 };
@@ -433,7 +433,7 @@ export function buildOpenApiDocument(serverUrl: string) {
           summary: "Record a call against a lead",
           tags: ["Calls"],
           description:
-            "Attaches a call (summary, sentiment, AI score and insights, recording, agent, duration, action items) to a lead, found by `lead_id` or `phone`. If no lead exists for the phone, one is created first. Needs a key granted `calls:create`; a key issued for a source must be issued for `callvibe`.",
+            "Attaches a call (summary, sentiment, AI score and insights, recording, agent, duration, action items) to a lead, found by `lead_id` or `phone`. If no lead exists for the phone, one is created first (these count toward the key's own daily new-lead cap). Needs a key granted `calls:create`; a key issued for a source must be issued for `callvibe`.",
           parameters: [
             {
               name: "Idempotency-Key",
@@ -521,7 +521,7 @@ export function buildOpenApiDocument(serverUrl: string) {
                 },
               },
             },
-            ...sharedErrorResponses("calls:create", 'This API key may only push source "meta_ads".'),
+            ...sharedErrorResponses("calls:create", 'This API key may only push source "callvibe".'),
           },
           "x-codeSamples": [
             {
@@ -607,7 +607,7 @@ export function buildOpenApiDocument(serverUrl: string) {
         },
         CallActivityRequest: {
           type: "object",
-          required: ["call_summary", "call_date"],
+          required: ["external_call_id", "call_summary", "call_date"],
           description: "`lead_id` or `phone` is required. Unknown top-level fields are ignored.",
           properties: CALL_REQUEST_PROPERTIES,
           anyOf: [{ required: ["lead_id"] }, { required: ["phone"] }],
@@ -624,7 +624,7 @@ export function buildOpenApiDocument(serverUrl: string) {
               required: ["call_id", "lead_id", "contact_id", "lead_created", "duplicate", "matched_by"],
               properties: {
                 call_id: { type: ["string", "null"], description: "The CRM's id for the recorded call." },
-                lead_id: { type: ["string", "null"], description: "The lead the call is attached to. Send it back as `lead_id` on later calls." },
+                lead_id: { type: ["string", "null"], description: "The lead the call is attached to. Send it back as `lead_id` on later calls. Null only when the call was already recorded by the CRM's import on a contact with no lead." },
                 contact_id: { type: ["string", "null"] },
                 external_call_id: { type: ["string", "null"] },
                 lead_created: { type: "boolean" },

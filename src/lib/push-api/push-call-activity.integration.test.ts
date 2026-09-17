@@ -37,6 +37,7 @@ const U = Date.now();
 const ENDPOINT = "https://app.theveloriagrand.com/api/v1/push/call-activity";
 const phone = (n: number) => `+919${String(U).slice(-7)}${String(n).padStart(2, "0")}`;
 const created = { userId: "", agentId: "", keyIds: [] as string[] };
+const created_agent = () => created.agentId;
 const keys = { calls: "", leadsOnly: "", metaCalls: "" };
 
 async function mintKey(label: string, scopes: string[], source: string | null) {
@@ -61,7 +62,9 @@ async function push(body: unknown, opts: { key?: string; idempotencyKey?: string
   return { status: res.status, headers: res.headers, json: text ? JSON.parse(text) : null };
 }
 
+let callSeq = 0;
 const call = (n: number, extra: Record<string, unknown> = {}) => ({
+  external_call_id: `cv_${U}_auto_${++callSeq}`,
   phone: phone(n),
   call_summary: `Asked about Saturday availability (${n}); wants a site visit.`,
   call_date: new Date(Date.now() - 60 * 60_000).toISOString(),
@@ -194,11 +197,11 @@ describe("recording calls", () => {
   });
 
   it("uses lead_id when sent, and refuses an unknown one", async () => {
-    const r = await push({ lead_id: leadId, call_summary: "Follow-up call.", call_date: new Date(Date.now() - 60_000).toISOString() });
+    const r = await push({ lead_id: leadId, external_call_id: `cv_${U}_byid`, call_summary: "Follow-up call.", call_date: new Date(Date.now() - 60_000).toISOString() });
     expect(r.status).toBe(200);
     expect(r.json.data).toMatchObject({ lead_id: leadId, matched_by: "lead_id" });
 
-    const bad = await push({ lead_id: "does-not-exist", call_summary: "x", call_date: new Date().toISOString() });
+    const bad = await push({ lead_id: "does-not-exist", external_call_id: `cv_${U}_bad`, call_summary: "x", call_date: new Date().toISOString() });
     expect(bad.status).toBe(422);
     expect(bad.json.error).toMatchObject({ code: "VALIDATION_ERROR", fields: { lead_id: "No lead with this id" } });
   });
@@ -219,19 +222,57 @@ describe("recording calls", () => {
     expect(r.json.data).toMatchObject({ lead_id: lead.data.lead_id, matched_by: "phone", lead_created: false });
   });
 
-  it("a connected outbound call by a known agent stops the lead's first-response clock", async () => {
-    const r = await push(call(5, { agent_name: `Riya Sharma ${U}` }));
-    expect(r.status).toBe(201);
-    const lead = await prisma.lead.findUniqueOrThrow({ where: { id: r.json.data.lead_id } });
-    expect(lead.firstRespondedAt).not.toBeNull();
-    const comm = await prisma.communication.findUniqueOrThrow({ where: { id: r.json.data.call_id }, include: { callLog: true } });
-    expect(comm.createdById).toBe(created.agentId);
-    expect(comm.callLog!.agentId).toBe(created.agentId);
+  it("a connected outbound call by a known agent stops an existing lead's first-response clock at the call time", async () => {
+    const first = await push(call(5, { call_status: "no_answer" })); // creates the lead
+    expect(first.status).toBe(201);
+    const created = await prisma.lead.findUniqueOrThrow({ where: { id: first.json.data.lead_id } });
+    expect(created.firstRespondedAt).toBeNull(); // never for the call that created it
 
-    // An unanswered one doesn't.
-    const missed = await push(call(6, { agent_name: `Riya Sharma ${U}`, call_status: "no_answer" }));
-    const missedLead = await prisma.lead.findUniqueOrThrow({ where: { id: missed.json.data.lead_id } });
-    expect(missedLead.firstRespondedAt).toBeNull();
+    const at = new Date(Date.now() + 1000 - 1000).toISOString();
+    const r = await push(call(5, { agent_name: `Riya Sharma ${U}`, call_date: at }));
+    expect(r.status).toBe(200);
+    const lead = await prisma.lead.findUniqueOrThrow({ where: { id: r.json.data.lead_id } });
+    expect(lead.firstRespondedAt?.toISOString()).toBe(new Date(at).toISOString());
+    const comm = await prisma.communication.findUniqueOrThrow({ where: { id: r.json.data.call_id }, include: { callLog: true } });
+    expect(comm.createdById).toBe(created_agent());
+    expect(comm.callLog!.agentId).toBe(created_agent());
+  });
+
+  it("a cold outbound call that creates the lead doesn't count as a first response", async () => {
+    const r = await push(call(6, { agent_name: `Riya Sharma ${U}` }));
+    expect(r.status).toBe(201);
+    expect((await prisma.lead.findUniqueOrThrow({ where: { id: r.json.data.lead_id } })).firstRespondedAt).toBeNull();
+  });
+
+  it("never credits an admin account, even by exact email", async () => {
+    const r = await push(call(9, { agent_email: `call-admin-${U}@test.local` }));
+    const comm = await prisma.communication.findUniqueOrThrow({ where: { id: r.json.data.call_id }, include: { callLog: true } });
+    // Falls back to the system user, and isn't treated as a known agent.
+    expect(comm.metadata).toMatchObject({ agentEmail: `call-admin-${U}@test.local` });
+    expect((await prisma.lead.findUniqueOrThrow({ where: { id: r.json.data.lead_id } })).firstRespondedAt).toBeNull();
+  });
+
+  it("refuses a lead_id whose customer has a different phone, and falls back to the phone for a deleted lead", async () => {
+    const other = await push(call(10));
+    const mismatch = await push({ ...call(11), lead_id: other.json.data.lead_id });
+    expect(mismatch.status).toBe(422);
+    expect(mismatch.json.error.fields).toHaveProperty("phone");
+
+    await prisma.lead.update({ where: { id: other.json.data.lead_id }, data: { deletedAt: new Date() } });
+    const fallback = await push({ ...call(10), lead_id: other.json.data.lead_id });
+    expect(fallback.status).toBe(201); // the deleted lead's customer gets a fresh lead
+    expect(fallback.json.data.lead_id).not.toBe(other.json.data.lead_id);
+  });
+
+  it("requires external_call_id and refuses calls more than a year old", async () => {
+    const { external_call_id: _omit, ...noId } = call(12);
+    void _omit;
+    const r = await push(noId);
+    expect(r.status).toBe(422);
+    expect(r.json.error.fields).toHaveProperty("external_call_id");
+    const old = await push(call(12, { call_date: new Date(Date.now() - 400 * 86_400_000).toISOString() }));
+    expect(old.status).toBe(422);
+    expect(old.json.error.fields.call_date).toContain("year");
   });
 
   it("records a call once when CallVibe sends it several times at once", async () => {
@@ -259,6 +300,6 @@ describe("access", () => {
   it("names every invalid field", async () => {
     const r = await push({ phone: "12345", call_summary: "", call_date: "yesterday", ai_score: 150 });
     expect(r.status).toBe(422);
-    expect(Object.keys(r.json.error.fields).sort()).toEqual(["ai_score", "call_date", "call_summary", "phone"]);
+    expect(Object.keys(r.json.error.fields).sort()).toEqual(["ai_score", "call_date", "call_summary", "external_call_id", "phone"]);
   });
 });

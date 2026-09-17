@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { parsePushCall } from "./schema";
 
-const base = { phone: "9876543210", call_summary: "Asked about Saturday; wants a site visit.", call_date: "2026-09-17T10:04:00Z" };
+// Relative to now: call_date must be within the last year and not in the future.
+const anHourAgo = new Date(Math.floor((Date.now() - 3_600_000) / 60_000) * 60_000);
+const utc = anHourAgo.toISOString().replace(".000Z", "Z");
+const ist = new Date(anHourAgo.getTime() + 5.5 * 3_600_000).toISOString().slice(0, 19) + "+05:30";
+
+const base = { external_call_id: "cv_1", phone: "9876543210", call_summary: "Asked about Saturday; wants a site visit.", call_date: utc };
 
 describe("call activity validation", () => {
   it("accepts the documented example and normalises it", () => {
@@ -15,7 +20,7 @@ describe("call activity validation", () => {
       agent_name: "Riya Sharma",
       call_duration_seconds: 246,
       action_items: ["Schedule site visit", "  "],
-      call_date: "2026-09-17T15:34:00+05:30",
+      call_date: ist,
     });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -23,7 +28,7 @@ describe("call activity validation", () => {
       phone: "+919876543210",
       sentiment: "positive",
       aiScore: 82,
-      callDate: "2026-09-17T10:04:00.000Z",
+      callDate: anHourAgo.toISOString(),
       durationSeconds: 246,
       actionItems: ["Schedule site visit"],
       direction: "outbound",
@@ -35,8 +40,11 @@ describe("call activity validation", () => {
     const r = parsePushCall({ call_summary: " ", call_date: "2026-09-17T10:04:00" });
     expect(r.ok).toBe(false);
     if (r.ok) return;
-    expect(Object.keys(r.fields).sort()).toEqual(["call_date", "call_summary", "phone"]);
-    expect(parsePushCall({ lead_id: "cmabc", call_summary: "x", call_date: "2026-09-17T10:04:00Z" }).ok).toBe(true);
+    expect(Object.keys(r.fields).sort()).toEqual(["call_date", "call_summary", "external_call_id"]);
+    // The lead_id-or-phone rule is reported once the fields themselves are valid.
+    const noTarget = parsePushCall({ external_call_id: "cv_3", call_summary: "x", call_date: utc });
+    expect(!noTarget.ok && noTarget.fields).toEqual({ phone: "Send lead_id or phone" });
+    expect(parsePushCall({ lead_id: "cmabc", external_call_id: "cv_2", call_summary: "x", call_date: new Date(Date.now() - 60_000).toISOString() }).ok).toBe(true);
   });
 
   it("rejects bad values with field-level messages", () => {

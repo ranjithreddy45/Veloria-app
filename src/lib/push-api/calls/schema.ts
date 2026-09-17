@@ -15,6 +15,8 @@ const MAX_INSIGHTS_KEYS = 50;
 const MAX_INSIGHTS_DEPTH = 3;
 /** A call can't be timestamped further ahead than this (clock skew). */
 const MAX_FUTURE_MS = 10 * 60_000;
+/** Older calls are a backfill mistake, not activity on a live lead. */
+const MAX_AGE_MS = 365 * 86_400_000;
 
 const CONTROL_CHARS = new RegExp("[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]", "g");
 const clean = (v: string) => v.replace(CONTROL_CHARS, "").trim();
@@ -52,13 +54,13 @@ export const pushCallSchema = z
       .optional()
       .nullable(),
     contact_name: optionalText(200),
+    // Required: it is what makes a call impossible to record twice, across retries and the hourly import.
     external_call_id: z
-      .string({ message: "Must be a string" })
+      .string({ message: "Required" })
       .trim()
+      .min(1, { message: "Required" })
       .max(200, { message: "Must be at most 200 characters" })
-      .regex(/^[A-Za-z0-9][A-Za-z0-9_.:-]*$/, { message: "Use letters, digits, _ . : - only" })
-      .optional()
-      .nullable(),
+      .regex(/^[A-Za-z0-9][A-Za-z0-9_.:-]*$/, { message: "Use letters, digits, _ . : - only" }),
     call_summary: z
       .string({ message: "Required" })
       .max(10_000, { message: "Must be at most 10000 characters" })
@@ -102,7 +104,8 @@ export const pushCallSchema = z
       .trim()
       .regex(ISO_INSTANT, { message: "Must be an ISO 8601 date-time with a zone, e.g. 2026-09-17T10:04:00Z" })
       .refine((v) => !Number.isNaN(Date.parse(v)), { message: "Must be a real date-time" })
-      .refine((v) => Date.parse(v) <= Date.now() + MAX_FUTURE_MS, { message: "Can't be in the future" }),
+      .refine((v) => Date.parse(v) <= Date.now() + MAX_FUTURE_MS, { message: "Can't be in the future" })
+      .refine((v) => Date.parse(v) >= Date.now() - MAX_AGE_MS, { message: "Can't be more than a year ago" }),
     call_duration_seconds: z
       .number({ message: "Must be a whole number of seconds" })
       .int({ message: "Must be a whole number of seconds" })
@@ -131,7 +134,7 @@ export interface PushCall {
   leadId?: string;
   phone?: string;
   contactName?: string;
-  externalCallId?: string;
+  externalCallId: string;
   summary: string;
   sentiment?: "positive" | "neutral" | "negative";
   aiScore?: number;
@@ -166,7 +169,7 @@ export function parsePushCall(body: unknown): ParsedPushCall {
       leadId: v.lead_id,
       phone: v.phone != null && v.phone.trim() !== "" ? normalizePushPhone(v.phone)! : undefined,
       contactName: v.contact_name,
-      externalCallId: v.external_call_id ?? undefined,
+      externalCallId: v.external_call_id,
       summary: v.call_summary,
       sentiment: v.sentiment ?? undefined,
       aiScore: v.ai_score ?? undefined,

@@ -48,8 +48,11 @@ export interface PushApiMetricsData {
   byKey24h: PushApiKeyMetrics[];
 }
 
+const LEADS_ENDPOINT = "/api/v1/push/leads";
+
 async function windowMetrics(since: Date): Promise<PushApiWindowMetrics> {
-  const where = { createdAt: { gte: since } };
+  // The card reports lead pushes; call-activity requests have their own outcomes.
+  const where = { endpoint: LEADS_ENDPOINT, createdAt: { gte: since } };
   // createdAt is `timestamp without time zone` holding UTC, and the DB session
   // runs in America/New_York — so bind the bound as a UTC ISO string cast to
   // ::timestamp (the trailing Z is ignored), never as a Date/timestamptz.
@@ -70,7 +73,7 @@ async function windowMetrics(since: Date): Promise<PushApiWindowMetrics> {
         percentile_cont(0.5) WITHIN GROUP (ORDER BY "durationMs") AS p50,
         percentile_cont(0.95) WITHIN GROUP (ORDER BY "durationMs") AS p95
       FROM "PushApiRequestLog"
-      WHERE "createdAt" >= ${sinceIso}::timestamp
+      WHERE "createdAt" >= ${sinceIso}::timestamp AND "endpoint" = ${LEADS_ENDPOINT}
     `,
   ]);
 
@@ -114,12 +117,12 @@ export async function getPushApiMetrics() {
       windowMetrics(since7d),
       prisma.pushApiRequestLog.groupBy({
         by: ["apiKeyPrefix"],
-        where: { createdAt: { gte: since24h } },
+        where: { endpoint: LEADS_ENDPOINT, createdAt: { gte: since24h } },
         _count: { _all: true },
       }),
       prisma.pushApiRequestLog.groupBy({
         by: ["apiKeyPrefix"],
-        where: { createdAt: { gte: since24h }, OR: [{ outcome: { in: ERROR_OUTCOMES } }, { responseStatus: { gte: 400 } }] },
+        where: { endpoint: LEADS_ENDPOINT, createdAt: { gte: since24h }, OR: [{ outcome: { in: ERROR_OUTCOMES } }, { responseStatus: { gte: 400 } }] },
         _count: { _all: true },
       }),
     ]);
