@@ -21,7 +21,6 @@ ssh -i ./id_rsa theveloriagrand@43.225.53.88 << 'EOF'
   
   # We must delete the old processes because they are holding the port!
   pm2 delete veloria-prod || true
-  pm2 delete veloria-app || true
   
   if [ -f "ecosystem.config.js" ]; then
     pm2 start ecosystem.config.js --env production

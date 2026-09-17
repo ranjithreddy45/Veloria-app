@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { format } from "date-fns";
 import {
   Send,
@@ -11,6 +12,14 @@ import {
   FileText,
   ExternalLink,
   AlertTriangle,
+  Phone,
+  UserCircle,
+  CheckCircle,
+  Info,
+  UserPlus,
+  Paperclip,
+  UserX,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -25,6 +34,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -34,7 +48,20 @@ import {
   sendWhatsAppMessage,
   getWhatsAppTemplates,
 } from "@/actions/whatsapp.actions";
+import { createLead, updateLeadStatus, updateLead, getAssignableUsers } from "@/actions/lead.actions";
 import type { ConversationSummary } from "@/actions/whatsapp.actions";
+import type { LeadStatus } from "@prisma/client";
+
+const LEAD_STATUSES = [
+  { value: "NEW", label: "New Lead", color: "bg-blue-500" },
+  { value: "NOT_CONNECTED", label: "Not Connected", color: "bg-orange-400" },
+  { value: "CONTACTED", label: "Contacted", color: "bg-orange-500" },
+  { value: "QUALIFIED", label: "Qualified", color: "bg-purple-500" },
+  { value: "PROPOSAL_SENT", label: "Proposal Sent", color: "bg-blue-400" },
+  { value: "NEGOTIATION", label: "Opportunity", color: "bg-indigo-500" },
+  { value: "WON", label: "Customer", color: "bg-emerald-500" },
+  { value: "LOST", label: "Churned", color: "bg-red-500" },
+];
 
 // ============================================================
 // Inbox Chat View — Right panel of WhatsApp Inbox
@@ -80,6 +107,7 @@ function StatusIcon({ status }: { status: string }) {
 }
 
 export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
+  const { data: session } = useSession();
   const [messages, setMessages] = useState<WhatsAppMsg[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +118,18 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [templateParams, setTemplateParams] = useState<Record<string, string>>({});
   const [templates, setTemplates] = useState<TemplateDef[]>([]);
+  
+  // Track local lead status if updated
+  const [currentLeadStatus, setCurrentLeadStatus] = useState<string | undefined>(
+    conversation.leadStatus
+  );
+  // Assignee state
+  const [assigneeId, setAssigneeId] = useState<string | null>(conversation.assignedToId ?? null);
+  const [assigneeName, setAssigneeName] = useState<string | null>(conversation.assignedToName ?? null);
+  const [users, setUsers] = useState<{ id: string; name: string | null; role: string }[]>([]);
+  const [assigneeOpen, setAssigneeOpen] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -123,6 +163,10 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
       if (result.success && result.data) {
         setTemplates(result.data as TemplateDef[]);
       }
+    });
+    // Load assignable users
+    getAssignableUsers().then((result) => {
+      if (result.success) setUsers(result.data);
     });
   }, []);
 
@@ -185,10 +229,106 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
     }
   }
 
+  // Handle assignee change
+  async function handleAssign(userId: string | null, userName: string | null) {
+    if (!conversation.leadId) {
+      toast.error("No lead found — set a lead status first to create a lead");
+      return;
+    }
+    setAssigning(true);
+    const prev = { id: assigneeId, name: assigneeName };
+    setAssigneeId(userId);
+    setAssigneeName(userName);
+    setAssigneeOpen(false);
+    try {
+      const result = await updateLead(conversation.leadId, { assignedToId: userId ?? undefined });
+      if (result.success) {
+        toast.success(userId ? `Assigned to ${userName ?? "rep"}` : "Returned to unassigned");
+      } else {
+        setAssigneeId(prev.id);
+        setAssigneeName(prev.name);
+        toast.error(result.error || "Failed to update assignee");
+      }
+    } catch {
+      setAssigneeId(prev.id);
+      setAssigneeName(prev.name);
+      toast.error("Failed to update assignee");
+    } finally {
+      setAssigning(false);
+    }
+  }
+
+  // Handle status update
+  async function handleStatusChange(newStatus: string) {
+    // Optimistic UI update
+    const previousStatus = currentLeadStatus;
+    setCurrentLeadStatus(newStatus);
+    
+    try {
+      if (conversation.leadId) {
+        const result = await updateLeadStatus(conversation.leadId, newStatus as LeadStatus);
+        if (result.success) {
+          toast.success("Status updated");
+        } else {
+          // Revert on failure
+          setCurrentLeadStatus(previousStatus);
+          toast.error(result.error || "Failed to update status");
+        }
+      } else {
+        // Create new lead if they change status from dropdown and no lead exists
+        const createResult = await createLead({
+          contactId: conversation.contactId,
+          title: `WhatsApp Lead - ${conversation.contactName}`,
+          source: "WHATSAPP",
+        });
+        
+        if (createResult.success && createResult.data) {
+          // If the selected status is not "NEW" (which is default), update it immediately
+          if (newStatus !== "NEW") {
+            await updateLeadStatus(createResult.data.id, newStatus as LeadStatus);
+          }
+          toast.success("Lead created and status updated");
+          // Optionally, we could mutate the conversation object here, but it's enough 
+          // that the local state shows the correct status now.
+        } else {
+          setCurrentLeadStatus(previousStatus);
+          toast.error(createResult.error || "Failed to create lead");
+        }
+      }
+    } catch {
+      setCurrentLeadStatus(previousStatus);
+      toast.error("Failed to update status");
+    }
+  }
+
+  // Group messages by date
+  const groupedMessages = messages.reduce((acc, msg) => {
+    const dateStr = format(new Date(msg.sentAt), "dd MMM yyyy");
+    if (!acc[dateStr]) acc[dateStr] = [];
+    acc[dateStr].push(msg);
+    return acc;
+  }, {} as Record<string, WhatsAppMsg[]>);
+
+  // Check 24-hour session window
+  const latestInbound = messages.find((m) => m.direction === "INBOUND");
+  let isSessionOpen = false;
+  let sessionTimeLeft = "";
+  if (latestInbound) {
+    const diffMs = new Date().getTime() - new Date(latestInbound.sentAt).getTime();
+    const msIn24h = 24 * 60 * 60 * 1000;
+    if (diffMs < msIn24h) {
+      isSessionOpen = true;
+      const timeLeftMs = msIn24h - diffMs;
+      const hoursLeft = Math.floor(timeLeftMs / (1000 * 60 * 60));
+      const minutesLeft = Math.floor((timeLeftMs % (1000 * 60 * 60)) / (1000 * 60));
+      sessionTimeLeft = `${hoursLeft}h ${minutesLeft}m`;
+    }
+  }
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b px-4 py-3">
+      <div className="flex items-center gap-3 border-b px-4 py-3 bg-white dark:bg-zinc-950">
         {onBack && (
           <Button
             variant="ghost"
@@ -212,22 +352,134 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
         </Avatar>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium">{conversation.contactName}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground flex items-center gap-2">
             {conversation.contactPhone}
-            {!loading && !error && lastSyncedAt && (
-              <span className="ml-2 text-meta text-muted-foreground/70">
-                Synced {format(lastSyncedAt, "HH:mm:ss")}
-              </span>
-            )}
+            <span className="text-[10px] uppercase font-semibold tracking-wider text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">Open</span>
           </p>
         </div>
-        <Button variant="ghost" size="sm" asChild>
-          <Link href={`/contacts/${conversation.contactId}`}>
-            <ExternalLink className="mr-1.5 size-3.5" />
-            View Contact
-          </Link>
-        </Button>
+        <div className="flex items-center gap-1.5 hidden sm:flex">
+
+
+          <Popover open={assigneeOpen} onOpenChange={setAssigneeOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={assigning}
+                className="h-8 text-xs font-medium bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-emerald-600 dark:text-emerald-400"
+              >
+                <UserCircle className="mr-1.5 size-3" />
+                {assigneeName ?? "Assignee"}
+                <ChevronDown className="ml-1 size-3" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56 p-0">
+              <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground border-b">
+                Transfer To
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                {/* Assign to me */}
+                <button
+                  onClick={() => {
+                    const myId = session?.user?.id ?? null;
+                    const myName = session?.user?.name ?? null;
+                    handleAssign(myId, myName);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors"
+                >
+                  <span className="flex size-7 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400">
+                    <UserPlus className="size-3.5" />
+                  </span>
+                  <span className="font-medium">Assign to me</span>
+                </button>
+                {/* Return to unassigned */}
+                <button
+                  onClick={() => handleAssign(null, null)}
+                  className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors text-red-600 dark:text-red-400"
+                >
+                  <span className="flex size-7 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/40">
+                    <UserX className="size-3.5" />
+                  </span>
+                  <span className="font-medium">Return to unassigned</span>
+                </button>
+                <div className="my-1 border-t" />
+                {/* All users */}
+                {users.map((u) => {
+                  const initials = (u.name ?? "?")
+                    .split(" ")
+                    .slice(0, 2)
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase();
+                  const isAssigned = u.id === assigneeId;
+                  return (
+                    <button
+                      key={u.id}
+                      onClick={() => handleAssign(u.id, u.name ?? null)}
+                      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm hover:bg-muted/60 transition-colors"
+                    >
+                      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-orange-500 text-white text-xs font-bold">
+                        {initials}
+                      </span>
+                      <span className="flex-1 text-left">
+                        <span className={cn("block font-medium", isAssigned && "text-emerald-600 dark:text-emerald-400")}>
+                          {u.name ?? "Unknown"}
+                        </span>
+                        <span className="block text-[11px] text-muted-foreground capitalize">
+                          {u.role.toLowerCase().replace(/_/g, " ")}
+                        </span>
+                      </span>
+                      {isAssigned && (
+                        <Check className="size-3.5 text-emerald-600 dark:text-emerald-400" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <Button variant="outline" size="sm" asChild className="h-8 text-xs font-medium bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+            <Link href={`/contacts/${conversation.contactId}`}>
+              <Info className="mr-1.5 size-3" /> Show Info
+            </Link>
+          </Button>
+          <Select
+            value={currentLeadStatus || ""}
+            onValueChange={handleStatusChange}
+          >
+            <SelectTrigger className="h-8 w-[140px] text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900 dark:hover:bg-emerald-900/50">
+              <SelectValue placeholder={currentLeadStatus ? "Status" : "New Lead"} />
+            </SelectTrigger>
+            <SelectContent>
+              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground tracking-wider">
+                STAGE
+              </div>
+              {LEAD_STATUSES.map((status) => (
+                <SelectItem key={status.value} value={status.value}>
+                  <div className="flex items-center gap-2">
+                    <div className={cn("w-2 h-2 rounded-full", status.color)} />
+                    {status.label}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
+
+      {/* Session Window Banner */}
+      {isSessionOpen ? (
+        <div className="flex items-center justify-center bg-[#e8f5e9] px-4 py-1.5 text-[11px] font-medium text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400 border-b border-emerald-100 dark:border-emerald-900/50">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2 animate-pulse" />
+          Session open - reply freely for another {sessionTimeLeft}
+        </div>
+      ) : (
+        <div className="flex items-center justify-center bg-zinc-100 px-4 py-1.5 text-[11px] font-medium text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
+          <AlertTriangle className="size-3 mr-1.5" />
+          Session closed - you can only send approved templates
+        </div>
+      )}
 
       {/* Sync error banner — surface persistent polling failures (E-1) */}
       {error && (
@@ -246,79 +498,88 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
       )}
 
       {/* Messages */}
-      <ScrollArea className="flex-1 bg-[#f0f2f5] dark:bg-zinc-950/50">
-        <div className="mx-auto max-w-3xl space-y-1 p-4">
+      <ScrollArea className="flex-1 min-h-0 bg-[#efeae2] dark:bg-[#0b141a]">
+        <div className="mx-auto max-w-3xl space-y-4 p-4 pb-8">
           {loading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12">
               <div className="size-6 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
               <p className="text-xs text-muted-foreground">Loading messages...</p>
             </div>
           ) : messages.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">
+            <div className="py-12 text-center text-sm text-muted-foreground bg-white/50 dark:bg-black/20 rounded-lg max-w-sm mx-auto p-4 shadow-sm">
               {error
                 ? "Could not load messages."
                 : "No messages yet. Send the first message!"}
             </div>
           ) : (
-            messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={cn(
-                  "flex",
-                  msg.direction === "OUTBOUND" ? "justify-end" : "justify-start"
-                )}
-              >
-                <div
-                  className={cn(
-                    "max-w-[75%] rounded-lg px-3 py-2 shadow-sm",
-                    msg.direction === "OUTBOUND"
-                      ? "bg-emerald-600 text-white"
-                      : "bg-white text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-                  )}
-                >
-                  {/* Template badge */}
-                  {msg.templateName && (
-                    <div className="mb-1 flex items-center gap-1">
-                      <FileText className="size-3 opacity-70" />
-                      <span className="text-meta font-medium opacity-70">
-                        {msg.templateName}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Message content */}
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                    {msg.content}
-                  </p>
-
-                  {/* Failure reason — surface why a send failed instead of a
-                      silent error (E-3). */}
-                  {msg.direction === "OUTBOUND" &&
-                    msg.status === "FAILED" &&
-                    msg.failureReason && (
-                      <div className="mt-1.5 flex items-start gap-1 rounded bg-red-50 px-2 py-1 text-meta leading-snug text-red-700 dark:bg-red-950/40 dark:text-red-300">
-                        <XCircle className="mt-0.5 size-3 shrink-0" />
-                        <span>{msg.failureReason}</span>
-                      </div>
-                    )}
-
-                  {/* Timestamp + status */}
-                  <div
-                    className={cn(
-                      "mt-1 flex items-center justify-end gap-1",
-                      msg.direction === "OUTBOUND"
-                        ? "text-emerald-200"
-                        : "text-zinc-400 dark:text-zinc-500"
-                    )}
-                  >
-                    <span className="text-meta">
-                      {format(new Date(msg.sentAt), "dd MMM, HH:mm")}
-                    </span>
-                    {msg.direction === "OUTBOUND" && (
-                      <StatusIcon status={msg.status} />
-                    )}
+            Object.entries(groupedMessages).map(([date, msgs]) => (
+              <div key={date} className="space-y-2">
+                {/* Date Divider */}
+                <div className="flex justify-center my-4">
+                  <div className="bg-white/90 dark:bg-[#182229]/90 backdrop-blur-sm px-3 py-1 rounded-full text-[11px] font-medium text-zinc-600 dark:text-zinc-400 shadow-sm border border-black/5 dark:border-white/5">
+                    {date}
                   </div>
                 </div>
+                
+                {/* Messages for this date */}
+                {msgs.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={cn(
+                      "flex",
+                      msg.direction === "OUTBOUND" ? "justify-end" : "justify-start"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "relative max-w-[80%] md:max-w-[70%] rounded-lg px-3 py-2 shadow-sm break-words",
+                        msg.direction === "OUTBOUND"
+                          ? "bg-[#dcf8c6] text-[#111b21] dark:bg-[#005c4b] dark:text-[#e9edef] rounded-tr-none"
+                          : "bg-white text-[#111b21] dark:bg-[#202c33] dark:text-[#e9edef] rounded-tl-none"
+                      )}
+                    >
+                      {/* Template badge */}
+                      {msg.templateName && (
+                        <div className="mb-1 flex items-center gap-1 border-b border-black/10 dark:border-white/10 pb-1">
+                          <FileText className="size-3 opacity-60" />
+                          <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider">
+                            Template: {msg.templateName}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Message content */}
+                      <p className="whitespace-pre-wrap text-[14px] leading-relaxed pr-12 pb-1">
+                        {msg.content}
+                      </p>
+
+                      {/* Failure reason */}
+                      {msg.direction === "OUTBOUND" &&
+                        msg.status === "FAILED" &&
+                        msg.failureReason && (
+                          <div className="mt-1.5 flex items-start gap-1 rounded bg-red-100/50 dark:bg-red-900/30 px-2 py-1 text-[11px] leading-snug text-red-700 dark:text-red-300">
+                            <XCircle className="mt-0.5 size-3 shrink-0" />
+                            <span>{msg.failureReason}</span>
+                          </div>
+                        )}
+
+                      {/* Timestamp + status */}
+                      <div
+                        className={cn(
+                          "absolute bottom-1.5 right-2 flex items-center justify-end gap-1 text-[10px]",
+                          msg.direction === "OUTBOUND"
+                            ? "text-black/40 dark:text-white/50"
+                            : "text-black/40 dark:text-white/50"
+                        )}
+                      >
+                        <span>{format(new Date(msg.sentAt), "HH:mm")}</span>
+                        {msg.direction === "OUTBOUND" && (
+                          <StatusIcon status={msg.status} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ))
           )}
@@ -355,22 +616,25 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
         </div>
 
         {mode === "message" ? (
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-end">
+            <Button variant="ghost" size="icon" className="shrink-0 mb-0.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+              <Paperclip className="size-5" />
+            </Button>
             <Textarea
               placeholder="Type a message... (Ctrl+Enter to send)"
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="min-h-[40px] max-h-[120px] resize-none"
+              className="min-h-[44px] max-h-[120px] resize-none bg-white dark:bg-zinc-900 !border-none !outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 focus-visible:!ring-offset-0 !shadow-none rounded-xl py-3 px-4 focus:!outline-none"
               rows={1}
             />
             <Button
               onClick={handleSend}
               disabled={!messageText.trim() || sending}
-              className="shrink-0 bg-emerald-600 hover:bg-emerald-700"
+              className="shrink-0 bg-[#00a884] hover:bg-[#008f6f] text-white rounded-full size-11 mb-0.5 shadow-sm"
               size="icon"
             >
-              <Send className="size-4" />
+              <Send className="size-5 ml-1" />
             </Button>
           </div>
         ) : (
@@ -382,7 +646,7 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
                 setTemplateParams({});
               }}
             >
-              <SelectTrigger>
+              <SelectTrigger className="!border-none !outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 focus-visible:!ring-offset-0 !shadow-none bg-zinc-100 dark:bg-zinc-800 rounded-lg">
                 <SelectValue placeholder="Select a template..." />
               </SelectTrigger>
               <SelectContent>
@@ -411,7 +675,7 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
                           [param]: e.target.value,
                         }))
                       }
-                      className="h-8 text-sm"
+                      className="h-8 text-sm !border-none !outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 focus-visible:!ring-offset-0 !shadow-none bg-zinc-100 dark:bg-zinc-800 rounded-md"
                     />
                   </div>
                 ))}

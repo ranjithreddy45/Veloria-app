@@ -297,12 +297,13 @@ export async function handleKnownContactAck(
       }
     }
 
-    // ---- (6) Anti-double-ack guard: skip if we just messaged them. -------
+    // ---- (6) Anti-double-ack guard: skip if we have EVER messaged them before.
+    // This ensures the ack is only sent on the very first inbound from this
+    // contact. Subsequent messages get handled by the rep manually.
     const recentOutbound = await prisma.whatsAppMessage.findFirst({
       where: {
         contactId,
         direction: "OUTBOUND",
-        sentAt: { gte: new Date(Date.now() - DOUBLE_ACK_WINDOW_MS) },
       },
       orderBy: { sentAt: "desc" },
       select: { id: true },
@@ -313,7 +314,7 @@ export async function handleKnownContactAck(
         acked: false,
         routedToId,
         rewokeLeadId,
-        reason: "recent_outbound_suppressed",
+        reason: "already_acked_before",
       };
     }
 

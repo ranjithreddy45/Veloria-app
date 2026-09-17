@@ -20,9 +20,11 @@ interface ConversationListProps {
 }
 
 function getInitials(name: string): string {
+  if (!name) return "?";
   return name
-    .split(" ")
-    .map((n) => n[0])
+    .trim()
+    .split(/\s+/)
+    .map((n) => Array.from(n)[0])
     .filter(Boolean)
     .slice(0, 2)
     .join("")
@@ -85,7 +87,7 @@ export function ConversationList({
             placeholder="Search conversations..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-9 !border-none !outline-none !ring-0 focus:!ring-0 focus-visible:!ring-0 focus-visible:!ring-offset-0 !shadow-none bg-zinc-100 dark:bg-zinc-800 rounded-full"
           />
         </div>
       </div>
@@ -125,7 +127,7 @@ export function ConversationList({
       </div>
 
       {/* Conversations */}
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 min-h-0">
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 p-8 text-center">
             <MessageCircle className="size-8 text-muted-foreground/40" />
@@ -152,7 +154,7 @@ export function ConversationList({
                   onClick={() => onSelect(conv.contactId)}
                   aria-label={needsReply ? `${conv.contactName}, awaiting reply` : conv.contactName}
                   className={cn(
-                    "flex w-full items-start gap-3 p-3 text-left transition-colors hover:bg-muted/50",
+                    "flex w-full min-w-0 items-start gap-3 p-3 pr-6 text-left transition-colors hover:bg-muted/50",
                     needsReply && "bg-emerald-50/40 dark:bg-emerald-950/10",
                     selectedContactId === conv.contactId &&
                       "bg-emerald-50/60 dark:bg-emerald-950/20 border-l-2 border-emerald-600"
@@ -166,8 +168,8 @@ export function ConversationList({
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-1.5">
+                    <div className="flex w-full min-w-0 items-center justify-between gap-2">
+                      <div className="flex min-w-0 flex-1 items-center gap-1.5">
                         {needsReply && (
                           <span aria-hidden className="size-2 shrink-0 rounded-full bg-emerald-600" />
                         )}
@@ -183,13 +185,13 @@ export function ConversationList({
                       {conv.lastMessageAt && (
                         <span
                           className={cn(
-                            "shrink-0 text-meta",
+                            "shrink-0 text-meta whitespace-nowrap",
                             needsReply
                               ? "font-medium text-emerald-700 dark:text-emerald-400"
                               : "text-muted-foreground"
                           )}
                         >
-                          {formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: false })}
+                          {formatDistanceToNow(new Date(conv.lastMessageAt), { addSuffix: true })}
                         </span>
                       )}
                     </div>
@@ -202,10 +204,15 @@ export function ConversationList({
                       {conv.lastDirection === "OUTBOUND" && <span className="mr-1">You:</span>}
                       {conv.lastMessage || "No messages"}
                     </p>
-                    <div className="mt-1 flex items-center gap-2">
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
                       <p className="truncate text-meta text-muted-foreground/70">
                         {conv.contactPhone}
                       </p>
+                      {conv.isNewLead && (
+                        <span className="shrink-0 rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-medium text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
+                          New Lead
+                        </span>
+                      )}
                       {waitingFor && (
                         <span className="shrink-0 rounded bg-rose-50 px-1.5 py-0.5 text-[11px] font-medium text-rose-600 dark:bg-rose-950/40 dark:text-rose-300">
                           Waiting {waitingFor}

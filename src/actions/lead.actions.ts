@@ -36,7 +36,7 @@ const ASSIGNABLE_ROLES = ["SALES_EXEC", "SALES_HEAD", "EVENT_COORDINATOR", "ADMI
 /** Active users a lead may be assigned to — powers the inline Assign control
  *  on the leads list. Gated on leads:read (names only, no contact details). */
 export async function getAssignableUsers(): Promise<
-  { success: true; data: { id: string; name: string | null }[] } | { success: false; error: string }
+  { success: true; data: { id: string; name: string | null; role: string }[] } | { success: false; error: string }
 > {
   const session = await auth();
   if (!session?.user) return { success: false as const, error: "Unauthorized" };
@@ -45,7 +45,7 @@ export async function getAssignableUsers(): Promise<
   }
   const users = await prisma.user.findMany({
     where: { isActive: true, role: { in: ASSIGNABLE_ROLES as never } },
-    select: { id: true, name: true },
+    select: { id: true, name: true, role: true },
     orderBy: { name: "asc" },
   });
   return { success: true as const, data: users };

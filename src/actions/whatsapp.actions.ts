@@ -201,6 +201,11 @@ export interface ConversationSummary {
   lastDirection: "INBOUND" | "OUTBOUND";
   lastStatus: string;
   messageCount: number;
+  isNewLead?: boolean;
+  leadId?: string;
+  leadStatus?: string;
+  assignedToId?: string | null;
+  assignedToName?: string | null;
 }
 
 export async function getConversationsList(search?: string) {
@@ -214,25 +219,47 @@ export async function getConversationsList(search?: string) {
       return { success: false as const, error: "You do not have permission to view WhatsApp messages" };
     }
 
-    // Find contacts that have WhatsApp messages
+    // Find contacts that have WhatsApp messages OR are active leads
     const contacts = await prisma.contact.findMany({
       where: {
-        whatsappMessages: { some: {} },
-        ...(search
-          ? {
-              OR: [
-                { firstName: { contains: search, mode: "insensitive" as const } },
-                { lastName: { contains: search, mode: "insensitive" as const } },
-                { phone: { contains: search } },
-              ],
-            }
-          : {}),
+        AND: [
+          { deletedAt: null },
+          { phone: { not: null } },
+          {
+            OR: [
+              { whatsappMessages: { some: {} } },
+              { leads: { some: { status: { notIn: ["WON", "LOST"] } } } },
+            ],
+          },
+          ...(search
+            ? [
+                {
+                  OR: [
+                    { firstName: { contains: search, mode: "insensitive" as const } },
+                    { lastName: { contains: search, mode: "insensitive" as const } },
+                    { phone: { contains: search } },
+                  ],
+                },
+              ]
+            : []),
+        ],
       },
       select: {
         id: true,
         firstName: true,
         lastName: true,
         phone: true,
+        createdAt: true,
+        leads: {
+          take: 1,
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            status: true,
+            assignedToId: true,
+            assignedTo: { select: { name: true } },
+          },
+        },
         whatsappMessages: {
           orderBy: { sentAt: "desc" },
           take: 1,
@@ -247,37 +274,58 @@ export async function getConversationsList(search?: string) {
           select: { whatsappMessages: true },
         },
       },
-      orderBy: {
-        whatsappMessages: { _count: "desc" },
-      },
     });
 
-    // Sort by latest message time
+    // Sort by latest message time OR creation time for new leads
     const conversations: ConversationSummary[] = contacts
       .map((c) => {
         const lastMsg = c.whatsappMessages[0];
-        // Render a friendly preview — older rows may store the raw
-        // `[Template: …] {json}` payload; humanize it (E-4). Falls back to a
-        // clean "Template Label" if the JSON is missing/unparseable.
         const preview = humanizeWhatsAppContent(lastMsg?.content);
+        
+        // Fallback to phone number if both first/last name are missing or if it's a generic "Facebook Lead"
+        const nameStr = `${c.firstName} ${c.lastName ?? ""}`.trim();
+        let contactName = nameStr || (c.phone ?? "Unknown");
+        
+        if (/^facebook\s*lead$/i.test(contactName) && c.phone) {
+          contactName = c.phone;
+        }
+
+        // Is it a New Lead?
+        const isNewLead = c.leads.length > 0 && c.leads[0].status === "NEW";
+
         return {
           contactId: c.id,
-          contactName: `${c.firstName} ${c.lastName ?? ""}`.trim(),
+          contactName,
           contactPhone: c.phone ?? "",
-          lastMessage: preview.slice(0, 100),
+          lastMessage: preview ? preview.slice(0, 100) : "No messages yet",
           lastMessageAt: lastMsg?.sentAt?.toISOString() ?? "",
           lastDirection: (lastMsg?.direction ?? "OUTBOUND") as "INBOUND" | "OUTBOUND",
           lastStatus: lastMsg?.status ?? "SENT",
           messageCount: c._count.whatsappMessages,
-        };
+          isNewLead,
+          leadId: c.leads[0]?.id,
+          leadStatus: c.leads[0]?.status,
+          assignedToId: c.leads[0]?.assignedToId ?? null,
+          assignedToName: c.leads[0]?.assignedTo?.name ?? null,
+          contactCreatedAt: c.createdAt.getTime(), // Temporary field for sorting
+        } as ConversationSummary & { contactCreatedAt: number };
       })
       .sort((a, b) => {
-        if (!a.lastMessageAt) return 1;
-        if (!b.lastMessageAt) return -1;
-        return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+        // Weflux behavior: "New Leads" with no messages are pinned to the top of the inbox.
+        // If one has no messages and the other does, the one with no messages wins.
+        if (!a.lastMessageAt && b.lastMessageAt) return -1;
+        if (a.lastMessageAt && !b.lastMessageAt) return 1;
+
+        // Otherwise, sort by the respective timestamp
+        const timeA = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : a.contactCreatedAt;
+        const timeB = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : b.contactCreatedAt;
+        return timeB - timeA;
       });
 
-    return { success: true as const, data: conversations };
+    // Remove the temporary contactCreatedAt before returning to client to avoid sending extra data
+    const cleanedConversations = conversations.map(({ ...rest }) => rest);
+
+    return { success: true as const, data: cleanedConversations as ConversationSummary[] };
   } catch (error) {
     console.error("[GET_CONVERSATIONS_LIST_ERROR]", error);
     return { success: false as const, error: "Failed to fetch conversations" };

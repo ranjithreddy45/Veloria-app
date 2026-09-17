@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback } from "react";
+import React, { Fragment, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { signOutSafely } from "@/lib/client-auth";
@@ -131,7 +131,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { Skeleton } from "@/components/ui/skeleton";
-import React from "react";
 
 // ============================================================
 // Icon map: maps string icon names from nav config to components

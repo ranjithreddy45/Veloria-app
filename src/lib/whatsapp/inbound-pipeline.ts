@@ -202,10 +202,27 @@ export async function processMetaWebhookPayload(payload: AnyRec): Promise<Inboun
   const kinds = new Set<string>();
   let fieldName: string | null = null;
 
+  // Load our own business phone number ID so we can detect outbound messages
+  // sent directly from the WhatsApp Business app (rep replies from phone/WhatsApp Web).
+  // Meta sends these as normal messages where value.metadata.phone_number_id matches ours
+  // and message.from is our own number (not the customer's).
+  let ownPhoneNumberId: string | null = null;
+  try {
+    const cfg = await prisma.whatsAppConfig.findFirst({
+      where: { isActive: true },
+      select: { phoneNumberId: true },
+    });
+    ownPhoneNumberId = cfg?.phoneNumberId || null;
+  } catch { /* non-fatal */ }
+
   for (const entry of arr(payload.entry)) {
     for (const change of arr(entry.changes)) {
       fieldName = fieldName ?? (str(change.field) || null);
       const value = rec(change.value);
+
+      // Check if this change is from our own phone number ID (outbound mirror).
+      const metaPhoneNumberId = str(rec(value?.metadata)?.phone_number_id || "");
+      const isOwnPhoneChange = ownPhoneNumberId && metaPhoneNumberId === ownPhoneNumberId;
 
       // Incoming messages — funnel through the shared, provider-agnostic
       // inbound handler so Meta and Weflux behave identically.
@@ -216,12 +233,37 @@ export async function processMetaWebhookPayload(payload: AnyRec): Promise<Inboun
         const lr = rec(interactive?.list_reply);
         const text =
           str(br?.title) || str(lr?.title) || str(rec(message.text)?.body) || "[Media message]";
-        const from = str(message.from).trim();
+        const from = str(message.from).replace(/\D/g, "").trim();
         const waId = str(message.id) || null;
         if (!from) {
           out.parseError = "message without a `from` number";
           continue;
         }
+
+        // Detect outbound: message is from our own phone number ID.
+        // In this case `value.contacts[0].wa_id` is the customer's number.
+        if (isOwnPhoneChange) {
+          kinds.add("outbound_mirror");
+          const contacts = arr(value?.contacts);
+          const customerPhone = str(contacts[0]?.wa_id ?? "").trim();
+          if (customerPhone) {
+            const r = await recordOutboundWhatsAppMessage({
+              to: customerPhone,
+              waId,
+              text,
+              status: "sent",
+            });
+            out.handled = true;
+            if (!out.fromPhone) {
+              out.fromPhone = customerPhone;
+              out.messageId = waId;
+              out.textPreview = text;
+              out.matchedContactId = r.contactId;
+            }
+          }
+          continue;
+        }
+
         const r = await recordInboundWhatsAppMessage({
           from,
           waId,
