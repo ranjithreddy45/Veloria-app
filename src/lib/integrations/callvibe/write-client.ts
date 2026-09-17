@@ -1,4 +1,4 @@
-import { apiBase, forgetCallVibeToken, toCallVibePhone, tokenFor, type CallVibeCreds } from "@/lib/integrations/callvibe";
+import { apiBase, forgetCallVibeToken, tokenFor, type CallVibeCreds } from "@/lib/integrations/callvibe";
 import { canonicalPhone } from "@/lib/phone";
 
 // ============================================================
@@ -98,9 +98,13 @@ export function toE164(raw: string | null | undefined): string | null {
   return canon;
 }
 
-/** The path segment CallVibe is sent. Digits only, matching what the existing lead button always sent. */
+/**
+ * The path segment CallVibe is sent: the E.164 digits without "+", which is
+ * what the existing lead button sent for every Indian number. Not re-guessed
+ * through toCallVibePhone — that would turn +65 9123 4567 into an Indian number.
+ */
 export function callVibePathPhone(e164: string): string {
-  return encodeURIComponent(toCallVibePhone(e164));
+  return encodeURIComponent(e164.replace(/^\+/, ""));
 }
 
 // ------------------------------------------------------------ throttle
@@ -187,6 +191,17 @@ async function readBody(res: Response): Promise<unknown> {
 
 // ------------------------------------------------------------ transport
 
+class SignInTimeout extends Error {}
+
+/** The shared sign-in has no timeout of its own, and the pull code is not ours to change. */
+function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new SignInTimeout()), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function send(
   creds: CallVibeCreds,
   method: "GET" | "PUT" | "POST",
@@ -202,8 +217,11 @@ async function send(
 
     let token: string;
     try {
-      token = await tokenFor(creds);
+      token = await withTimeout(tokenFor(creds), timeoutMs);
     } catch (e) {
+      if (e instanceof SignInTimeout) {
+        return { ok: false, error: { kind: "timeout", retryable: true, message: `CallVibe sign-in didn't answer within ${Math.round(timeoutMs / 1000)}s.` } };
+      }
       return { ok: false, error: signInError(e) };
     }
 
@@ -345,10 +363,9 @@ export async function addLeadNote(creds: CallVibeCreds, e164: string, text: stri
 }
 
 /**
- * GET /agent-list → agent names. Returns null (not an empty list) when the
- * response isn't the documented [{ name, phone }] shape, so a caller can tell
- * "no agents" from "couldn't read the agents" and skip the check instead of
- * refusing every push.
+ * GET /agent-list → agent names. Returns null when no names can be read from
+ * the response (not the documented [{ name, phone }] shape, or empty), so the
+ * caller skips the check instead of refusing every push.
  */
 export async function listAgentNames(creds: CallVibeCreds): Promise<WriteResult<string[] | null>> {
   const r = await send(creds, "GET", "/agent-list");
@@ -364,6 +381,9 @@ export async function listAgentNames(creds: CallVibeCreds): Promise<WriteResult<
     .map((a) => (typeof a === "string" ? a : a && typeof a === "object" ? (a as Record<string, unknown>).name : null))
     .filter((n): n is string => typeof n === "string" && n.trim() !== "")
     .map((n) => n.trim());
+  // No readable names (an empty list, or entries without "name") can't be told
+  // apart from a shape we don't know, so don't let it veto every assignment.
+  if (names.length === 0) return { ok: true, status: r.status, data: null };
   return { ok: true, status: r.status, data: names };
 }
 

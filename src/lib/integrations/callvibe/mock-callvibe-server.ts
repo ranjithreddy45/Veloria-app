@@ -38,6 +38,12 @@ export interface MockCallVibe {
   throttleNext(n: number, retryAfterSeconds?: number): void;
   /** The next N requests answer with this status (e.g. 503). */
   failNext(n: number, status: number): void;
+  /** The next N requests whose path contains `pathPart` answer with this status. */
+  failPathNext(pathPart: string, n: number, status: number): void;
+  /** Every request (sign-in included) waits this long before answering. */
+  setDelay(ms: number): void;
+  /** Replace the /agent-list response body. */
+  setAgentListBody(body: unknown): void;
   close(): Promise<void>;
 }
 
@@ -61,6 +67,9 @@ export async function startMockCallVibe(): Promise<MockCallVibe> {
   let failures = 0;
   let failureStatus = 503;
   let ids = 0;
+  let delayMs = 0;
+  const pathFailures: { part: string; n: number; status: number }[] = [];
+  let agentListBody: unknown = null;
 
   const json = (res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}) => {
     res.writeHead(status, { "Content-Type": "application/json", ...headers });
@@ -85,6 +94,7 @@ export async function startMockCallVibe(): Promise<MockCallVibe> {
     const path = decodeURIComponent(url.pathname);
     const body = await readBody(req);
     requests.push({ method: req.method ?? "", path, authorization: req.headers.authorization, body });
+    if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
 
     if (req.method === "POST" && path === "/auth/signin") {
       const b = (body ?? {}) as Record<string, string>;
@@ -100,6 +110,11 @@ export async function startMockCallVibe(): Promise<MockCallVibe> {
     const token = (req.headers.authorization ?? "").replace(/^Bearer\s+/i, "");
     if (!validTokens.has(token)) return json(res, 401, { detail: "Invalid or expired token" });
 
+    const pathFailure = pathFailures.find((f) => f.n > 0 && path.includes(f.part));
+    if (pathFailure) {
+      pathFailure.n--;
+      return json(res, pathFailure.status, { detail: "Temporary failure" });
+    }
     if (failures > 0) {
       failures--;
       return json(res, failureStatus, { detail: "Temporary failure" });
@@ -109,7 +124,7 @@ export async function startMockCallVibe(): Promise<MockCallVibe> {
       return json(res, 429, { detail: "Too many requests" }, { "Retry-After": String(throttleAfter) });
     }
 
-    if (req.method === "GET" && path === "/agent-list") return json(res, 200, agents);
+    if (req.method === "GET" && path === "/agent-list") return json(res, 200, agentListBody ?? agents);
 
     const m = /^\/api\/leads\/([^/]+)(\/notes)?$/.exec(path);
     if (m) {
@@ -175,6 +190,19 @@ export async function startMockCallVibe(): Promise<MockCallVibe> {
       failures = n;
       failureStatus = status;
     },
-    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+    failPathNext(part, n, status) {
+      pathFailures.push({ part, n, status });
+    },
+    setDelay(ms) {
+      delayMs = ms;
+    },
+    setAgentListBody(body) {
+      agentListBody = body;
+    },
+    close: () =>
+      new Promise<void>((resolve) => {
+        server.close(() => resolve());
+        server.closeAllConnections();
+      }),
   };
 }

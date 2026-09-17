@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { startMockCallVibe, MOCK_CREDENTIALS, type MockCallVibe } from "./mock-callvibe-server";
 import {
   addLeadNote,
+  callVibePathPhone,
   describeValidationError,
   extractLeadId,
   getLeadByPhone,
@@ -192,6 +193,32 @@ describe("agents and response parsing", () => {
     expect(extractLeadId({ lead: { lead_id: 42 } })).toBe("42");
     expect(extractLeadId({ ok: true })).toBeNull();
     expect(extractLeadId(null)).toBeNull();
+  });
+
+  it("reads an agent list it can't find names in as unknown, not as 'no agents'", async () => {
+    server.setAgentListBody([{ agent_name: "Asha Rao" }]);
+    const r = await listAgentNames(creds());
+    expect(r.ok && r.data).toBeNull();
+  });
+
+  it("sends a foreign number as its own digits, never re-guessed as Indian", async () => {
+    expect(callVibePathPhone("+6591234567")).toBe("6591234567");
+    expect(callVibePathPhone("+919876543210")).toBe("919876543210");
+    await upsertLeadByPhone(creds(), "+6591234567", { name: "Singapore" });
+    expect([...server.leads.keys()]).toEqual(["6591234567"]);
+  });
+
+  it("gives up on a sign-in that never answers, as a retryable timeout", async () => {
+    process.env.CALLVIBE_PUSH_TIMEOUT_MS = "300";
+    server.setDelay(2000);
+    try {
+      const r = await upsertLeadByPhone(creds(), "+919876543210", { name: "slow" });
+      expect(!r.ok && r.error).toMatchObject({ kind: "timeout", retryable: true });
+      if (!r.ok) expect(r.error.message).toContain("sign-in");
+    } finally {
+      delete process.env.CALLVIBE_PUSH_TIMEOUT_MS;
+      server.setDelay(0);
+    }
   });
 
   it("E.164: recognises Indian mobiles, requires a country code otherwise", () => {

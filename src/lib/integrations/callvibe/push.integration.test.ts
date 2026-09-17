@@ -207,7 +207,7 @@ describe("CallVibe push queue", () => {
     expect(server.requests.filter((r) => r.method === "PUT")).toHaveLength(1);
   });
 
-  it("an edit that arrives while a push is running is pushed once that push settles", async () => {
+  it("an edit that arrives while a push is running is pushed once that push settles", { timeout: 20_000 }, async () => {
     const contact = await makeContact();
     const [jobId] = await enqueueCallVibePush([contact.id], "manual");
     // A worker holds the job.
@@ -228,6 +228,107 @@ describe("CallVibe push queue", () => {
     expect(jobs.map((j) => j.status)).toEqual(["SUCCESS", "SUCCESS"]);
     expect(server.requests.filter((r) => r.method === "PUT")).toHaveLength(2);
     expect([...server.leads.values()][0]!.name).toBe(`Edited Push${U}`);
+  });
+
+  it("a worker that overran its lease can't overwrite the worker that took over", { timeout: 20_000 }, async () => {
+    const contact = await makeContact();
+    const [jobId] = await enqueueCallVibePush([contact.id], "manual");
+    await runCallVibePushJob((await enqueueCallVibePush([(await makeContact()).id], "manual"))[0]!); // sign in first
+    server.setDelay(1500); // the first worker stalls inside CallVibe
+    const slow = runCallVibePushJob(jobId!);
+    await new Promise((r) => setTimeout(r, 300));
+    // Its lease runs out and a second worker takes the job over.
+    await prisma.callVibePushJob.update({ where: { id: jobId! }, data: { lockedUntil: new Date(Date.now() - 1000) } });
+    server.setDelay(0);
+    const takeover = await runCallVibePushJob(jobId!);
+    expect(takeover).toBe("SUCCESS");
+    quietErrors();
+    expect(await slow).toBeNull(); // its late result is discarded
+    const job = await prisma.callVibePushJob.findUniqueOrThrow({ where: { id: jobId! } });
+    expect(job).toMatchObject({ status: "SUCCESS", attempts: 2, leaseId: null, dedupeKey: null });
+    expect(server.leads.size).toBe(2);
+  });
+
+  it("queues many contacts in one go, reusing live jobs", async () => {
+    const [a, b, c] = [await makeContact(), await makeContact(), await makeContact()];
+    const [aJob] = await enqueueCallVibePush([a.id], "manual");
+    await prisma.callVibePushJob.update({ where: { id: aJob! }, data: { status: "RUNNING", lockedUntil: new Date(Date.now() + 60_000) } });
+    const ids = await enqueueCallVibePush([a.id, b.id, c.id, b.id], "bulk");
+    expect(ids).toHaveLength(3);
+    expect(ids).toContain(aJob);
+    expect((await prisma.callVibePushJob.findUniqueOrThrow({ where: { id: aJob! } })).rerunRequested).toBe(true);
+    const statuses = await prisma.contact.findMany({ where: { id: { in: [a.id, b.id, c.id] } }, select: { callvibeLastPushStatus: true } });
+    expect(statuses.every((x) => x.callvibeLastPushStatus === "PENDING")).toBe(true);
+    // Settle these so other tests' sweeps don't pick them up.
+    await prisma.callVibePushJob.updateMany({ where: { id: { in: ids } }, data: { status: "FAILED", dedupeKey: null, rerunRequested: false } });
+  });
+
+  it("a request during a rate-limit backoff doesn't cut the wait short", async () => {
+    quietErrors();
+    const contact = await makeContact();
+    await runCallVibePushJob((await enqueueCallVibePush([(await makeContact()).id], "manual"))[0]!); // sign in first
+    server.throttleNext(1, 600);
+    const [jobId] = await enqueueCallVibePush([contact.id], "manual");
+    expect(await runCallVibePushJob(jobId!)).toBe("RETRY");
+    const before = (await prisma.callVibePushJob.findUniqueOrThrow({ where: { id: jobId! } })).nextRunAt;
+    expect(await enqueueCallVibePush([contact.id], "manual")).toEqual([jobId]);
+    expect((await prisma.callVibePushJob.findUniqueOrThrow({ where: { id: jobId! } })).nextRunAt).toEqual(before);
+    await prisma.callVibePushJob.update({ where: { id: jobId! }, data: { status: "FAILED", dedupeKey: null } });
+  });
+
+  it("retries when the context note fails, without repeating the lead or the note", async () => {
+    quietErrors();
+    const contact = await makeContact();
+    const [jobId] = await enqueueCallVibePush([contact.id], "manual");
+    await runCallVibePushJob((await enqueueCallVibePush([(await makeContact()).id], "manual"))[0]!); // sign in first
+    server.failPathNext("/notes", 1, 503);
+    expect(await runCallVibePushJob(jobId!)).toBe("RETRY");
+    expect((await prisma.contact.findUniqueOrThrow({ where: { id: contact.id } })).callvibeLastPushError).toContain("context note didn't save yet");
+    expect(await runNow(jobId!)).toBe("SUCCESS");
+    expect(server.leads.get(`91${contact.phone}`)!.notes).toHaveLength(1);
+    expect(await prisma.contact.findUniqueOrThrow({ where: { id: contact.id } })).toMatchObject({
+      callvibeNotedPhone: `+91${contact.phone}`,
+      callvibeLastPushStatus: "SUCCESS",
+    });
+  });
+
+  it("retries when the agent list is temporarily unavailable, instead of guessing", async () => {
+    quietErrors();
+    await setConfig({ pushDefaultAssignee: "Vikram Nair" });
+    const contact = await makeContact({ ownerId: created.userId });
+    const [jobId] = await enqueueCallVibePush([contact.id], "manual");
+    server.failPathNext("/agent-list", 1, 503);
+    expect(await runCallVibePushJob(jobId!)).toBe("RETRY");
+    expect(await runNow(jobId!)).toBe("SUCCESS");
+    expect(server.leads.get(`91${contact.phone}`)!.assigned_to).toBe("Vikram Nair");
+  });
+
+  it("uses the default agent when the agent list can't be read", async () => {
+    await setConfig({ pushDefaultAssignee: "Vikram Nair" });
+    server.setAgentListBody({ unexpected: true });
+    const contact = await makeContact({ ownerId: created.userId }); // owner isn't an agent
+    expect(await runCallVibePushJob((await enqueueCallVibePush([contact.id], "manual"))[0]!)).toBe("SUCCESS");
+    expect(server.leads.get(`91${contact.phone}`)!.assigned_to).toBe("Vikram Nair");
+  });
+
+  it("gives up a job whose worker keeps dying instead of reclaiming it forever", async () => {
+    quietErrors();
+    const contact = await makeContact();
+    const [jobId] = await enqueueCallVibePush([contact.id], "manual");
+    await prisma.callVibePushJob.update({
+      where: { id: jobId! },
+      data: { status: "RUNNING", attempts: 6, lockedUntil: new Date(Date.now() - 1000) },
+    });
+    expect(await runCallVibePushJob(jobId!)).toBe("FAILED");
+    expect(server.requests.filter((r) => r.method === "PUT")).toHaveLength(0);
+    expect((await prisma.contact.findUniqueOrThrow({ where: { id: contact.id } })).callvibeLastPushError).toContain("given up");
+  });
+
+  it("auto-push skips a contact without a dialable phone", async () => {
+    await setConfig({ pushEnabled: true });
+    const contact = await makeContact({ phone: "12345" });
+    await autoPushContactToCallVibe(contact.id);
+    expect(await prisma.callVibePushJob.count({ where: { contactId: contact.id } })).toBe(0);
   });
 
   it("re-authenticates once when the session has expired", async () => {
@@ -256,10 +357,11 @@ describe("CallVibe push queue", () => {
     expect((await prisma.contact.findUniqueOrThrow({ where: { id: contact.id } })).callvibeLastPushStatus).toBe("PENDING");
 
     // Not due yet: the sweep leaves it alone.
-    expect((await processDueCallVibePushJobs()).due).toBe(0);
+    await processDueCallVibePushJobs();
+    expect(await prisma.callVibePushJob.findUniqueOrThrow({ where: { id: jobId! } })).toMatchObject({ status: "RETRY", attempts: 1 });
     await prisma.callVibePushJob.update({ where: { id: jobId! }, data: { nextRunAt: new Date(Date.now() - 1000) } });
     const swept = await processDueCallVibePushJobs();
-    expect(swept).toMatchObject({ success: 1 });
+    expect(swept.success).toBeGreaterThanOrEqual(1);
     expect(await prisma.callVibePushJob.findUniqueOrThrow({ where: { id: jobId! } })).toMatchObject({ status: "SUCCESS", attempts: 2 });
   });
 
