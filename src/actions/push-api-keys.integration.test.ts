@@ -70,6 +70,16 @@ describe("generateApiKey", () => {
 });
 
 describe("rotateApiKey", () => {
+  it("mints a CallVibe key with call activity only, and refuses update without create", async () => {
+    const r = await generateApiKey(`callvibe ${U}`, { pushApi: true, source: "callvibe", scopes: ["calls:create"] });
+    expect(r.success).toBe(true);
+    if (!r.success) return;
+    expect(r.data).toMatchObject({ scopes: ["calls:create"], source: "callvibe" });
+    expect((await generateApiKey(`cu ${U}`, { pushApi: true, scopes: ["calls:create", "leads:update"] })).success).toBe(false);
+    const both = await generateApiKey(`both ${U}`, { pushApi: true, scopes: ["calls:create", "leads:create"] });
+    expect(both.success && both.data.scopes).toEqual(["leads:create", "calls:create"]);
+  }, T);
+
   it("L3: reports the expiry actually stored, keeps the lineage, and never extends the old key", async () => {
     const r = await generateApiKey(`rot ${U}`, { pushApi: true, expiresInDays: 1 });
     if (!r.success) throw new Error(r.error);

@@ -26,7 +26,25 @@ export function CallInsightsDialog({ content, metadata }: CallInsightsDialogProp
     issuesDiscussed,
     actionItems,
     transcription,
+    aiScore,
+    aiInsights,
   } = metadata;
+
+  // Pushed calls send action items as a list; older imports may carry one block of text.
+  const actionList: string[] = Array.isArray(actionItems)
+    ? actionItems.filter((a: unknown): a is string => typeof a === "string" && a.trim() !== "")
+    : typeof actionItems === "string" && actionItems.trim()
+      ? [actionItems]
+      : [];
+  const insightEntries: [string, string][] =
+    aiInsights && typeof aiInsights === "object" && !Array.isArray(aiInsights)
+      ? Object.entries(aiInsights as Record<string, unknown>)
+          .filter(([, v]) => v != null && v !== "" && !(Array.isArray(v) && v.length === 0))
+          .map(([k, v]) => [
+            k.replace(/[_-]+/g, " ").replace(/^./, (c) => c.toUpperCase()),
+            Array.isArray(v) ? v.map((x) => (typeof x === "string" ? x : JSON.stringify(x))).join("\n") : typeof v === "string" ? v : JSON.stringify(v),
+          ])
+      : [];
 
   return (
     <Dialog>
@@ -53,6 +71,44 @@ export function CallInsightsDialog({ content, metadata }: CallInsightsDialogProp
                 {content}
               </p>
             </section>
+
+            {(typeof aiScore === "number" || actionList.length > 0) && (
+              <section className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-6">
+                {typeof aiScore === "number" && (
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">AI score</h4>
+                    <p className="numeric text-3xl font-semibold">
+                      {aiScore}
+                      <span className="text-muted-foreground text-base font-normal">/100</span>
+                    </p>
+                  </div>
+                )}
+                {actionList.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Action items</h4>
+                    <ul className="list-disc space-y-1 pl-5 text-sm">
+                      {actionList.map((a, i) => (
+                        <li key={i} className="whitespace-pre-wrap">{a}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {insightEntries.length > 0 && (
+              <section className="space-y-3">
+                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Insights</h4>
+                <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-[minmax(0,12rem)_1fr]">
+                  {insightEntries.map(([k, v]) => (
+                    <div key={k} className="contents">
+                      <dt className="text-muted-foreground">{k}</dt>
+                      <dd className="whitespace-pre-wrap break-words">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
 
             {/* AI Tags */}
             {(keyQuestions || issuesDiscussed) && (

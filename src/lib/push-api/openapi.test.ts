@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildOpenApiDocument, LEAD_REQUEST_PROPERTIES } from "./openapi";
+import { buildOpenApiDocument, CALL_REQUEST_PROPERTIES, LEAD_REQUEST_PROPERTIES } from "./openapi";
+import { PUSH_CALL_FIELDS } from "./calls/schema";
 import { PUSH_LEAD_FIELDS } from "./leads/schema";
 import { PUSH_API_ERRORS } from "./errors";
 
@@ -8,6 +9,20 @@ describe("OpenAPI document", () => {
 
   it("documents exactly the fields the validator accepts", () => {
     expect(Object.keys(LEAD_REQUEST_PROPERTIES).sort()).toEqual([...PUSH_LEAD_FIELDS].sort());
+  });
+
+  it("documents exactly the call-activity fields the validator accepts", () => {
+    expect(Object.keys(CALL_REQUEST_PROPERTIES).sort()).toEqual([...PUSH_CALL_FIELDS].sort());
+  });
+
+  it("documents every error code for call activity too", () => {
+    const responses = doc.paths["/api/v1/push/call-activity"].post.responses as Record<string, unknown>;
+    expect(Object.keys(responses)).toEqual(expect.arrayContaining(["200", "201"]));
+    for (const [code, status] of Object.entries(PUSH_API_ERRORS)) {
+      if (status === 405) continue;
+      expect(JSON.stringify(responses[String(status)] ?? null), `${code} under ${status}`).toContain(`"code":"${code}"`);
+    }
+    expect(JSON.stringify(responses["403"])).toContain("calls:create");
   });
 
   it("documents a response for every status the API can return", () => {

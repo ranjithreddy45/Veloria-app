@@ -10,7 +10,7 @@ import { createHash, randomBytes } from "crypto";
 // one lookup serves old and new keys alike.
 // ============================================================
 
-export const PUSH_SCOPES = ["leads:create"] as const;
+export const PUSH_SCOPES = ["leads:create", "calls:create"] as const;
 export type PushScope = (typeof PUSH_SCOPES)[number];
 /** Scopes reserved for endpoints that don't exist yet; accepted on keys so they can be issued ahead of time. */
 export const FUTURE_SCOPES = ["leads:update", "leads:read", "bookings:create"] as const;
