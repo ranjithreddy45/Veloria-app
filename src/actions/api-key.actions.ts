@@ -5,12 +5,19 @@ import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 import { revalidatePath } from "next/cache";
-import { generatePushKey, PUSH_SCOPES } from "@/lib/push-api/keys";
+import { generatePushKey } from "@/lib/push-api/keys";
 
 const SETTINGS_PATH = "/settings/integrations/lead-capture";
 
 /** Hours an old key keeps working after it is rotated, so the integration can switch over without downtime. */
 const ROTATION_GRACE_HOURS = 24;
+
+/** Scopes an admin may grant a Push API key from Settings. leads:create is mandatory. */
+const GRANTABLE_PUSH_SCOPES = ["leads:create", "leads:update"];
+const DEFAULT_PUSH_SCOPES = ["leads:create", "leads:update"];
+
+/** Thrown inside a transaction to roll it back with a message for the user. */
+class RotationRefused extends Error {}
 
 // ============================================================
 // Generate a new API key
@@ -23,6 +30,8 @@ export interface GenerateApiKeyOptions {
   source?: string;
   /** Days until the key stops working. Omitted or null = never expires. */
   expiresInDays?: number | null;
+  /** Push keys only: "leads:create" (required) and optionally "leads:update". Omitted = both. */
+  scopes?: string[];
 }
 
 export async function generateApiKey(name: string, options: GenerateApiKeyOptions = {}) {
@@ -49,6 +58,21 @@ export async function generateApiKey(name: string, options: GenerateApiKeyOption
       return { success: false as const, error: "Source must be a slug such as meta_ads or website" };
     }
 
+    let scopes: string[] = [];
+    if (options.pushApi) {
+      const requested = options.scopes ?? DEFAULT_PUSH_SCOPES;
+      if (!Array.isArray(requested) || requested.some((sc) => typeof sc !== "string" || !GRANTABLE_PUSH_SCOPES.includes(sc))) {
+        return { success: false as const, error: "Scopes may only be leads:create and leads:update" };
+      }
+      if (!requested.includes("leads:create")) {
+        return { success: false as const, error: "A Push API key must be granted leads:create" };
+      }
+      // Stable order, no duplicates.
+      scopes = GRANTABLE_PUSH_SCOPES.filter((sc) => requested.includes(sc));
+    } else if (options.scopes && options.scopes.length > 0) {
+      return { success: false as const, error: "Scopes can only be granted to Push API keys" };
+    }
+
     let rawKey: string;
     let prefix: string;
     let keyHash: string;
@@ -61,17 +85,22 @@ export async function generateApiKey(name: string, options: GenerateApiKeyOption
       keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
     }
 
-    const apiKey = await prisma.apiKey.create({
-      data: {
-        name: name.trim(),
-        keyHash,
-        prefix,
-        createdById: session.user.id,
-        scopes: options.pushApi ? [...PUSH_SCOPES] : [],
-        source,
-        expiresAt: expiresInDays != null ? new Date(Date.now() + expiresInDays * 86_400_000) : null,
-      },
-    });
+    const data = {
+      name: name.trim(),
+      keyHash,
+      prefix,
+      createdById: session.user.id,
+      scopes,
+      source,
+      expiresAt: expiresInDays != null ? new Date(Date.now() + expiresInDays * 86_400_000) : null,
+    };
+    const apiKey = options.pushApi
+      ? // A push key starts its own integration lineage: lineageId = its own id.
+        await prisma.$transaction(async (tx) => {
+          const created = await tx.apiKey.create({ data });
+          return tx.apiKey.update({ where: { id: created.id }, data: { lineageId: created.id } });
+        })
+      : await prisma.apiKey.create({ data });
 
     revalidatePath(SETTINGS_PATH);
 
@@ -121,6 +150,8 @@ export async function listApiKeys() {
         source: true,
         expiresAt: true,
         revokedAt: true,
+        rotatedFromId: true,
+        lineageId: true,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -212,11 +243,40 @@ export async function rotateApiKey(id: string) {
       return { success: false as const, error: "Only Push API keys can be rotated" };
     }
 
+    if (await prisma.apiKey.findFirst({ where: { rotatedFromId: old.id }, select: { id: true } })) {
+      return { success: false as const, error: "This key has already been rotated — use its replacement" };
+    }
+
     const { raw, prefix, hash } = generatePushKey();
-    const graceEnd = new Date(Date.now() + ROTATION_GRACE_HOURS * 3_600_000);
+    const now = new Date();
+    const graceEnd = new Date(now.getTime() + ROTATION_GRACE_HOURS * 3_600_000);
+    // Never extend an old key's life: keep the earlier of its own expiry and the grace period.
+    const oldKeyExpiresAt = old.expiresAt && old.expiresAt < graceEnd ? old.expiresAt : graceEnd;
 
     const replacement = await prisma.$transaction(async (tx) => {
-      const created = await tx.apiKey.create({
+      // Claim the old key with a conditional write. The updatedAt guard is an
+      // optimistic lock: a concurrent rotation (or revoke) changes updatedAt, and
+      // Postgres re-evaluates this WHERE against the committed row after waiting
+      // on its lock, so only one rotation can get count === 1.
+      const claimed = await tx.apiKey.updateMany({
+        where: {
+          id: old.id,
+          isActive: true,
+          revokedAt: null,
+          updatedAt: old.updatedAt,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
+        data: { expiresAt: oldKeyExpiresAt, updatedAt: new Date() },
+      });
+      if (claimed.count !== 1) {
+        throw new RotationRefused("This key changed while it was being rotated — reload and try again");
+      }
+      // Re-check for a successor while holding the old key's row lock.
+      const successor = await tx.apiKey.findFirst({ where: { rotatedFromId: old.id }, select: { id: true } });
+      if (successor) {
+        throw new RotationRefused("This key has already been rotated — use its replacement");
+      }
+      return tx.apiKey.create({
         data: {
           name: old.name,
           keyHash: hash,
@@ -226,14 +286,9 @@ export async function rotateApiKey(id: string) {
           source: old.source,
           expiresAt: old.expiresAt,
           rotatedFromId: old.id,
+          lineageId: old.lineageId ?? old.id,
         },
       });
-      await tx.apiKey.update({
-        where: { id: old.id },
-        // Never extend an old key's life: keep the earlier of its own expiry and the grace period.
-        data: { expiresAt: old.expiresAt && old.expiresAt < graceEnd ? old.expiresAt : graceEnd },
-      });
-      return created;
     });
 
     revalidatePath(SETTINGS_PATH);
@@ -247,10 +302,13 @@ export async function rotateApiKey(id: string) {
         scopes: replacement.scopes,
         source: replacement.source,
         expiresAt: replacement.expiresAt,
-        oldKeyExpiresAt: graceEnd,
+        oldKeyExpiresAt,
       },
     };
   } catch (error) {
+    if (error instanceof RotationRefused) {
+      return { success: false as const, error: error.message };
+    }
     console.error("rotateApiKey error:", error);
     return { success: false as const, error: "Failed to rotate API key" };
   }

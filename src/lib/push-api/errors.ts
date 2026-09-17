@@ -8,6 +8,10 @@ export const PUSH_API_ERRORS = {
   API_KEY_REVOKED: 403,
   API_KEY_EXPIRED: 403,
   INSUFFICIENT_SCOPE: 403,
+  /** The body's `source` isn't the source this key was issued for. */
+  SOURCE_NOT_ALLOWED: 403,
+  /** The request reached us over plain HTTP. */
+  HTTPS_REQUIRED: 403,
   PUSH_API_DISABLED: 503,
   INVALID_JSON: 400,
   UNSUPPORTED_MEDIA_TYPE: 415,
@@ -17,6 +21,10 @@ export const PUSH_API_ERRORS = {
   IDEMPOTENCY_KEY_REUSED: 409,
   IDEMPOTENCY_KEY_IN_PROGRESS: 409,
   RATE_LIMITED: 429,
+  /** Too many failed authentication attempts from one IP address. */
+  TOO_MANY_FAILED_ATTEMPTS: 429,
+  /** The key has created its daily maximum of new leads. */
+  LEAD_CAP_REACHED: 429,
   METHOD_NOT_ALLOWED: 405,
   INTERNAL_ERROR: 500,
 } as const;

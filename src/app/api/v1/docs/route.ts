@@ -1,4 +1,5 @@
 import { buildOpenApiDocument, LEAD_REQUEST_PROPERTIES } from "@/lib/push-api/openapi";
+import { newRequestId } from "@/lib/push-api/request-id";
 
 // GET /api/v1/docs — human-readable Push API reference, rendered from the same
 // OpenAPI object as /api/v1/openapi.json. No scripts, no external assets.
@@ -29,48 +30,26 @@ export function GET() {
     })
     .join("");
 
+  // Error codes a status can carry, read from its `example` or `examples` map.
+  const codesFor = (r: unknown): string[] => {
+    const media = (r as { content?: Record<string, { example?: unknown; examples?: Record<string, { value?: unknown }> }> })
+      .content?.["application/json"];
+    const values = media?.examples ? Object.values(media.examples).map((e) => e.value) : media?.example ? [media.example] : [];
+    return values
+      .map((v) => (v as { error?: { code?: string } } | undefined)?.error?.code)
+      .filter((c): c is string => typeof c === "string");
+  };
+
   const responseRows = Object.entries(op.responses)
-    .map(([status, r]) => `<tr><td><code>${esc(status)}</code></td><td>${esc((r as { description: string }).description)}</td></tr>`)
+    .map(
+      ([status, r]) =>
+        `<tr><td><code>${esc(status)}</code></td><td>${codesFor(r).map((c) => `<code>${esc(c)}</code>`).join(" ")}</td><td>${esc((r as { description: string }).description)}</td></tr>`
+    )
     .join("");
 
-  const compact = JSON.stringify({
-    external_id: "META-123456",
-    source: "meta_ads",
-    name: "Rahul Sharma",
-    phone: "+919876543210",
-    email: "rahul@example.com",
-    guest_count: 250,
-    event_type: "wedding",
-  });
-
-  const curl = op["x-codeSamples"][0]!.source;
-  const js = `const res = await fetch("${url}/api/v1/push/leads", {
-  method: "POST",
-  headers: {
-    "Authorization": \`Bearer \${process.env.VELORIA_API_KEY}\`,
-    "Content-Type": "application/json",
-    "Idempotency-Key": "meta-lead-123456",
-  },
-  body: JSON.stringify(${compact}),
-});
-const json = await res.json();
-if (!res.ok) throw new Error(\`\${json.error.code}: \${json.error.message} (\${json.request_id})\`);
-console.log(json.data.lead_id, json.data.created);`;
-  const py = `import os, requests
-
-res = requests.post(
-    "${url}/api/v1/push/leads",
-    headers={
-        "Authorization": f"Bearer {os.environ['VELORIA_API_KEY']}",
-        "Idempotency-Key": "meta-lead-123456",
-    },
-    json=${compact},
-    timeout=30,
-)
-body = res.json()
-if not res.ok:
-    raise RuntimeError(f"{body['error']['code']}: {body['error']['message']} ({body['request_id']})")
-print(body["data"]["lead_id"], body["data"]["created"])`;
+  const samples = op["x-codeSamples"]
+    .map((sample) => `<h3>${esc(sample.label)}</h3><pre><code>${esc(sample.source)}</code></pre>`)
+    .join("\n");
 
   const description = doc.info.description
     .split("\n\n")
@@ -106,14 +85,12 @@ ${description}
 <div class="wrap"><table><thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody>${fieldRows}</tbody></table></div>
 <h3>Example body</h3><pre><code>${esc(JSON.stringify(example, null, 2))}</code></pre>
 <h3>Responses</h3>
-<div class="wrap"><table><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody>${responseRows}</tbody></table></div>
+<div class="wrap"><table><thead><tr><th>Status</th><th>Error codes</th><th>Meaning</th></tr></thead><tbody>${responseRows}</tbody></table></div>
 <h3>201 Created</h3><pre><code>${esc(JSON.stringify(op.responses["201"].content["application/json"].example, null, 2))}</code></pre>
 <h3>200 Already exists</h3><pre><code>${esc(JSON.stringify(op.responses["200"].content["application/json"].example, null, 2))}</code></pre>
 <h3>422 Validation error</h3><pre><code>${esc(JSON.stringify(op.responses["422"].content["application/json"].example, null, 2))}</code></pre>
 <h2>Examples</h2>
-<h3>curl</h3><pre><code>${esc(curl)}</code></pre>
-<h3>JavaScript (fetch)</h3><pre><code>${esc(js)}</code></pre>
-<h3>Python (requests)</h3><pre><code>${esc(py)}</code></pre>
+${samples}
 <h2><span class="method">GET</span><code>/api/v1/health</code></h2>
 <pre><code>${esc(JSON.stringify({ status: "ok", service: "veloria-push-api", version: doc.info.version }, null, 2))}</code></pre>
 </main></body></html>`;
@@ -124,6 +101,7 @@ ${description}
       "Cache-Control": "public, max-age=300",
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'",
+      "X-Request-ID": newRequestId(),
     },
   });
 }

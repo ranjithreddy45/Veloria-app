@@ -30,6 +30,7 @@ interface ApiKeyItem {
   source?: string | null;
   expiresAt?: Date | string | null;
   revokedAt?: Date | string | null;
+  rotatedFromId?: string | null;
 }
 
 interface Props {
@@ -53,8 +54,18 @@ function keyState(key: ApiKeyItem): "active" | "revoked" | "expired" {
   return "active";
 }
 
+// An explicit time zone so the server render and the browser render agree (no hydration mismatch).
 const shortDate = (d: Date | string) =>
-  new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
+const dateTime = (d: Date | string) =>
+  new Date(d).toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Asia/Kolkata",
+  });
 
 export function ApiKeyManager({ initialKeys }: Props) {
   const [keys, setKeys] = useState<ApiKeyItem[]>(initialKeys);
@@ -63,6 +74,7 @@ export function ApiKeyManager({ initialKeys }: Props) {
   const [pushApi, setPushApi] = useState(true);
   const [source, setSource] = useState("");
   const [expiry, setExpiry] = useState("never");
+  const [allowUpdate, setAllowUpdate] = useState(true);
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [generatedIsPush, setGeneratedIsPush] = useState(true);
   const [rotationNote, setRotationNote] = useState<string | null>(null);
@@ -80,6 +92,7 @@ export function ApiKeyManager({ initialKeys }: Props) {
         pushApi,
         source: source.trim() || undefined,
         expiresInDays: expiry === "never" ? null : Number(expiry),
+        ...(pushApi ? { scopes: allowUpdate ? ["leads:create", "leads:update"] : ["leads:create"] } : {}),
       });
       if (result.success && result.data) {
         const data = result.data;
@@ -98,6 +111,7 @@ export function ApiKeyManager({ initialKeys }: Props) {
             source: data.source,
             expiresAt: data.expiresAt,
             revokedAt: null,
+            rotatedFromId: null,
           },
           ...prev,
         ]);
@@ -139,13 +153,14 @@ export function ApiKeyManager({ initialKeys }: Props) {
             source: data.source,
             expiresAt: data.expiresAt,
             revokedAt: null,
+            rotatedFromId: key.id,
           },
           ...prev.map((k) => (k.id === key.id ? { ...k, expiresAt: data.oldKeyExpiresAt } : k)),
         ]);
         setGeneratedKey(data.key);
         setGeneratedIsPush(true);
         setRotationNote(
-          `The old key (${key.prefix}…) keeps working until ${new Date(data.oldKeyExpiresAt).toLocaleString("en-IN")}. Switch the integration to this key before then.`
+          `The old key (${key.prefix}…) keeps working until ${dateTime(data.oldKeyExpiresAt)} IST. Switch the integration to this key before then.`
         );
         setDialogOpen(true);
         toast.success("Key rotated");
@@ -170,6 +185,7 @@ export function ApiKeyManager({ initialKeys }: Props) {
     setSource("");
     setExpiry("never");
     setPushApi(true);
+    setAllowUpdate(true);
     setGeneratedKey(null);
     setRotationNote(null);
   }
@@ -215,8 +231,12 @@ export function ApiKeyManager({ initialKeys }: Props) {
                         placeholder="e.g. Meta lead ads sync"
                       />
                     </div>
-                    <label className="flex items-start gap-2.5 rounded-md border border-border/60 p-3">
+                    <label
+                      htmlFor="api-key-push"
+                      className="flex items-start gap-2.5 rounded-md border border-border/60 p-3"
+                    >
                       <Checkbox
+                        id="api-key-push"
                         checked={pushApi}
                         onCheckedChange={(v) => setPushApi(v === true)}
                         className="mt-0.5"
@@ -230,6 +250,31 @@ export function ApiKeyManager({ initialKeys }: Props) {
                       </span>
                     </label>
                     {pushApi && (
+                      <fieldset className="space-y-2 rounded-md border border-border/60 p-3">
+                        <legend className="px-1 text-sm font-medium">Access</legend>
+                        <div className="flex items-center gap-2.5">
+                          <Checkbox id="api-key-scope-create" checked disabled aria-describedby="api-key-scope-help" />
+                          <Label htmlFor="api-key-scope-create" className="text-sm font-normal">
+                            Create leads (<code>leads:create</code>) — required
+                          </Label>
+                        </div>
+                        <div className="flex items-center gap-2.5">
+                          <Checkbox
+                            id="api-key-scope-update"
+                            checked={allowUpdate}
+                            onCheckedChange={(v) => setAllowUpdate(v === true)}
+                            aria-describedby="api-key-scope-help"
+                          />
+                          <Label htmlFor="api-key-scope-update" className="text-sm font-normal">
+                            Update existing leads (<code>leads:update</code>)
+                          </Label>
+                        </div>
+                        <p id="api-key-scope-help" className="text-xs text-muted-foreground">
+                          Without update access, a repeat push is acknowledged but the existing lead is left untouched.
+                        </p>
+                      </fieldset>
+                    )}
+                    {pushApi && (
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-1.5">
                           <Label htmlFor="api-key-source">Source (optional)</Label>
@@ -241,9 +286,9 @@ export function ApiKeyManager({ initialKeys }: Props) {
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <Label>Expires</Label>
+                          <Label htmlFor="api-key-expiry">Expires</Label>
                           <Select value={expiry} onValueChange={setExpiry}>
-                            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                            <SelectTrigger id="api-key-expiry" className="w-full"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {EXPIRY_OPTIONS.map((o) => (
                                 <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
@@ -267,7 +312,13 @@ export function ApiKeyManager({ initialKeys }: Props) {
                       </span>
                     </div>
                     <div className="flex gap-2">
-                      <Input value={generatedKey} readOnly className="bg-muted font-mono text-xs" />
+                      <Input
+                        id="api-key-generated"
+                        aria-label="Generated API key"
+                        value={generatedKey}
+                        readOnly
+                        className="bg-muted font-mono text-xs"
+                      />
                       <Button variant="outline" size="icon" onClick={copyKey} aria-label="Copy API key">
                         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                       </Button>
@@ -305,6 +356,7 @@ export function ApiKeyManager({ initialKeys }: Props) {
             {keys.map((key) => {
               const state = keyState(key);
               const push = isPushKey(key);
+              const rotated = keys.some((k) => k.rotatedFromId === key.id);
               return (
                 <div
                   key={key.id}
@@ -322,6 +374,15 @@ export function ApiKeyManager({ initialKeys }: Props) {
                         {key.lastUsedAt ? `Last used ${shortDate(key.lastUsedAt)}` : "Never used"}
                         {state === "active" && key.expiresAt ? ` · Expires ${shortDate(key.expiresAt)}` : ""}
                       </p>
+                      {push && (key.scopes ?? []).length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {(key.scopes ?? []).map((sc) => (
+                            <Badge key={sc} variant="secondary" className="px-1.5 py-0 font-mono">
+                              {sc}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -336,7 +397,12 @@ export function ApiKeyManager({ initialKeys }: Props) {
                     >
                       {state === "active" ? "Active" : state === "expired" ? "Expired" : "Revoked"}
                     </Badge>
-                    {state === "active" && push && (
+                    {push && rotated && (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        Rotated
+                      </Badge>
+                    )}
+                    {state === "active" && push && !rotated && (
                       <Button
                         variant="ghost"
                         size="icon"

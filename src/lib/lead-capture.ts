@@ -132,6 +132,31 @@ interface ExternalLeadData {
   externalId?: string;
   /** Consent evidence from the capturing form — recorded, never enforced here. */
   consent?: LeadConsentInput;
+  /**
+   * Skip folding this enquiry into the contact's open lead. For a caller that
+   * has ALREADY decided this is a new lead under stricter rules (the Push API:
+   * same country, same event, within its window) and must not have that
+   * decision overridden by the looser fold below. Omitted by every other caller.
+   */
+  skipOpenLeadFold?: boolean;
+  /**
+   * Extra writes that must commit atomically WITH the new lead row — or not at
+   * all. Runs inside the same transaction as lead.create; if it throws, the
+   * lead is rolled back too. Only called when a new lead is created.
+   */
+  inLeadTransaction?: (tx: Prisma.TransactionClient, lead: { id: string; contactId: string; status: string; createdAt: Date }) => Promise<void>;
+  /** Don't send the automatic WhatsApp welcome message for this lead. */
+  suppressAutoWelcome?: boolean;
+}
+
+/** Postgres serialization failure (SQLSTATE 40001), as Prisma reports it. */
+function isSerializationFailure(e: unknown): boolean {
+  const err = e as { code?: string; message?: string; meta?: { code?: string } } | null;
+  return (
+    err?.code === "P2034" ||
+    err?.meta?.code === "40001" ||
+    /could not serialize access|40001|write conflict|deadlock/i.test(String(err?.message ?? ""))
+  );
 }
 
 /**
@@ -174,7 +199,9 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     const externalId = data.externalId?.trim();
     if (externalId) {
       const existing = await prisma.lead.findFirst({
-        where: { description: { contains: externalIdMarker(externalId) } },
+        // A deleted lead must never swallow a new enquiry: redelivering its id
+        // used to return "already exists" and leave no live lead at all.
+        where: { description: { contains: externalIdMarker(externalId) }, deletedAt: null },
         select: { id: true, contactId: true },
       });
       if (existing) {
@@ -361,7 +388,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     // fields, and return that lead. A closed lead does NOT block — a past
     // customer enquiring for a new event correctly gets a fresh lead.
     // ------------------------------------------------------------------
-    if (isExistingContact) {
+    if (isExistingContact && !data.skipOpenLeadFold) {
       const openLead = await prisma.lead.findFirst({
         where: {
           contactId: contact.id,
@@ -522,25 +549,57 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         createdById: systemUserId,
       };
 
+      // One external id must become at most one lead, even when a provider
+      // delivers it twice at the same moment. This used to be a SERIALIZABLE
+      // transaction around an unindexed `description LIKE` scan — and in
+      // Postgres that scan makes every concurrent delivery conflict with every
+      // other, not just duplicates: 11 of 12 simultaneous deliveries of
+      // DIFFERENT leads failed. A transaction-scoped advisory lock on the
+      // marker serialises only deliveries of the SAME id, and different ids
+      // never wait on each other. The transaction does all its work on its
+      // own connection, so holding the lock can't starve the pool. Deadlocks
+      // and serialization failures are still retried, as a backstop.
+      const createWithMarkerCheck = async () => {
+        const marker = externalIdMarker(externalId!);
+        for (let attempt = 1; ; attempt++) {
+          try {
+            return await prisma.$transaction(
+              async (tx) => {
+                await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtextextended(${marker}, 0))`;
+                const dup = await tx.lead.findFirst({
+                  where: { description: { contains: marker }, deletedAt: null },
+                  select: { id: true, contactId: true },
+                });
+                if (dup) return { tag: "existing" as const, row: dup };
+                return {
+                  tag: "created" as const,
+                  row: await tx.lead.create({ data: leadData }),
+                };
+              },
+              { maxWait: 10_000, timeout: 20_000 }
+            );
+          } catch (e) {
+            if (!isSerializationFailure(e) || attempt >= 5) throw e;
+            await new Promise((r) => setTimeout(r, 25 * attempt + Math.floor(Math.random() * 50)));
+          }
+        }
+      };
+      const hook = data.inLeadTransaction;
       const created = externalId
-        ? await prisma.$transaction(
-            async (tx) => {
-              const dup = await tx.lead.findFirst({
-                where: { description: { contains: externalIdMarker(externalId) } },
-                select: { id: true, contactId: true },
-              });
-              if (dup) return { tag: "existing" as const, row: dup };
-              return {
-                tag: "created" as const,
-                row: await tx.lead.create({ data: leadData }),
-              };
-            },
-            { isolationLevel: "Serializable" }
-          )
-        : {
-            tag: "created" as const,
-            row: await prisma.lead.create({ data: leadData }),
-          };
+        ? await createWithMarkerCheck()
+        : hook
+          ? await prisma.$transaction(
+              async (tx) => {
+                const row = await tx.lead.create({ data: leadData });
+                await hook(tx, { id: row.id, contactId: row.contactId, status: row.status, createdAt: row.createdAt });
+                return { tag: "created" as const, row };
+              },
+              { maxWait: 10_000, timeout: 20_000 }
+            )
+          : {
+              tag: "created" as const,
+              row: await prisma.lead.create({ data: leadData }),
+            };
 
       if (created.tag === "existing") {
         return {
@@ -556,7 +615,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       // externalId won the race — return its row instead of duplicating.
       if (externalId) {
         const winner = await prisma.lead.findFirst({
-          where: { description: { contains: externalIdMarker(externalId) } },
+          where: { description: { contains: externalIdMarker(externalId) }, deletedAt: null },
           select: { id: true, contactId: true },
         });
         if (winner) {
@@ -624,7 +683,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           where: { leadSource: (data.leadSource ?? mapSource(data.source)) as any },
         });
 
-        if (welcomeConfig?.isEnabled && contact.phone) {
+        if (welcomeConfig?.isEnabled && contact.phone && !data.suppressAutoWelcome) {
           // Schedule welcome message (delayed or immediate)
           if (welcomeConfig.delayMinutes === 0) {
             // NOT awaited. This is an outbound call to WhatsApp's API, made

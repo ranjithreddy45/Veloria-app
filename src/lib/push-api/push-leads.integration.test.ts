@@ -10,7 +10,7 @@
 // deletes users, keys, contacts and leads, and must never see production.
 // ============================================================
 
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe as vitestDescribe, expect, it, vi } from "vitest";
 
 vi.mock("@/../auth", () => ({ auth: async () => null }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn(), unstable_cache: (fn: unknown) => fn }));
@@ -33,11 +33,13 @@ const dbName = (() => {
     return "";
   }
 })();
-if (!dbName.endsWith("_test")) {
-  throw new Error(
-    `push-leads.integration.test refuses to run against database "${dbName || "(none)"}" — point DATABASE_URL at a *_test database.`
-  );
+// Never against anything but a *_test database. Skipped (loudly) rather than
+// thrown, so a plain `vitest run` without one doesn't turn the suite red.
+const IS_TEST_DB = dbName.endsWith("_test");
+if (!IS_TEST_DB) {
+  console.warn(`[push-leads.integration] skipped: DATABASE_URL database "${dbName || "(none)"}" is not a *_test database.`);
 }
+const describe = vitestDescribe.skipIf(!IS_TEST_DB);
 
 const U = Date.now();
 const ENDPOINT = "https://app.theveloriagrand.com/api/v1/push/leads";
@@ -56,12 +58,13 @@ async function mintKey(label: string, data: { scopes?: string[]; isActive?: bool
       keyHash: hash,
       prefix,
       createdById: created.userId,
-      scopes: data.scopes ?? ["leads:create"],
+      scopes: data.scopes ?? ["leads:create", "leads:update"],
       isActive: data.isActive ?? true,
       revokedAt: data.revokedAt ?? null,
       expiresAt: data.expiresAt ?? null,
     },
   });
+  await prisma.apiKey.update({ where: { id: row.id }, data: { lineageId: row.id } });
   created.keyIds.push(row.id);
   return raw;
 }
@@ -80,6 +83,7 @@ async function push(
 }
 
 beforeAll(async () => {
+  if (!IS_TEST_DB) return;
   process.env.PUSH_API_ENABLED = "true";
   const user = await prisma.user.create({
     data: { email: `push-admin-${U}@test.local`, name: "Push Test Admin", role: "SUPER_ADMIN", isActive: true },
@@ -98,6 +102,7 @@ beforeAll(async () => {
 }, 60_000);
 
 afterAll(async () => {
+  if (!IS_TEST_DB) return;
   // Deferred capture tails (welcome message, workflows) may still be writing.
   await new Promise((r) => setTimeout(r, 1500));
   const leads = await prisma.lead.findMany({ where: { createdById: created.userId }, select: { id: true, contactId: true } });
@@ -108,6 +113,7 @@ afterAll(async () => {
   await quiet(prisma.integrationEvent.deleteMany({ where: { resourceId: { in: leadIds } } }));
   await quiet(prisma.pushApiRequestLog.deleteMany({ where: { OR: [{ apiKeyId: { in: created.keyIds } }, { userAgent: "push-api-test" }] } }));
   await quiet(prisma.pushRateLimitCounter.deleteMany({ where: { apiKeyId: { in: created.keyIds } } }));
+  await quiet(prisma.pushIngestLock.deleteMany({}));
   await quiet(prisma.activityLog.deleteMany({ where: { userId: created.userId } }));
   if (leadIds.length) {
     for (const model of ["leadFirstResponse", "leadRoutingDecision", "task", "crmNote"] as const) {
@@ -312,14 +318,16 @@ describe("lead creation", () => {
     });
     expect(touches[0]!.metadata).toMatchObject({ fb_lead_id: "123456789", device: "mobile", landing_page_variant: "B" });
 
-    const ref = await prisma.leadExternalRef.findUnique({ where: { source_externalId: { source: "meta_ads", externalId } } });
+    const ref = await prisma.leadExternalRef.findUnique({
+      where: { lineageId_source_externalId: { lineageId: created.keyIds[0]!, source: "meta_ads", externalId } },
+    });
     expect(ref?.leadId).toBe(leadId);
   });
 
   it("emits lead.created to the outbox without contact details", async () => {
     const events = await prisma.integrationEvent.findMany({ where: { resourceId: leadId } });
     expect(events).toHaveLength(1);
-    expect(events[0]).toMatchObject({ type: "lead.created", resourceType: "Lead", status: "PENDING" });
+    expect(events[0]).toMatchObject({ type: "lead.created", resourceType: "Lead", status: "PENDING", dedupeKey: `lead.created:${leadId}` });
     const payload = JSON.stringify(events[0]!.payload);
     expect(payload).toContain(externalId);
     expect(payload).not.toContain(phone(10));
@@ -442,6 +450,7 @@ describe("deduplication", () => {
       guest_count: 180,
       event_date: "2027-01-15",
       utm_campaign: "second_campaign",
+      message: "Following up on availability",
     });
     expect(second.status).toBe(200);
     expect(second.json.data).toMatchObject({ lead_id: leadId, created: false, duplicate: true, matched_by: "external_id" });
@@ -453,6 +462,7 @@ describe("deduplication", () => {
     expect(after.guestCount).toBe(180); // blank filled
     expect(after.createdAt.getTime()).toBe(original.createdAt.getTime()); // creation time preserved
     expect(after.description).toContain("Pushed again via Push API (meta_ads)");
+    expect(after.description).toContain("Following up on availability");
 
     // First touch kept; the new touch recorded as the latest.
     const attribution = await prisma.leadAttribution.findUniqueOrThrow({ where: { leadId } });
@@ -508,6 +518,10 @@ describe("rate limiting", () => {
     const previous = process.env.PUSH_API_RATE_LIMIT_PER_MINUTE;
     process.env.PUSH_API_RATE_LIMIT_PER_MINUTE = "3";
     try {
+      // Start early in a minute so all four requests land in the same window —
+      // the 429 is always asserted, never skipped on a clock rollover.
+      const intoMinute = Date.now() % 60_000;
+      if (intoMinute > 45_000) await new Promise((r) => setTimeout(r, 60_000 - intoMinute + 250));
       // A body that fails validation: rate limiting runs first, and no leads are made.
       const statuses: number[] = [];
       let last: Awaited<ReturnType<typeof push>> | null = null;
@@ -515,18 +529,14 @@ describe("rate limiting", () => {
         last = await push({ source: "website" }, { key: keys.limited });
         statuses.push(last.status);
       }
-      expect(statuses.slice(0, 3)).toEqual([422, 422, 422]);
-      // The 4th lands in the same minute unless the clock rolled over mid-test.
-      if (statuses[3] !== 422) {
-        expect(statuses[3]).toBe(429);
-        expect(last!.json.error.code).toBe("RATE_LIMITED");
-        expect(Number(last!.headers.get("retry-after"))).toBeGreaterThan(0);
-        expect(last!.headers.get("x-ratelimit-remaining")).toBe("0");
-      }
+      expect(statuses).toEqual([422, 422, 422, 429]);
+      expect(last!.json.error.code).toBe("RATE_LIMITED");
+      expect(Number(last!.headers.get("retry-after"))).toBeGreaterThan(0);
+      expect(last!.headers.get("x-ratelimit-remaining")).toBe("0");
     } finally {
       process.env.PUSH_API_RATE_LIMIT_PER_MINUTE = previous;
     }
-  });
+  }, 90_000);
 
   it("keeps one count across concurrent requests", async () => {
     const previous = process.env.PUSH_API_RATE_LIMIT_PER_MINUTE;

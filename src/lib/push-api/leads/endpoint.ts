@@ -23,8 +23,11 @@ export const pushLeadsEndpoint = createPushEndpoint<PushLead>({
   async process(lead, ctx) {
     const result = await ingestPushLead(lead, {
       apiKeyId: ctx.apiKey.id,
+      lineageId: ctx.apiKey.lineageId,
+      scopes: ctx.apiKey.scopes,
       requestId: ctx.requestId,
       dedupWindowHours: ctx.config.dedupWindowHours,
+      maxNewLeadsPerDay: ctx.config.maxNewLeadsPerDay,
     });
 
     if (result.created) {
@@ -55,7 +58,8 @@ export const pushLeadsEndpoint = createPushEndpoint<PushLead>({
       resourceId: result.leadId,
       body: {
         success: true,
-        message: result.updatedFields.length > 0 ? "Lead already exists and was updated" : "Lead already exists",
+        // Always exactly this message; `updated_fields` says what, if anything, was filled in.
+        message: "Lead already exists",
         request_id: ctx.requestId,
         data: {
           lead_id: result.leadId,

@@ -25,6 +25,14 @@ export interface PushApiConfig {
   /** Hours within which a push for the same phone/email updates the open lead instead of creating another. */
   dedupWindowHours: number;
   logRetentionDays: number;
+  /** New leads one key may create per UTC day — a brake on a leaked or runaway integration. */
+  maxNewLeadsPerDay: number;
+  /** Failed authentication attempts one IP may make per minute before it is refused outright. */
+  failedAuthPerMinute: number;
+  /** Seconds an in-flight Idempotency-Key claim is honoured before a retry may take it over. */
+  idempotencyLeaseSeconds: number;
+  /** Days an internal event is kept in the outbox. */
+  eventRetentionDays: number;
 }
 
 export function pushApiConfig(): PushApiConfig {
@@ -41,6 +49,10 @@ export function pushApiConfig(): PushApiConfig {
       .filter(Boolean),
     dedupWindowHours: intEnv("PUSH_API_DEDUP_WINDOW_HOURS", 24),
     logRetentionDays: intEnv("PUSH_API_LOG_RETENTION_DAYS", 90),
+    maxNewLeadsPerDay: intEnv("PUSH_API_MAX_NEW_LEADS_PER_DAY", 2000),
+    failedAuthPerMinute: intEnv("PUSH_API_FAILED_AUTH_PER_MINUTE", 30),
+    idempotencyLeaseSeconds: intEnv("PUSH_API_IDEMPOTENCY_LEASE_SECONDS", 120, 10),
+    eventRetentionDays: intEnv("PUSH_API_EVENT_RETENTION_DAYS", 90),
   };
 }
 

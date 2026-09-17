@@ -76,15 +76,31 @@ export function normalizePushPhone(raw: string): string | null {
   return canon;
 }
 
-function jsonDepth(value: unknown, depth = 0): number {
-  if (value === null || typeof value !== "object") return depth;
-  const children = Array.isArray(value) ? value : Object.values(value);
-  return children.reduce<number>((max, child) => Math.max(max, jsonDepth(child, depth + 1)), depth + 1);
+/**
+ * Whether a JSON value nests deeper than `limit`. Iterative, and it stops as
+ * soon as the limit is crossed: a recursive walk let a 60 KB body of 30,000
+ * nested arrays overflow the stack and turn a validation error into a 500.
+ */
+export function exceedsDepth(value: unknown, limit: number): boolean {
+  const stack: { v: unknown; d: number }[] = [{ v: value, d: 0 }];
+  while (stack.length) {
+    const { v, d } = stack.pop()!;
+    if (v === null || typeof v !== "object") continue;
+    if (d + 1 > limit) return true;
+    for (const child of Array.isArray(v) ? v : Object.values(v)) stack.push({ v: child, d: d + 1 });
+  }
+  return false;
 }
 
-/** A real calendar day. "2026-02-30" is not one, and neither is "20/12/2026". */
+/**
+ * A real calendar day, optionally followed by a real ISO 8601 time:
+ * "2026-12-20", "2026-12-20T18:30", "2026-12-20T18:30:00.000Z",
+ * "2026-12-20T18:30:00+05:30". Rejects "2026-02-30", "20/12/2026",
+ * "2026-12-20T99:99:99" and "2026-12-20T:".
+ */
 export function isValidIsoDate(v: string): boolean {
-  const m = /^(\d{4})-(\d{2})-(\d{2})(?:T[\d:.]+(?:Z|[+-]\d{2}:?\d{2})?)?$/.exec(v);
+  const m =
+    /^(\d{4})-(\d{2})-(\d{2})(?:T(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,3})?)?(?:Z|[+-](?:[01]\d|2[0-3]):?[0-5]\d)?)?$/.exec(v);
   if (!m) return false;
   const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
   const date = new Date(Date.UTC(y, mo - 1, d));
@@ -95,7 +111,8 @@ const isoDate = z
   .string({ message: "Must be an ISO date (YYYY-MM-DD)" })
   .trim()
   .refine(isValidIsoDate, { message: "Must be a valid ISO date (YYYY-MM-DD)" })
-  // Keep only the calendar day: an event date is a day, not an instant.
+  // Keep the calendar day AS WRITTEN. An event date is a day at the venue, not
+  // an instant: "2026-12-20T23:30-05:00" is the 20th wherever it was typed.
   .transform((v) => v.slice(0, 10));
 
 const httpUrl = z
@@ -173,7 +190,9 @@ export const pushLeadSchema = z
     gclid: optionalText(200),
     gbraid: optionalText(200),
     wbraid: optionalText(200),
-    fbclid: optionalText(300),
+    // 255, not more: the attribution store caps every label at 255, and an
+    // over-long value used to make it discard the lead's whole attribution.
+    fbclid: optionalText(255),
 
     consent: z.boolean({ message: "Must be true or false" }).optional().nullable(),
 
@@ -185,7 +204,7 @@ export const pushLeadSchema = z
         if (value == null) return;
         if (Object.keys(value).length > MAX_METADATA_KEYS) {
           ctx.addIssue({ code: "custom", message: `Must have at most ${MAX_METADATA_KEYS} keys` });
-        } else if (jsonDepth(value) > MAX_METADATA_DEPTH) {
+        } else if (exceedsDepth(value, MAX_METADATA_DEPTH)) {
           ctx.addIssue({ code: "custom", message: `Must be nested at most ${MAX_METADATA_DEPTH} levels deep` });
         } else if (Buffer.byteLength(JSON.stringify(value)) > MAX_METADATA_BYTES) {
           ctx.addIssue({ code: "custom", message: `Must be at most ${MAX_METADATA_BYTES} bytes` });

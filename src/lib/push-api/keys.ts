@@ -24,6 +24,18 @@ export function generatePushKey(): { raw: string; hash: string; prefix: string }
   return { raw, hash: hashApiKey(raw), prefix: raw.slice(0, PREFIX_DISPLAY_LENGTH) };
 }
 
+/** A push key is exactly vg_live_ + 43 base64url characters (32 random bytes). */
+const PUSH_KEY_SHAPE = /^vg_live_[A-Za-z0-9_-]{43}$/;
+
+/**
+ * Cheap shape check before touching the database. Anything that isn't shaped
+ * like a push key can't be one, so it is refused without a lookup — which is
+ * what keeps a flood of junk credentials from becoming a flood of queries.
+ */
+export function looksLikePushKey(raw: string): boolean {
+  return PUSH_KEY_SHAPE.test(raw);
+}
+
 export function hashApiKey(raw: string): string {
   return createHash("sha256").update(raw).digest("hex");
 }

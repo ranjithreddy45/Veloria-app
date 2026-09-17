@@ -4095,6 +4095,11 @@ model ApiKey {
   revokedAt     DateTime?
   /// Set on the replacement key when an old one is rotated.
   rotatedFromId String?
+  /// The integration this key belongs to: the id of the first key in its
+  /// rotation chain. External ids and Idempotency-Keys are scoped to it, so a
+  /// rotation doesn't break retries and one integration can't touch another's
+  /// leads. Null on keys minted before this existed — treated as the key's own id.
+  lineageId     String?
 
   idempotencyRecords PushIdempotencyRecord[]
 
@@ -7784,9 +7789,11 @@ model LeadExternalRef {
   leadId     String
   lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
   apiKeyId   String?
+  /// ApiKey.lineageId of the integration that pushed it — part of the key.
+  lineageId  String
   createdAt  DateTime @default(now())
 
-  @@unique([source, externalId])
+  @@unique([lineageId, source, externalId])
   @@index([leadId])
 }
 
@@ -7796,6 +7803,8 @@ model PushIdempotencyRecord {
   id             String   @id @default(cuid())
   apiKeyId       String
   apiKey         ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  /// Integration scope (ApiKey.lineageId), so a retry after key rotation still replays.
+  lineageId      String
   idempotencyKey String
   /// SHA-256 of the canonical JSON body.
   requestHash    String
@@ -7805,11 +7814,14 @@ model PushIdempotencyRecord {
   responseBody   Json?
   resourceType   String?
   resourceId     String?
+  /// While PROCESSING: after this instant the claim is considered abandoned
+  /// (crash, deploy, timeout) and a retry may take it over.
+  lockedUntil    DateTime?
   expiresAt      DateTime
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  @@unique([apiKeyId, idempotencyKey])
+  @@unique([lineageId, idempotencyKey])
   @@index([expiresAt])
 }
 
@@ -7888,12 +7900,26 @@ model LeadTouch {
   @@index([leadId, createdAt])
 }
 
+/// Short-lived per-person locks for the Push API, so simultaneous pushes about
+/// the same person (same phone, email or external id) are processed one at a
+/// time instead of each creating a lead. A lease, not a held connection: a
+/// crashed holder's lock simply expires. lockKey is a SHA-256, never raw PII.
+model PushIngestLock {
+  lockKey     String   @id
+  token       String
+  lockedUntil DateTime
+
+  @@index([lockedUntil])
+}
+
 /// Outbox for internal domain events ("lead.created"). Written after the lead
 /// is saved and never sent anywhere inside the request, so a slow or failing
 /// consumer (Google Ads, Meta CAPI, BI) can never cost a lead.
 model IntegrationEvent {
   id           String    @id @default(cuid())
   type         String
+  /// e.g. "lead.created:<leadId>" — makes emitting an event idempotent.
+  dedupeKey    String?   @unique
   resourceType String
   resourceId   String
   payload      Json

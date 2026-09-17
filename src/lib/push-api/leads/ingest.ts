@@ -3,28 +3,51 @@ import { prisma } from "@/lib/prisma";
 import { captureLeadFromExternal, getSystemUserId } from "@/lib/lead-capture";
 import { attachAttributionToLead, type AttributionInput } from "@/lib/attribution";
 import { logActivity } from "@/lib/activity-logger";
-import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
-import { emitDomainEvent } from "../events";
+import { canonicalPhone } from "@/lib/phone";
+import { recordConsent } from "@/lib/privacy/consent";
+import { consumeDailyLeadCap } from "../rate-limit";
 import type { PushLead } from "./schema";
+import { identityLockKeys, withIngestLocks } from "./ingest-lock";
 
 // ============================================================
 // Lead ingestion for the Push API.
 //
-// This file decides only what is specific to pushing: is this a lead we
-// already hold (by the caller's own external id, or the same person within the
-// dedup window), and what to record about the touch. Creating a lead is handed
-// to captureLeadFromExternal — the function every webhook uses — so contact
-// matching, assignment rules, scoring, consent, the SLA clock and the intake
-// workflows behave identically whichever door a lead came through.
+// This file decides whether a push is a lead we already hold, and records the
+// touch. Creating a NEW lead is still handed to captureLeadFromExternal — the
+// function every webhook uses — so assignment rules, scoring, the SLA clock
+// and the intake workflows behave identically for every channel.
+//
+// What it does NOT reuse is capture's looser idea of "same enquiry". The audit
+// of the first version reproduced, against a real database:
+//   - 11 of 12 simultaneous pushes failing (capture's Serializable marker scan)
+//   - an enquiry swallowed by a deleted lead and lost
+//   - a +971 number merged into a +91 contact's lead (last-10-digit match)
+//   - an external id "X" merged into the lead of "X]" (substring marker)
+//   - a wedding and a corporate enquiry merged; a 10-day-old lead reused
+//   - 5 simultaneous pushes for one person making 3 leads
+// So the rules live here, explicitly, and capture is told not to second-guess
+// them (no external-id marker, no open-lead fold):
+//
+//   1. same integration + source + external_id  → that lead (never a deleted one)
+//   2. same email, or same phone INCLUDING country code, on an OPEN lead
+//      created within the dedup window whose event type and date don't conflict
+//   3. otherwise a new lead, created atomically with its external-id link,
+//      touch record and lead.created event
+//
+// All of it runs under a lock on the push's identities, so concurrent pushes
+// about the same person are decided one at a time.
 // ============================================================
 
 export interface IngestContext {
   apiKeyId: string;
+  lineageId: string;
+  scopes: string[];
   requestId: string;
   dedupWindowHours: number;
+  maxNewLeadsPerDay: number;
 }
 
-export type MatchedBy = "external_id" | "recent_contact" | "contact_open_lead";
+export type MatchedBy = "external_id" | "recent_contact";
 
 export interface IngestResult {
   leadId: string;
@@ -36,124 +59,125 @@ export interface IngestResult {
   updatedFields: string[];
 }
 
-/** Namespaced so a pushed id can never collide with a Facebook or Google webhook marker. */
-export function captureExternalId(source: string, externalId: string): string {
-  return `push:${source}:${externalId}`;
-}
-
 const CLOSED_STATUSES = ["WON", "LOST"] as const;
+/** Notes stop being appended once the description reaches this size. */
+const MAX_DESCRIPTION_CHARS = 20_000;
+
+/**
+ * The source name capture and the assignment rules see. Assignment rules match
+ * the raw source string, and every existing rule and webhook says
+ * "facebook_ads" — so a Meta push must too, or it silently misses those rules.
+ */
+const CAPTURE_SOURCE_ALIAS: Record<string, string> = { meta_ads: "facebook_ads" };
 
 export async function ingestPushLead(lead: PushLead, ctx: IngestContext): Promise<IngestResult> {
-  const venueId = lead.venue ? await resolveVenueId(lead.venue) : undefined;
+  const keys = identityLockKeys({
+    lineageId: ctx.lineageId,
+    source: lead.source,
+    externalId: lead.externalId,
+    phone: lead.phone,
+    email: lead.email,
+  });
+  return withIngestLocks(keys, () => ingestLocked(lead, ctx));
+}
 
-  // 1. The caller's own id — the strongest signal there is.
-  let existing: { id: string; contactId: string } | null = null;
-  let matchedBy: MatchedBy | null = null;
-  if (lead.externalId) {
-    existing = await findByExternalRef(lead.source, lead.externalId);
-    if (existing) matchedBy = "external_id";
+async function ingestLocked(lead: PushLead, ctx: IngestContext): Promise<IngestResult> {
+  const [venueId, byRef] = await Promise.all([
+    lead.venue ? resolveVenueId(lead.venue) : Promise.resolve(undefined),
+    lead.externalId ? findByExternalRef(ctx.lineageId, lead.source, lead.externalId) : Promise.resolve(null),
+  ]);
+
+  let match: { id: string; contactId: string } | null = byRef;
+  let matchedBy: MatchedBy | null = byRef ? "external_id" : null;
+  if (!match) {
+    match = await findRecentOpenLead(lead, ctx.dedupWindowHours);
+    if (match) matchedBy = "recent_contact";
   }
 
-  // 2. The same person, still open, pushed again within the window.
-  if (!existing) {
-    existing = await findRecentOpenLead(lead, ctx.dedupWindowHours);
-    if (existing) matchedBy = "recent_contact";
+  if (match) {
+    const canUpdate = ctx.scopes.includes("leads:update");
+    const updatedFields = canUpdate ? await updateExistingLead(match, lead, venueId, ctx) : [];
+    if (lead.externalId) await linkExternalId(prisma, ctx, lead, match.id);
+    const status = (await prisma.lead.findUnique({ where: { id: match.id }, select: { status: true } }))?.status ?? "NEW";
+    return {
+      leadId: match.id,
+      contactId: match.contactId,
+      status,
+      created: false,
+      duplicate: true,
+      matchedBy,
+      updatedFields,
+    };
   }
 
-  let leadId: string;
-  let contactId: string;
-  let created = false;
-  let updatedFields: string[] = [];
+  // A brand-new lead. Count it against the key's daily cap first.
+  await consumeDailyLeadCap(ctx.lineageId, ctx.maxNewLeadsPerDay);
 
-  if (existing) {
-    leadId = existing.id;
-    contactId = existing.contactId;
-    updatedFields = await updateExistingLead(existing.id, lead, venueId, ctx, { appendNote: true });
-    await attachAttributionToLead(leadId, attributionFor(lead)); // fills blanks only; first touch is kept
-  } else {
-    const result = await captureLeadFromExternal({
-      name: lead.name ?? fallbackName(lead),
-      phone: lead.phone,
-      email: lead.email,
-      source: lead.source,
-      leadSource: lead.leadSource,
-      message: lead.message,
-      eventType: lead.eventType,
-      eventDate: lead.eventDate,
-      guestCount: lead.guestCount,
-      estimatedValue: lead.budget,
-      venueId,
-      attribution: attributionFor(lead),
-      externalId: lead.externalId ? captureExternalId(lead.source, lead.externalId) : undefined,
-      consent: lead.consent
-        ? {
-            given: true,
-            source: "/api/v1/push/leads",
-            text: `Consent asserted by the pushing system (${lead.source}) via the Push API.`,
-          }
-        : undefined,
-      // Nobody is waiting on a push the way a person waits on a form, but the
-      // pushing system is: answer once the lead is saved, and let the welcome
-      // message, workflows and notifications run after the response.
-      deferTail: true,
-    });
-    if (!result.success || !result.leadId || !result.contactId) {
-      throw new Error(`captureLeadFromExternal failed: ${"error" in result ? result.error : "no lead id"}`);
-    }
-    leadId = result.leadId;
-    contactId = result.contactId;
-    if ("deduped" in result && result.deduped) {
-      // Capture folded this into an open lead for the same person and event
-      // (and already wrote its own re-enquiry note), or matched the external id
-      // marker. Still fill any blanks it doesn't cover, such as the budget.
-      matchedBy = "contact_open_lead";
-      updatedFields = await updateExistingLead(leadId, lead, venueId, ctx, { appendNote: false });
-    } else {
-      created = true;
-    }
+  let createdRow: { id: string; contactId: string; status: string; createdAt: Date } | null = null;
+  const result = await captureLeadFromExternal({
+    name: lead.name ?? fallbackName(lead),
+    phone: lead.phone,
+    email: lead.email,
+    source: CAPTURE_SOURCE_ALIAS[lead.source] ?? lead.source,
+    leadSource: lead.leadSource,
+    message: lead.message,
+    eventType: lead.eventType,
+    eventDate: lead.eventDate,
+    guestCount: lead.guestCount,
+    estimatedValue: lead.budget,
+    venueId,
+    attribution: attributionFor(lead),
+    consent: lead.consent
+      ? {
+          given: true,
+          source: "/api/v1/push/leads",
+          text: `Consent asserted by the pushing system (${lead.source}, key ${ctx.apiKeyId}) via the Push API.`,
+          ip: null,
+          userAgent: null,
+        }
+      : undefined,
+    // The Push API has already decided this is a new lead under stricter rules.
+    skipOpenLeadFold: true,
+    // Nobody authorised a WhatsApp message unless consent says so.
+    suppressAutoWelcome: lead.consent !== true,
+    // Answer once the lead is saved; welcome, workflows and notifications run after.
+    deferTail: true,
+    // The external-id link, the touch and lead.created commit WITH the lead or
+    // not at all — so a lead can never exist without them, and the event can
+    // never be lost to a failure after the lead was saved.
+    inLeadTransaction: async (tx, row) => {
+      createdRow = row;
+      if (lead.externalId) await linkExternalId(tx, ctx, lead, row.id, { throwOnConflict: true });
+      await tx.leadTouch.create({ data: touchData(row.id, lead, ctx) });
+      await tx.integrationEvent.create({
+        data: {
+          type: "lead.created",
+          dedupeKey: `lead.created:${row.id}`,
+          resourceType: "Lead",
+          resourceId: row.id,
+          payload: eventPayload(row, lead, ctx) as Prisma.InputJsonValue,
+        },
+      });
+    },
+  });
+
+  if (!result.success || !result.leadId || !result.contactId || !createdRow) {
+    throw new Error(`push ingest: lead was not created (${"error" in result ? result.error : "no lead id"})`);
   }
-
-  if (lead.externalId) await ensureExternalRef(lead.source, lead.externalId, leadId, ctx.apiKeyId);
-  await recordTouch(leadId, lead, ctx);
-
-  const current = await prisma.lead.findUnique({ where: { id: leadId }, select: { status: true, createdAt: true } });
-  const status = current?.status ?? "NEW";
-
-  if (created) {
-    await emitDomainEvent({
-      type: "lead.created",
-      resourceType: "Lead",
-      resourceId: leadId,
-      // Identifiers and attribution only. A consumer that needs contact details
-      // (e.g. hashed matching for Meta CAPI) reads them from the CRM itself.
-      payload: {
-        lead_id: leadId,
-        contact_id: contactId,
-        status,
-        source: lead.source,
-        lead_source: lead.leadSource,
-        external_id: lead.externalId ?? null,
-        campaign: lead.touch.campaign ?? lead.touch.utmCampaign ?? null,
-        campaign_id: lead.touch.campaignId ?? null,
-        adset_id: lead.touch.adsetId ?? null,
-        ad_id: lead.touch.adId ?? null,
-        gclid: lead.touch.gclid ?? null,
-        fbclid: lead.touch.fbclid ?? null,
-        created_at: (current?.createdAt ?? new Date()).toISOString(),
-        api_key_id: ctx.apiKeyId,
-        request_id: ctx.requestId,
-      },
-    });
-  }
-
+  const row = createdRow as { id: string; contactId: string; status: string; createdAt: Date };
+  // Save first-touch attribution BEFORE answering. Capture writes it in its
+  // deferred tail, which could still be running when the 201 went out — so an
+  // integrator (or a lead.created consumer) reading the lead straight away saw
+  // none. Filling blanks is idempotent, so the tail's own write is a no-op.
+  await attachAttributionToLead(row.id, attributionFor(lead));
   return {
-    leadId,
-    contactId,
-    status,
-    created,
-    duplicate: !created,
-    matchedBy,
-    updatedFields,
+    leadId: row.id,
+    contactId: row.contactId,
+    status: row.status,
+    created: true,
+    duplicate: false,
+    matchedBy: null,
+    updatedFields: [],
   };
 }
 
@@ -170,32 +194,65 @@ async function resolveVenueId(name: string): Promise<string | undefined> {
   return venue?.id;
 }
 
-async function findByExternalRef(source: string, externalId: string) {
+/** The lead this integration already linked to (source, externalId) — never a deleted one. */
+async function findByExternalRef(lineageId: string, source: string, externalId: string) {
   const ref = await prisma.leadExternalRef.findUnique({
-    where: { source_externalId: { source, externalId } },
-    select: { lead: { select: { id: true, contactId: true, deletedAt: true } } },
+    where: { lineageId_source_externalId: { lineageId, source, externalId } },
+    select: { id: true, lead: { select: { id: true, contactId: true, deletedAt: true } } },
   });
-  if (!ref || ref.lead.deletedAt) return null;
+  if (!ref) return null;
+  if (ref.lead.deletedAt) {
+    // The lead it pointed at was deleted. Drop the stale link so this push
+    // becomes a new lead instead of disappearing into a deleted one.
+    await prisma.leadExternalRef.delete({ where: { id: ref.id } }).catch(() => {});
+    return null;
+  }
   return { id: ref.lead.id, contactId: ref.lead.contactId };
 }
 
+/** Same phone INCLUDING country code. Stored numbers vary in format, so both sides are canonicalised. */
+export function samePhone(stored: string | null | undefined, incomingCanonical: string | undefined): boolean {
+  if (!stored || !incomingCanonical) return false;
+  const canon = canonicalPhone(stored);
+  return canon.startsWith("+") ? canon === incomingCanonical : false;
+}
+
+/** Event details conflict only when both sides state them and they differ. A blank never conflicts. */
+export function eventsCompatible(
+  incoming: { eventType?: string; eventDate?: string },
+  existing: { eventType: string | null; eventDate: Date | null }
+): boolean {
+  if (incoming.eventType && existing.eventType && incoming.eventType.trim().toLowerCase() !== existing.eventType.trim().toLowerCase()) {
+    return false;
+  }
+  if (incoming.eventDate && existing.eventDate && incoming.eventDate !== existing.eventDate.toISOString().slice(0, 10)) {
+    return false;
+  }
+  return true;
+}
+
 /**
- * An open lead for the same person, created within the window.
- *
- * Matched on normalised phone or email only — never on name. A closed lead
- * (WON/LOST) is not reopened: a returning customer is a new opportunity.
+ * An open lead for the same person, created within the window, for a
+ * compatible event. Matched on email or full phone only — never on name, never
+ * across countries, never a won/lost/deleted lead.
  */
 async function findRecentOpenLead(lead: PushLead, windowHours: number) {
-  const where = coarseContactWhere(lead.email, lead.phone);
-  if (!where) return null;
-  const candidates = await prisma.contact.findMany({
-    where: { ...where, deletedAt: null },
-    select: { id: true, email: true, phone: true },
-    take: 25,
-  });
-  const contactIds = matchesContactKey(candidates, lead.email, lead.phone).map((c) => c.id);
+  const last10 = lead.phone ? lead.phone.replace(/\D/g, "").slice(-10) : null;
+  // Exact comparisons in SQL, with no row cap: the old "phone contains the last
+  // 4 digits, take 25" pre-filter could drop the real contact from the set.
+  const candidates = await prisma.$queryRaw<{ id: string; phone: string | null; email: string | null }[]>`
+    SELECT "id", "phone", "email" FROM "Contact"
+    WHERE "deletedAt" IS NULL
+      AND (
+        (${lead.email ?? null}::text IS NOT NULL AND lower("email") = ${lead.email ?? null}::text)
+        OR (${last10}::text IS NOT NULL AND right(regexp_replace(coalesce("phone", ''), '\\D', '', 'g'), 10) = ${last10}::text)
+      )`;
+  const contactIds = candidates
+    .filter((c) => (lead.email && c.email?.toLowerCase() === lead.email) || samePhone(c.phone, lead.phone))
+    .map((c) => c.id);
   if (contactIds.length === 0) return null;
-  return prisma.lead.findFirst({
+
+  const openLeads = await prisma.lead.findMany({
     where: {
       contactId: { in: contactIds },
       deletedAt: null,
@@ -203,73 +260,121 @@ async function findRecentOpenLead(lead: PushLead, windowHours: number) {
       createdAt: { gte: new Date(Date.now() - windowHours * 3_600_000) },
     },
     orderBy: { createdAt: "desc" },
-    select: { id: true, contactId: true },
+    select: { id: true, contactId: true, eventType: true, eventDate: true },
+    take: 20,
   });
+  const hit = openLeads.find((l) => eventsCompatible(lead, l));
+  return hit ? { id: hit.id, contactId: hit.contactId } : null;
 }
 
 /**
- * Fill what the lead is still missing — never overwrite what a rep recorded —
- * and leave an audit trail saying the Push API did it. createdAt is untouched.
+ * Fill what the lead and its contact are still missing — never overwrite what
+ * a rep recorded — append the message once, record consent once, record the
+ * touch, and leave an audit trail. createdAt is untouched. One transaction.
  */
 async function updateExistingLead(
-  leadId: string,
+  match: { id: string; contactId: string },
   lead: PushLead,
   venueId: string | undefined,
-  ctx: IngestContext,
-  opts: { appendNote: boolean }
+  ctx: IngestContext
 ): Promise<string[]> {
-  const row = await prisma.lead.findUnique({
-    where: { id: leadId },
-    select: {
-      description: true,
-      eventType: true,
-      eventDate: true,
-      guestCount: true,
-      estimatedValue: true,
-      preferredVenueId: true,
-    },
-  });
-  if (!row) return [];
-
-  const data: Prisma.LeadUpdateInput = {};
   const updated: string[] = [];
-  if (!row.eventType && lead.eventType) {
-    data.eventType = lead.eventType;
-    updated.push("event_type");
-  }
-  if (!row.eventDate && lead.eventDate) {
-    data.eventDate = new Date(`${lead.eventDate}T00:00:00.000Z`);
-    updated.push("event_date");
-  }
-  if (row.guestCount == null && lead.guestCount != null) {
-    data.guestCount = lead.guestCount;
-    updated.push("guest_count");
-  }
-  if (row.estimatedValue == null && lead.budget != null) {
-    data.estimatedValue = lead.budget;
-    updated.push("budget");
-  }
-  if (!row.preferredVenueId && venueId) {
-    data.preferredVenue = { connect: { id: venueId } };
-    updated.push("venue");
-  }
-  if (opts.appendNote) {
-    const stamp = new Date().toISOString().slice(0, 10);
-    const note = `Pushed again via Push API (${lead.source}) on ${stamp}${lead.message ? ` — ${lead.message}` : ""}`;
-    data.description = [row.description, note].filter(Boolean).join("\n");
+
+  await prisma.$transaction(async (tx) => {
+    const row = await tx.lead.findUnique({
+      where: { id: match.id },
+      select: { eventType: true, eventDate: true, guestCount: true, estimatedValue: true, preferredVenueId: true },
+    });
+    if (!row) return;
+
+    const data: Prisma.LeadUpdateInput = {};
+    if (!row.eventType && lead.eventType) {
+      data.eventType = lead.eventType;
+      updated.push("event_type");
+    }
+    if (!row.eventDate && lead.eventDate) {
+      data.eventDate = new Date(`${lead.eventDate}T00:00:00.000Z`);
+      updated.push("event_date");
+    }
+    if (row.guestCount == null && lead.guestCount != null) {
+      data.guestCount = lead.guestCount;
+      updated.push("guest_count");
+    }
+    if (row.estimatedValue == null && lead.budget != null) {
+      data.estimatedValue = lead.budget;
+      updated.push("budget");
+    }
+    if (!row.preferredVenueId && venueId) {
+      data.preferredVenue = { connect: { id: venueId } };
+      updated.push("venue");
+    }
+    if (Object.keys(data).length) await tx.lead.update({ where: { id: match.id }, data });
+
+    // The contact's own missing details: an email that arrived by phone lead, or vice versa.
+    const contact = await tx.contact.findUnique({ where: { id: match.contactId }, select: { email: true, phone: true } });
+    if (contact) {
+      const contactData: Prisma.ContactUpdateInput = {};
+      if (!contact.email && lead.email) {
+        contactData.email = lead.email;
+        updated.push("email");
+      }
+      if (!contact.phone && lead.phone) {
+        contactData.phone = lead.phone;
+        updated.push("phone");
+      }
+      if (Object.keys(contactData).length) await tx.contact.update({ where: { id: match.contactId }, data: contactData });
+    }
+
+    // The message, once. A retry or a re-send of the same text isn't a new note,
+    // and the description stops growing at a sane size. Done as one atomic
+    // UPDATE, so a concurrent edit can't be overwritten by a stale read.
+    if (lead.message) {
+      const stamp = new Date().toISOString().slice(0, 10);
+      const note = `Pushed again via Push API (${lead.source}) on ${stamp} — ${lead.message}`;
+      await tx.$executeRaw`
+        UPDATE "Lead"
+        SET "description" = CASE
+          WHEN "description" IS NULL THEN ${note}
+          ELSE "description" || E'\n' || ${note}
+        END
+        WHERE "id" = ${match.id}
+          AND position(${`— ${lead.message}`} in coalesce("description", '')) = 0
+          AND length(coalesce("description", '')) + length(${note}) < ${MAX_DESCRIPTION_CHARS}`;
+    }
+
+    await tx.leadTouch.create({ data: touchData(match.id, lead, ctx) });
+  });
+
+  // Consent given on a repeat push is still consent, and must be on record.
+  if (lead.consent) {
+    const already = await prisma.consentRecord.count({
+      where: { subjectType: "CONTACT", subjectId: match.contactId, purpose: "ENQUIRY_RESPONSE" },
+    });
+    if (already === 0) {
+      await recordConsent({
+        subjectType: "CONTACT",
+        subjectId: match.contactId,
+        email: lead.email ?? null,
+        phone: lead.phone ?? null,
+        purpose: "ENQUIRY_RESPONSE",
+        source: "/api/v1/push/leads",
+        consentText: `Consent asserted by the pushing system (${lead.source}, key ${ctx.apiKeyId}) via the Push API.`,
+        ip: null,
+        userAgent: null,
+      });
+      updated.push("consent");
+    }
   }
 
-  if (Object.keys(data).length > 0) {
-    await prisma.lead.update({ where: { id: leadId }, data });
-  }
+  // First touch is kept: this only fills attribution fields that are still empty.
+  await attachAttributionToLead(match.id, attributionFor(lead));
 
   try {
-    const systemUserId = await getSystemUserId();
     await logActivity({
-      userId: systemUserId,
+      userId: await getSystemUserId(),
       action: "push_api_updated",
       entityType: "Lead",
-      entityId: leadId,
+      entityId: match.id,
       changes: {
         via: "push_api",
         source: lead.source,
@@ -285,17 +390,31 @@ async function updateExistingLead(
   return updated;
 }
 
-/** Link (source, externalId) to the lead. A concurrent request inserting the same pair is not an error. */
-async function ensureExternalRef(source: string, externalId: string, leadId: string, apiKeyId: string) {
+type Db = Prisma.TransactionClient | typeof prisma;
+
+/**
+ * Link (integration, source, externalId) to a lead. Inside the create
+ * transaction a conflict must abort the lead (someone else owns that id); on
+ * an existing lead a conflict just means the link is already there.
+ */
+async function linkExternalId(
+  db: Db,
+  ctx: IngestContext,
+  lead: PushLead,
+  leadId: string,
+  opts: { throwOnConflict?: boolean } = {}
+): Promise<void> {
   try {
-    await prisma.leadExternalRef.create({ data: { source, externalId, leadId, apiKeyId } });
+    await db.leadExternalRef.create({
+      data: { lineageId: ctx.lineageId, source: lead.source, externalId: lead.externalId!, leadId, apiKeyId: ctx.apiKeyId },
+    });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return;
-    console.error(JSON.stringify({ level: "error", event: "push_api_external_ref_failed", lead_id: leadId, error: String(e) }));
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002" && !opts.throwOnConflict) return;
+    throw e;
   }
 }
 
-async function recordTouch(leadId: string, lead: PushLead, ctx: IngestContext) {
+function touchData(leadId: string, lead: PushLead, ctx: IngestContext): Prisma.LeadTouchUncheckedCreateInput {
   const t = lead.touch;
   const metadata = {
     ...(lead.metadata ?? {}),
@@ -305,36 +424,54 @@ async function recordTouch(leadId: string, lead: PushLead, ctx: IngestContext) {
     ...(t.wbraid ? { wbraid: t.wbraid } : {}),
     ...(t.fbclid ? { fbclid: t.fbclid } : {}),
   };
-  try {
-    await prisma.leadTouch.create({
-      data: {
-        leadId,
-        channel: "push_api",
-        source: lead.source,
-        medium: t.medium ?? null,
-        campaign: t.campaign ?? null,
-        campaignId: t.campaignId ?? null,
-        adset: t.adset ?? null,
-        adsetId: t.adsetId ?? null,
-        adId: t.adId ?? null,
-        creative: t.creative ?? null,
-        keyword: t.keyword ?? null,
-        utmSource: t.utmSource ?? null,
-        utmMedium: t.utmMedium ?? null,
-        utmCampaign: t.utmCampaign ?? null,
-        utmTerm: t.utmTerm ?? null,
-        utmContent: t.utmContent ?? null,
-        landingPage: t.landingPage ?? null,
-        metadata: Object.keys(metadata).length ? (metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
-        externalId: lead.externalId ?? null,
-        apiKeyId: ctx.apiKeyId,
-        requestId: ctx.requestId,
-      },
-    });
-  } catch (e) {
-    // The lead exists; losing one touch row must not turn a saved lead into a 500.
-    console.error(JSON.stringify({ level: "error", event: "push_api_touch_failed", lead_id: leadId, request_id: ctx.requestId, error: String(e) }));
-  }
+  return {
+    leadId,
+    channel: "push_api",
+    source: lead.source,
+    medium: t.medium ?? null,
+    campaign: t.campaign ?? null,
+    campaignId: t.campaignId ?? null,
+    adset: t.adset ?? null,
+    adsetId: t.adsetId ?? null,
+    adId: t.adId ?? null,
+    creative: t.creative ?? null,
+    keyword: t.keyword ?? null,
+    utmSource: t.utmSource ?? null,
+    utmMedium: t.utmMedium ?? null,
+    utmCampaign: t.utmCampaign ?? null,
+    utmTerm: t.utmTerm ?? null,
+    utmContent: t.utmContent ?? null,
+    landingPage: t.landingPage ?? null,
+    metadata: Object.keys(metadata).length ? (metadata as Prisma.InputJsonValue) : Prisma.JsonNull,
+    externalId: lead.externalId ?? null,
+    apiKeyId: ctx.apiKeyId,
+    requestId: ctx.requestId,
+  };
+}
+
+/** Identifiers and attribution only. A consumer that needs contact details reads them from the CRM. */
+function eventPayload(
+  row: { id: string; contactId: string; status: string; createdAt: Date },
+  lead: PushLead,
+  ctx: IngestContext
+): Record<string, unknown> {
+  return {
+    lead_id: row.id,
+    contact_id: row.contactId,
+    status: row.status,
+    source: lead.source,
+    lead_source: lead.leadSource,
+    external_id: lead.externalId ?? null,
+    campaign: lead.touch.campaign ?? lead.touch.utmCampaign ?? null,
+    campaign_id: lead.touch.campaignId ?? null,
+    adset_id: lead.touch.adsetId ?? null,
+    ad_id: lead.touch.adId ?? null,
+    gclid: lead.touch.gclid ?? null,
+    fbclid: lead.touch.fbclid ?? null,
+    created_at: row.createdAt.toISOString(),
+    api_key_id: ctx.apiKeyId,
+    request_id: ctx.requestId,
+  };
 }
 
 /** First-touch attribution in the shape the existing LeadAttribution writer expects. */

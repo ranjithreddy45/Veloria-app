@@ -26,6 +26,11 @@ interface ApiKeyItem {
   isActive: boolean;
   lastUsedAt: Date | string | null;
   createdAt: Date | string;
+  scopes?: string[];
+  source?: string | null;
+  expiresAt?: Date | string | null;
+  revokedAt?: Date | string | null;
+  rotatedFromId?: string | null;
 }
 
 interface Props {

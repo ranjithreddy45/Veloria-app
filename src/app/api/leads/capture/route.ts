@@ -33,6 +33,19 @@ export async function POST(request: NextRequest) {
     if (storedKey?.expiresAt && storedKey.expiresAt.getTime() <= Date.now()) {
       return NextResponse.json({ error: "API key has expired" }, { status: 401 });
     }
+    if (storedKey?.revokedAt) {
+      return NextResponse.json({ error: "Invalid or inactive API key" }, { status: 401 });
+    }
+    // A Push API key (one with scopes) must use /api/v1/push/leads. Otherwise a
+    // leaked push key could come in through this door and skip the Push API's
+    // rate limits, idempotency, source binding and audit trail. Legacy keys
+    // (no scopes) — every key issued for this endpoint — are unaffected.
+    if (storedKey && storedKey.scopes.length > 0) {
+      return NextResponse.json(
+        { error: "This is a Push API key. Send it to /api/v1/push/leads as Authorization: Bearer <key>." },
+        { status: 403 }
+      );
+    }
 
     if (!storedKey) {
       return NextResponse.json(
