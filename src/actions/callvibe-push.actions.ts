@@ -82,7 +82,7 @@ export async function bulkPushContactsToCallVibe(input: { ids: string[] }) {
     select: { id: true, phone: true },
   });
   const dialable = contacts.filter((c) => !undialable(c.phone)).map((c) => c.id);
-  const skipped = parsed.data.ids.length - dialable.length;
+  const skipped = contacts.length - dialable.length;
   if (dialable.length === 0) {
     return { success: false as const, error: "None of the selected contacts has a phone number CallVibe can dial" };
   }

@@ -287,7 +287,7 @@ describe("CallVibe push queue", () => {
     expect(await runNow(jobId!)).toBe("SUCCESS");
     expect(server.leads.get(`91${contact.phone}`)!.notes).toHaveLength(1);
     expect(await prisma.contact.findUniqueOrThrow({ where: { id: contact.id } })).toMatchObject({
-      callvibeNotedPhone: `+91${contact.phone}`,
+      callvibeNotedPhone: expect.stringMatching(new RegExp(`^\\+91${contact.phone}\\|`)),
       callvibeLastPushStatus: "SUCCESS",
     });
   });
@@ -309,6 +309,25 @@ describe("CallVibe push queue", () => {
     const contact = await makeContact({ ownerId: created.userId }); // owner isn't an agent
     expect(await runCallVibePushJob((await enqueueCallVibePush([contact.id], "manual"))[0]!)).toBe("SUCCESS");
     expect(server.leads.get(`91${contact.phone}`)!.assigned_to).toBe("Vikram Nair");
+  });
+
+  it("pushes unassigned, with a warning, when the agent list can't be read and no default is set", async () => {
+    server.setAgentListBody({ unexpected: true });
+    const contact = await makeContact({ ownerId: created.agentUserId });
+    expect(await runCallVibePushJob((await enqueueCallVibePush([contact.id], "manual"))[0]!)).toBe("SUCCESS");
+    const put = server.requests.find((r) => r.method === "PUT")!;
+    expect(put.body as object).not.toHaveProperty("assigned_to");
+    expect((await prisma.contact.findUniqueOrThrow({ where: { id: contact.id } })).callvibeLastPushError).toContain("Pushed unassigned");
+  });
+
+  it("a new enquiry from a returning customer gets its own context note", async () => {
+    const contact = await makeContact();
+    await runCallVibePushJob((await enqueueCallVibePush([contact.id], "manual"))[0]!);
+    await prisma.lead.create({ data: { title: `Birthday ${U}`, contactId: contact.id, createdById: created.userId, guestCount: 80 } });
+    await runCallVibePushJob((await enqueueCallVibePush([contact.id], "manual"))[0]!);
+    const notes = server.leads.get(`91${contact.phone}`)!.notes;
+    expect(notes).toHaveLength(2);
+    expect(notes[1]).toContain("Birthday");
   });
 
   it("gives up a job whose worker keeps dying instead of reclaiming it forever", async () => {

@@ -61,26 +61,42 @@ export async function enqueueCallVibePush(
   const keyToContact = new Map(existing.map((c) => [dedupeKeyFor(c.id), c.id]));
   const keys = [...keyToContact.keys()];
 
+  // Marked first, so a job that runs and settles before this function returns
+  // always has the last word on the contact's status.
+  await prisma.contact.updateMany({
+    where: { id: { in: existing.map((c) => c.id) }, deletedAt: null },
+    data: { callvibeLastPushStatus: "PENDING" },
+  });
+
   // One insert for every contact without a live job; the unique dedupeKey skips the rest.
   await prisma.callVibePushJob.createMany({
     data: keys.map((dedupeKey) => ({ contactId: keyToContact.get(dedupeKey)!, trigger, dedupeKey, requestedById: requestedById ?? null })),
     skipDuplicates: true,
   });
-  const live = await prisma.callVibePushJob.findMany({ where: { dedupeKey: { in: keys } }, select: { id: true, contactId: true } });
+  const live = await prisma.callVibePushJob.findMany({ where: { dedupeKey: { in: keys } }, select: { id: true } });
   await bringForward(live.map((j) => j.id));
 
-  // A job that settled between the insert and the lookup freed its key: queue those one by one.
-  const jobByContact = new Map(live.map((j) => [j.contactId, j.id]));
+  // A job that settled before bringForward reached it freed its key and never saw
+  // this request (a running job that settles after it sees rerunRequested instead).
+  // Re-read what's still live and queue the rest one by one.
+  const stillLive = await prisma.callVibePushJob.findMany({
+    where: { dedupeKey: { in: keys } },
+    select: { id: true, contactId: true },
+  });
+  const jobByContact = new Map(stillLive.map((j) => [j.contactId, j.id]));
+  const unqueued: string[] = [];
   for (const { id: contactId } of existing) {
     if (jobByContact.has(contactId)) continue;
     const jobId = await enqueueOne(contactId, trigger, requestedById ?? null);
     if (jobId) jobByContact.set(contactId, jobId);
+    else unqueued.push(contactId);
   }
-
-  await prisma.contact.updateMany({
-    where: { id: { in: [...jobByContact.keys()] }, deletedAt: null },
-    data: { callvibeLastPushStatus: "PENDING" },
-  });
+  if (unqueued.length > 0) {
+    await prisma.contact.updateMany({
+      where: { id: { in: unqueued }, callvibeLastPushStatus: "PENDING" },
+      data: { callvibeLastPushStatus: "FAILED", callvibeLastPushError: "Couldn't queue the push to CallVibe. Try again." },
+    });
+  }
   return [...jobByContact.values()];
 }
 
@@ -234,10 +250,19 @@ export async function runCallVibePushJob(jobId: string): Promise<string | null> 
   if (!job) return null; // its contact was deleted
 
   let outcome: PushOutcome;
-  const config = await getActiveCallVibeConfig();
+  let config: ActiveCallVibeConfig | null = null;
+  let configError = false;
+  try {
+    config = await getActiveCallVibeConfig();
+  } catch (e) {
+    configError = true;
+    console.error("[CallVibePush] couldn't read the CallVibe settings:", e instanceof Error ? e.message : "unknown");
+  }
   if (job.attempts > job.maxAttempts) {
     // Reclaimed after its worker died on every try.
     outcome = { ok: false, error: { kind: "server", retryable: false, message: "The push stopped responding repeatedly and was given up. Push the contact again to retry." } };
+  } else if (configError) {
+    outcome = { ok: false, error: { kind: "server", retryable: true, message: "Couldn't read the CallVibe settings. The push will retry." } };
   } else if (!config) {
     outcome = {
       ok: false,
@@ -381,9 +406,12 @@ export async function resolveAssignee(
   const { names, error } = await agentNames(creds);
   // CallVibe is busy or down: retry the push rather than guess an assignment.
   if (error) return { error };
-  // The list can't be read: send the configured default when there is one (it was
-  // chosen for CallVibe), else the owner, and let CallVibe reject it if it's wrong.
-  if (!names) return { assignedTo: fallback ?? owner! };
+  // The list can't be read: send the configured default (it was chosen for CallVibe).
+  // An unchecked CRM owner name could be rejected for good, so without one, leave it out.
+  if (!names) {
+    if (fallback) return { assignedTo: fallback };
+    return { warning: `Pushed unassigned: CallVibe's agent list couldn't be read, so ${owner} couldn't be checked. Set a default agent in the CallVibe settings.` };
+  }
   const find = (n: string | null) => (n ? names.find((a) => a.toLowerCase() === n.trim().toLowerCase()) : undefined);
 
   const ownerMatch = find(owner);
@@ -479,9 +507,11 @@ export async function pushContact(contactId: string, config: ActiveCallVibeConfi
 
   const warnings = assignee.warning ? [assignee.warning] : [];
 
-  // First push of this number: give the agent the context, once. Recorded as
-  // soon as it's added, so a retry never repeats it.
-  if (contact.callvibeNotedPhone !== e164) {
+  // First push of this number for this enquiry: give the agent the context, once.
+  // Recorded as soon as it's added, so a retry never repeats it.
+  // Keyed by number AND enquiry, so a returning customer's new enquiry gets its own note.
+  const noteKey = `${e164}|${lead?.id ?? "contact"}`;
+  if (contact.callvibeNotedPhone !== noteKey) {
     const context = [
       lead ? `Veloria enquiry: ${lead.title}` : "Contact from Veloria CRM",
       lead?.eventType ? `Event: ${lead.eventType}` : null,
@@ -491,7 +521,7 @@ export async function pushContact(contactId: string, config: ActiveCallVibeConfi
     ].filter(Boolean);
     const note = await addLeadNote(config.creds, e164, context.join(" · "));
     if (note.ok) {
-      await prisma.contact.updateMany({ where: { id: contact.id }, data: { callvibeNotedPhone: e164 } });
+      await prisma.contact.updateMany({ where: { id: contact.id }, data: { callvibeNotedPhone: noteKey } });
     } else if (note.error.retryable) {
       // The lead itself is saved; retrying re-sends the same upsert and then the note.
       return { ok: false, error: { ...note.error, message: `The lead is in CallVibe, but its context note didn't save yet: ${note.error.message}` } };

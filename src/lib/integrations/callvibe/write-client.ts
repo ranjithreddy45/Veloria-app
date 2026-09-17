@@ -94,7 +94,8 @@ export function toE164(raw: string | null | undefined): string | null {
   if (!canon.startsWith("+")) return null;
   const digits = canon.slice(1);
   if (!/^\d{8,15}$/.test(digits)) return null;
-  if (digits.startsWith("91") && !/^91[6-9]\d{9}$/.test(digits)) return null;
+  // +91 numbers are 10 digits; mobiles and landlines (with STD code) alike.
+  if (digits.startsWith("91") && !/^91[1-9]\d{9}$/.test(digits)) return null;
   return canon;
 }
 

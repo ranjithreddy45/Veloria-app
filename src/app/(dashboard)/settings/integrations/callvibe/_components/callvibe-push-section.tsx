@@ -129,8 +129,8 @@ export function CallVibePushSection({ initial }: { initial: CallVibePushSettings
             <p className="text-sm font-medium">Push new leads automatically</p>
             <p className="text-muted-foreground text-sm">
               Every new enquiry with a dialable phone number is sent to CallVibe as soon as it is saved:
-              web and ad leads, manual entry, web forms, referrals, the AI assistant, and open leads from a
-              sheet import.
+              web and ad leads, manual entry, web forms, referrals and the AI assistant. Sheet imports are
+              history and aren&apos;t pushed; select them on the contacts list to push them.
             </p>
           </div>
           <Switch id="callvibe-push-enabled" checked={pushEnabled} onCheckedChange={setPushEnabled} disabled={!connected} />

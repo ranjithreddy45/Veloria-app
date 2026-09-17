@@ -225,6 +225,8 @@ describe("agents and response parsing", () => {
     expect(toE164("9876543210")).toBe("+919876543210");
     expect(toE164("+971501234567")).toBe("+971501234567");
     expect(toE164("4155552671")).toBeNull();
+    expect(toE164("+91 80 4123 4567")).toBe("+918041234567"); // a Bengaluru landline
+    expect(toE164("+91 12345")).toBeNull();
     expect(toE164("12345")).toBeNull();
     expect(toE164(null)).toBeNull();
   });

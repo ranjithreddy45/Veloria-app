@@ -636,7 +636,7 @@ model Contact {
   // if CallVibe ever returns one (its responses are undocumented).
   callvibeLeadId         String?
   callvibePushedPhone    String?
-  /// The number the agent context note was last added to (retried on the next push if it failed).
+  /// "<E.164>|<lead id>" the agent context note was last added for (retried if it failed).
   callvibeNotedPhone     String?
   callvibeLastPushedAt   DateTime?
   /// SUCCESS | FAILED | PENDING
