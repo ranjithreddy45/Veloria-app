@@ -51,29 +51,42 @@ export async function enqueueCallVibePush(
   const jobIds: string[] = [];
 
   for (const { id: contactId } of existing) {
-    const dedupeKey = dedupeKeyFor(contactId);
-    try {
-      const job = await prisma.callVibePushJob.create({
-        data: { contactId, trigger, dedupeKey, requestedById: requestedById ?? null },
-        select: { id: true },
-      });
-      jobIds.push(job.id);
-    } catch (e) {
-      if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) throw e;
-      const live = await prisma.callVibePushJob.findUnique({ where: { dedupeKey }, select: { id: true, status: true } });
-      if (!live) continue;
-      // A waiting job runs now; a running one already reads the latest contact.
-      if (live.status !== "RUNNING") {
-        await prisma.callVibePushJob.updateMany({
-          where: { id: live.id, status: { in: ["PENDING", "RETRY"] } },
-          data: { nextRunAt: new Date() },
-        });
-      }
-      jobIds.push(live.id);
-    }
+    const jobId = await enqueueOne(contactId, trigger, requestedById ?? null);
+    if (jobId) jobIds.push(jobId);
     await prisma.contact.update({ where: { id: contactId }, data: { callvibeLastPushStatus: "PENDING" } });
   }
   return jobIds;
+}
+
+async function enqueueOne(contactId: string, trigger: CallVibePushTrigger, requestedById: string | null): Promise<string | null> {
+  const dedupeKey = dedupeKeyFor(contactId);
+  // Two passes: the live job can settle between our insert and our lookup.
+  for (let pass = 0; pass < 2; pass++) {
+    try {
+      const job = await prisma.callVibePushJob.create({
+        data: { contactId, trigger, dedupeKey, requestedById },
+        select: { id: true },
+      });
+      return job.id;
+    } catch (e) {
+      if (!(e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002")) throw e;
+    }
+    const live = await prisma.callVibePushJob.findUnique({ where: { dedupeKey }, select: { id: true } });
+    if (!live) continue;
+    // Waiting: run it now. It reads the contact when it runs, so it carries this edit.
+    const waiting = await prisma.callVibePushJob.updateMany({
+      where: { id: live.id, status: { in: ["PENDING", "RETRY"] } },
+      data: { nextRunAt: new Date() },
+    });
+    if (waiting.count === 1) return live.id;
+    // Running: it may already have read the contact, so push again once it settles.
+    const running = await prisma.callVibePushJob.updateMany({
+      where: { id: live.id, status: "RUNNING" },
+      data: { rerunRequested: true },
+    });
+    if (running.count === 1) return live.id;
+  }
+  return null;
 }
 
 /** Run jobs after the response is sent (or straight away outside a request). */
@@ -187,10 +200,12 @@ export async function runCallVibePushJob(jobId: string): Promise<string | null> 
     console.error(`[CallVibePush] job ${jobId} attempt ${job.attempts}: ${outcome.error!.kind}${retry ? " (will retry)" : ""}`);
   }
 
-  await prisma.callVibePushJob.update({
+  const settled = await prisma.callVibePushJob.update({
     where: { id: jobId },
+    select: { rerunRequested: true },
     data: {
       status,
+      rerunRequested: false,
       lockedUntil: null,
       lastError: message,
       lastStatus: outcome.error?.status ?? null,
@@ -217,6 +232,11 @@ export async function runCallVibePushJob(jobId: string): Promise<string | null> 
       where: { id: config.id },
       data: { lastPushAt: now, lastPushStatus: status === "RETRY" ? "FAILED" : status, lastPushError: message },
     });
+  }
+  // An edit arrived mid-run. A retry already re-reads the contact; a settled job needs a fresh one.
+  if (settled.rerunRequested && !retry) {
+    const next = await enqueueOne(job.contactId, job.trigger as CallVibePushTrigger, job.requestedById);
+    if (next) runCallVibePushJobsSoon([next]);
   }
   return status;
 }

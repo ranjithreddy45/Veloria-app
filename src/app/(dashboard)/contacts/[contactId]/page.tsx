@@ -175,6 +175,22 @@ export default async function ContactDetailPage({
         </div>
       </PageHeader>
 
+      {contact.callvibeLastPushError && (contact.callvibeLastPushStatus === "FAILED" || contact.callvibeLastPushStatus === "SUCCESS") && (
+        <p
+          role={contact.callvibeLastPushStatus === "FAILED" ? "alert" : undefined}
+          className={
+            contact.callvibeLastPushStatus === "FAILED"
+              ? "border-destructive/30 bg-destructive/5 text-destructive rounded-lg border px-3 py-2 text-sm break-words"
+              : "text-muted-foreground rounded-lg border px-3 py-2 text-sm break-words"
+          }
+        >
+          <span className="font-medium">
+            {contact.callvibeLastPushStatus === "FAILED" ? "CallVibe push failed: " : "Pushed to CallVibe, with a note: "}
+          </span>
+          {contact.callvibeLastPushError}
+        </p>
+      )}
+
       {/* Tabs */}
       <Tabs defaultValue="overview">
         {/* TabsList is `inline-flex w-fit` with nowrap triggers — five of them

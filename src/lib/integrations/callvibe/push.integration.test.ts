@@ -207,6 +207,29 @@ describe("CallVibe push queue", () => {
     expect(server.requests.filter((r) => r.method === "PUT")).toHaveLength(1);
   });
 
+  it("an edit that arrives while a push is running is pushed once that push settles", async () => {
+    const contact = await makeContact();
+    const [jobId] = await enqueueCallVibePush([contact.id], "manual");
+    // A worker holds the job.
+    await prisma.callVibePushJob.update({ where: { id: jobId! }, data: { status: "RUNNING", lockedUntil: new Date(Date.now() + 60_000) } });
+    await prisma.contact.update({ where: { id: contact.id }, data: { firstName: "Edited" } });
+    expect(await enqueueCallVibePush([contact.id], "manual")).toEqual([jobId]);
+    expect((await prisma.callVibePushJob.findUniqueOrThrow({ where: { id: jobId! } })).rerunRequested).toBe(true);
+
+    // The worker's lease runs out and the job is picked up and settles; a fresh job follows.
+    await prisma.callVibePushJob.update({ where: { id: jobId! }, data: { lockedUntil: new Date(Date.now() - 1000) } });
+    expect(await runCallVibePushJob(jobId!)).toBe("SUCCESS");
+    let jobs: { status: string }[] = [];
+    for (let i = 0; i < 40; i++) {
+      jobs = await prisma.callVibePushJob.findMany({ where: { contactId: contact.id }, orderBy: { createdAt: "asc" } });
+      if (jobs.length === 2 && jobs[1]!.status === "SUCCESS") break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    expect(jobs.map((j) => j.status)).toEqual(["SUCCESS", "SUCCESS"]);
+    expect(server.requests.filter((r) => r.method === "PUT")).toHaveLength(2);
+    expect([...server.leads.values()][0]!.name).toBe(`Edited Push${U}`);
+  });
+
   it("re-authenticates once when the session has expired", async () => {
     const one = await makeContact();
     const two = await makeContact();

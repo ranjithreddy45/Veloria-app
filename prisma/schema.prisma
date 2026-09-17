@@ -4214,6 +4214,8 @@ model CallVibePushJob {
   lastError   String?   @db.Text
   lastStatus  Int?
   dedupeKey   String?   @unique
+  /// Another push was asked for while this one was running: queue it once this settles.
+  rerunRequested Boolean @default(false)
   requestedById String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
