@@ -53,7 +53,7 @@ export function LeadQuickActions({
     try {
       const result = await sendLeadToCallVibe(leadId);
       if (result.success) {
-        toast.success("Sent to CallVibe. It's in the agent's list to call.");
+        toast.success("Queued for CallVibe. Its status shows on the contact.");
       } else {
         toast.error(result.error || "Could not send this lead to CallVibe.");
       }
