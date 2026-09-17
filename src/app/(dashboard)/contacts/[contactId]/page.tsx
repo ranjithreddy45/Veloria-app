@@ -42,6 +42,7 @@ import { Contact360Timeline } from "./_components/contact-360-timeline";
 import { MacroButton } from "@/components/shared/macro-button";
 import { ContactDeleteButton } from "./_components/contact-delete-button";
 import { HostInviteButton } from "./_components/host-invite-button";
+import { CallVibePushButton } from "./_components/callvibe-push-button";
 import { AIEmailComposer } from "@/components/ai/ai-email-composer";
 import { WhatsAppQuickSendDialog } from "@/components/shared/whatsapp-quick-send-dialog";
 import { SmartSuggestions } from "@/components/ai/smart-suggestions";
@@ -154,6 +155,12 @@ export default async function ContactDetailPage({
             contactPhone={contact.phone}
           />
           <MacroButton entityType="CONTACT" entityId={contact.id} />
+          <CallVibePushButton
+            contactId={contact.id}
+            status={contact.callvibeLastPushStatus ?? null}
+            lastPushedAt={contact.callvibeLastPushedAt ?? null}
+            error={contact.callvibeLastPushError ?? null}
+          />
           {contact.email && <HostInviteButton contactId={contact.id} />}
           <Button variant="outline" asChild>
             <Link href={`/contacts/${contact.id}/edit`}>

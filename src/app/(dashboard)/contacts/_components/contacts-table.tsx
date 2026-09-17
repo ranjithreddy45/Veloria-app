@@ -14,6 +14,7 @@ import {
   MailIcon,
   PhoneIcon,
   MessageCircle,
+  PhoneForwarded,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,6 +47,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { deleteContact } from "@/actions/contact.actions";
 import { bulkDeleteContacts, bulkUpdateContacts } from "@/actions/bulk.actions";
+import { bulkPushContactsToCallVibe } from "@/actions/callvibe-push.actions";
 import { exportContacts } from "@/actions/export.actions";
 import { toCSV, downloadCSV } from "@/lib/csv-export";
 import { BulkWhatsAppDialog } from "@/components/shared/bulk-whatsapp-dialog";
@@ -538,6 +540,18 @@ export function ContactsTable({ data }: ContactsTableProps) {
         onClick: async (ids: string[]) => {
           setBulkWhatsAppIds(ids);
           setBulkWhatsAppOpen(true);
+        },
+      },
+      {
+        id: "push-callvibe",
+        label: "Push to CallVibe",
+        icon: PhoneForwarded,
+        onClick: async (ids: string[]) => {
+          const result = await bulkPushContactsToCallVibe({ ids });
+          if (result.success) {
+            toast.success(`Queued ${result.queued} contact(s) for CallVibe`);
+            router.refresh();
+          } else toast.error(result.error);
         },
       },
       {
