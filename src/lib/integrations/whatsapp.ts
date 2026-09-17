@@ -438,63 +438,23 @@ export async function testWhatsAppConnection(
 
 export const WHATSAPP_TEMPLATES = [
   {
-    name: "booking_confirmation",
-    label: "Booking Confirmation",
-    params: ["customerName", "eventDate", "venueName"],
+    name: "winback_event_proximity",
+    label: "Winback Event Proximity",
+    params: ["customerName"],
   },
   {
-    name: "review_request",
-    label: "Review Request",
-    params: ["customerName", "eventName", "reviewLink"],
+    name: "message_1",
+    label: "Message 1",
+    params: ["customerName"],
   },
   {
-    name: "payment_reminder",
-    label: "Payment Reminder",
-    params: ["customerName", "amount", "dueDate"],
+    name: "thank_you_static",
+    label: "Thank You (Static)",
+    params: [],
   },
   {
-    name: "event_reminder",
-    label: "Event Reminder",
-    params: ["customerName", "eventDate", "eventTime"],
-  },
-  {
-    name: "thank_you",
-    label: "Thank You",
-    params: ["customerName", "eventType"],
-  },
-  {
-    name: "quote_sent",
-    label: "Quote Sent",
-    params: ["customerName", "quoteNumber"],
-  },
-  {
-    name: "guest_invitation",
-    label: "Guest Invitation",
-    params: ["guestName", "eventName", "eventDate", "eventTime", "venueName", "hostName", "rsvpLink"],
-  },
-  {
-    name: "save_the_date",
-    label: "Save the Date",
-    params: ["guestName", "eventName", "eventDate", "venueName", "daysUntil"],
-  },
-  {
-    name: "excitement_builder",
-    label: "Excitement Builder",
-    params: ["guestName", "eventName", "eventDate", "daysUntil"],
-  },
-  {
-    name: "final_countdown",
-    label: "Final Countdown",
-    params: ["guestName", "eventName", "eventDate", "eventTime", "venueName"],
-  },
-  {
-    name: "tomorrow_reminder",
-    label: "Tomorrow Reminder",
-    params: ["guestName", "eventName", "eventTime", "venueName", "dressCode"],
-  },
-  {
-    name: "day_of_welcome",
-    label: "Day-Of Welcome",
-    params: ["guestName", "eventName", "eventTime", "venueName", "parkingInfo"],
+    name: "first_message",
+    label: "First Message",
+    params: [],
   },
 ] as const;
