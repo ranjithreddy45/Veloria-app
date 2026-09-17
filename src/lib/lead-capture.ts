@@ -107,6 +107,12 @@ interface ExternalLeadData {
   email?: string;
   phone?: string;
   source: string;
+  /**
+   * The exact LeadSource to store, when the caller already knows it (the Push
+   * API validates a source slug against its own map). Omitted by every older
+   * caller, which keeps getting mapSource(source) exactly as before.
+   */
+  leadSource?: string;
   message?: string;
   eventType?: string;
   eventDate?: string;
@@ -466,7 +472,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     let score = 0;
     try {
       score = calculateLeadScore({
-        source: mapSource(data.source),
+        source: (data.leadSource ?? mapSource(data.source)),
         guestCount: data.guestCount,
         eventDate: data.eventDate ? new Date(data.eventDate) : null,
         estimatedValue,
@@ -503,7 +509,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           .filter(Boolean)
           .join(" "),
         status: "NEW",
-        source: mapSource(data.source) as any,
+        source: (data.leadSource ?? mapSource(data.source)) as any,
         score,
         eventType: data.eventType || null,
         eventDate: data.eventDate ? new Date(data.eventDate) : null,
@@ -615,7 +621,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       // Check for auto-welcome config
       try {
         const welcomeConfig = await prisma.autoWelcomeConfig.findUnique({
-          where: { leadSource: mapSource(data.source) as any },
+          where: { leadSource: (data.leadSource ?? mapSource(data.source)) as any },
         });
 
         if (welcomeConfig?.isEnabled && contact.phone) {

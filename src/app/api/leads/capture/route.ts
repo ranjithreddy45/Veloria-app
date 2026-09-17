@@ -28,6 +28,12 @@ export async function POST(request: NextRequest) {
       where: { keyHash, isActive: true },
     });
 
+    // Keys can now carry an expiry (set when minting a Push API key). Every key
+    // issued before that has none, so nothing that works today stops working.
+    if (storedKey?.expiresAt && storedKey.expiresAt.getTime() <= Date.now()) {
+      return NextResponse.json({ error: "API key has expired" }, { status: 401 });
+    }
+
     if (!storedKey) {
       return NextResponse.json(
         { error: "Invalid or inactive API key" },

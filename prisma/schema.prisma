@@ -756,6 +756,11 @@ model Lead {
   @@index([leadQuality, qualifiedAt])
   @@index([qlUploadStatus])
   @@index([bookingUploadStatus])
+
+  // Push API (/api/v1/push/*): external ids that resolve to this lead, and every
+  // marketing touch it arrived through. Relations only — no columns on Lead.
+  externalRefs LeadExternalRef[]
+  touches      LeadTouch[]
 }
 
 // ============================================================
@@ -4079,6 +4084,19 @@ model ApiKey {
 
   createdById String
   createdBy   User   @relation("UserApiKeys", fields: [createdById], references: [id])
+
+  // Push API. All additive, so every key minted before these existed keeps
+  // working on /api/leads/capture exactly as it did. An empty scope list grants
+  // NOTHING on /api/v1/push/* — a push key has to be granted "leads:create".
+  scopes        String[]  @default([])
+  /// The system that holds this key ("meta_ads", "website", "partner:acme").
+  source        String?
+  expiresAt     DateTime?
+  revokedAt     DateTime?
+  /// Set on the replacement key when an old one is rotated.
+  rotatedFromId String?
+
+  idempotencyRecords PushIdempotencyRecord[]
 
   @@index([keyHash])
   @@index([isActive])
@@ -7744,6 +7762,151 @@ model LeadAttribution {
   @@index([campaignId])
   @@index([gadsCampaignId])
   @@index([gclid])
+}
+
+// ============================================================
+// Push API — authorised external systems pushing data into the CRM.
+// ------------------------------------------------------------
+// Lead creation itself is NOT here: /api/v1/push/leads hands the lead to
+// captureLeadFromExternal (src/lib/lead-capture.ts), the same function every
+// webhook uses, so contact matching, assignment, scoring, consent and the
+// intake workflows can never differ between channels. These tables only carry
+// what that function has no home for.
+// ============================================================
+
+/// (source, externalId) → lead. The indexed replacement for looking for an
+/// "[ext:…]" marker inside Lead.description, which stays in place for the
+/// webhooks that still rely on it.
+model LeadExternalRef {
+  id         String   @id @default(cuid())
+  source     String
+  externalId String
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  apiKeyId   String?
+  createdAt  DateTime @default(now())
+
+  @@unique([source, externalId])
+  @@index([leadId])
+}
+
+/// One row per Idempotency-Key, per API key. A retry with the same body gets the
+/// stored response back; the same key with a different body is refused.
+model PushIdempotencyRecord {
+  id             String   @id @default(cuid())
+  apiKeyId       String
+  apiKey         ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  idempotencyKey String
+  /// SHA-256 of the canonical JSON body.
+  requestHash    String
+  /// PROCESSING while the first request is in flight, then COMPLETED.
+  state          String   @default("PROCESSING")
+  responseStatus Int?
+  responseBody   Json?
+  resourceType   String?
+  resourceId     String?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([apiKeyId, idempotencyKey])
+  @@index([expiresAt])
+}
+
+/// Fixed-window request counters. Kept in Postgres rather than in memory
+/// because production runs several app instances, and an in-memory counter
+/// would let each of them admit the full limit.
+model PushRateLimitCounter {
+  id          String   @id @default(cuid())
+  apiKeyId    String
+  /// "minute" | "hour"
+  window      String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@unique([apiKeyId, window, windowStart])
+  @@index([windowStart])
+}
+
+/// Audit trail: one row per request, success or failure. Deliberately holds no
+/// request body, no Authorization header and no phone number or email.
+model PushApiRequestLog {
+  id             String   @id @default(cuid())
+  requestId      String   @unique
+  apiKeyId       String?
+  apiKeyPrefix   String?
+  source         String?
+  endpoint       String
+  method         String
+  /// SHA-256 of the client IP (salted), never the raw address.
+  ipHash         String?
+  userAgent      String?
+  /// created | updated | duplicate | replayed | rejected | error
+  outcome        String
+  responseStatus Int
+  errorCode      String?
+  leadId         String?
+  externalId     String?
+  durationMs     Int
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([apiKeyId, createdAt])
+  @@index([outcome, createdAt])
+  @@index([leadId])
+}
+
+/// Every marketing touch a lead arrived through, newest last. First touch stays
+/// in LeadAttribution and is never overwritten; the latest row here is the last
+/// touch. metadata takes any extra ad-platform parameter without a migration.
+model LeadTouch {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  channel     String
+  source      String?
+  medium      String?
+  campaign    String?
+  campaignId  String?
+  adset       String?
+  adsetId     String?
+  adId        String?
+  creative    String?
+  keyword     String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmTerm     String?
+  utmContent  String?
+  landingPage String?
+  metadata    Json?
+  externalId  String?
+  apiKeyId    String?
+  requestId   String?
+  createdAt   DateTime @default(now())
+
+  @@index([leadId, createdAt])
+}
+
+/// Outbox for internal domain events ("lead.created"). Written after the lead
+/// is saved and never sent anywhere inside the request, so a slow or failing
+/// consumer (Google Ads, Meta CAPI, BI) can never cost a lead.
+model IntegrationEvent {
+  id           String    @id @default(cuid())
+  type         String
+  resourceType String
+  resourceId   String
+  payload      Json
+  /// PENDING until a consumer claims it.
+  status       String    @default("PENDING")
+  attempts     Int       @default(0)
+  lastError    String?
+  processedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([type, createdAt])
+  @@index([resourceType, resourceId])
 }
 
 // Google Ads offline-conversion config (single row, id = "singleton").
