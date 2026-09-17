@@ -92,11 +92,16 @@ describe("L4 — the audit IP is the one our proxy wrote", () => {
 });
 
 describe("HTTPS only", () => {
-  it("refuses a request a proxy says arrived over plain HTTP", () => {
-    expect(arrivedOverHttps(new Headers({ "x-forwarded-proto": "http" }))).toBe(false);
-    expect(arrivedOverHttps(new Headers({ "x-forwarded-proto": "https" }))).toBe(true);
-    expect(arrivedOverHttps(new Headers({ "x-forwarded-proto": "https, http" }))).toBe(true);
-    expect(arrivedOverHttps(new Headers())).toBe(true);
+  it("with a trusted proxy, refuses a request it says arrived over plain HTTP", () => {
+    expect(arrivedOverHttps(new Headers({ "x-forwarded-proto": "http" }), true)).toBe(false);
+    expect(arrivedOverHttps(new Headers({ "x-forwarded-proto": "https" }), true)).toBe(true);
+    expect(arrivedOverHttps(new Headers({ "x-forwarded-proto": "https, http" }), true)).toBe(true);
+    expect(arrivedOverHttps(new Headers(), true)).toBe(true);
+  });
+  it("without a trusted proxy, never rejects — production regression: Next.js fills in 'http' itself", () => {
+    // This exact header reached the app for EVERY genuine HTTPS request in
+    // production (Apache doesn't set it; Next.js did), so all were refused.
+    expect(arrivedOverHttps(new Headers({ "x-forwarded-proto": "http" }), false)).toBe(true);
   });
 });
 

@@ -128,7 +128,7 @@ export function buildOpenApiDocument(serverUrl: string) {
       description: [
         "Push leads from authorised external systems (ad platforms, the website, partners) into the Veloria Grand CRM.",
         "",
-        "**HTTPS only.** A request that reaches the server over plain HTTP is refused with `403 HTTPS_REQUIRED`.",
+        "**HTTPS.** Always call the API over `https://`. Requests made over plain HTTP may be refused with `403 HTTPS_REQUIRED`.",
         "",
         "**Authentication.** `Authorization: Bearer vg_live_…`. Keys are issued in Settings → Integrations → Lead Capture and shown once. A key must be granted `leads:create`; `leads:update` additionally lets a repeat push fill in an existing lead. `401 UNAUTHORIZED` = key missing or unknown. `403 API_KEY_REVOKED`, `403 API_KEY_EXPIRED`, `403 INSUFFICIENT_SCOPE`; `403 SOURCE_NOT_ALLOWED` when the key was issued for a source and the body's `source` is different. Too many failed authentication attempts from one IP address return `429 TOO_MANY_FAILED_ATTEMPTS` with `Retry-After`.",
         "",

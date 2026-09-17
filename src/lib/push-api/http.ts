@@ -81,11 +81,16 @@ export function clientIp(headers: Headers): string | null {
 }
 
 /**
- * False only when a proxy tells us the request arrived over plain HTTP.
- * Apache/Cloudflare terminate TLS and set X-Forwarded-Proto; with no header at
- * all (a direct local call) there is nothing to judge, so it is allowed.
+ * False only when a TRUSTED proxy says the request arrived over plain HTTP.
+ *
+ * `trust` must only be true when the web server in front of the app sets
+ * X-Forwarded-Proto from the real client connection. Without that, the header
+ * is either absent (and Next.js fills in "http" from its own connection to the
+ * proxy — every HTTPS request then looks like HTTP) or client-supplied, so
+ * nothing about the scheme can be concluded and the request is allowed.
  */
-export function arrivedOverHttps(headers: Headers): boolean {
+export function arrivedOverHttps(headers: Headers, trust: boolean): boolean {
+  if (!trust) return true;
   const proto = headers.get("x-forwarded-proto");
   if (!proto) return true;
   return proto.split(",")[0]!.trim().toLowerCase() === "https";

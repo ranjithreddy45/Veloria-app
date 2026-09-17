@@ -103,7 +103,7 @@ export function createPushEndpoint<T>(def: PushEndpoint<T>) {
     };
 
     try {
-      if (!arrivedOverHttps(req.headers)) {
+      if (!arrivedOverHttps(req.headers, config.trustForwardedProto)) {
         throw new PushApiError("HTTPS_REQUIRED", "The Push API only accepts HTTPS requests.");
       }
       if (!config.enabled) {

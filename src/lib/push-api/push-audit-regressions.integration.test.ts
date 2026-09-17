@@ -431,10 +431,22 @@ describe("Low and spec gaps", () => {
     expect(lead.contact.email).toBe(`fill.${U}@example.com`);
   }, T);
 
-  it("HTTPS only: a request that arrived over plain HTTP is refused", async () => {
-    const r = await push({ source: "website", phone: ph(850) }, { headers: { "x-forwarded-proto": "http" } });
-    expect(r.status).toBe(403);
-    expect(r.json.error.code).toBe("HTTPS_REQUIRED");
+  it("HTTPS only: with a trusted proxy, a request that arrived over plain HTTP is refused", async () => {
+    const previous = process.env.PUSH_API_TRUST_FORWARDED_PROTO;
+    process.env.PUSH_API_TRUST_FORWARDED_PROTO = "true";
+    try {
+      const r = await push({ source: "website", phone: ph(850) }, { headers: { "x-forwarded-proto": "http" } });
+      expect(r.status).toBe(403);
+      expect(r.json.error.code).toBe("HTTPS_REQUIRED");
+    } finally {
+      process.env.PUSH_API_TRUST_FORWARDED_PROTO = previous;
+    }
+  }, T);
+
+  it("HTTPS (production regression): without a trusted proxy, x-forwarded-proto: http is NOT rejected", async () => {
+    delete process.env.PUSH_API_TRUST_FORWARDED_PROTO;
+    const r = await push({ source: "website", name: "Proto", phone: ph(851) }, { headers: { "x-forwarded-proto": "http" } });
+    expect(r.status).toBe(201);
   }, T);
 
   it("L7: a Meta push reaches capture as facebook_ads, the name assignment rules use", async () => {

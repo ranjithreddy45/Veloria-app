@@ -33,6 +33,14 @@ export interface PushApiConfig {
   idempotencyLeaseSeconds: number;
   /** Days an internal event is kept in the outbox. */
   eventRetentionDays: number;
+  /**
+   * Reject requests whose X-Forwarded-Proto says "http". Only meaningful when
+   * the web server in front of the app SETS that header from the real client
+   * connection. Off by default: Apache here doesn't set it, and Next.js then
+   * fills it with "http" from its own local connection — which made every
+   * genuine HTTPS request look like plain HTTP.
+   */
+  trustForwardedProto: boolean;
 }
 
 export function pushApiConfig(): PushApiConfig {
@@ -53,6 +61,7 @@ export function pushApiConfig(): PushApiConfig {
     failedAuthPerMinute: intEnv("PUSH_API_FAILED_AUTH_PER_MINUTE", 30),
     idempotencyLeaseSeconds: intEnv("PUSH_API_IDEMPOTENCY_LEASE_SECONDS", 120, 10),
     eventRetentionDays: intEnv("PUSH_API_EVENT_RETENTION_DAYS", 90),
+    trustForwardedProto: (process.env.PUSH_API_TRUST_FORWARDED_PROTO ?? "false").trim().toLowerCase() === "true",
   };
 }
 
