@@ -102,6 +102,8 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
     : 0;
   // Empty "Facebook Lead" placeholders (name "Facebook Lead", no phone/email) —
   // offer a one-click removal, admin only, and only while some exist.
+  const canPushToCallVibe =
+    !!session?.user?.role && hasPermission(session.user.role, "contacts:update");
   const canDeleteContacts =
     !!session?.user?.role && hasPermission(session.user.role, "contacts:delete");
   const emptyFbCount = canDeleteContacts
@@ -259,7 +261,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
             />
           </div>
           <div className="animate-rise-in animate-stagger-2">
-            <ContactsTable data={contacts} />
+            <ContactsTable data={contacts} canPushToCallVibe={canPushToCallVibe} />
           </div>
         </>
       )}

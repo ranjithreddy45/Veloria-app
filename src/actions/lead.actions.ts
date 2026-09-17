@@ -25,6 +25,7 @@ import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
 import { pushLeadToWeflux } from "@/lib/integrations/weflux-crm";
+import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
 import { after } from "next/server";
 // LeadStatus enum values matching Prisma schema
 type LeadStatus = "NEW" | "NOT_CONNECTED" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
@@ -520,6 +521,9 @@ export async function createLead(data: LeadInput & { images?: string[] }) {
         console.error("[LEAD_INTAKE_ERROR]", e);
       }
     });
+
+    // Queue the new lead for CallVibe when auto-push is on. Never throws.
+    scheduleAutoPushToCallVibe(lead.contactId);
 
     // Mirror manually-created leads into Weflux (creates the contact there so
     // Weflux can message/automate it). Non-blocking; needs the phone (the join

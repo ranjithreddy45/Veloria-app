@@ -17,6 +17,7 @@ import {
   Loader2Icon,
   ChevronDownIcon,
   FilterIcon,
+  PhoneForwardedIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -87,6 +88,11 @@ const TYPE_CONFIG: Record<
     icon: CheckSquareIcon,
     color: "bg-teal-100 text-teal-700 border-teal-200",
     label: "Task",
+  },
+  callvibe: {
+    icon: PhoneForwardedIcon,
+    color: "bg-cyan-100 text-cyan-700 border-cyan-200",
+    label: "CallVibe",
   },
 };
 

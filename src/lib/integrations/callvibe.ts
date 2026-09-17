@@ -47,7 +47,8 @@ export interface CallVibeResult<T> {
   status?: number;
 }
 
-function apiBase(baseUrl?: string | null): string {
+/** Shared with the write client (src/lib/integrations/callvibe/write-client.ts). */
+export function apiBase(baseUrl?: string | null): string {
   const raw = (baseUrl || "").trim().replace(/\/+$/, "");
   return raw || DEFAULT_BASE;
 }
@@ -141,7 +142,8 @@ async function signIn(creds: CallVibeCreds): Promise<CachedToken> {
   };
 }
 
-async function tokenFor(creds: CallVibeCreds): Promise<string> {
+/** Shared with the write client: one signed-in session per account, per process. */
+export async function tokenFor(creds: CallVibeCreds): Promise<string> {
   const key = cacheKey(creds);
   const hit = tokenCache.get(key);
   if (hit && hit.expiresAt > Date.now()) return hit.token;

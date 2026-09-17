@@ -8,6 +8,7 @@ import { logActivity } from "@/lib/activity-logger";
 import { utcDayRange } from "@/lib/sales/slot-util";
 import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
 import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
+import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
 
 // ============================================================
 // Tool execution context — who is asking, and from where
@@ -1088,6 +1089,8 @@ async function createLeadEnquiryTool(
     entityId: lead.id,
     changes: { via: "Veloria AI", contactCreated },
   });
+  // Queue the new lead for CallVibe when auto-push is on. Never throws.
+  scheduleAutoPushToCallVibe(contact.id);
 
   return JSON.stringify({
     success: true,

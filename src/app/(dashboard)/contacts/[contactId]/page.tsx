@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 
 import { getContact } from "@/actions/contact.actions";
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +44,7 @@ import { Contact360Timeline } from "./_components/contact-360-timeline";
 import { MacroButton } from "@/components/shared/macro-button";
 import { ContactDeleteButton } from "./_components/contact-delete-button";
 import { HostInviteButton } from "./_components/host-invite-button";
+import { CallVibePushButton } from "./_components/callvibe-push-button";
 import { AIEmailComposer } from "@/components/ai/ai-email-composer";
 import { WhatsAppQuickSendDialog } from "@/components/shared/whatsapp-quick-send-dialog";
 import { SmartSuggestions } from "@/components/ai/smart-suggestions";
@@ -73,10 +76,12 @@ export default async function ContactDetailPage({
   params,
 }: ContactDetailPageProps) {
   const { contactId } = await params;
-  const [result, venuesResult] = await Promise.all([
+  const [result, venuesResult, session] = await Promise.all([
     getContact(contactId),
     getVenues({ activeOnly: true }),
+    auth(),
   ]);
+  const canPushToCallVibe = !!session?.user?.role && hasPermission(session.user.role, "contacts:update");
 
   if (!result.success || !result.data) {
     notFound();
@@ -154,6 +159,14 @@ export default async function ContactDetailPage({
             contactPhone={contact.phone}
           />
           <MacroButton entityType="CONTACT" entityId={contact.id} />
+          {canPushToCallVibe && (
+            <CallVibePushButton
+              contactId={contact.id}
+              status={contact.callvibeLastPushStatus ?? null}
+              lastPushedAt={contact.callvibeLastPushedAt ?? null}
+              error={contact.callvibeLastPushError ?? null}
+            />
+          )}
           {contact.email && <HostInviteButton contactId={contact.id} />}
           <Button variant="outline" asChild>
             <Link href={`/contacts/${contact.id}/edit`}>
@@ -167,6 +180,22 @@ export default async function ContactDetailPage({
           />
         </div>
       </PageHeader>
+
+      {contact.callvibeLastPushError && (contact.callvibeLastPushStatus === "FAILED" || contact.callvibeLastPushStatus === "SUCCESS") && (
+        <p
+          role={contact.callvibeLastPushStatus === "FAILED" ? "alert" : undefined}
+          className={
+            contact.callvibeLastPushStatus === "FAILED"
+              ? "border-destructive/30 bg-destructive/5 text-destructive rounded-lg border px-3 py-2 text-sm break-words"
+              : "text-muted-foreground rounded-lg border px-3 py-2 text-sm break-words"
+          }
+        >
+          <span className="font-medium">
+            {contact.callvibeLastPushStatus === "FAILED" ? "CallVibe push failed: " : "Pushed to CallVibe, with a note: "}
+          </span>
+          {contact.callvibeLastPushError}
+        </p>
+      )}
 
       {/* Tabs */}
       <Tabs defaultValue="overview">

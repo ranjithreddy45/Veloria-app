@@ -629,6 +629,20 @@ model Contact {
   callLogs           CallLog[]
   salesQuotations    SalesQuotation[]
   reviewRequests     ReviewRequest[]
+  callVibePushJobs   CallVibePushJob[]
+
+  // CallVibe write side (lead push). CallVibe keys leads by phone, so the phone
+  // we last pushed under is what identifies the lead there; the id is kept only
+  // if CallVibe ever returns one (its responses are undocumented).
+  callvibeLeadId         String?
+  callvibePushedPhone    String?
+  /// "<E.164>|<lead id>" the agent context note was last added for (retried if it failed).
+  callvibeNotedPhone     String?
+  callvibeLastPushedAt   DateTime?
+  /// SUCCESS | FAILED | PENDING
+  callvibeLastPushStatus String?
+  callvibeLastPushError  String?   @db.Text
+
   corporateAccountId String?
   corporateAccount   CorporateAccount? @relation("ContactCorporateAccount")
   enquiryVenue       Venue?            @relation("ContactEnquiryVenue", fields: [enquiryVenueId], references: [id])
@@ -4160,6 +4174,18 @@ model CallVibeConfig {
   lastSyncAt   DateTime?
   lastSyncNote String?   @db.Text
 
+  // Lead push (write side). Off until someone turns it on.
+  /// Push every newly created lead's contact to CallVibe automatically.
+  pushEnabled         Boolean   @default(false)
+  /// CallVibe agent a pushed lead is assigned to when its CRM lead has no owner.
+  pushDefaultAssignee String?
+  /// Written to custom_fields.calling_list on every pushed lead.
+  pushCallingList     String?
+  lastPushAt          DateTime?
+  /// SUCCESS | FAILED
+  lastPushStatus      String?
+  lastPushError       String?   @db.Text
+
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -4168,6 +4194,39 @@ model CallVibeConfig {
   createdBy   User   @relation("UserCallVibeConfigs", fields: [createdById], references: [id])
 
   @@index([isActive])
+}
+
+/// One queued push of a contact to CallVibe. Attempted straight after the
+/// request that queued it, then retried with backoff by the fast cron lane.
+/// dedupeKey holds the contact id while a push is outstanding, so a contact
+/// never has two pushes queued at once; it is cleared when the job finishes.
+model CallVibePushJob {
+  id          String    @id @default(cuid())
+  contactId   String
+  contact     Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  /// manual | bulk | auto | lead_button
+  trigger     String
+  /// PENDING | RUNNING | RETRY | SUCCESS | FAILED
+  status      String    @default("PENDING")
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(6)
+  nextRunAt   DateTime  @default(now())
+  /// A running attempt's lease; an expired lease means the worker died.
+  lockedUntil DateTime?
+  lastError   String?   @db.Text
+  lastStatus  Int?
+  dedupeKey   String?   @unique
+  /// Another push was asked for while this one was running: queue it once this settles.
+  rerunRequested Boolean @default(false)
+  /// Token of the attempt holding the lease; a finish only counts if it still matches.
+  leaseId        String?
+  requestedById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([status, nextRunAt])
+  @@index([contactId, createdAt])
 }
 
 model TelephonyConfig {

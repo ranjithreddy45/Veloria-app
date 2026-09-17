@@ -11,6 +11,7 @@ import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { attachAttributionToLead, type AttributionInput } from "@/lib/attribution";
 import { pushLeadToWeflux } from "@/lib/integrations/weflux-crm";
+import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
 import { normalizePhone } from "@/lib/sales/lead-import";
 import { coarseContactWhere, matchesContactKey, phoneDigits } from "@/lib/dedup";
 import { toEnquirySource, eventTypeTag, classifyWebChannel } from "@/lib/enquiry-source";
@@ -810,6 +811,10 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       value: estimatedValue ?? undefined,
       currency: "INR",
     }).catch(() => {});
+
+    // Queue the new lead for CallVibe when "Push new leads automatically" is on.
+    // Runs after the response and never throws — CallVibe can't fail a capture.
+    scheduleAutoPushToCallVibe(contact.id);
 
     return { success: true, leadId: lead.id, contactId: contact.id };
   } catch (error) {
