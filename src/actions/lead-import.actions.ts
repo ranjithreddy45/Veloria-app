@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
 import { revalidatePath } from "next/cache";
+import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
 import {
   type RawLeadRow,
   mapLeadStatus,
@@ -107,6 +108,8 @@ export async function importSalesLeads(
       return hit?.id ?? null;
     };
 
+    // Contacts of imported OPEN leads, queued for CallVibe once the import commits.
+    const openLeadContactIds = new Set<string>();
     const summary: ImportSummary = {
       imported: 0,
       contactsCreated: 0,
@@ -206,11 +209,16 @@ export async function importSalesLeads(
               ...(enquiry ? { createdAt: enquiry } : {}),
             },
           });
+          const importedStatus = mapLeadStatus(r.status);
+          if (importedStatus !== "WON" && importedStatus !== "LOST") openLeadContactIds.add(contactId);
           summary.imported++;
         }
       },
       { timeout: 30000 }
     );
+
+    // Auto-push (when on) skips won/lost history. Never throws.
+    if (openLeadContactIds.size > 0) scheduleAutoPushToCallVibe([...openLeadContactIds]);
 
     revalidatePath("/leads");
     revalidatePath("/contacts");

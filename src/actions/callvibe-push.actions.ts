@@ -29,6 +29,15 @@ async function requireSession(permission: string) {
   return { error: null, userId: session.user.id as string };
 }
 
+/** Why CallVibe can't take this number, or null when it can. */
+function undialable(phone: string | null): string | null {
+  if (!phone) return "This contact has no phone number, and CallVibe needs one.";
+  if (!toE164(phone)) {
+    return `"${phone}" isn't a phone number CallVibe can dial. Save it with the country code, e.g. +91 98765 43210.`;
+  }
+  return null;
+}
+
 // ---- pushing contacts --------------------------------------------------
 
 /** "Push to CallVibe" on a contact. */
@@ -36,6 +45,11 @@ export async function pushContactToCallVibe(contactId: string) {
   const gate = await requireSession("contacts:update");
   if (gate.error) return { success: false as const, error: gate.error };
   if (!(await getActiveCallVibeConfig())) return { success: false as const, error: NOT_CONNECTED };
+
+  const contact = await prisma.contact.findFirst({ where: { id: contactId, deletedAt: null }, select: { phone: true } });
+  if (!contact) return { success: false as const, error: "Contact not found" };
+  const phoneError = undialable(contact.phone);
+  if (phoneError) return { success: false as const, error: phoneError };
 
   const res = await pushContactsToCallVibe([contactId], "manual", gate.userId);
   if (res.error) return { success: false as const, error: res.error };
@@ -62,10 +76,21 @@ export async function bulkPushContactsToCallVibe(input: { ids: string[] }) {
   if (!parsed.success) return { success: false as const, error: "Select between 1 and 500 contacts" };
   if (!(await getActiveCallVibeConfig())) return { success: false as const, error: NOT_CONNECTED };
 
-  const res = await pushContactsToCallVibe(parsed.data.ids, "bulk", gate.userId);
+  // Contacts CallVibe can't dial are reported, not queued to fail.
+  const contacts = await prisma.contact.findMany({
+    where: { id: { in: parsed.data.ids }, deletedAt: null },
+    select: { id: true, phone: true },
+  });
+  const dialable = contacts.filter((c) => !undialable(c.phone)).map((c) => c.id);
+  const skipped = parsed.data.ids.length - dialable.length;
+  if (dialable.length === 0) {
+    return { success: false as const, error: "None of the selected contacts has a phone number CallVibe can dial" };
+  }
+
+  const res = await pushContactsToCallVibe(dialable, "bulk", gate.userId);
   if (res.error) return { success: false as const, error: res.error };
   revalidatePath("/contacts");
-  return { success: true as const, queued: res.queued };
+  return { success: true as const, queued: res.queued, skipped };
 }
 
 /**
@@ -82,7 +107,8 @@ export async function pushLeadContactToCallVibe(leadId: string) {
     select: { id: true, contactId: true, contact: { select: { phone: true } } },
   });
   if (!lead) return { success: false as const, error: "Lead not found" };
-  if (!lead.contact?.phone) return { success: false as const, error: "This lead's contact has no phone number" };
+  const phoneError = undialable(lead.contact?.phone ?? null);
+  if (phoneError) return { success: false as const, error: phoneError };
 
   const res = await pushContactsToCallVibe([lead.contactId], "lead_button", gate.userId);
   if (res.error || res.queued === 0) return { success: false as const, error: res.error ?? "Contact not found" };
@@ -206,15 +232,7 @@ export async function sendCallVibeTestLead(input: { phone: string; name?: string
     },
   });
 
-  const now = new Date();
-  await prisma.callVibeConfig.update({
-    where: { id: config.id },
-    data: {
-      lastPushAt: now,
-      lastPushStatus: res.ok ? "SUCCESS" : "FAILED",
-      lastPushError: res.ok ? null : res.error.message,
-    },
-  });
+  // Shown inline only: "Last push" on the card reports the real queue.
   await logActivity({
     userId: gate.userId,
     action: "CALLVIBE_TEST_LEAD_SENT",

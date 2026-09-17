@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 
 import { getContact } from "@/actions/contact.actions";
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
@@ -74,10 +76,12 @@ export default async function ContactDetailPage({
   params,
 }: ContactDetailPageProps) {
   const { contactId } = await params;
-  const [result, venuesResult] = await Promise.all([
+  const [result, venuesResult, session] = await Promise.all([
     getContact(contactId),
     getVenues({ activeOnly: true }),
+    auth(),
   ]);
+  const canPushToCallVibe = !!session?.user?.role && hasPermission(session.user.role, "contacts:update");
 
   if (!result.success || !result.data) {
     notFound();
@@ -155,12 +159,14 @@ export default async function ContactDetailPage({
             contactPhone={contact.phone}
           />
           <MacroButton entityType="CONTACT" entityId={contact.id} />
-          <CallVibePushButton
-            contactId={contact.id}
-            status={contact.callvibeLastPushStatus ?? null}
-            lastPushedAt={contact.callvibeLastPushedAt ?? null}
-            error={contact.callvibeLastPushError ?? null}
-          />
+          {canPushToCallVibe && (
+            <CallVibePushButton
+              contactId={contact.id}
+              status={contact.callvibeLastPushStatus ?? null}
+              lastPushedAt={contact.callvibeLastPushedAt ?? null}
+              error={contact.callvibeLastPushError ?? null}
+            />
+          )}
           {contact.email && <HostInviteButton contactId={contact.id} />}
           <Button variant="outline" asChild>
             <Link href={`/contacts/${contact.id}/edit`}>

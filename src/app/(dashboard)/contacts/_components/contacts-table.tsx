@@ -486,9 +486,11 @@ function ExportButton() {
 
 interface ContactsTableProps {
   data: Contact[];
+  /** Roles that may update contacts get the "Push to CallVibe" bulk action. */
+  canPushToCallVibe?: boolean;
 }
 
-export function ContactsTable({ data }: ContactsTableProps) {
+export function ContactsTable({ data, canPushToCallVibe = false }: ContactsTableProps) {
   const router = useRouter();
   const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("ALL");
   const [selectedRows, setSelectedRows] = React.useState<Contact[]>([]);
@@ -542,18 +544,25 @@ export function ContactsTable({ data }: ContactsTableProps) {
           setBulkWhatsAppOpen(true);
         },
       },
-      {
-        id: "push-callvibe",
-        label: "Push to CallVibe",
-        icon: PhoneForwarded,
-        onClick: async (ids: string[]) => {
-          const result = await bulkPushContactsToCallVibe({ ids });
-          if (result.success) {
-            toast.success(`Queued ${result.queued} contact(s) for CallVibe`);
-            router.refresh();
-          } else toast.error(result.error);
-        },
-      },
+      ...(canPushToCallVibe
+        ? [
+            {
+              id: "push-callvibe",
+              label: "Push to CallVibe",
+              icon: PhoneForwarded,
+              onClick: async (ids: string[]) => {
+                const result = await bulkPushContactsToCallVibe({ ids });
+                if (result.success) {
+                  toast.success(
+                    `Queued ${result.queued} contact(s) for CallVibe` +
+                      (result.skipped ? `. Skipped ${result.skipped} without a dialable phone number.` : "")
+                  );
+                  router.refresh();
+                } else toast.error(result.error);
+              },
+            },
+          ]
+        : []),
       {
         id: "delete",
         label: "Delete",
@@ -571,7 +580,7 @@ export function ContactsTable({ data }: ContactsTableProps) {
         },
       },
     ],
-    [router, selectedRows.length]
+    [router, selectedRows.length, canPushToCallVibe]
   );
 
   const getCurrentState = React.useCallback<() => SavedViewState>(() => {

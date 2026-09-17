@@ -23,6 +23,8 @@ interface LeadQuickActionsProps {
   contactEmail: string | null;
   /** Present when the lead is already converted — hides the convert button. */
   alreadyConverted: boolean;
+  /** Only roles that may update leads can queue one for CallVibe. */
+  canSendToCallVibe?: boolean;
 }
 
 export function LeadQuickActions({
@@ -30,6 +32,7 @@ export function LeadQuickActions({
   leadTitle,
   contactEmail,
   alreadyConverted,
+  canSendToCallVibe = true,
 }: LeadQuickActionsProps) {
   const router = useRouter();
   const [converting, setConverting] = React.useState(false);
@@ -88,14 +91,16 @@ export function LeadQuickActions({
 
   return (
     <>
-      <Button size="sm" variant="outline" onClick={handleSendToCallVibe} disabled={sending}>
-        {sending ? (
-          <Loader2Icon className="mr-2 size-4 animate-spin" />
-        ) : (
-          <PhoneIcon className="mr-2 size-4" />
-        )}
-        Send to CallVibe
-      </Button>
+      {canSendToCallVibe && (
+        <Button size="sm" variant="outline" onClick={handleSendToCallVibe} disabled={sending}>
+          {sending ? (
+            <Loader2Icon className="mr-2 size-4 animate-spin" />
+          ) : (
+            <PhoneIcon className="mr-2 size-4" />
+          )}
+          Send to CallVibe
+        </Button>
+      )}
       <Button size="sm" variant="outline" onClick={handleSendEmail}>
         <MailIcon className="mr-2 size-4" />
         Send Email

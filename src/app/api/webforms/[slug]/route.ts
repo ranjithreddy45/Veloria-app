@@ -11,6 +11,7 @@ import { attachAttributionToLead, parseAttributionFromRequest } from "@/lib/attr
 import { recordConsent } from "@/lib/privacy/consent";
 import { CONSENT_TEXT_ENQUIRY } from "@/lib/privacy/consent-text";
 import type { Prisma, LeadSource } from "@prisma/client";
+import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
 
 // ============================================================
 // Simple In-Memory Rate Limiter
@@ -257,6 +258,8 @@ export async function POST(
           },
         });
         leadId = lead.id;
+        // Queue the new lead for CallVibe when auto-push is on. Never throws.
+        scheduleAutoPushToCallVibe(contactId);
 
         // First-touch marketing attribution (best-effort; helper swallows
         // errors). Awaited so the write isn't dropped on a serverless freeze.
