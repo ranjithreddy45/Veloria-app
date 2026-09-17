@@ -174,7 +174,7 @@ const SAMPLE_BODY = {
 };
 
 /** The error statuses every push endpoint shares (see pipeline.ts). */
-function sharedErrorResponses(scope: string, sourceMessage: string) {
+function sharedErrorResponses(scope: string, sourceMessage: string, validation: { detail: string; fields: Record<string, string> }) {
   return {
     "400": multiErrorResponse("Body is not a JSON object, or the Idempotency-Key is malformed.", [
       { code: "INVALID_JSON", summary: "Body is not a JSON object", message: "Request body is not valid JSON." },
@@ -214,8 +214,8 @@ function sharedErrorResponses(scope: string, sourceMessage: string) {
     ),
     "413": errorResponse("Body larger than the limit (64 KB by default).", "PAYLOAD_TOO_LARGE", "Request body exceeds 65536 bytes."),
     "415": errorResponse("Content-Type is not application/json.", "UNSUPPORTED_MEDIA_TYPE", "Content-Type must be application/json."),
-    "422": errorResponse("Validation failed (including metadata that is too large or too deeply nested). `error.fields` names each invalid field.", "VALIDATION_ERROR", "Invalid request", {
-      fields: { phone: "Invalid phone number" },
+    "422": errorResponse(`Validation failed (${validation.detail}). \`error.fields\` names each invalid field.`, "VALIDATION_ERROR", "Invalid request", {
+      fields: validation.fields,
     }),
     "429": multiErrorResponse(
       "Too many requests. Wait for Retry-After seconds.",
@@ -371,7 +371,10 @@ export function buildOpenApiDocument(serverUrl: string) {
                 },
               },
             },
-            ...sharedErrorResponses("leads:create", 'This API key may only push source "meta_ads".'),
+            ...sharedErrorResponses('leads:create', 'This API key may only push source "meta_ads".', {
+              detail: "including `metadata` that is too large or too deeply nested",
+              fields: { phone: "Invalid phone number" },
+            }),
           },
           "x-codeSamples": [
             {
@@ -521,7 +524,10 @@ export function buildOpenApiDocument(serverUrl: string) {
                 },
               },
             },
-            ...sharedErrorResponses("calls:create", 'This API key may only push source "callvibe".'),
+            ...sharedErrorResponses('calls:create', 'This API key may only push source "callvibe".', {
+              detail: "including `ai_insights` that is too large or too deeply nested, a `lead_id` that doesn't exist, or a `phone` that doesn't match that lead",
+              fields: { call_date: "Must be an ISO 8601 date-time with a zone, e.g. 2026-09-17T10:04:00Z" },
+            }),
           },
           "x-codeSamples": [
             {
