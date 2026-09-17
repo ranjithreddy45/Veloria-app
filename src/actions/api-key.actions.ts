@@ -13,7 +13,7 @@ const SETTINGS_PATH = "/settings/integrations/lead-capture";
 const ROTATION_GRACE_HOURS = 24;
 
 /** Scopes an admin may grant a Push API key from Settings. leads:create is mandatory. */
-const GRANTABLE_PUSH_SCOPES = ["leads:create", "leads:update"];
+const GRANTABLE_PUSH_SCOPES = ["leads:create", "leads:update", "calls:create"];
 const DEFAULT_PUSH_SCOPES = ["leads:create", "leads:update"];
 
 /** Thrown inside a transaction to roll it back with a message for the user. */
@@ -30,7 +30,7 @@ export interface GenerateApiKeyOptions {
   source?: string;
   /** Days until the key stops working. Omitted or null = never expires. */
   expiresInDays?: number | null;
-  /** Push keys only: "leads:create" (required) and optionally "leads:update". Omitted = both. */
+  /** Push keys only: "leads:create" (optionally with "leads:update") and/or "calls:create". Omitted = leads:create + leads:update. */
   scopes?: string[];
 }
 
@@ -62,10 +62,13 @@ export async function generateApiKey(name: string, options: GenerateApiKeyOption
     if (options.pushApi) {
       const requested = options.scopes ?? DEFAULT_PUSH_SCOPES;
       if (!Array.isArray(requested) || requested.some((sc) => typeof sc !== "string" || !GRANTABLE_PUSH_SCOPES.includes(sc))) {
-        return { success: false as const, error: "Scopes may only be leads:create and leads:update" };
+        return { success: false as const, error: "Scopes may only be leads:create, leads:update and calls:create" };
       }
-      if (!requested.includes("leads:create")) {
-        return { success: false as const, error: "A Push API key must be granted leads:create" };
+      if (!requested.includes("leads:create") && !requested.includes("calls:create")) {
+        return { success: false as const, error: "A Push API key must be granted leads:create or calls:create" };
+      }
+      if (requested.includes("leads:update") && !requested.includes("leads:create")) {
+        return { success: false as const, error: "leads:update needs leads:create" };
       }
       // Stable order, no duplicates.
       scopes = GRANTABLE_PUSH_SCOPES.filter((sc) => requested.includes(sc));

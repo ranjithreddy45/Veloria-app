@@ -73,6 +73,60 @@ export const LEAD_REQUEST_PROPERTIES: Record<string, Record<string, unknown>> = 
   },
 };
 
+export const CALL_REQUEST_PROPERTIES: Record<string, Record<string, unknown>> = {
+  lead_id: str("The CRM lead this call belongs to (the `lead_id` a lead push returned). Must exist. Send this or `phone`; when both are sent, `lead_id` wins.", { maxLength: 64, example: "cmf2x9k0p0001abcd" }),
+  phone: str(
+    "The customer's phone number, matched the same way as a lead push (full number including country code). The call goes to that contact's newest open lead, else its newest lead; with no lead, one is created (source `callvibe`).",
+    { example: "+919876543210" }
+  ),
+  contact_name: str("The customer's name. Only used when a new lead has to be created.", { maxLength: 200, example: "Rahul Sharma" }),
+  external_call_id: str(
+    "CallVibe's id for this call. Strongly recommended: a call with an id already recorded (by an earlier push or by the CRM's own CallVibe import) is not recorded again.",
+    { maxLength: 200, pattern: "^[A-Za-z0-9][A-Za-z0-9_.:-]*$", example: "cv_9f31ab2e" }
+  ),
+  call_summary: str("Plain-English recap of the call. Required.", { minLength: 1, maxLength: 10000, example: "Asked about Saturday availability for 250 guests; wants a site visit." }),
+  sentiment: str("How the call went, as judged by CallVibe.", { enum: ["positive", "neutral", "negative"], example: "positive" }),
+  ai_score: { type: "integer", minimum: 0, maximum: 100, description: "How promising CallVibe rates the lead after this call.", example: 82 },
+  ai_insights: {
+    type: "object",
+    additionalProperties: true,
+    description: "Structured insights from the call (objections, budget signals, qualifying answers). At most 50 keys, 3 levels deep and 8 KB.",
+    example: { objections: ["Price felt high for Saturday"], budget_signal: "250000 mentioned", competitor_mentioned: null },
+  },
+  recording_url: str("Link to the recording. Must be https.", { format: "uri", maxLength: 2000, example: "https://storage.callvibe.ai/rec/9f31ab2e.mp3" }),
+  agent_name: str("Who took or made the call. Credited to the CRM user with exactly this name (if exactly one).", { maxLength: 200, example: "Riya Sharma" }),
+  agent_email: str("The agent's email. Matched to a CRM user before `agent_name`.", { format: "email", maxLength: 254, example: "riya@theveloriagrand.com" }),
+  call_date: str("When the call took place: ISO 8601 date-time with `Z` or an offset. Required. Not in the future.", {
+    format: "date-time",
+    example: "2026-09-17T10:04:00Z",
+  }),
+  call_duration_seconds: { type: "integer", minimum: 0, maximum: 86400, description: "Length of the call in seconds. Default 0.", example: 246 },
+  action_items: {
+    type: "array",
+    maxItems: 50,
+    items: { type: "string", maxLength: 500 },
+    description: "Follow-ups CallVibe picked up from the conversation. Shown with the call in the CRM.",
+    example: ["Schedule a site visit for Saturday", "Email the Saturday package prices"],
+  },
+  direction: str("`outbound` (an agent called the customer, default) or `inbound`.", { enum: ["inbound", "outbound"], example: "outbound" }),
+  call_status: str(
+    "Outcome of the dial. Default `completed`. A `completed` outbound call by a known agent counts as the lead's first contact (it stops the speed-to-lead clock).",
+    { enum: ["completed", "no_answer", "busy", "voicemail", "wrong_number", "callback_requested"], example: "completed" }
+  ),
+};
+
+const SAMPLE_CALL_BODY = {
+  phone: "+919876543210",
+  external_call_id: "cv_9f31ab2e",
+  call_summary: "Asked about Saturday availability for 250 guests; wants a site visit.",
+  sentiment: "positive",
+  ai_score: 82,
+  agent_name: "Riya Sharma",
+  call_date: "2026-09-17T10:04:00Z",
+  call_duration_seconds: 246,
+  action_items: ["Schedule a site visit for Saturday"],
+};
+
 const errorResponse = (description: string, code: string, message: string, extra: Record<string, unknown> = {}) => ({
   description,
   headers: { "X-Request-ID": { $ref: "#/components/headers/RequestId" } },
@@ -119,6 +173,73 @@ const SAMPLE_BODY = {
   consent: true,
 };
 
+/** The error statuses every push endpoint shares (see pipeline.ts). */
+function sharedErrorResponses(scope: string, sourceMessage: string) {
+  return {
+    "400": multiErrorResponse("Body is not a JSON object, or the Idempotency-Key is malformed.", [
+      { code: "INVALID_JSON", summary: "Body is not a JSON object", message: "Request body is not valid JSON." },
+      {
+        code: "INVALID_IDEMPOTENCY_KEY",
+        summary: "Idempotency-Key malformed",
+        message: "Idempotency-Key must be 1-255 printable ASCII characters.",
+      },
+    ]),
+    "401": errorResponse("Missing or unknown API key.", "UNAUTHORIZED", "Invalid API key."),
+    "403": multiErrorResponse("Request refused for this key or connection.", [
+      { code: "HTTPS_REQUIRED", summary: "Sent over plain HTTP", message: "HTTPS is required." },
+      { code: "API_KEY_REVOKED", summary: "Key revoked", message: "This API key has been revoked." },
+      { code: "API_KEY_EXPIRED", summary: "Key expired", message: "This API key has expired." },
+      { code: "INSUFFICIENT_SCOPE", summary: `Key not granted ${scope}`, message: `This API key is not allowed to use ${scope}.` },
+      {
+        code: "SOURCE_NOT_ALLOWED",
+        summary: "Body source differs from the key's source",
+        message: sourceMessage,
+      },
+    ]),
+    "409": multiErrorResponse(
+      "Idempotency-Key conflict.",
+      [
+        {
+          code: "IDEMPOTENCY_KEY_REUSED",
+          summary: "Same key, different body",
+          message: "This Idempotency-Key was already used with a different request body.",
+        },
+        {
+          code: "IDEMPOTENCY_KEY_IN_PROGRESS",
+          summary: "First request still being processed (Retry-After sent)",
+          message: "A request with this Idempotency-Key is still in progress. Retry shortly.",
+        },
+      ],
+      { "Retry-After": { $ref: "#/components/headers/RetryAfter" } }
+    ),
+    "413": errorResponse("Body larger than the limit (64 KB by default).", "PAYLOAD_TOO_LARGE", "Request body exceeds 65536 bytes."),
+    "415": errorResponse("Content-Type is not application/json.", "UNSUPPORTED_MEDIA_TYPE", "Content-Type must be application/json."),
+    "422": errorResponse("Validation failed (including metadata that is too large or too deeply nested). `error.fields` names each invalid field.", "VALIDATION_ERROR", "Invalid request", {
+      fields: { phone: "Invalid phone number" },
+    }),
+    "429": multiErrorResponse(
+      "Too many requests. Wait for Retry-After seconds.",
+      [
+        { code: "RATE_LIMITED", summary: "Per-key minute or hour limit", message: "Rate limit exceeded: 100 requests per minute." },
+        {
+          code: "TOO_MANY_FAILED_ATTEMPTS",
+          summary: "Too many failed authentication attempts from this IP",
+          message: "Too many failed authentication attempts. Try again later.",
+        },
+        { code: "LEAD_CAP_REACHED", summary: "Daily new-lead cap for this key", message: "This API key has reached its daily limit of 2000 new leads." },
+      ],
+      {
+        "Retry-After": { $ref: "#/components/headers/RetryAfter" },
+        "X-RateLimit-Limit": { $ref: "#/components/headers/RateLimitLimit" },
+        "X-RateLimit-Remaining": { $ref: "#/components/headers/RateLimitRemaining" },
+        "X-RateLimit-Reset": { $ref: "#/components/headers/RateLimitReset" },
+      }
+    ),
+    "500": errorResponse("Unexpected server error. No details are exposed; quote the request_id.", "INTERNAL_ERROR", "Something went wrong on our side. Quote the request_id if you contact us."),
+    "503": errorResponse("The Push API is switched off.", "PUSH_API_DISABLED", "The Push API is currently disabled."),
+  };
+}
+
 export function buildOpenApiDocument(serverUrl: string) {
   return {
     openapi: "3.1.0",
@@ -126,11 +247,11 @@ export function buildOpenApiDocument(serverUrl: string) {
       title: "Veloria Grand Push API",
       version: PUSH_API_VERSION,
       description: [
-        "Push leads from authorised external systems (ad platforms, the website, partners) into the Veloria Grand CRM.",
+        "Push leads from authorised external systems (ad platforms, the website, partners) into the Veloria Grand CRM, and push call activity from CallVibe onto those leads.",
         "",
         "**HTTPS.** Always call the API over `https://`. Requests made over plain HTTP may be refused with `403 HTTPS_REQUIRED`.",
         "",
-        "**Authentication.** `Authorization: Bearer vg_live_…`. Keys are issued in Settings → Integrations → Lead Capture and shown once. A key must be granted `leads:create`; `leads:update` additionally lets a repeat push fill in an existing lead. `401 UNAUTHORIZED` = key missing or unknown. `403 API_KEY_REVOKED`, `403 API_KEY_EXPIRED`, `403 INSUFFICIENT_SCOPE`; `403 SOURCE_NOT_ALLOWED` when the key was issued for a source and the body's `source` is different. Too many failed authentication attempts from one IP address return `429 TOO_MANY_FAILED_ATTEMPTS` with `Retry-After`.",
+        "**Authentication.** `Authorization: Bearer vg_live_…`. Keys are issued in Settings → Integrations → Lead Capture and shown once. Each endpoint needs its scope: `leads:create` for `/push/leads` (with `leads:update` additionally letting a repeat push fill in an existing lead), `calls:create` for `/push/call-activity`. `401 UNAUTHORIZED` = key missing or unknown. `403 API_KEY_REVOKED`, `403 API_KEY_EXPIRED`, `403 INSUFFICIENT_SCOPE`; `403 SOURCE_NOT_ALLOWED` when the key was issued for a source and the body's `source` is different. Too many failed authentication attempts from one IP address return `429 TOO_MANY_FAILED_ATTEMPTS` with `Retry-After`.",
         "",
         "**Rate limits.** Per key: 100 requests per minute and 1000 per hour by default. `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` are sent on responses to authenticated requests (not on a 401/403 returned before the key is known). Exceeding them returns `429 RATE_LIMITED` with `Retry-After`. Each key may also create at most 2000 new leads per day by default; beyond that, `429 LEAD_CAP_REACHED`.",
         "",
@@ -250,67 +371,7 @@ export function buildOpenApiDocument(serverUrl: string) {
                 },
               },
             },
-            "400": multiErrorResponse("Body is not a JSON object, or the Idempotency-Key is malformed.", [
-              { code: "INVALID_JSON", summary: "Body is not a JSON object", message: "Request body is not valid JSON." },
-              {
-                code: "INVALID_IDEMPOTENCY_KEY",
-                summary: "Idempotency-Key malformed",
-                message: "Idempotency-Key must be 1-255 printable ASCII characters.",
-              },
-            ]),
-            "401": errorResponse("Missing or unknown API key.", "UNAUTHORIZED", "Invalid API key."),
-            "403": multiErrorResponse("Request refused for this key or connection.", [
-              { code: "HTTPS_REQUIRED", summary: "Sent over plain HTTP", message: "HTTPS is required." },
-              { code: "API_KEY_REVOKED", summary: "Key revoked", message: "This API key has been revoked." },
-              { code: "API_KEY_EXPIRED", summary: "Key expired", message: "This API key has expired." },
-              { code: "INSUFFICIENT_SCOPE", summary: "Key not granted leads:create", message: "This API key is not allowed to use leads:create." },
-              {
-                code: "SOURCE_NOT_ALLOWED",
-                summary: "Body source differs from the key's source",
-                message: "This API key may only push leads with source meta_ads.",
-              },
-            ]),
-            "409": multiErrorResponse(
-              "Idempotency-Key conflict.",
-              [
-                {
-                  code: "IDEMPOTENCY_KEY_REUSED",
-                  summary: "Same key, different body",
-                  message: "This Idempotency-Key was already used with a different request body.",
-                },
-                {
-                  code: "IDEMPOTENCY_KEY_IN_PROGRESS",
-                  summary: "First request still being processed (Retry-After sent)",
-                  message: "A request with this Idempotency-Key is still in progress. Retry shortly.",
-                },
-              ],
-              { "Retry-After": { $ref: "#/components/headers/RetryAfter" } }
-            ),
-            "413": errorResponse("Body larger than the limit (64 KB by default).", "PAYLOAD_TOO_LARGE", "Request body exceeds 65536 bytes."),
-            "415": errorResponse("Content-Type is not application/json.", "UNSUPPORTED_MEDIA_TYPE", "Content-Type must be application/json."),
-            "422": errorResponse("Validation failed (including metadata that is too large or too deeply nested). `error.fields` names each invalid field.", "VALIDATION_ERROR", "Invalid request", {
-              fields: { phone: "Invalid phone number" },
-            }),
-            "429": multiErrorResponse(
-              "Too many requests. Wait for Retry-After seconds.",
-              [
-                { code: "RATE_LIMITED", summary: "Per-key minute or hour limit", message: "Rate limit exceeded: 100 requests per minute." },
-                {
-                  code: "TOO_MANY_FAILED_ATTEMPTS",
-                  summary: "Too many failed authentication attempts from this IP",
-                  message: "Too many failed authentication attempts. Try again later.",
-                },
-                { code: "LEAD_CAP_REACHED", summary: "Daily new-lead cap for this key", message: "This API key has reached its daily limit of 2000 new leads." },
-              ],
-              {
-                "Retry-After": { $ref: "#/components/headers/RetryAfter" },
-                "X-RateLimit-Limit": { $ref: "#/components/headers/RateLimitLimit" },
-                "X-RateLimit-Remaining": { $ref: "#/components/headers/RateLimitRemaining" },
-                "X-RateLimit-Reset": { $ref: "#/components/headers/RateLimitReset" },
-              }
-            ),
-            "500": errorResponse("Unexpected server error. No details are exposed; quote the request_id.", "INTERNAL_ERROR", "Something went wrong on our side. Quote the request_id if you contact us."),
-            "503": errorResponse("The Push API is switched off.", "PUSH_API_DISABLED", "The Push API is currently disabled."),
+            ...sharedErrorResponses("leads:create", 'This API key may only push source "meta_ads".'),
           },
           "x-codeSamples": [
             {
@@ -361,6 +422,117 @@ export function buildOpenApiDocument(serverUrl: string) {
                 "if not res.ok:",
                 "    raise RuntimeError(f\"{body['error']['code']}: {body['error']['message']} ({body['request_id']})\")",
                 'print(body["data"]["lead_id"], body["data"]["created"], body["data"]["duplicate"])',
+              ].join("\n"),
+            },
+          ],
+        },
+      },
+      "/api/v1/push/call-activity": {
+        post: {
+          operationId: "pushCallActivity",
+          summary: "Record a call against a lead",
+          tags: ["Calls"],
+          description:
+            "Attaches a call (summary, sentiment, AI score and insights, recording, agent, duration, action items) to a lead, found by `lead_id` or `phone`. If no lead exists for the phone, one is created first. Needs a key granted `calls:create`; a key issued for a source must be issued for `callvibe`.",
+          parameters: [
+            {
+              name: "Idempotency-Key",
+              in: "header",
+              required: false,
+              description: "Unique id for this request. Strongly recommended, together with external_call_id.",
+              schema: { type: "string", minLength: 1, maxLength: 255, example: "cv-call-9f31ab2e" },
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CallActivityRequest" },
+                example: {
+                  ...SAMPLE_CALL_BODY,
+                  ai_insights: { objections: ["Price felt high for Saturday"], budget_signal: "250000 mentioned", competitor_mentioned: null },
+                  recording_url: "https://storage.callvibe.ai/rec/9f31ab2e.mp3",
+                  action_items: ["Schedule a site visit for Saturday", "Email the Saturday package prices"],
+                  direction: "outbound",
+                  call_status: "completed",
+                },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "No lead matched, so a lead was created and the call recorded against it.",
+              headers: {
+                "X-Request-ID": { $ref: "#/components/headers/RequestId" },
+                "X-RateLimit-Limit": { $ref: "#/components/headers/RateLimitLimit" },
+                "X-RateLimit-Remaining": { $ref: "#/components/headers/RateLimitRemaining" },
+                "X-RateLimit-Reset": { $ref: "#/components/headers/RateLimitReset" },
+              },
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/CallActivityResponse" },
+                  example: {
+                    success: true,
+                    message: "Lead created and call recorded",
+                    request_id: "req_01J8ZQ4X7B5N2K9M3P6R8T0V1W",
+                    data: {
+                      call_id: "cmf3a1b2c0001wxyz",
+                      lead_id: "cmf2x9k0p0001abcd",
+                      contact_id: "cmf2x9k0n0000abcd",
+                      external_call_id: "cv_9f31ab2e",
+                      lead_created: true,
+                      duplicate: false,
+                      matched_by: "created",
+                    },
+                  },
+                },
+              },
+            },
+            "200": {
+              description:
+                "The call was recorded against an existing lead, or was already recorded (same external_call_id, or a replay of the same Idempotency-Key, which also carries Idempotent-Replayed: true).",
+              headers: {
+                "X-Request-ID": { $ref: "#/components/headers/RequestId" },
+                "Idempotent-Replayed": {
+                  description: "`true` when this is a replay of an earlier request with the same Idempotency-Key and body.",
+                  schema: { type: "string", enum: ["true"] },
+                },
+                "X-RateLimit-Limit": { $ref: "#/components/headers/RateLimitLimit" },
+                "X-RateLimit-Remaining": { $ref: "#/components/headers/RateLimitRemaining" },
+                "X-RateLimit-Reset": { $ref: "#/components/headers/RateLimitReset" },
+              },
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/CallActivityResponse" },
+                  example: {
+                    success: true,
+                    message: "Call recorded",
+                    request_id: "req_01J8ZQ4X7B5N2K9M3P6R8T0V1X",
+                    data: {
+                      call_id: "cmf3a1b2c0001wxyz",
+                      lead_id: "cmf2x9k0p0001abcd",
+                      contact_id: "cmf2x9k0n0000abcd",
+                      external_call_id: "cv_9f31ab2e",
+                      lead_created: false,
+                      duplicate: false,
+                      matched_by: "phone",
+                    },
+                  },
+                },
+              },
+            },
+            ...sharedErrorResponses("calls:create", 'This API key may only push source "meta_ads".'),
+          },
+          "x-codeSamples": [
+            {
+              lang: "curl",
+              label: "curl",
+              source: [
+                `curl -X POST "${serverUrl}/api/v1/push/call-activity" \\`,
+                '  -H "Authorization: Bearer vg_live_xxxxxxxxx" \\',
+                '  -H "Content-Type: application/json" \\',
+                '  -H "Idempotency-Key: cv-call-9f31ab2e" \\',
+                `  -d '${JSON.stringify(SAMPLE_CALL_BODY)}'`,
               ].join("\n"),
             },
           ],
@@ -428,6 +600,39 @@ export function buildOpenApiDocument(serverUrl: string) {
                   type: "array",
                   items: { type: "string" },
                   description: "Fields that were blank and have now been filled in. Always empty without the leads:update scope.",
+                },
+              },
+            },
+          },
+        },
+        CallActivityRequest: {
+          type: "object",
+          required: ["call_summary", "call_date"],
+          description: "`lead_id` or `phone` is required. Unknown top-level fields are ignored.",
+          properties: CALL_REQUEST_PROPERTIES,
+          anyOf: [{ required: ["lead_id"] }, { required: ["phone"] }],
+        },
+        CallActivityResponse: {
+          type: "object",
+          required: ["success", "message", "request_id", "data"],
+          properties: {
+            success: { type: "boolean", const: true },
+            message: { type: "string", enum: ["Lead created and call recorded", "Call recorded", "Call already recorded"] },
+            request_id: { type: "string" },
+            data: {
+              type: "object",
+              required: ["call_id", "lead_id", "contact_id", "lead_created", "duplicate", "matched_by"],
+              properties: {
+                call_id: { type: ["string", "null"], description: "The CRM's id for the recorded call." },
+                lead_id: { type: ["string", "null"], description: "The lead the call is attached to. Send it back as `lead_id` on later calls." },
+                contact_id: { type: ["string", "null"] },
+                external_call_id: { type: ["string", "null"] },
+                lead_created: { type: "boolean" },
+                duplicate: { type: "boolean", description: "True when the call was already recorded; nothing new was written." },
+                matched_by: {
+                  type: "string",
+                  enum: ["lead_id", "phone", "created", "external_call_id", "idempotency_key"],
+                  description: "How the lead was found.",
                 },
               },
             },

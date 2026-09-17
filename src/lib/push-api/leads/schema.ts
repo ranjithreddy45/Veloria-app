@@ -31,6 +31,8 @@ export const PUSH_SOURCE_TO_LEAD_SOURCE: Record<string, string> = {
   wedmegood: "WEDMEGOOD",
   event: "EVENT",
   api: "OTHER",
+  // Leads CallVibe creates when a call arrives for a number we hold no lead for.
+  callvibe: "PHONE_INQUIRY",
 };
 
 export function leadSourceFor(source: string): string {

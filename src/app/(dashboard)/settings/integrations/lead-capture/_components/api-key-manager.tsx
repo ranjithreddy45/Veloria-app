@@ -44,8 +44,9 @@ const EXPIRY_OPTIONS = [
   { value: "365", label: "1 year" },
 ];
 
+/** Push keys carry scopes (leads:create, leads:update, calls:create); legacy capture keys carry none. */
 function isPushKey(key: ApiKeyItem) {
-  return (key.scopes ?? []).includes("leads:create");
+  return (key.scopes ?? []).length > 0;
 }
 
 function keyState(key: ApiKeyItem): "active" | "revoked" | "expired" {
@@ -74,7 +75,9 @@ export function ApiKeyManager({ initialKeys }: Props) {
   const [pushApi, setPushApi] = useState(true);
   const [source, setSource] = useState("");
   const [expiry, setExpiry] = useState("never");
+  const [allowCreate, setAllowCreate] = useState(true);
   const [allowUpdate, setAllowUpdate] = useState(true);
+  const [allowCalls, setAllowCalls] = useState(false);
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [generatedIsPush, setGeneratedIsPush] = useState(true);
   const [rotationNote, setRotationNote] = useState<string | null>(null);
@@ -86,13 +89,25 @@ export function ApiKeyManager({ initialKeys }: Props) {
       toast.error("Please enter a name for the API key");
       return;
     }
+    if (pushApi && !allowCreate && !allowCalls) {
+      toast.error("Give the key at least one kind of access");
+      return;
+    }
 
     startTransition(async () => {
       const result = await generateApiKey(newKeyName.trim(), {
         pushApi,
         source: source.trim() || undefined,
         expiresInDays: expiry === "never" ? null : Number(expiry),
-        ...(pushApi ? { scopes: allowUpdate ? ["leads:create", "leads:update"] : ["leads:create"] } : {}),
+        ...(pushApi
+          ? {
+              scopes: [
+                ...(allowCreate ? ["leads:create"] : []),
+                ...(allowCreate && allowUpdate ? ["leads:update"] : []),
+                ...(allowCalls ? ["calls:create"] : []),
+              ],
+            }
+          : {}),
       });
       if (result.success && result.data) {
         const data = result.data;
@@ -244,8 +259,8 @@ export function ApiKeyManager({ initialKeys }: Props) {
                       <span className="text-sm">
                         <span className="font-medium">Push API access</span>
                         <span className="block text-xs text-muted-foreground">
-                          Grants <code>leads:create</code> on <code>/api/v1/push/leads</code>. Untick for a legacy
-                          key that only works with <code>/api/leads/capture</code>.
+                          For <code>/api/v1/push/leads</code> and <code>/api/v1/push/call-activity</code>. Untick for a
+                          legacy key that only works with <code>/api/leads/capture</code>.
                         </span>
                       </span>
                     </label>
@@ -253,15 +268,21 @@ export function ApiKeyManager({ initialKeys }: Props) {
                       <fieldset className="space-y-2 rounded-md border border-border/60 p-3">
                         <legend className="px-1 text-sm font-medium">Access</legend>
                         <div className="flex items-center gap-2.5">
-                          <Checkbox id="api-key-scope-create" checked disabled aria-describedby="api-key-scope-help" />
+                          <Checkbox
+                            id="api-key-scope-create"
+                            checked={allowCreate}
+                            onCheckedChange={(v) => setAllowCreate(v === true)}
+                            aria-describedby="api-key-scope-help"
+                          />
                           <Label htmlFor="api-key-scope-create" className="text-sm font-normal">
-                            Create leads (<code>leads:create</code>) — required
+                            Create leads (<code>leads:create</code>)
                           </Label>
                         </div>
                         <div className="flex items-center gap-2.5">
                           <Checkbox
                             id="api-key-scope-update"
-                            checked={allowUpdate}
+                            checked={allowCreate && allowUpdate}
+                            disabled={!allowCreate}
                             onCheckedChange={(v) => setAllowUpdate(v === true)}
                             aria-describedby="api-key-scope-help"
                           />
@@ -269,8 +290,20 @@ export function ApiKeyManager({ initialKeys }: Props) {
                             Update existing leads (<code>leads:update</code>)
                           </Label>
                         </div>
+                        <div className="flex items-center gap-2.5">
+                          <Checkbox
+                            id="api-key-scope-calls"
+                            checked={allowCalls}
+                            onCheckedChange={(v) => setAllowCalls(v === true)}
+                            aria-describedby="api-key-scope-help"
+                          />
+                          <Label htmlFor="api-key-scope-calls" className="text-sm font-normal">
+                            Record call activity (<code>calls:create</code>)
+                          </Label>
+                        </div>
                         <p id="api-key-scope-help" className="text-xs text-muted-foreground">
-                          Without update access, a repeat push is acknowledged but the existing lead is left untouched.
+                          Without update access, a repeat lead push is acknowledged but the existing lead is left
+                          untouched. For CallVibe, grant call activity only and set the source to <code>callvibe</code>.
                         </p>
                       </fieldset>
                     )}
