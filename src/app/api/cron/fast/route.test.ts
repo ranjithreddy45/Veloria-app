@@ -15,6 +15,7 @@ const jobs = vi.hoisted(() => ({
   runSlaWarRoomEscalation: vi.fn(),
   sendEventDayTaskReminders: vi.fn(),
   releaseLapsedHolds: vi.fn(),
+  processDueCallVibePushJobs: vi.fn(),
 }));
 
 vi.mock("@/lib/cadence-executor", () => ({ processDueCadenceSteps: jobs.processDueCadenceSteps }));
@@ -27,6 +28,7 @@ vi.mock("@/lib/acq/sla-escalation", () => ({ escalateAcqLeadSlaBreaches: jobs.es
 vi.mock("@/lib/sla/war-room-escalation", () => ({ runSlaWarRoomEscalation: jobs.runSlaWarRoomEscalation }));
 vi.mock("@/lib/ops/event-reminders", () => ({ sendEventDayTaskReminders: jobs.sendEventDayTaskReminders }));
 vi.mock("@/lib/holds/release-lapsed-holds", () => ({ releaseLapsedHolds: jobs.releaseLapsedHolds }));
+vi.mock("@/lib/integrations/callvibe/push", () => ({ processDueCallVibePushJobs: jobs.processDueCallVibePushJobs }));
 vi.mock("next/server", () => ({
   NextResponse: {
     json: (body: unknown, init?: { status?: number }) => ({ status: init?.status ?? 200, body }),
@@ -66,6 +68,8 @@ describe("fast cron lane", () => {
     expect(res.body.success).toBe(true);
     expect(jobs.releaseLapsedHolds).toHaveBeenCalledTimes(1);
     expect(res.body.results.lapsedHoldRelease).toEqual(sweep);
+    expect(jobs.processDueCallVibePushJobs).toHaveBeenCalledTimes(1);
+    expect(res.body.results.callvibePush).toEqual({ ok: true });
   });
 
   it("a failing release is isolated: every other job still runs, and the lane sees a 500", async () => {
