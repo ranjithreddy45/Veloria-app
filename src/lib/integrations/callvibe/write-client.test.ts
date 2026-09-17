@@ -50,11 +50,16 @@ describe("create, update and upsert by phone", () => {
     expect(lead.custom_fields).toEqual({ veloria_contact_id: "c1", calling_list: "Weddings" });
     expect(r.data.leadId).toBe(lead.id);
     expect(r.data.responseKeys).toContain("phone");
-    // Exactly the documented request fields, nothing invented.
+    // Only documented request fields, and only the ones we set.
     const put = server.requests.find((q) => q.method === "PUT")!;
-    expect(Object.keys(put.body as object).sort()).toEqual(
-      ["assigned_to", "custom_fields", "email", "human_status", "name", "scheduled_at", "source", "status"].sort()
-    );
+    expect(Object.keys(put.body as object).sort()).toEqual(["assigned_to", "custom_fields", "email", "name", "source"]);
+  });
+
+  it("never blanks a field it didn't set (an agent's status survives a re-push)", async () => {
+    await upsertLeadByPhone(creds(), "+919876543210", { name: "Rahul" });
+    server.leads.get("919876543210")!.status = "Interested"; // set by an agent inside CallVibe
+    await upsertLeadByPhone(creds(), "+919876543210", { name: "Rahul Sharma" });
+    expect(server.leads.get("919876543210")).toMatchObject({ name: "Rahul Sharma", status: "Interested" });
   });
 
   it("updates the same lead when the phone is pushed again", async () => {

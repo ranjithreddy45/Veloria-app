@@ -43,6 +43,10 @@ export interface MockCallVibe {
 
 export const MOCK_CREDENTIALS = { email: "integration@example.test", password: "not-a-real-password" };
 
+function pick<T>(body: Record<string, unknown>, key: string, current: T | undefined): T | null {
+  return key in body ? ((body[key] as T) ?? null) : (current ?? null);
+}
+
 export async function startMockCallVibe(): Promise<MockCallVibe> {
   const leads = new Map<string, MockLead>();
   const requests: MockCallVibe["requests"] = [];
@@ -133,12 +137,13 @@ export async function startMockCallVibe(): Promise<MockCallVibe> {
         const lead: MockLead = {
           id: existing?.id ?? `lead_${++ids}`,
           phone,
-          name: (b.name as string) ?? null,
-          email: (b.email as string) ?? null,
-          status: (b.status as string) ?? null,
-          assigned_to: (b.assigned_to as string) ?? null,
-          source: (b.source as string) ?? null,
-          custom_fields: (b.custom_fields as Record<string, unknown>) ?? null,
+          // A key the request leaves out keeps its stored value.
+          name: pick(b, "name", existing?.name),
+          email: pick(b, "email", existing?.email),
+          status: pick(b, "status", existing?.status),
+          assigned_to: pick(b, "assigned_to", existing?.assigned_to),
+          source: pick(b, "source", existing?.source),
+          custom_fields: pick(b, "custom_fields", existing?.custom_fields),
           notes: existing?.notes ?? [],
           createdAt: existing?.createdAt ?? now,
           updatedAt: now,

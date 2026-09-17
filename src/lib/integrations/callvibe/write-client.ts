@@ -297,6 +297,25 @@ export function extractLeadId(body: unknown): string | null {
   return null;
 }
 
+/**
+ * The PUT body. Only fields the caller set are sent: whether CallVibe treats an
+ * explicit null as "clear" is unverified, and fields like status are worked by
+ * agents inside CallVibe, so a push must never blank them by omission.
+ */
+export function leadBody(lead: CallVibeLeadPayload): Record<string, unknown> {
+  const fields: [string, unknown][] = [
+    ["name", lead.name],
+    ["email", lead.email],
+    ["status", lead.status],
+    ["human_status", lead.humanStatus],
+    ["assigned_to", lead.assignedTo],
+    ["scheduled_at", lead.scheduledAt],
+    ["source", lead.source],
+    ["custom_fields", lead.customFields],
+  ];
+  return Object.fromEntries(fields.filter(([, v]) => v !== undefined));
+}
+
 /** PUT /api/leads/{phone} — create the lead, or update the one that phone already has. */
 export async function upsertLeadByPhone(
   creds: CallVibeCreds,
@@ -307,16 +326,7 @@ export async function upsertLeadByPhone(
     creds,
     "PUT",
     `/api/leads/${callVibePathPhone(e164)}`,
-    {
-      name: lead.name ?? null,
-      email: lead.email ?? null,
-      status: lead.status ?? null,
-      human_status: lead.humanStatus ?? null,
-      assigned_to: lead.assignedTo ?? null,
-      scheduled_at: lead.scheduledAt ?? null,
-      source: lead.source ?? null,
-      custom_fields: lead.customFields ?? null,
-    },
+    leadBody(lead),
     { assignedTo: lead.assignedTo }
   );
   if (!r.ok) return r;
