@@ -10,6 +10,7 @@ import { escalateAcqLeadSlaBreaches } from "@/lib/acq/sla-escalation";
 import { runSlaWarRoomEscalation } from "@/lib/sla/war-room-escalation";
 import { sendEventDayTaskReminders } from "@/lib/ops/event-reminders";
 import { releaseLapsedHolds } from "@/lib/holds/release-lapsed-holds";
+import { processDueCallVibePushJobs } from "@/lib/integrations/callvibe/push";
 
 export const maxDuration = 120;
 
@@ -91,6 +92,14 @@ export async function GET(request: Request) {
     results.lapsedHoldRelease = await releaseLapsedHolds();
   } catch (e) {
     results.lapsedHoldRelease = `error: ${e instanceof Error ? e.message : "unknown"}`;
+  }
+  try {
+    // CallVibe lead pushes waiting for a retry (first attempts run right after
+    // the request that queued them). A CallVibe outage leaves jobs in RETRY —
+    // that is not a lane failure, so only a crash of the sweep itself counts.
+    results.callvibePush = await processDueCallVibePushJobs({ budgetMs: 45_000 });
+  } catch (e) {
+    results.callvibePush = `error: ${e instanceof Error ? e.message : "unknown"}`;
   }
 
   // Surface partial failures with a non-2xx so the lane orchestrator
