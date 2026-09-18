@@ -2082,6 +2082,16 @@ model Guest {
   checkedInAt         DateTime?
   plusOnes            Int           @default(0)
   dietaryRestrictions String?
+  // What this guest's PARTY eats, as head counts — not one preference applied to
+  // everyone, because a non-veg guest bringing three vegetarian relatives is
+  // three veg covers, and that is the number the kitchen cooks to.
+  //
+  // NULL means not answered, which is NOT zero and must never be folded into
+  // non-veg: an unanswered party is reported as "unknown" so nobody mistakes a
+  // guess for a count. When they are set, the three sum to 1 + plusOnes.
+  mealVeg             Int?
+  mealNonVeg          Int?
+  mealJain            Int?
   notes               String?
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
@@ -7347,6 +7357,13 @@ model Beo {
   bookingId           String
   status              String          @default("DRAFT") // DRAFT | PUBLISHED | LOCKED
   covers              Int?
+  // Where `covers` came from, so a sheet can never imply a precision it doesn't
+  // have. CONTRACTED = the booking's agreed guest count (the default at
+  // creation, which happens long before any RSVP exists); RSVP_CONFIRMED = heads
+  // that actually replied yes, written only by a deliberate action; MANUAL = a
+  // number someone typed. Never set silently — see src/lib/guests/headcount.ts.
+  coversSource        String? // CONTRACTED | RSVP_CONFIRMED | MANUAL
+  coversUpdatedAt     DateTime?
   runOfShow           Json? // [{ time, activity, owner, notes }]
   // Frozen vendor-package snapshots captured onto this BEO — [{ vendorPackageId,
   // vendorName, name, category, vendorPrice, priceUnit, sections:[{name, items:[{
@@ -7394,6 +7411,10 @@ model KitchenPlan {
   bookingId      String
   beoId          String?
   covers         Int               @default(0)
+  // Same three sources as Beo.coversSource — the kitchen must be able to say
+  // whether it is cooking to a contract or to real replies.
+  coversSource    String? // CONTRACTED | RSVP_CONFIRMED | MANUAL
+  coversUpdatedAt DateTime?
   status         String            @default("PLANNED") // PLANNED | IN_PROGRESS | COMPLETED
   estFoodCost    Decimal           @default(0) @db.Decimal(12, 2)
   actualFoodCost Decimal           @default(0) @db.Decimal(12, 2)

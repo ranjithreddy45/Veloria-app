@@ -31,6 +31,7 @@
 import { auth } from "@/../auth";
 import type { GuestCategory, Prisma, RSVPStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { recalcGuestListTotals as recalcTotals } from "@/lib/guests/totals";
 import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
 import { getVerifiedContactIds } from "@/lib/portal-identity";
@@ -101,21 +102,6 @@ async function ownedBooking(bookingId: string): Promise<{ uid: string; booking: 
     select: INVITE_BOOKING_SELECT,
   });
   return booking ? { uid, booking } : null;
-}
-
-async function recalcTotals(guestListId: string) {
-  const guests = await prisma.guest.findMany({
-    where: { guestListId },
-    select: { plusOnes: true, rsvpStatus: true, isCheckedIn: true },
-  });
-  await prisma.guestList.update({
-    where: { id: guestListId },
-    data: {
-      totalInvited: guests.reduce((s, g) => s + 1 + g.plusOnes, 0),
-      totalRSVP: guests.filter((g) => g.rsvpStatus === "ACCEPTED").length,
-      totalCheckedIn: guests.filter((g) => g.isCheckedIn).length,
-    },
-  });
 }
 
 async function ensureGuestList(bookingId: string): Promise<string> {
