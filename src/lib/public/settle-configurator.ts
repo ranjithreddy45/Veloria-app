@@ -7,9 +7,12 @@
 // atomically claims the draft (PAID), mints a HOLD booking under the same
 // Serializable conflict-guard the internal/one-tap paths use, links the paid
 // invoice to it, and lets maybeConfirmBookingOnPayment flip it HOLD→CONFIRMED
-// (which also sends the customer their confirmation). A genuine slot-taken race
-// (or missing slot info) still raises an urgent, actionable alert instead of a
-// silent loss. Idempotent (atomic status claim) and never throws.
+// (which also sends the customer their confirmation). A lapsed hold on the slot
+// (window passed, no money) is released first with the shared guarded cancel,
+// so it can't stand between a paying customer and the date. A genuine
+// slot-taken race (or missing slot info) still raises an urgent, actionable
+// alert instead of a silent loss. Idempotent (atomic status claim) and never
+// throws.
 // ============================================================
 
 import { Prisma, type TimeSlot, type PublicQuoteStatus } from "@prisma/client";
@@ -21,6 +24,7 @@ import { plannerSlotToEnum } from "@/lib/sales/slot";
 import { generateBookingNumber } from "@/actions/booking.actions";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { getSystemUserId } from "@/lib/lead-capture";
+import { releaseLapsedHoldsForSlot } from "@/lib/holds/release-lapsed-holds";
 
 const SETTLED: PublicQuoteStatus[] = ["PAID", "CONVERTED", "ABANDONED"];
 
@@ -131,6 +135,17 @@ export async function settleConfiguratorPayment(invoiceId: string): Promise<void
         : [{ timeSlot: reqSlot }, { timeSlot: "FULL_DAY" as TimeSlot }];
     const bookingNumber = await generateBookingNumber();
     const grandTotal = Number(draft.grandTotal) || 0;
+
+    // A lapsed hold (window passed, no money against it) reads as free in the
+    // pre-check above, but its booking row still occupies the slot — and the
+    // partial unique index on (venue, date, slot). Release it with the SAME
+    // guarded cancel the release job and the customer hold flow use. A hold that
+    // gained money meanwhile is kept, so the clash check below refuses the slot
+    // and the refund/re-offer alert fires. Logged, never thrown, so that alert
+    // path still runs if the release itself fails.
+    await releaseLapsedHoldsForSlot(draft.venueId, date, reqSlot).catch((e) => {
+      console.error("[SETTLE_CONFIGURATOR_LAPSED_RELEASE_ERROR]", e);
+    });
 
     let bookingId: string;
     try {

@@ -16,6 +16,7 @@ import {
   type PublicVenueDay,
 } from "@/actions/public-hold.actions";
 import { ConsentCheckbox } from "@/components/public/consent-checkbox";
+import { SLOT_LABEL, type TimeSlotEnum } from "@/lib/sales/slot";
 
 // ============================================================
 // PUBLIC availability + hold widget (no auth).
@@ -29,15 +30,8 @@ interface VenueLite {
   capacity: number;
 }
 
-const SLOT_KEYS = ["MORNING", "AFTERNOON", "EVENING", "FULL_DAY"] as const;
-type SlotKey = (typeof SLOT_KEYS)[number];
-
-const SLOT_LABEL: Record<SlotKey, string> = {
-  MORNING: "Morning",
-  AFTERNOON: "Afternoon (11am–3pm)",
-  EVENING: "Evening (5pm–10pm)",
-  FULL_DAY: "Full Day",
-};
+// Slot names and hours come from the team's one slot definition (src/lib/sales/slot.ts).
+type SlotKey = TimeSlotEnum;
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",

@@ -144,3 +144,18 @@ export function whatsAppShareHref(phone: string | null | undefined, text: string
   const normalized = digits.length === 10 ? `91${digits}` : digits;
   return `https://wa.me/${normalized}?text=${encodeURIComponent(text)}`;
 }
+
+/**
+ * The pending Payment minted for a split's Razorpay order names the split, so a
+ * capture on an order the split later replaced (a reopened checkout got a newer
+ * order) still settles the right share instead of leaving it unpaid.
+ */
+export function splitPaymentNote(payerName: string, splitId: string): string {
+  return `Split payment by ${payerName} [split:${splitId}]`;
+}
+
+/** The split id written by splitPaymentNote, or null for any other payment note. */
+export function splitIdFromPaymentNotes(notes: string | null | undefined): string | null {
+  const m = notes?.match(/\[split:([A-Za-z0-9_-]+)\]/);
+  return m ? m[1] : null;
+}

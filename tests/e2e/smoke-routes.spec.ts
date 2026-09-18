@@ -56,6 +56,10 @@ const ROUTES: { path: string; heading?: string | RegExp }[] = [
   // Admin
   { path: "/settings" },
   { path: "/notifications" },
+  // Customer app, the team's side (customer-app.spec.ts covers the journeys)
+  { path: "/concierge", heading: "Customer Concierge" },
+  { path: "/settings/business-contact", heading: "Business Contact" },
+  { path: "/settings/customer-content", heading: "Customer Content" },
 ];
 
 test.describe("Smoke — key dashboard routes render", () => {

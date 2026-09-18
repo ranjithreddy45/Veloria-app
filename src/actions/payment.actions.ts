@@ -16,9 +16,19 @@ import { format } from "date-fns";
 import { hasPermission } from "@/lib/permissions";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
-import { applyRazorpayCapture, allocatePaidAmountToInstallments } from "@/lib/payments/apply-capture";
+import { applyRazorpayCapture, allocatePaidAmountToInstallments, notifyCustomerOfPayment } from "@/lib/payments/apply-capture";
 import { razorpayKeyId, razorpayKeySecret, razorpayConfigured, razorpayWebhookSecret } from "@/lib/payments/razorpay-creds";
 import { postPaymentReceived } from "@/lib/finance/receivables";
+import { isCollectibleInvoice } from "@/lib/finance/issued-invoices";
+import { HOLD_FACTS_SELECT, isHoldLapsed } from "@/lib/holds/lapsed-hold";
+import {
+  CANCELLED_BOOKING_CHECKOUT_ERROR,
+  HOLD_LAPSED_CHECKOUT_ERROR,
+  HOLD_WINDOW_CLOSED_CHECKOUT_ERROR,
+  STAFF_HOLD_CHECKOUT_ERROR,
+  holdCheckoutRefusal,
+  newCheckoutWouldExtendHold,
+} from "@/lib/holds/checkout-guard";
 
 // ============================================================
 // Money math helpers — currency values are paise-exact
@@ -179,9 +189,10 @@ export async function recordPayment(data: {
       };
     }
 
-    // Cash can only be taken against an issued invoice — never a DRAFT (still
-    // editable) or any other non-collectable state. Allow SENT/PARTIALLY_PAID/OVERDUE.
-    if (!["SENT", "PARTIALLY_PAID", "OVERDUE"].includes(invoice.status)) {
+    // Cash can only be taken against an invoice that is owed — never a DRAFT
+    // (still editable) or any other non-collectable state. The app-wide rule
+    // (src/lib/finance/issued-invoices.ts): SENT, PARTIALLY_PAID or OVERDUE.
+    if (!isCollectibleInvoice(invoice.status)) {
       return {
         success: false as const,
         error: "Invoice must be sent before a payment can be recorded",
@@ -264,6 +275,11 @@ export async function recordPayment(data: {
       message: `Payment of ${formatINR(data.amount)} recorded (${receiptNumber}).`,
       actionUrl: `/invoices/${data.invoiceId}`,
     });
+
+    // The customer's own app logins see the payment too, with the same notice
+    // the gateway capture sends. The payment row is committed above; delivery
+    // is not awaited. This path creates the payment, so this is its only notice.
+    void notifyCustomerOfPayment(payment.id);
 
     // Fire-and-forget: Send payment receipt email
     try {
@@ -374,6 +390,15 @@ export async function verifyPaymentProof(paymentId: string) {
     // this (and the in-tx overshoot guard below) verifying both would over-collect.
     if (payment.invoice.status === "PAID")
       return { success: false as const, error: "This invoice is already fully paid — nothing to verify against." };
+    // Money is only taken against an owed invoice (SENT, PARTIALLY_PAID or
+    // OVERDUE: src/lib/finance/issued-invoices.ts), the rule recordPayment and
+    // the customer's proof submission apply too. A DRAFT hasn't been sent and a
+    // REFUNDED invoice is closed, so neither can be credited.
+    if (!isCollectibleInvoice(payment.invoice.status))
+      return {
+        success: false as const,
+        error: "This invoice isn't open for payment (it must be sent, part-paid or overdue), so this proof can't be verified against it.",
+      };
 
     // Atomic + idempotent: only the writer that flips this PENDING row proceeds
     // to credit the invoice (relative increment, re-read for status) — so a
@@ -419,6 +444,12 @@ export async function verifyPaymentProof(paymentId: string) {
       entityType: "Payment",
       entityId: paymentId,
     });
+
+    // Tell the customer's app logins, as the gateway capture does. Only the call
+    // that flipped this proof PENDING → COMPLETED gets here (a repeat verify is
+    // refused above, and a Razorpay capture never re-completes a COMPLETED
+    // payment), so one payment gets one notice. Not awaited.
+    void notifyCustomerOfPayment(paymentId);
 
     // Post the verified cash receipt to the General Ledger via after() so it
     // can't be dropped on a serverless freeze (idempotent; reconcile backstop).
@@ -632,7 +663,15 @@ export async function createRazorpayOrder(invoiceId: string, amount: number) {
 
     const invoice = await prisma.invoice.findUnique({
       where: { id: invoiceId },
-      select: { id: true, invoiceNumber: true, balanceDue: true, status: true },
+      select: {
+        id: true,
+        invoiceNumber: true,
+        balanceDue: true,
+        status: true,
+        // The booking's status, hold window and money on ALL its invoices: the
+        // facts the one lapsed-hold rule needs (src/lib/holds/lapsed-hold.ts).
+        booking: { select: HOLD_FACTS_SELECT },
+      },
     });
 
     if (!invoice) {
@@ -644,6 +683,17 @@ export async function createRazorpayOrder(invoiceId: string, amount: number) {
         success: false as const,
         error: "Cannot create payment for this invoice",
       };
+    }
+
+    // The pay links' hold rule (src/lib/holds/checkout-guard.ts), in the team's
+    // words: no checkout on a lapsed hold, and no NEW checkout once the hold's
+    // window has passed unless money that doesn't rely on a checkout's 15-minute
+    // grace is already against the booking. Every order restarts that grace, so
+    // otherwise an expired hold could keep its date. The fix is on the booking:
+    // extend the hold or start a new one.
+    const holdRefusal = holdCheckoutRefusal(invoice.booking, new Date());
+    if (holdRefusal) {
+      return { success: false as const, error: STAFF_HOLD_CHECKOUT_ERROR[holdRefusal] };
     }
 
     if (!Number.isFinite(amount)) {
@@ -840,7 +890,9 @@ export async function createPublicRazorpayOrder(invoiceId: string, amount: numbe
       where: { id: invoiceId },
       select: {
         id: true, invoiceNumber: true, balanceDue: true, status: true,
-        booking: { select: { status: true } },
+        // The booking's status, hold window and money on ALL its invoices: the
+        // facts the one lapsed-hold rule needs (src/lib/holds/lapsed-hold.ts).
+        booking: { select: HOLD_FACTS_SELECT },
       },
     });
     if (!invoice) return { success: false as const, error: "Invoice not found" };
@@ -851,7 +903,25 @@ export async function createPublicRazorpayOrder(invoiceId: string, amount: numbe
     // the booking. Refuse to take an advance for a slot that's already been
     // cancelled/re-sold — otherwise money is captured with no confirmable slot.
     if (invoice.booking && invoice.booking.status === "CANCELLED") {
-      return { success: false as const, error: "This hold has expired and the date is no longer reserved. Please request a fresh link." };
+      return { success: false as const, error: CANCELLED_BOOKING_CHECKOUT_ERROR };
+    }
+    // Same for a hold that has LAPSED but not been released yet (window passed,
+    // no money on any invoice, no proof awaiting verification, no checkout in
+    // the last 15 minutes). The team's availability board and the customer's
+    // calendar already show that date as free, so don't open a checkout for it.
+    // A hold with money, or with a checkout already in flight, is not lapsed.
+    const now = new Date();
+    if (invoice.booking && isHoldLapsed(invoice.booking, now)) {
+      return { success: false as const, error: HOLD_LAPSED_CHECKOUT_ERROR };
+    }
+    // Every order starts a new 15-minute checkout grace, and that grace keeps a
+    // hold from lapsing. So once the window has passed, don't open another one
+    // unless money that doesn't depend on the grace is already against the
+    // booking (src/lib/holds/checkout-guard.ts); otherwise repeated checkouts
+    // could hold the date indefinitely. A checkout started before expiry still
+    // protects the hold, and anything it captures is still applied.
+    if (invoice.booking && newCheckoutWouldExtendHold(invoice.booking, now)) {
+      return { success: false as const, error: HOLD_WINDOW_CLOSED_CHECKOUT_ERROR };
     }
     const balanceDue = Number(invoice.balanceDue);
     const pay = Math.round(Number(amount));
@@ -1053,6 +1123,22 @@ export async function generatePaymentLink(
 
     if (invoice.status === "PAID" || invoice.status === "CANCELLED") {
       return { success: false as const, error: `Cannot generate link for ${invoice.status} invoice` };
+    }
+
+    // A pay link only for an invoice that is owed: SENT, PARTIALLY_PAID or
+    // OVERDUE (src/lib/finance/issued-invoices.ts). A DRAFT hasn't been sent, and
+    // a REFUNDED invoice is closed even though its refund put balanceDue back, so
+    // the balance check below would not stop either.
+    if (!isCollectibleInvoice(invoice.status)) {
+      return {
+        success: false as const,
+        error:
+          invoice.status === "DRAFT"
+            ? "This invoice is still a draft. Send it to the customer before creating a payment link."
+            : invoice.status === "REFUNDED"
+              ? "This invoice has been refunded and is closed, so a payment link can't be created for it."
+              : "A payment link can only be created for a sent, part-paid or overdue invoice.",
+      };
     }
 
     const balanceDue = Number(invoice.balanceDue);

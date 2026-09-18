@@ -34,6 +34,14 @@ interface SendEmailParams {
  * Designed to be called fire-and-forget — wrap in try/catch in callers.
  */
 export async function sendEmail({ to, subject, html, cc }: SendEmailParams) {
+  // Never send to reserved non-deliverable addresses (RFC 2606 ".invalid"):
+  // customer logins created from a WhatsApp number get wa-<digits>@customer.invalid.
+  const deliverable = (list?: string | string[]) =>
+    (Array.isArray(list) ? list : list ? [list] : []).filter((a) => !/\.invalid>?\s*$/i.test(a));
+  const toList = deliverable(to);
+  const ccList = deliverable(cc);
+  if (toList.length === 0) return { success: false, error: "No deliverable recipient" };
+
   const resend = getResend();
   if (!resend) {
     console.warn("[EMAIL] RESEND_API_KEY not configured — skipping email");
@@ -43,8 +51,8 @@ export async function sendEmail({ to, subject, html, cc }: SendEmailParams) {
   try {
     const { data, error } = await resend.emails.send({
       from: FROM_EMAIL,
-      to,
-      ...(cc && (Array.isArray(cc) ? cc.length > 0 : true) ? { cc } : {}),
+      to: toList,
+      ...(ccList.length > 0 ? { cc: ccList } : {}),
       subject: subject.includes(APP_NAME) ? subject : `${subject} — ${APP_NAME}`,
       html,
     });

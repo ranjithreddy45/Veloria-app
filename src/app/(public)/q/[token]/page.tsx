@@ -7,6 +7,7 @@ import { COMPANY_LEGAL_LINE } from "@/lib/constants";
 import { getPublicQuoteForPay, getPublicSlotScarcity } from "@/actions/quote-onetap.actions";
 import { getSocialProof } from "@/lib/public/social-proof";
 import { HelpChip } from "@/components/public/help-chip";
+import { getPublicContact, type PublicContact } from "@/lib/public/business-contact";
 import { PublicQuoteView } from "./_components/public-quote-view";
 import { QuoteRadarBeacon } from "./_components/quote-radar-beacon";
 
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false }, // tokenized page; keep out of search
 };
 
-function InvalidCard() {
+function InvalidCard({ contact }: { contact: PublicContact }) {
   return (
     <div className="bg-card shadow-card mx-auto max-w-lg rounded-2xl border p-10 text-center">
       <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-warning/12 text-warning">
@@ -42,7 +43,7 @@ function InvalidCard() {
         It may have expired or been replaced by a newer version. Reach out and
         we&apos;ll send you a fresh one.
       </p>
-      <HelpChip variant="banner" className="mt-6" />
+      <HelpChip variant="banner" className="mt-6" contact={contact} />
     </div>
   );
 }
@@ -54,13 +55,14 @@ export default async function PublicQuotePage({
 }) {
   const { token } = await params;
 
-  const res = await getPublicQuoteForPay(token);
+  // The help buttons use the numbers the team keeps in Settings → Business contact.
+  const [res, contact] = await Promise.all([getPublicQuoteForPay(token), getPublicContact()]);
 
   if (!res.success) {
     return (
       <>
         <BrandHero />
-        <InvalidCard />
+        <InvalidCard contact={contact} />
         <TrustFooter />
       </>
     );
@@ -85,7 +87,7 @@ export default async function PublicQuotePage({
   return (
     <>
       <BrandHero />
-      <PublicQuoteView view={view} scarcity={scarcity} socialProof={socialProof} />
+      <PublicQuoteView view={view} scarcity={scarcity} socialProof={socialProof} contact={contact} />
       <TrustFooter />
       {/* Fire-and-forget view tracking (device/ipHash derived server-side). */}
       <QuoteRadarBeacon token={token} viewedQuotationId={focusedQuotationId} />

@@ -78,6 +78,12 @@ interface BookingCalendarProps {
   initialCancelled: number;
   /** Of those, how many have money against them. */
   initialCancelledPaid: number;
+  /**
+   * Lapsed holds in the initial month (window passed, no money against them).
+   * Not in initialBookings, because they no longer occupy their slot; the day
+   * panel names each on the slot it used to block.
+   */
+  initialLapsedHolds?: CalendarBooking[];
 }
 
 type ViewMode = "all" | "bookings" | "leads";
@@ -115,6 +121,7 @@ export function BookingCalendar({
   initialYear,
   initialCancelled,
   initialCancelledPaid,
+  initialLapsedHolds,
 }: BookingCalendarProps) {
   const router = useRouter();
   const [currentDate, setCurrentDate] = React.useState(
@@ -131,6 +138,9 @@ export function BookingCalendar({
   // sparse month reads as "12 were cancelled" rather than "the calendar is broken".
   const [cancelled, setCancelled] = React.useState(initialCancelled);
   const [cancelledPaid, setCancelledPaid] = React.useState(initialCancelledPaid);
+  // Lapsed holds no longer occupy their slot, so they are not in `bookings`;
+  // the day panel names each on the slot it used to block.
+  const [lapsedHolds, setLapsedHolds] = React.useState<CalendarBooking[]>(initialLapsedHolds ?? []);
 
   const showBookings = view !== "leads";
   const showLeads = view !== "bookings";
@@ -167,6 +177,7 @@ export function BookingCalendar({
       ]);
       if (bRes.success) {
         setBookings(bRes.data as CalendarBooking[]);
+        setLapsedHolds((bRes.lapsedHolds ?? []) as CalendarBooking[]);
         setCancelled(bRes.cancelled ?? 0);
         setCancelledPaid(bRes.cancelledPaid ?? 0);
       }
@@ -466,6 +477,7 @@ export function BookingCalendar({
         bookings={selectedDay ? getBookingsForDay(selectedDay) : []}
         leads={selectedDay ? getLeadsForDay(selectedDay) : []}
         blackouts={selectedDay ? getBlackoutsForDay(selectedDay) : []}
+        lapsedHolds={selectedDay ? lapsedHolds.filter((b) => isSameDay(new Date(b.date), selectedDay)) : []}
         onClose={() => setSelectedDay(null)}
         onBookSlot={(timeSlot) => {
           if (selectedDay) {

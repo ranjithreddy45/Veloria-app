@@ -5,7 +5,24 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { utcDayRange } from "@/lib/sales/slot-util";
+import { SLOT_LABEL } from "@/lib/sales/slot";
+import { bookingBalance } from "@/lib/finance/issued-invoices";
+// Lapsed holds: ONE decision shared with the availability board, the customer's
+// calendar and the release jobs (src/lib/holds/lapsed-hold.ts).
+import { HOLD_FACTS_SELECT, isHoldPastExpiry } from "@/lib/holds/lapsed-hold";
+import { findLapsedHoldIds, releaseLapsedHoldsForSlot } from "@/lib/holds/release-lapsed-holds";
+import { occupyingBookings, slotIsFree, withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
+import {
+  HOLD_CHANGED_ERROR,
+  HOLD_SLOT_TAKEN_ERROR,
+  holdChangeError,
+  holdChangeRefusal,
+  holdExpiryAfter,
+  isValidHoldHours,
+} from "@/lib/holds/hold-extension";
 import { revalidatePath } from "next/cache";
+
+import { ensureVenueSlabs } from "@/lib/sales/venue-tax";
 import { bookingSchema, type BookingInput } from "@/schemas/booking.schema";
 import type { BookingStatus, TimeSlot } from "@prisma/client";
 import { serialize, formatINR } from "@/lib/utils";
@@ -287,6 +304,7 @@ export async function getBooking(id: string) {
             invoiceNumber: true,
             status: true,
             totalAmount: true,
+            paidAmount: true,
             balanceDue: true,
             issueDate: true,
             dueDate: true,
@@ -359,11 +377,15 @@ export async function checkAvailability(
             : []),
         ],
       },
-      select: { id: true, bookingNumber: true, eventName: true, timeSlot: true, date: true },
+      select: { id: true, bookingNumber: true, eventName: true, timeSlot: true, date: true, status: true, holdExpiresAt: true },
     });
-    const existingBooking = existingBookings.find(
-      (b) => new Date(b.date).getUTCDate() === utcDay
-    );
+    const dayBookings = existingBookings.filter((b) => new Date(b.date).getUTCDate() === utcDay);
+    // A lapsed hold (window passed, no money on any of its invoices, no checkout
+    // in flight) no longer takes the slot: the same decision as the availability
+    // board and the customer's calendar. createBooking/updateBooking release it
+    // before taking the slot. If this lookup fails, holds keep blocking.
+    const lapsedIds = await findLapsedHoldIds(dayBookings);
+    const existingBooking = withoutLapsedHolds(dayBookings, lapsedIds)[0];
 
     // Check for blackout dates
     const blackouts = await prisma.blackoutDate.findMany({
@@ -482,6 +504,16 @@ export async function createBooking(data: BookingInput) {
           ]
         : [{ timeSlot: reqSlot }, { timeSlot: "FULL_DAY" as TimeSlot }];
 
+    // Lapsed holds on this slot read as free in the pre-check above, but their
+    // rows still occupy the slot (and the partial unique index on venue + date +
+    // slot). Release them first with the same guarded cancel as the release job
+    // and the customer's hold flow; a hold that gained money meanwhile is kept,
+    // and the clash check below refuses the slot. If the release itself fails
+    // it throws (reported as a failed booking) rather than booking around a
+    // hold that may still be live.
+    const now = new Date();
+    await releaseLapsedHoldsForSlot(bookingData.venueId, bookingDate, reqSlot, now);
+
     // Re-check + insert ATOMICALLY under Serializable isolation so two
     // concurrent blocks for overlapping slots (e.g. EVENING + FULL_DAY) can't
     // both succeed. The loser aborts with a serialization error → "slot taken".
@@ -491,9 +523,12 @@ export async function createBooking(data: BookingInput) {
         async (tx) => {
           const clashes = await tx.booking.findMany({
             where: { venueId: bookingData.venueId, date: { gte: dayGte, lt: dayLt }, status: { notIn: ["CANCELLED"] }, OR: conflictOr },
-            select: { id: true, date: true },
+            // Hold facts (status, window, money on every invoice), read inside
+            // this transaction, so a lapsed hold is judged by the shared rule.
+            select: { ...HOLD_FACTS_SELECT, date: true },
           });
-          if (clashes.some((c) => new Date(c.date).getUTCDate() === bookingUTCDay)) throw new Error("SLOT_TAKEN");
+          const dayClashes = clashes.filter((c) => new Date(c.date).getUTCDate() === bookingUTCDay);
+          if (occupyingBookings(dayClashes, now).length > 0) throw new Error("SLOT_TAKEN");
           return tx.booking.create({
             data: {
               bookingNumber,
@@ -711,6 +746,12 @@ export async function updateBooking(id: string, data: BookingInput) {
       // Match by UTC day range (not local-midnight equality) — see utcDayRange.
       const { gte, lt, utcDay } = utcDayRange(bookingDate);
 
+      // Release lapsed holds on the target slot first, exactly as createBooking
+      // does — never this booking itself. A failed release throws (reported as
+      // a failed update) rather than moving onto a hold that may still be live.
+      const now = new Date();
+      await releaseLapsedHoldsForSlot(bookingData.venueId, bookingDate, bookingData.timeSlot as TimeSlot, now, id);
+
       // Check for conflicts excluding the current booking
       const conflicts = await prisma.booking.findMany({
         where: {
@@ -730,9 +771,14 @@ export async function updateBooking(id: string, data: BookingInput) {
               : []),
           ],
         },
-        select: { id: true, date: true },
+        // Hold facts so a lapsed hold is judged by the shared rule.
+        select: { ...HOLD_FACTS_SELECT, date: true },
       });
-      const conflict = conflicts.some((c) => new Date(c.date).getUTCDate() === utcDay);
+      const conflict =
+        occupyingBookings(
+          conflicts.filter((c) => new Date(c.date).getUTCDate() === utcDay),
+          now
+        ).length > 0;
 
       if (conflict) {
         return {
@@ -824,7 +870,7 @@ export async function completeBooking(
         guestCount: true,
         date: true,
         createdById: true,
-        invoices: { select: { balanceDue: true } },
+        invoices: { select: { status: true, balanceDue: true } },
         tasks: { select: { status: true, dueDate: true } },
       },
     });
@@ -854,7 +900,11 @@ export async function completeBooking(
     eventEnd.setUTCHours(23, 59, 59, 999);
 
     const gate: string[] = [];
-    const balanceOwed = booking.invoices.some((i) => Number(i.balanceDue) > 0);
+    // Owed by finance's shared rule (bookingBalance: the balance of SENT,
+    // PARTIALLY_PAID and OVERDUE invoices), the booking page's and the customer
+    // app's figure: an unsent draft or a fully refunded invoice doesn't block.
+    const balanceOwed =
+      bookingBalance(booking.invoices.map((i) => ({ status: i.status, balanceDue: Number(i.balanceDue) }))).balanceDue > 0;
     if (balanceOwed) gate.push("Final payment not cleared (balance still due)");
     const beoReady = beo && ["PUBLISHED", "LOCKED"].includes(beo.status);
     if (!beoReady) gate.push("Function sheet (BEO) not published");
@@ -940,13 +990,6 @@ export async function completeBooking(
 // to CONFIRMED, locking the slot, and the customer gets the same confirmation.
 // ============================================================
 
-const SLOT_LABEL_CONFIRM: Record<string, string> = {
-  MORNING: "Morning",
-  AFTERNOON: "Afternoon (11am–3pm)",
-  EVENING: "Evening (5pm–10pm)",
-  FULL_DAY: "Full Day",
-};
-
 export async function confirmBooking(id: string) {
   try {
     const session = await auth();
@@ -1023,7 +1066,7 @@ export async function confirmBooking(id: string) {
         month: "long",
         year: "numeric",
       });
-      const slot = SLOT_LABEL_CONFIRM[booking.timeSlot] ?? booking.timeSlot;
+      const slot = SLOT_LABEL[booking.timeSlot];
       const name = `${booking.contact?.firstName ?? "Guest"} ${booking.contact?.lastName ?? ""}`.trim();
       const poc = booking.createdBy;
 
@@ -1142,7 +1185,16 @@ export async function cancelBooking(id: string, reason?: string) {
 }
 
 // ============================================================
-// Place Hold
+// Place Hold / Extend hold
+// ------------------------------------------------------------
+// One action for both menu items: a TENTATIVE booking is placed on hold, a HOLD
+// is extended (src/lib/holds/hold-extension.ts). Either way the hold ends a
+// whole number of hours from now, 1 to 168, checked here whatever the dialog
+// sent. An extension must end the hold later than it ends now, and a hold whose
+// window has passed gets its date back only while the slot is still free: a
+// lapsed hold already reads as free to the team and to customers, so the date
+// may have gone to someone else. Writes are pinned to the booking as read, and
+// each one is on the ActivityLog.
 // ============================================================
 
 export async function placeHold(bookingId: string, expiresInHours: number = 48) {
@@ -1156,39 +1208,118 @@ export async function placeHold(bookingId: string, expiresInHours: number = 48) 
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const existing = await prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!isValidHoldHours(expiresInHours)) {
+      return { success: false as const, error: holdChangeError("INVALID_HOURS") };
+    }
+
+    const existing = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { id: true, bookingNumber: true, status: true, holdExpiresAt: true, venueId: true, date: true, timeSlot: true },
+    });
     if (!existing) {
       return { success: false as const, error: "Booking not found" };
     }
 
-    // Only a tentative/held booking can be placed (or refreshed) on hold.
+    // Only a tentative/held booking can be placed (or extended) on hold.
     // A CONFIRMED / IN_PROGRESS / COMPLETED / CANCELLED booking must not be
     // silently reverted to HOLD (which would re-enter the hold pool and
-    // appear as an expired hold despite a paid/locked event).
-    if (existing.status !== "HOLD" && existing.status !== "TENTATIVE") {
-      return { success: false as const, error: "Only a tentative/held booking can be placed on hold" };
+    // appear as an expired hold despite a paid/locked event). An extension
+    // must end later, and a hold with no end time is never given one.
+    const now = new Date();
+    const refusal = holdChangeRefusal(existing, expiresInHours, now);
+    if (refusal) {
+      return { success: false as const, error: holdChangeError(refusal, existing.holdExpiresAt) };
     }
 
-    const holdExpiresAt = new Date();
-    holdExpiresAt.setHours(holdExpiresAt.getHours() + expiresInHours);
+    const holdExpiresAt = holdExpiryAfter(expiresInHours, now);
+    const extending = existing.status === "HOLD";
+    const windowHadPassed = extending && isHoldPastExpiry(existing, now);
 
-    // Conditional write: re-check the status at the DB level to avoid a race
-    // with maybeConfirmBookingOnPayment / completeBooking flipping the status.
-    const updated = await prisma.booking.updateMany({
-      where: { id: bookingId, status: { in: ["HOLD", "TENTATIVE"] } },
-      data: {
-        status: "HOLD",
-        holdExpiresAt,
+    if (extending) {
+      try {
+        await prisma.$transaction(
+          async (tx) => {
+            if (windowHadPassed) {
+              // The booking engine's clash rules (slot-occupancy.ts): other live
+              // bookings on the venue's UTC day, minus lapsed holds, and blackouts.
+              const { gte, lt, utcDay } = utcDayRange(existing.date);
+              const [rows, blackouts] = await Promise.all([
+                tx.booking.findMany({
+                  where: {
+                    id: { not: existing.id },
+                    venueId: existing.venueId,
+                    date: { gte, lt },
+                    status: { notIn: ["CANCELLED"] },
+                  },
+                  select: { ...HOLD_FACTS_SELECT, date: true, timeSlot: true },
+                }),
+                tx.blackoutDate.findMany({
+                  where: { venueId: existing.venueId, date: { gte, lt } },
+                  select: { date: true, timeSlot: true },
+                }),
+              ]);
+              const others = occupyingBookings(
+                rows.filter((r) => new Date(r.date).getUTCDate() === utcDay),
+                now
+              );
+              const dayBlackouts = blackouts.filter((x) => new Date(x.date).getUTCDate() === utcDay);
+              if (!slotIsFree(existing.timeSlot, others, dayBlackouts)) throw new Error("SLOT_TAKEN");
+            }
+            // Pinned to the hold as read: a release, a confirmation or another
+            // extension in the meantime turns this into a no-op.
+            const res = await tx.booking.updateMany({
+              where: { id: existing.id, status: "HOLD", holdExpiresAt: existing.holdExpiresAt },
+              data: { holdExpiresAt },
+            });
+            if (res.count !== 1) throw new Error("HOLD_CHANGED");
+          },
+          { isolationLevel: "Serializable" }
+        );
+      } catch (e) {
+        const code = (e as { code?: string }).code;
+        if (e instanceof Error && e.message === "SLOT_TAKEN") {
+          return { success: false as const, error: HOLD_SLOT_TAKEN_ERROR };
+        }
+        if ((e instanceof Error && e.message === "HOLD_CHANGED") || code === "P2034") {
+          return { success: false as const, error: HOLD_CHANGED_ERROR };
+        }
+        throw e;
+      }
+    } else {
+      // Conditional write: re-check the status at the DB level to avoid a race
+      // with maybeConfirmBookingOnPayment / completeBooking flipping the status.
+      const updated = await prisma.booking.updateMany({
+        where: { id: existing.id, status: "TENTATIVE" },
+        data: {
+          status: "HOLD",
+          holdExpiresAt,
+        },
+      });
+      if (updated.count === 0) {
+        return { success: false as const, error: HOLD_CHANGED_ERROR };
+      }
+    }
+
+    await logActivity({
+      userId: session.user.id as string,
+      action: extending ? "extended_hold" : "placed_hold",
+      entityType: "Booking",
+      entityId: existing.id,
+      changes: {
+        bookingNumber: existing.bookingNumber,
+        hours: expiresInHours,
+        fromStatus: existing.status,
+        fromHoldExpiresAt: existing.holdExpiresAt ? existing.holdExpiresAt.toISOString() : null,
+        holdExpiresAt: holdExpiresAt.toISOString(),
+        ...(extending ? { windowHadPassed } : {}),
       },
     });
-    if (updated.count === 0) {
-      return { success: false as const, error: "Only a tentative/held booking can be placed on hold" };
-    }
 
     const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
 
     revalidatePath("/bookings");
     revalidatePath(`/bookings/${bookingId}`);
+    revalidatePath("/bookings/calendar");
     return { success: true as const, data: serialize(booking) };
   } catch (error) {
     console.error("[PLACE_HOLD_ERROR]", error);
@@ -1269,7 +1400,7 @@ export async function getBookingsForCalendar(
     const startDate = new Date(Date.UTC(year, month - 1, 1));
     const endDate = new Date(Date.UTC(year, month, 1) - 1);
 
-    const bookings = await prisma.booking.findMany({
+    const rows = await prisma.booking.findMany({
       where: {
         date: { gte: startDate, lte: endDate },
         // Exclude cancelled bookings to match the grid/heatmap occupancy view.
@@ -1285,10 +1416,21 @@ export async function getBookingsForCalendar(
         date: true,
         timeSlot: true,
         guestCount: true,
+        holdExpiresAt: true,
         venue: { select: { id: true, name: true } },
       },
       orderBy: { date: "asc" },
     });
+
+    // Lapsed holds (window passed, no money against the booking) no longer
+    // occupy their slot: the same decision as the availability board, the
+    // booking form and the customer's calendar, so the day panel offers those
+    // slots as available too. Like cancelled bookings below, they are not
+    // hidden silently: `lapsedHolds` lists them until the release job cancels
+    // them, which takes minutes. If the lookup fails they stay in `data`.
+    const lapsedIds = await findLapsedHoldIds(rows);
+    const bookings = withoutLapsedHolds(rows, lapsedIds);
+    const lapsedHolds = rows.filter((b) => lapsedIds.has(b.id));
 
     // What the `status != CANCELLED` filter above just removed.
     //
@@ -1322,6 +1464,7 @@ export async function getBookingsForCalendar(
       // Additive: existing callers that only read `data` keep working.
       cancelled,
       cancelledPaid,
+      lapsedHolds: serialize(lapsedHolds),
     };
   } catch (error) {
     console.error("[GET_BOOKINGS_CALENDAR_ERROR]", error);
@@ -1393,7 +1536,7 @@ export async function getLeadsForCalendar(
 // Venue CRUD
 // ============================================================
 
-export async function getVenues(opts?: { activeOnly?: boolean }) {
+export async function getVenues(opts?: { activeOnly?: boolean; includeTaxSlabs?: boolean }) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -1413,6 +1556,24 @@ export async function getVenues(opts?: { activeOnly?: boolean }) {
       orderBy: { name: "asc" },
       include: {
         _count: { select: { bookings: true } },
+        // Only the settings screen asks for these — every picker that calls
+        // getVenues would otherwise pay for a join it never reads.
+        ...(opts?.includeTaxSlabs
+          ? {
+              taxSlabs: {
+                where: { isActive: true },
+                orderBy: [{ isDefault: "desc" as const }, { name: "asc" as const }],
+                select: {
+                  id: true,
+                  name: true,
+                  cgstRate: true,
+                  sgstRate: true,
+                  igstRate: true,
+                  isDefault: true,
+                },
+              },
+            }
+          : {}),
       },
     });
 
@@ -1431,6 +1592,8 @@ export async function createVenue(data: {
   amenities?: string[];
   inHouseCateringRequired?: boolean;
   inHouseCateringNote?: string;
+  /** Decides the GST rate — see src/lib/sales/property-type.ts. */
+  propertyType?: string;
 }) {
   try {
     const session = await auth();
@@ -1451,8 +1614,16 @@ export async function createVenue(data: {
         amenities: data.amenities || [],
         inHouseCateringRequired: data.inHouseCateringRequired ?? false,
         inHouseCateringNote: data.inHouseCateringNote?.trim() || null,
+        propertyType: data.propertyType || null,
       },
     });
+
+    // A new property starts with the two GST rates its type implies, so the
+    // first quotation raised against it has a rate to use instead of falling
+    // back to whatever the person typing picks.
+    await ensureVenueSlabs(venue.id, data.propertyType).catch((e) =>
+      console.error("[CREATE_VENUE_TAX_SLABS]", venue.id, e),
+    );
 
     revalidatePath("/settings/venues");
     revalidatePath("/bookings/new");
@@ -1474,6 +1645,8 @@ export async function updateVenue(
     isActive?: boolean;
     inHouseCateringRequired?: boolean;
     inHouseCateringNote?: string;
+    /** Decides the GST rate — see src/lib/sales/property-type.ts. */
+    propertyType?: string;
   }
 ) {
   try {
@@ -1505,8 +1678,20 @@ export async function updateVenue(
         ...(data.inHouseCateringNote !== undefined && {
           inHouseCateringNote: data.inHouseCateringNote.trim() || null,
         }),
+        ...(data.propertyType !== undefined && {
+          propertyType: data.propertyType || null,
+        }),
       },
     });
+
+    // Only fills a property that has no rates yet. One that already has them
+    // keeps them: someone may have set them deliberately, and rewriting a rate
+    // under a live quotation is exactly the silent change to avoid.
+    if (data.propertyType !== undefined) {
+      await ensureVenueSlabs(venue.id, data.propertyType).catch((e) =>
+        console.error("[UPDATE_VENUE_TAX_SLABS]", venue.id, e),
+      );
+    }
 
     revalidatePath("/settings/venues");
     return { success: true as const, data: serialize(venue) };

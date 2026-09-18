@@ -297,6 +297,12 @@ export const sidebarNavigation: NavItem[] = [
         icon: "Gift",
         permissions: ["bookings:read"],
       },
+      {
+        title: "Customer Concierge",
+        href: "/concierge",
+        icon: "MessagesSquare",
+        permissions: ["bookings:read"],
+      },
     ],
   },
   {
@@ -884,6 +890,18 @@ export const sidebarNavigation: NavItem[] = [
         title: "Venues",
         href: "/settings/venues",
         icon: "MapPin",
+        permissions: ["settings:venues"],
+      },
+      {
+        title: "Business Contact",
+        href: "/settings/business-contact",
+        icon: "Phone",
+        permissions: ["settings:venues"],
+      },
+      {
+        title: "Customer Content",
+        href: "/settings/customer-content",
+        icon: "FileText",
         permissions: ["settings:venues"],
       },
       {

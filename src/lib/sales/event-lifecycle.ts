@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notifyAwait } from "@/lib/notify";
 import { utcDayRange } from "@/lib/sales/slot-util";
+import { bookingBalance } from "@/lib/finance/issued-invoices";
 
 // ============================================================
 // Event lifecycle automation. Bookings should not sit CONFIRMED forever after
@@ -47,7 +48,7 @@ export async function sweepEventLifecycle(): Promise<EventLifecycleResult> {
       eventName: true,
       guestCount: true,
       createdById: true,
-      invoices: { select: { balanceDue: true } },
+      invoices: { select: { status: true, balanceDue: true } },
     },
   });
 
@@ -62,7 +63,11 @@ export async function sweepEventLifecycle(): Promise<EventLifecycleResult> {
       select: { status: true },
     });
     const gate: string[] = [];
-    if (b.invoices.some((i) => Number(i.balanceDue) > 0)) gate.push("final payment not cleared");
+    // Owed by finance's shared rule (bookingBalance: the balance of SENT,
+    // PARTIALLY_PAID and OVERDUE invoices), the booking page's and the customer
+    // app's figure: an unsent draft or a fully refunded invoice doesn't block.
+    const owed = bookingBalance(b.invoices.map((i) => ({ status: i.status, balanceDue: Number(i.balanceDue) })));
+    if (owed.balanceDue > 0) gate.push("final payment not cleared");
     if (!(beo && ["PUBLISHED", "LOCKED"].includes(beo.status)))
       gate.push("function sheet (BEO) not published");
     if (!b.guestCount || b.guestCount <= 0) gate.push("guest count not set");

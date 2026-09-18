@@ -11,7 +11,7 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PublicPay } from "./public-pay";
+import { PublicPay, type PayContact } from "./public-pay";
 
 const inr = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
@@ -24,9 +24,11 @@ interface Props {
   customerName: string;
   customerEmail: string;
   customerPhone: string;
+  /** Published contact channels for the result and error states. */
+  contact?: PayContact | null;
 }
 
-export function PayAmountPicker({ invoiceId, invoiceNumber, nextDue, balanceDue, customerName, customerEmail, customerPhone }: Props) {
+export function PayAmountPicker({ invoiceId, invoiceNumber, nextDue, balanceDue, customerName, customerEmail, customerPhone, contact }: Props) {
   // Default = the due installment (status quo); switching is the active choice.
   const hasChoice = !!nextDue && nextDue.amount < balanceDue;
   const [payFull, setPayFull] = useState(!hasChoice);
@@ -91,6 +93,7 @@ export function PayAmountPicker({ invoiceId, invoiceNumber, nextDue, balanceDue,
         customerName={customerName}
         customerEmail={customerEmail}
         customerPhone={customerPhone}
+        contact={contact}
       />
     </div>
   );

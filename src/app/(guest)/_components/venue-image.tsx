@@ -1,14 +1,16 @@
 import { Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { IllustrationBadge } from "./ui";
 
 // ============================================================
-// VenueImage — venue visual
+// VenueImage — a hall's picture
 // ============================================================
-// The Venue model has no photo field yet (the storefront action returns no
-// imageUrl/photos), so we render a tasteful branded gradient placeholder
-// showing the venue's name + a Building icon rather than a stock photo of
-// some *other* venue. When a real image is available, pass `src` and it is
-// rendered instead. NEVER fall back to an external stock photo.
+// `src` is layered as a CSS background over a brand gradient, so a missing or
+// slow file shows the gradient rather than a broken glyph (and base64 uploads
+// work without an image optimiser). Without `src`, a branded placeholder with
+// the hall's name. Callers choose the source with hallCover()/hallPhotoSet()
+// from stock.ts: a real public photo always wins, and when the fallback is an
+// illustration they pass `illustration` so it carries a visible label.
 
 const GRADIENTS = [
   "from-[#7a2160] via-[#6d1b52] to-[#4d1239]",
@@ -31,33 +33,37 @@ export function VenueImage({
   name,
   src,
   className,
+  illustration,
+  badgeClassName,
 }: {
   seed: string;
   alt: string;
-  /** Venue name shown on the placeholder when no real image exists. */
+  /** Venue name shown on the placeholder when there is no image. */
   name?: string;
-  /** A REAL venue image URL. When absent, always render the placeholder. */
+  /** Image URL — a real photo, or an illustration from stock.ts (then set `illustration`). */
   src?: string | null;
   className?: string;
+  /** True when `src` is a stock illustration: shows the "Illustration" label. */
+  illustration?: boolean;
+  /** Where the label sits (Tailwind position classes); defaults to bottom-left. */
+  badgeClassName?: string;
   /** Kept for call-site compatibility; background images need no priority hint. */
   priority?: boolean;
 }) {
   const gradient = GRADIENTS[hash(seed) % GRADIENTS.length];
 
-  // Real image path: a background image (v4), never next/image — uploads are
-  // base64 data URLs the optimiser rejects, and a missing file must degrade to
-  // the gradient rather than a broken glyph.
   if (src) {
     const safe = src.replace(/["\\]/g, "\\$&");
     return (
-      <div role="img" aria-label={alt} className={cn("relative overflow-hidden bg-gradient-to-br", gradient, className)}>
+      <div role="img" aria-label={illustration ? `${alt} (illustration)` : alt} className={cn("relative overflow-hidden bg-gradient-to-br", gradient, className)}>
         <div aria-hidden className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url("${safe}")` }} />
         <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/35 to-transparent" />
+        {illustration && <IllustrationBadge className={cn("absolute", badgeClassName ?? "bottom-3 left-3")} />}
       </div>
     );
   }
 
-  // Branded placeholder — no external image.
+  // Branded placeholder — no image at all.
   const label = (name ?? alt ?? "").trim();
   return (
     <div

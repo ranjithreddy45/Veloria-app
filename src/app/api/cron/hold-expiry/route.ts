@@ -1,14 +1,18 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import { prisma } from "@/lib/prisma";
+import { releaseLapsedHolds } from "@/lib/holds/release-lapsed-holds";
 
 // ============================================================
-// Cron · HOLD expiry sweeper (audit fix)
+// Cron · HOLD expiry sweeper (daily floor)
 // ------------------------------------------------------------
-// A booking placed on HOLD carries `holdExpiresAt`, but nothing ever expired
-// it — so a stale hold blocked its venue+date+slot forever (every conflict
-// check counts any non-CANCELLED booking). This cancels HOLDs whose expiry has
-// passed, freeing the slot. Idempotent; safe to run repeatedly.
+// A booking placed on HOLD carries `holdExpiresAt`. Once that passes with no
+// money against the booking the hold has LAPSED and must stop blocking its
+// venue+date+slot. This daily job is the floor under the frequent lanes
+// (/api/cron/fast and /api/cron/lapsed-hold-release) and releases through the
+// very same function they use: releaseLapsedHolds() in
+// src/lib/holds/release-lapsed-holds.ts (at most 500 holds per run; the
+// frequent lanes release any remainder within minutes). Idempotent; safe to
+// run repeatedly.
 // ============================================================
 
 export async function GET(request: Request) {
@@ -25,10 +29,10 @@ export async function GET(request: Request) {
 
   const now = new Date();
 
-  // NEVER cancel a hold that money has arrived against.
+  // NEVER cancel a hold that money has arrived against, or may be arriving.
   //
-  // This swept every expired HOLD unconditionally, and that quietly destroyed
-  // paid bookings. The path:
+  // This once swept every expired HOLD unconditionally, and that quietly
+  // destroyed paid bookings. The path:
   //
   //   1. Customer pays. maybeConfirmBookingOnPayment only flips HOLD→CONFIRMED
   //      once paidAmount clears 20% of the invoice, so a smaller advance or
@@ -38,39 +42,32 @@ export async function GET(request: Request) {
   //   4. The bookings calendar excludes CANCELLED — so a booking the customer
   //      has PAID FOR simply disappears from the calendar.
   //
-  // There is a second route to the same place even at a full advance: payment
-  // recorded, confirm not yet run, sweep lands in between. The sibling cron
-  // (public-hold-expiry) already guards exactly this and calls it the
-  // "paid-but-cancelled" race — but the daily orchestrator runs THIS job first,
-  // so the unguarded sweep got there before the careful one.
+  // The first fix only looked at invoice.paidAmount, which still let the sweep
+  // cancel a hold whose customer was mid-checkout at the gateway or had
+  // uploaded a payment proof awaiting verification. Selection and every cancel
+  // now use lapsedHoldWhere(now) (src/lib/holds/lapsed-hold.ts): a hold is
+  // spared when ANY invoice on the booking has money (paid, part-paid, a
+  // completed or processing payment), a proof awaits verification, or a
+  // Razorpay checkout started in the last 15 minutes. The money check runs
+  // inside each guarded UPDATE, so a payment landing mid-sweep wins. A released
+  // booking's unpaid PublicHold is expired with it, so the customer's hold link
+  // and the team's booking say the same thing.
   //
-  // Any payment at all now protects the hold. The trade-off is deliberate: an
-  // uncancelled hold keeps blocking its slot, which a human can see and undo in
-  // seconds. A silently cancelled paid booking is money taken for an event that
-  // no longer exists, and nobody finds out until the customer calls.
-  const paidGuard = { invoices: { none: { paidAmount: { gt: 0 } } } };
-
-  const [res, skippedPaid] = await Promise.all([
-    prisma.booking.updateMany({
-      where: { status: "HOLD", holdExpiresAt: { not: null, lt: now }, ...paidGuard },
-      data: { status: "CANCELLED" },
-    }),
-    // Counted and returned rather than silently skipped: a paid hold that never
-    // got confirmed is a real thing someone must chase, and a sweep that just
-    // steps over it without saying so is how it stays invisible.
-    prisma.booking.count({
-      where: {
-        status: "HOLD",
-        holdExpiresAt: { not: null, lt: now },
-        invoices: { some: { paidAmount: { gt: 0 } } },
-      },
-    }),
-  ]);
+  // The trade-off is deliberate: an uncancelled hold keeps blocking its slot,
+  // which a human can see and undo in seconds. A silently cancelled paid
+  // booking is money taken for an event that no longer exists, and nobody
+  // finds out until the customer calls.
+  const sweep = await releaseLapsedHolds(now);
 
   return NextResponse.json({
     success: true,
     ranAt: now.toISOString(),
-    expiredHolds: res.count,
-    skippedPaid,
+    expiredHolds: sweep.released,
+    // Counted and returned rather than silently skipped: an expired hold with
+    // money on it that never got confirmed is a real thing someone must chase.
+    skippedPaid: sweep.skippedWithMoney,
+    scanned: sweep.scanned,
+    disagreements: sweep.disagreements,
+    publicHoldsExpired: sweep.publicHoldsExpired,
   });
 }

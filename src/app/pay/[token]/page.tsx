@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
-import { CheckCircle2, ShieldCheck, FileText, AlertTriangle } from "lucide-react";
+import { CheckCircle2, ShieldCheck, FileText, AlertTriangle, Ban } from "lucide-react";
 import { getPublicInvoiceForPayment } from "@/actions/payment.actions";
 import { getSocialProof } from "@/lib/public/social-proof";
 import { SocialProofStrip } from "@/components/public/social-proof-strip";
 import { COMPANY_LEGAL_LINE } from "@/lib/constants";
-import { HelpChip } from "@/components/public/help-chip";
+import { getPublicContact } from "@/lib/public/business-contact";
+import { ContactChip } from "@/app/(guest)/_components/contact-chip";
+import { ContactLinks } from "@/app/(guest)/_components/contact-links";
 import { PublicPay } from "./_components/public-pay";
 import { PayAmountPicker } from "./_components/pay-amount-picker";
+import { payPageInvoice } from "./pay-page-state";
 
 export const metadata: Metadata = {
   title: "Pay invoice — Veloria Grand",
@@ -25,7 +28,7 @@ export default async function PayPage({
 }) {
   const { token } = await params;
   const { amt } = await searchParams;
-  const res = await getPublicInvoiceForPayment(token);
+  const [res, contact] = await Promise.all([getPublicInvoiceForPayment(token), getPublicContact()]);
 
   // Social proof — best-effort (getSocialProof never throws; returns empty on
   // failure). A proof-query failure must never block the Razorpay button.
@@ -70,19 +73,22 @@ export default async function PayPage({
             <p className="mt-1.5 text-sm text-muted-foreground">
               The invoice could not be found. Please contact us for an updated link.
             </p>
-            <HelpChip variant="banner" className="mt-5" />
+            <ContactChip context="My payment link isn't working" className="mt-5" />
           </div>
         ) : (
           (() => {
             const i = res.data;
-            const fullyPaid = i.status === "PAID" || i.balanceDue <= 0;
+            // Read the way the invoice documents read it (pay-page-state.ts): the
+            // title and balance line the team's invoice and PDF print, and the Pay
+            // button only while money is owed on it.
+            const { doc, docTitle, payable, closed } = payPageInvoice({ status: i.status, balanceDue: i.balanceDue });
             // Amount to collect: the link's suggested amount, clamped to the balance.
             const suggested = amt ? Math.round(Number(amt)) : i.balanceDue;
             const payAmount = Math.max(1, Math.min(i.balanceDue, Number.isFinite(suggested) ? suggested : i.balanceDue));
 
             return (
               <>
-              {!fullyPaid && socialProof && (
+              {payable && socialProof && (
                 <SocialProofStrip variant="banner" data={socialProof} className="mb-4" />
               )}
               <div className="overflow-hidden rounded-3xl border border-border bg-card shadow-premium">
@@ -97,7 +103,7 @@ export default async function PayPage({
                       invoice{i.eventName ? ` for ${i.eventName}` : ""}.
                     </p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      Invoice <span className="font-semibold text-foreground">{i.invoiceNumber}</span>
+                      {docTitle} <span className="font-semibold text-foreground">{i.invoiceNumber}</span>
                     </p>
                   </div>
                 </div>
@@ -122,20 +128,34 @@ export default async function PayPage({
                     <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                       <span className="text-copy font-semibold text-foreground">Balance due</span>
                       <span className="large-title tabular-nums text-h2 leading-none text-ink-gradient sm:text-2xl">
-                        {inr(i.balanceDue)}
+                        {doc.kind === "owed" ? inr(doc.owed) : doc.balanceLabel}
                       </span>
                     </div>
                   </div>
 
-                  {fullyPaid ? (
-                    <div className="mt-6 flex flex-col items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center dark:border-emerald-900 dark:bg-emerald-950/40">
-                      <CheckCircle2 className="size-9 text-emerald-600 dark:text-emerald-400" />
-                      <p className="font-semibold text-emerald-800 dark:text-emerald-300">
-                        This invoice is fully paid
-                      </p>
-                      <p className="text-sm text-emerald-700 dark:text-emerald-400">
-                        Thank you! Nothing more is due.
-                      </p>
+                  {closed ? (
+                    <div className="mt-6 space-y-3">
+                      <div
+                        className={`flex flex-col items-center gap-2 rounded-2xl border p-6 text-center ${
+                          closed.settled
+                            ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/40"
+                            : "border-border bg-muted/40"
+                        }`}
+                      >
+                        {closed.settled ? (
+                          <CheckCircle2 className="size-9 text-emerald-600 dark:text-emerald-400" />
+                        ) : (
+                          <Ban className="size-9 text-muted-foreground" />
+                        )}
+                        <p className={`font-semibold ${closed.settled ? "text-emerald-800 dark:text-emerald-300" : "text-foreground"}`}>
+                          {closed.title}
+                        </p>
+                        <p className={`text-sm ${closed.settled ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                          {closed.body}
+                        </p>
+                      </div>
+                      {/* A refunded, cancelled or unsent invoice: the customer may need us. */}
+                      {!closed.settled && <ContactLinks contact={contact} context={`Invoice ${i.invoiceNumber}`} />}
                     </div>
                   ) : (
                     <div className="mt-6 space-y-3">
@@ -158,6 +178,7 @@ export default async function PayPage({
                             customerName={i.customerName}
                             customerEmail={i.customerEmail}
                             customerPhone={i.customerPhone}
+                            contact={contact}
                           />
                         </>
                       ) : (
@@ -171,6 +192,7 @@ export default async function PayPage({
                           customerName={i.customerName}
                           customerEmail={i.customerEmail}
                           customerPhone={i.customerPhone}
+                          contact={contact}
                         />
                       )}
                     </div>

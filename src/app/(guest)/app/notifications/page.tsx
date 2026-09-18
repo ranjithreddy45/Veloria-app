@@ -1,11 +1,11 @@
 import { requireGuest } from "@/lib/guest-session";
-import { getGuestNotifications } from "@/actions/guest-host.actions";
+import { getMyNotifications } from "@/actions/guest-concierge.actions";
 import { NotificationList } from "./_components/notification-list";
 
 export const dynamic = "force-dynamic";
 
 export default async function NotificationsPage() {
   await requireGuest("/app/notifications");
-  const items = await getGuestNotifications();
-  return <NotificationList initial={items} />;
+  const { items, now } = await getMyNotifications();
+  return <NotificationList initial={items} now={now} />;
 }

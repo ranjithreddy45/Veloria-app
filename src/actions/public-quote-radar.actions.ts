@@ -16,6 +16,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import {
   buildPublicQuoteView,
   type PublicQuoteView,
@@ -120,7 +121,7 @@ export async function recordQuoteView(
     try {
       const h = await headers();
       ua = h.get("user-agent");
-      ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null;
+      ip = clientIpOfHeaders(h);
     } catch {
       // headers() can throw outside a request scope — degrade gracefully.
     }

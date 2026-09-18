@@ -9,6 +9,8 @@ import { hasPermission } from "@/lib/permissions";
 import { requestApprovalIfNeeded } from "@/lib/approval-engine";
 import { velosOnDealStage } from "@/lib/velos/triggers";
 import { calculateLeadScore } from "@/lib/lead-scoring";
+import { utcDayRange } from "@/lib/sales/slot-util";
+import { releaseLapsedHoldsForSlot } from "@/lib/holds/release-lapsed-holds";
 
 // ============================================================
 // Open-funnel status ordering (mirrors the LeadStatus enum). Used to avoid
@@ -1048,24 +1050,37 @@ export async function convertDealToBooking(data: {
     const year = new Date().getFullYear();
     const bkPrefix = `BK-${year}-`;
 
-    const bookingDate = new Date(data.date);
-    bookingDate.setHours(0, 0, 0, 0);
+    // Pin to UTC midnight of the input's calendar day, exactly as createBooking
+    // does, so the stored @db.Date day, the blackout match and the clash scan
+    // agree on any server timezone. A local setHours(0,0,0,0) moves the day on
+    // a non-UTC host, and an exact-equality date filter then matches nothing.
+    const srcDate = new Date(data.date);
+    const bookingDate = new Date(
+      Date.UTC(srcDate.getUTCFullYear(), srcDate.getUTCMonth(), srcDate.getUTCDate())
+    );
 
     if (Number.isNaN(bookingDate.getTime())) {
       return { success: false as const, error: "Invalid event date" };
     }
+    // UTC day window for the @db.Date blackout and clash scans (see utcDayRange).
+    const { gte: dayGte, lt: dayLt, utcDay } = utcDayRange(bookingDate);
 
-    // Reject past dates (a confirmed booking can't be in the past).
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Reject past dates (a confirmed booking can't be in the past), comparing
+    // UTC calendar days: the day bookingDate is stored as.
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     if (bookingDate < today) {
       return { success: false as const, error: "Event date cannot be in the past" };
     }
 
     // Availability + blackout guard — mirror createBooking so a conversion
     // can never double-book a venue/slot or land on a blacked-out date.
-    const slot = data.timeSlot as "MORNING" | "AFTERNOON" | "EVENING" | "FULL_DAY";
-    const slotConflicts =
+    const SLOTS = ["MORNING", "AFTERNOON", "EVENING", "FULL_DAY"] as const;
+    const slot = data.timeSlot as (typeof SLOTS)[number];
+    if (!SLOTS.includes(slot)) {
+      return { success: false as const, error: "Invalid time slot" };
+    }
+    const slotConflicts: (typeof SLOTS)[number][] =
       slot === "FULL_DAY"
         ? ["MORNING", "AFTERNOON", "EVENING", "FULL_DAY"]
         : [slot, "FULL_DAY"];
@@ -1074,10 +1089,13 @@ export async function convertDealToBooking(data: {
     // conversion racing createBooking, could otherwise both pass an outside
     // check and double-book the same venue/slot (the DB unique key only catches
     // an identical slot, not a FULL_DAY-vs-partial overlap).
-    const blackout = await prisma.blackoutDate.findFirst({
+    //
+    // Blackouts are matched as createBooking matches them: over the UTC day,
+    // bucketed by getUTCDate() (BlackoutDate.date is @db.Date).
+    const blackouts = await prisma.blackoutDate.findMany({
       where: {
         venueId: data.venueId,
-        date: bookingDate,
+        date: { gte: dayGte, lt: dayLt },
         OR: [
           { timeSlot: null },
           { timeSlot: slot },
@@ -1090,14 +1108,25 @@ export async function convertDealToBooking(data: {
             : []),
         ],
       },
-      select: { reason: true },
+      select: { date: true, reason: true },
     });
+    const blackout = blackouts.find((b) => new Date(b.date).getUTCDate() === utcDay);
     if (blackout) {
       return {
         success: false as const,
         error: `Venue is blacked out: ${blackout.reason || "No reason specified"}`,
       };
     }
+
+    // A lapsed hold (window passed, no money against it) no longer takes the
+    // slot for the availability board, the booking form or customers, but its
+    // row still occupies it (and the active-slot unique index). Release it first
+    // with the shared guarded cancel; a hold that gained money meanwhile is kept,
+    // and the clash check in the transaction below refuses the slot. A release
+    // failure is logged, never thrown: that clash check still decides.
+    await releaseLapsedHoldsForSlot(data.venueId, bookingDate, slot, now).catch((e) => {
+      console.error("[CONVERT_DEAL_LAPSED_RELEASE_ERROR]", e);
+    });
 
     // Create booking in a transaction. The booking number is allocated INSIDE
     // the txn (count + create together) and the whole txn is retried on a P2002
@@ -1112,13 +1141,13 @@ export async function convertDealToBooking(data: {
           const clashes = await tx.booking.findMany({
             where: {
               venueId: data.venueId,
-              date: bookingDate,
+              date: { gte: dayGte, lt: dayLt },
               status: { notIn: ["CANCELLED"] },
-              timeSlot: { in: slotConflicts as ("MORNING" | "AFTERNOON" | "EVENING" | "FULL_DAY")[] },
+              timeSlot: { in: slotConflicts },
             },
-            select: { id: true },
+            select: { id: true, date: true },
           });
-          if (clashes.length > 0) throw new Error("SLOT_TAKEN");
+          if (clashes.some((c) => new Date(c.date).getUTCDate() === utcDay)) throw new Error("SLOT_TAKEN");
 
           const count = await tx.booking.count();
           const bookingNumber = `${bkPrefix}${String(count + 1 + attempt).padStart(4, "0")}`;

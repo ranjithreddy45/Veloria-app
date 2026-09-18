@@ -9,6 +9,7 @@ import {
   UsersIcon,
   IndianRupeeIcon,
   Loader2Icon,
+  PercentIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { isCredibleSlotPrice } from "@/lib/pricing/credible-slot-price";
 import {
   Card,
   CardContent,
@@ -31,7 +33,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createVenue, updateVenue } from "@/actions/booking.actions";
+import {
+  PROPERTY_TYPES,
+  defaultGstFor,
+  propertyTypeLabel,
+  propertyTypeOption,
+} from "@/lib/sales/property-type";
 import { formatINR } from "@/lib/utils";
 
 // ============================================================
@@ -48,7 +63,30 @@ interface VenueData {
   isActive: boolean;
   inHouseCateringRequired?: boolean;
   inHouseCateringNote?: string | null;
+  /** Decides the GST rate. See src/lib/sales/property-type.ts. */
+  propertyType?: string | null;
+  taxSlabs?: {
+    id: string;
+    name: string;
+    cgstRate: unknown;
+    sgstRate: unknown;
+    igstRate: unknown;
+    isDefault: boolean;
+  }[];
   _count: { bookings: number };
+}
+
+/** The rate this property will actually quote at: its default rate if one is
+ *  configured, otherwise the standard rate for its type. */
+function effectiveGst(venue: VenueData): { rate: number; configured: boolean } {
+  const chosen = venue.taxSlabs?.find((t) => t.isDefault) ?? venue.taxSlabs?.[0];
+  if (chosen) {
+    return {
+      rate: Number(chosen.cgstRate) + Number(chosen.sgstRate) + Number(chosen.igstRate),
+      configured: true,
+    };
+  }
+  return { rate: defaultGstFor(venue.propertyType), configured: false };
 }
 
 interface VenuesListProps {
@@ -72,6 +110,7 @@ export function VenuesList({ venues }: VenuesListProps) {
   const [pricePerSlot, setPricePerSlot] = React.useState(0);
   const [amenities, setAmenities] = React.useState("");
   const [inHouseCatering, setInHouseCatering] = React.useState(false);
+  const [propertyType, setPropertyType] = React.useState("");
   const [inHouseNote, setInHouseNote] = React.useState("");
 
   function openCreateDialog() {
@@ -82,6 +121,7 @@ export function VenuesList({ venues }: VenuesListProps) {
     setPricePerSlot(0);
     setAmenities("");
     setInHouseCatering(false);
+    setPropertyType("");
     setInHouseNote("");
     setDialogOpen(true);
   }
@@ -94,6 +134,7 @@ export function VenuesList({ venues }: VenuesListProps) {
     setPricePerSlot(Number(venue.pricePerSlot));
     setAmenities(venue.amenities.join(", "));
     setInHouseCatering(venue.inHouseCateringRequired ?? false);
+    setPropertyType(venue.propertyType ?? "");
     setInHouseNote(venue.inHouseCateringNote ?? "");
     setDialogOpen(true);
   }
@@ -124,6 +165,7 @@ export function VenuesList({ venues }: VenuesListProps) {
           amenities: amenitiesArray,
           inHouseCateringRequired: inHouseCatering,
           inHouseCateringNote: inHouseNote.trim(),
+          propertyType,
         });
         if (result.success) {
           toast.success("Venue updated successfully");
@@ -141,6 +183,7 @@ export function VenuesList({ venues }: VenuesListProps) {
           amenities: amenitiesArray,
           inHouseCateringRequired: inHouseCatering,
           inHouseCateringNote: inHouseNote.trim(),
+          propertyType,
         });
         if (result.success) {
           toast.success("Venue created successfully");
@@ -255,7 +298,30 @@ export function VenuesList({ venues }: VenuesListProps) {
                       <p className="text-sm font-medium">
                         {formatINR(venue.pricePerSlot)}
                       </p>
+                      {!isCredibleSlotPrice(Number(venue.pricePerSlot)) && (
+                        <p className="text-xs font-medium text-amber-600">
+                          Placeholder — customers see &quot;Price on request&quot;
+                        </p>
+                      )}
                     </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <PercentIcon className="text-muted-foreground size-4" />
+                  <div>
+                    <p className="text-muted-foreground text-meta">
+                      {propertyTypeLabel(venue.propertyType)}
+                    </p>
+                    <p className="text-sm font-medium">
+                      GST {effectiveGst(venue).rate}%
+                      {!effectiveGst(venue).configured && (
+                        <span className="text-muted-foreground font-normal">
+                          {" "}
+                          · standard for this type
+                        </span>
+                      )}
+                    </p>
                   </div>
                 </div>
 
@@ -361,6 +427,27 @@ export function VenuesList({ venues }: VenuesListProps) {
                   }
                 />
               </div>
+            </div>
+            {/* Property type — this is what decides the GST rate, so it sits
+                with the commercial fields rather than the descriptive ones. */}
+            <div className="space-y-2">
+              <Label htmlFor="venue-property-type">Property type</Label>
+              <Select value={propertyType} onValueChange={setPropertyType}>
+                <SelectTrigger id="venue-property-type">
+                  <SelectValue placeholder="Choose a type to set the GST rate" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROPERTY_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label} — GST {t.defaultGst}%
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-muted-foreground text-xs">
+                {propertyTypeOption(propertyType)?.hint ??
+                  "A 4- or 5-star hotel charges 18%. Other venues charge 5% on a package that includes food."}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="venue-amenities">

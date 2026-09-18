@@ -60,7 +60,20 @@ interface LeadOpt {
   clientPhone?: string | null;
   clientEmail?: string | null;
 }
-interface VenueOpt { id: string; name: string }
+interface VenueOpt {
+  id: string;
+  name: string;
+  inHouseCateringRequired?: boolean;
+  inHouseCateringNote?: string | null;
+  taxSlabs?: {
+    id: string;
+    name: string;
+    cgstRate: unknown;
+    sgstRate: unknown;
+    igstRate: unknown;
+    isDefault: boolean;
+  }[];
+}
 
 interface QuoteRow {
   id: string;
@@ -82,6 +95,8 @@ interface QuoteRow {
   bookingId: string | null;
   slotBlockedAt: string | null;
   invoiceId: string | null;
+  /** Which of the property's GST rates this quote was built on. */
+  taxSlabId?: string | null;
   sentChannel: string | null;
   sentTo: string | null;
   sentAt: string | null;
@@ -144,6 +159,9 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
         eventDate: quote.eventDate ?? null,
         timeSlot: quote.timeSlot ?? undefined,
         notes: quote.notes ?? undefined,
+        // Keep the GST rate this draft was built with, so reopening it does not
+        // silently re-resolve to the property's current default.
+        taxSlabId: quote.taxSlabId ?? null,
       },
     };
     return (

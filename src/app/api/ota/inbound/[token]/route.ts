@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
 import { mapInboundToLead } from "@/lib/ota/map-inbound";
 import { logOtaSync } from "@/lib/ota/sync-log";
@@ -71,10 +72,7 @@ export async function POST(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip") ||
-      "unknown";
+    const ip = clientIpOfHeaders(request.headers) || "unknown";
 
     maybeCleanup();
     if (isRateLimited(ip)) {

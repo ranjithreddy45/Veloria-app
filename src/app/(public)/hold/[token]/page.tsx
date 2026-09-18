@@ -1,16 +1,24 @@
 import type { Metadata } from "next";
-import { CheckCircle2, Clock, CalendarDays, MapPin, Users, PhoneCall } from "lucide-react";
+import Link from "next/link";
+import { Clock, CalendarDays, MapPin, Users } from "lucide-react";
 import { getPublicHold } from "@/actions/public-hold.actions";
 import { getSocialProof } from "@/lib/public/social-proof";
 import { SocialProofStrip } from "@/components/public/social-proof-strip";
 import { HelpChip } from "@/components/public/help-chip";
-import { HoldPayPanel } from "./_components/hold-pay-panel";
+import { getPublicContact } from "@/lib/public/business-contact";
+import { HoldPayPanel, HoldPaymentResult } from "./_components/hold-pay-panel";
+import { getHoldPaymentOutcome } from "./hold-payment-outcome";
+import { holdPaymentCopy, type HoldPaymentState } from "./hold-payment-result";
 
 // ============================================================
 // PUBLIC (no auth) — hold confirmation + token Razorpay payment.
 // Tokenized access only; the token is the unguessable PublicHold.token.
 // Reuses the EXISTING PublicPay client (createPublicRazorpayOrder /
 // verifyPublicRazorpayPayment) pointed at the hold's token Invoice.
+//
+// Once paid, the page says what the /pay result would say about the booking
+// (outcome-state.ts): "Your date is secured" only for a live booking, and a
+// payment on a cancelled booking is told the booking isn't active.
 // ============================================================
 
 export const metadata: Metadata = {
@@ -27,7 +35,8 @@ export default async function HoldConfirmationPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const res = await getPublicHold(token);
+  // The help buttons use the numbers the team keeps in Settings → Business contact.
+  const [res, contact] = await Promise.all([getPublicHold(token), getPublicContact()]);
 
   if (!res.success) {
     return (
@@ -39,13 +48,13 @@ export default async function HoldConfirmationPage({
           The link may have expired. Your date could still be open — have
           another look.
         </p>
-        <a
+        <Link
           href="/hold"
           className="bg-primary text-primary-foreground mt-6 inline-block rounded-full px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90"
         >
           Check availability
-        </a>
-        <HelpChip variant="banner" className="mt-6" />
+        </Link>
+        <HelpChip variant="banner" className="mt-6" contact={contact} />
       </div>
     );
   }
@@ -65,10 +74,16 @@ export default async function HoldConfirmationPage({
 
   // Social proof — best-effort (getSocialProof never throws; returns empty on
   // failure). A proof-query failure must never block the hold/pay surface.
-  const socialProof = await getSocialProof({
-    eventType: h.eventType ?? undefined,
-    venueId: h.venueId,
-  }).catch(() => null);
+  // Once paid, the booking's outcome, read the way the /pay result reads it.
+  const [socialProof, payment] = await Promise.all([
+    getSocialProof({
+      eventType: h.eventType ?? undefined,
+      venueId: h.venueId,
+    }).catch(() => null),
+    paid ? getHoldPaymentOutcome(h.token) : Promise.resolve(null),
+  ]);
+  const paidState: HoldPaymentState = payment?.state ?? "UNKNOWN";
+  const teamAlerted = payment?.teamAlerted ?? false;
 
   return (
     <div className="space-y-6">
@@ -77,7 +92,11 @@ export default async function HoldConfirmationPage({
           For {h.customerFirstName}
         </p>
         <h1 className="text-foreground mt-3 text-h1 sm:text-h1">
-          {paid ? "Your date is secured" : "Your date is on hold"}
+          {paid
+            ? holdPaymentCopy(paidState, { amount: inr(h.tokenAmount), teamAlerted }).heading
+            : expired || released
+              ? "Your date hold"
+              : "Your date is on hold"}
         </h1>
       </header>
 
@@ -106,23 +125,13 @@ export default async function HoldConfirmationPage({
       </div>
 
       {paid ? (
-        <div className="space-y-3">
-          <div className="flex flex-col items-center gap-2 rounded-2xl border border-success/25 bg-success/[0.07] p-8 text-center">
-            <CheckCircle2 className="size-9 text-success" />
-            <p className="font-editorial mt-1 text-title font-semibold text-success">
-              Your date is secured
-            </p>
-            <p className="text-sm text-success/85">
-              <span className="numeric">{inr(h.tokenAmount)}</span> received ·{" "}
-              {dateLabel} · {h.slotLabel}
-            </p>
-            <p className="mt-2 flex items-center justify-center gap-1.5 text-detail font-medium text-success">
-              <PhoneCall className="size-3.5" /> Your coordinator will call you
-              within 24 hours.
-            </p>
-          </div>
-          <HelpChip variant="banner" />
-        </div>
+        <HoldPaymentResult
+          state={paidState}
+          teamAlerted={teamAlerted}
+          amount={h.tokenAmount}
+          contact={contact}
+          reference={`My date hold: ${h.venueName}, ${dateLabel}, ${h.slotLabel}`}
+        />
       ) : expired || released ? (
         <div className="bg-card shadow-card rounded-2xl border p-8 text-center">
           <p className="font-editorial text-foreground text-title font-semibold">
@@ -131,13 +140,13 @@ export default async function HoldConfirmationPage({
           <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm leading-relaxed">
             The date is open again — you&apos;re welcome to hold it once more.
           </p>
-          <a
+          <Link
             href="/hold"
             className="bg-primary text-primary-foreground mt-6 inline-block rounded-full px-5 py-2.5 text-sm font-medium transition-opacity hover:opacity-90"
           >
             Check availability
-          </a>
-          <HelpChip variant="banner" className="mt-6" />
+          </Link>
+          <HelpChip variant="banner" className="mt-6" contact={contact} />
         </div>
       ) : (
         <HoldPayPanel
@@ -146,6 +155,7 @@ export default async function HoldConfirmationPage({
           tokenAmount={h.tokenAmount}
           customerFirstName={h.customerFirstName}
           expiresAt={h.expiresAt}
+          contact={contact}
           socialProof={
             socialProof ? <SocialProofStrip variant="banner" data={socialProof} /> : null
           }

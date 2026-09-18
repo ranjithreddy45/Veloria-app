@@ -29,6 +29,7 @@ import {
   DataTableColumnHeader,
 } from "@/components/shared/data-table";
 import { formatINR } from "@/lib/utils";
+import { invoicePresentation } from "@/lib/finance/invoice-presentation";
 import { sendInvoice, deleteInvoice } from "@/actions/invoice.actions";
 import { exportInvoices } from "@/actions/export.actions";
 import { toCSV, downloadCSV } from "@/lib/csv-export";
@@ -224,16 +225,22 @@ function useColumns(): ColumnDef<InvoiceRow, unknown>[] {
       accessorKey: "balanceDue",
       header: () => <div className="text-right">Balance</div>,
       cell: ({ row }) => {
-        const balance = Number(row.original.balanceDue?.toString() ?? 0);
+        // What is still owed (finance's owed rule), or why nothing is: a fully
+        // refunded invoice's stored balanceDue is back to its total, so it is
+        // never shown as a balance (src/lib/finance/invoice-presentation.ts).
+        const view = invoicePresentation({
+          status: row.original.status,
+          balanceDue: Number(row.original.balanceDue?.toString() ?? 0),
+        });
         return (
           <div
             className={
-              balance > 0
+              view.tone === "due"
                 ? "numeric text-right text-body font-semibold text-destructive"
                 : "numeric text-right text-body text-muted-foreground"
             }
           >
-            {formatINR(row.original.balanceDue)}
+            {view.balanceLabel}
           </div>
         );
       },

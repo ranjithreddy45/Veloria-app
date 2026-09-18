@@ -13,7 +13,6 @@ import {
   Circle,
   FileSignature,
   Loader2,
-  Lock,
   Paperclip,
   Pencil,
   Rocket,
@@ -36,7 +35,6 @@ import {
   addAcqNote,
   markAcqContractSigned,
   approveAcqDeal,
-  setAcqDealEconomicsFrozen,
   editAcqDealOverview,
   updateAcqDealImages,
 } from "@/actions/acq-deal.actions";
@@ -59,11 +57,8 @@ import {
   ACQ_PROPERTY_TYPE,
   ACQ_PROPERTY_STAGE,
   ACQ_LEAD_SOURCE,
-  ACQ_RM_PRICE_BASIS,
-  ACQ_RM_PRICE_BASIS_LABEL,
   type AcqDealStage,
   type AcqDealModel,
-  type AcqRmPriceBasis,
   type AcqLostReason,
 } from "@/lib/acq/constants";
 
@@ -187,17 +182,9 @@ export interface AcqDealDetail {
   royaltyPct: Num;
   termYears: Num;
   lockinYears: Num;
-  // REVENUE_MARGIN economics — absolute prices, not percentages.
-  rmBasePrice?: Num;
-  rmBestPrice?: Num;
-  rmPriceBasis?: string | null;
-  rmHallCapacity?: number | null;
-  rmMinimumPax?: number | null;
-  isExclusive: boolean;
   expectedMonthlyEvents: Num;
   projectedFeeValue: Num;
   banquetSizeSft: Num;
-  economicsFrozenAt: string | null;
   evalScore: Num;
   evalPassed: boolean | null;
   contractStatus: string;
@@ -255,22 +242,9 @@ function forwardStep(deal: AcqDealDetail): NextStep | null {
       ];
       if (deal.model === "FRANCHISE") {
         reqs.push({ label: "Royalty % set", met: num(deal.royaltyPct) != null });
-      } else if (deal.model === "REVENUE_MARGIN") {
-        // Absolute-price model: ask for ITS fields, never a fee/royalty %.
-        reqs.push({
-          label: "Base price, best price and price basis set",
-          met:
-            num(deal.rmBasePrice) != null &&
-            num(deal.rmBestPrice) != null &&
-            !!deal.rmPriceBasis,
-        });
-        if (deal.rmPriceBasis === "PER_PAX") {
-          reqs.push({
-            label: "Hall capacity and minimum pax set (per-pax price)",
-            met: deal.rmHallCapacity != null && deal.rmMinimumPax != null,
-          });
-        }
-      } else {
+      } else if (deal.model !== "REVENUE_MARGIN") {
+        // REVENUE_MARGIN quotes absolute prices and no longer carries any of its
+        // own, so it has nothing to require here beyond the model itself.
         reqs.push({
           label: "Base fee % and incentive % set",
           met: num(deal.baseFeePct) != null && num(deal.incentivePct) != null,
@@ -380,7 +354,7 @@ const INR = new Intl.NumberFormat("en-IN", {
 
 // Single source of truth for the deal change-log. Both the Overview "Change log"
 // panel and the Negotiation thread derive from this so the two surfaces can never
-// drift (O-10): CHANGE_LOG notes are the system-written edit history (economics,
+// drift (O-10): CHANGE_LOG notes are the system-written edit history (commercials,
 // overview, approvals), kept separate from human negotiation/internal notes.
 const isChangeLogNote = (n: AcqNoteRow) => n.noteType === "CHANGE_LOG";
 const selectChangeLog = (notes: AcqNoteRow[]) => notes.filter(isChangeLogNote);
@@ -413,7 +387,6 @@ export function DealDetail({
           <TabsList className={`${TAB_LIST_SCROLL} w-full`}>
             <TabsTrigger value="overview" className="shrink-0 whitespace-nowrap">Overview</TabsTrigger>
             <TabsTrigger value="contact" className="shrink-0 whitespace-nowrap">Contact</TabsTrigger>
-            <TabsTrigger value="economics" className="shrink-0 whitespace-nowrap">Economics &amp; Model</TabsTrigger>
             <TabsTrigger value="evaluation" className="shrink-0 whitespace-nowrap">Evaluation</TabsTrigger>
             {DEAL_PROJECTION_TAB_ENABLED && (
               <TabsTrigger value="projection" className="shrink-0 whitespace-nowrap">Projection</TabsTrigger>
@@ -430,9 +403,6 @@ export function DealDetail({
           <TabsContent value="contact" className="mt-4">
             <ContactTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
           </TabsContent>
-          <TabsContent value="economics" className="mt-4">
-            <EconomicsTab deal={deal} userRole={userRole} onMutate={() => router.refresh()} />
-          </TabsContent>
           <TabsContent value="evaluation" className="mt-4">
             <EvaluationTab
               deal={deal}
@@ -442,19 +412,20 @@ export function DealDetail({
           </TabsContent>
           {DEAL_PROJECTION_TAB_ENABLED && (
             <TabsContent value="projection" className="mt-4">
-              {/* One projection lifecycle for every model. A Revenue-Margin deal
-                  seeds the RM engine from its agreed economics; the builder freezes
-                  those numbers onto the projection when it saves. */}
+              {/* One projection lifecycle for every model. The deal no longer
+                  carries Revenue-Margin prices of its own, so an RM draft starts
+                  blank on price and the builder freezes whatever is entered onto
+                  the projection when it saves. Volume still seeds from the deal. */}
               <ProjectionTab
                 dealId={deal.id}
                 userRole={userRole}
                 dealModel={deal.model}
                 rmDefaults={{
-                  basePrice: num(deal.rmBasePrice),
-                  bestPrice: num(deal.rmBestPrice),
-                  priceBasis: deal.rmPriceBasis === "PER_PAX" ? "PER_PAX" : "PER_EVENT",
-                  hallCapacity: deal.rmHallCapacity ?? null,
-                  minimumPax: deal.rmMinimumPax ?? null,
+                  basePrice: null,
+                  bestPrice: null,
+                  priceBasis: "PER_EVENT",
+                  hallCapacity: null,
+                  minimumPax: null,
                   eventsPerMonth: num(deal.expectedMonthlyEvents),
                   expectedPax:
                     Math.max(
@@ -1313,6 +1284,24 @@ function detailsFormState(deal: AcqDealDetail) {
     referrerEmail: lead?.referrerEmail ?? "",
     brokerageDemand: lead?.brokerageDemand ?? "",
     notes: lead?.notes ?? "",
+    // Commercials. These used to live on their own "Economics & Model" tab.
+    // They are still what the stage gates, the contract's pre-fill and the
+    // HallOwner revenue share read, so they stay editable — here, next to the
+    // rest of the deal, rather than on a tab of their own.
+    model: (deal.model ?? "MANAGEMENT") as AcqDealModel,
+    baseFeePct: numStr(deal.baseFeePct),
+    incentivePct: numStr(deal.incentivePct),
+    royaltyPct: numStr(deal.royaltyPct),
+    termYears: numStr(deal.termYears),
+    lockinYears: numStr(deal.lockinYears),
+    projectedFeeValue: numStr(deal.projectedFeeValue),
+    expectedMonthlyEvents: numStr(deal.expectedMonthlyEvents),
+    // The venue's own numbers — never economics, they just happened to share
+    // that form, and this is their only editor.
+    ownerCurrentMonthlyRevenue: numStr(deal.ownerCurrentMonthlyRevenue),
+    avgEventsPerMonth: numStr(deal.avgEventsPerMonth),
+    peakRateCard: numStr(deal.peakRateCard),
+    banquetSizeSft: numStr(deal.banquetSizeSft),
   };
 }
 
@@ -1341,6 +1330,19 @@ function DetailsEditDialog({
   ) => setF((p) => ({ ...p, [k]: v }));
 
   const toInt = (s: string) => (s.trim() === "" ? null : Math.trunc(Number(s)));
+  // Blank → null, and anything non-finite (a lone "-", "1e") → null too, so a
+  // NaN never reaches a Decimal column.
+  const numOrNull = (s: string): number | null => {
+    if (s.trim() === "") return null;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  };
+  // termYears / lockinYears / banquetSizeSft are Int? columns — Prisma rejects a
+  // decimal, so truncate rather than let "3.5" throw.
+  const intOrNull = (s: string): number | null => {
+    const n = numOrNull(s);
+    return n == null ? null : Math.trunc(n);
+  };
 
   async function save() {
     if (!f.ownerName.trim() || !f.propertyName.trim()) {
@@ -1364,7 +1366,29 @@ function DetailsEditDialog({
         toast.error(dealRes.error);
         return;
       }
-      // 2) The lead record — the fields the deal snapshot doesn't carry.
+      // 2) The commercials. A separate action because updateAcqDeal is the one
+      //    that change-logs them and re-runs the BD-Head floor check; it also
+      //    re-validates server-side, so this form never has the last word.
+      const commercialsRes = await updateAcqDeal(deal.id, {
+        model: f.model,
+        baseFeePct: numOrNull(f.baseFeePct),
+        incentivePct: numOrNull(f.incentivePct),
+        royaltyPct: numOrNull(f.royaltyPct),
+        termYears: intOrNull(f.termYears),
+        lockinYears: intOrNull(f.lockinYears),
+        projectedFeeValue: numOrNull(f.projectedFeeValue),
+        expectedMonthlyEvents: numOrNull(f.expectedMonthlyEvents),
+        ownerCurrentMonthlyRevenue: numOrNull(f.ownerCurrentMonthlyRevenue),
+        avgEventsPerMonth: numOrNull(f.avgEventsPerMonth),
+        peakRateCard: numOrNull(f.peakRateCard),
+        banquetSizeSft: intOrNull(f.banquetSizeSft),
+      });
+      if (!commercialsRes.success) {
+        toast.error(`Details saved, but the commercials didn't update: ${commercialsRes.error}`);
+        onMutate();
+        return;
+      }
+      // 3) The lead record — the fields the deal snapshot doesn't carry.
       if (lead) {
         const leadRes = await editAcqLead(lead.id, {
           ownerName: f.ownerName.trim(),
@@ -1482,6 +1506,38 @@ function DetailsEditDialog({
               <div className="space-y-1.5 sm:col-span-2"><Label>Lead notes</Label><Textarea rows={3} value={f.notes} onChange={(e) => set("notes", e.target.value)} /></div>
             </>
           )}
+
+          <FormSection title="Commercials" />
+          <div className="space-y-1.5">
+            <Label>Commercial model</Label>
+            <Select value={f.model} onValueChange={(v) => set("model", v as AcqDealModel)}>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ACQ_DEAL_MODEL.map((m) => (<SelectItem key={m} value={m}>{ACQ_DEAL_MODEL_LABEL[m]}</SelectItem>))}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Each model is gated on its own terms at PROPOSAL_SENT and WON, so
+              only that model's fields are offered. */}
+          {f.model === "MANAGEMENT" && (
+            <>
+              <NumField label="Base fee %" value={f.baseFeePct} onChange={(v) => set("baseFeePct", v)} />
+              <NumField label="Incentive %" value={f.incentivePct} onChange={(v) => set("incentivePct", v)} />
+            </>
+          )}
+          {f.model === "FRANCHISE" && (
+            <NumField label="Royalty %" value={f.royaltyPct} onChange={(v) => set("royaltyPct", v)} />
+          )}
+          <NumField label="Term (years)" value={f.termYears} onChange={(v) => set("termYears", v)} />
+          <NumField label="Lock-in (years)" value={f.lockinYears} onChange={(v) => set("lockinYears", v)} />
+          <NumField label="Projected fee value" value={f.projectedFeeValue} onChange={(v) => set("projectedFeeValue", v)} />
+          <NumField label="Expected monthly events" value={f.expectedMonthlyEvents} onChange={(v) => set("expectedMonthlyEvents", v)} />
+
+          <FormSection title="Venue numbers" />
+          <NumField label="Owner current monthly revenue" value={f.ownerCurrentMonthlyRevenue} onChange={(v) => set("ownerCurrentMonthlyRevenue", v)} />
+          <NumField label="Avg events / month" value={f.avgEventsPerMonth} onChange={(v) => set("avgEventsPerMonth", v)} />
+          <NumField label="Peak rate card" value={f.peakRateCard} onChange={(v) => set("peakRateCard", v)} />
+          <NumField label="Venue size (sqft)" value={f.banquetSizeSft} onChange={(v) => set("banquetSizeSft", v)} />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
@@ -1489,399 +1545,6 @@ function DetailsEditDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  );
-}
-
-
-// ------------------------------------------------------------
-// Economics & Model tab
-// ------------------------------------------------------------
-function EconomicsTab({
-  deal,
-  userRole,
-  onMutate,
-}: {
-  deal: AcqDealDetail;
-  userRole?: string;
-  onMutate: () => void;
-}) {
-  const frozen = !!deal.economicsFrozenAt;
-  const canFreeze = acqCan(userRole, "bdhead:approve");
-  const [model, setModel] = useState<AcqDealModel>(deal.model ?? "MANAGEMENT");
-  // REVENUE_MARGIN economics — absolute prices, so none of the % floors apply.
-  const [rmBasePrice, setRmBasePrice] = useState(numStr(deal.rmBasePrice));
-  const [rmBestPrice, setRmBestPrice] = useState(numStr(deal.rmBestPrice));
-  const [rmPriceBasis, setRmPriceBasis] = useState<AcqRmPriceBasis>(
-    deal.rmPriceBasis === "PER_PAX" ? "PER_PAX" : "PER_EVENT"
-  );
-  const [rmHallCapacity, setRmHallCapacity] = useState(numStr(deal.rmHallCapacity ?? null));
-  const [rmMinimumPax, setRmMinimumPax] = useState(numStr(deal.rmMinimumPax ?? null));
-  const [baseFeePct, setBaseFeePct] = useState(numStr(deal.baseFeePct));
-  const [incentivePct, setIncentivePct] = useState(numStr(deal.incentivePct));
-  const [royaltyPct, setRoyaltyPct] = useState(numStr(deal.royaltyPct));
-  const [termYears, setTermYears] = useState(numStr(deal.termYears));
-  const [lockinYears, setLockinYears] = useState(numStr(deal.lockinYears));
-  const [banquetSizeSft, setBanquetSizeSft] = useState(numStr(deal.banquetSizeSft));
-  const [freezing, setFreezing] = useState(false);
-  const [isExclusive, setIsExclusive] = useState(Boolean(deal.isExclusive));
-  const [expectedMonthlyEvents, setExpectedMonthlyEvents] = useState(
-    numStr(deal.expectedMonthlyEvents)
-  );
-  const [projectedFeeValue, setProjectedFeeValue] = useState(
-    numStr(deal.projectedFeeValue)
-  );
-  const [ownerRevenue, setOwnerRevenue] = useState(
-    numStr(deal.ownerCurrentMonthlyRevenue)
-  );
-  const [avgEvents, setAvgEvents] = useState(numStr(deal.avgEventsPerMonth));
-  const [peakRateCard, setPeakRateCard] = useState(numStr(deal.peakRateCard));
-  const [busy, setBusy] = useState(false);
-
-  // Blank → null; anything non-finite (a lone "-", "1e", etc.) → null too,
-  // so we never ship NaN to a Decimal column.
-  const numOrNull = (s: string): number | null => {
-    if (s.trim() === "") return null;
-    const n = Number(s);
-    return Number.isFinite(n) ? n : null;
-  };
-  // termYears / lockinYears are Int? columns — Prisma rejects a decimal, so
-  // truncate. Without this a "3.5" throws and (pre-fix) hung the Save button.
-  const intOrNull = (s: string): number | null => {
-    const n = numOrNull(s);
-    return n == null ? null : Math.trunc(n);
-  };
-
-  // Client mirror of the server's REVENUE_MARGIN rules (acq-deal.actions.ts) so
-  // the rep sees the problem before the round-trip. The server still re-checks.
-  const rmErrors: string[] = [];
-  if (model === "REVENUE_MARGIN") {
-    const b = numOrNull(rmBasePrice);
-    const t = numOrNull(rmBestPrice);
-    const cap = numOrNull(rmHallCapacity);
-    const min = numOrNull(rmMinimumPax);
-    if (b != null && b < 0) rmErrors.push("Base price must be ≥ 0.");
-    if (t != null && t < 0) rmErrors.push("Best price must be ≥ 0.");
-    if (b != null && t != null && t < b) {
-      rmErrors.push("Best price can't be lower than the base price (that would be a negative margin).");
-    }
-    if (cap != null && (!Number.isInteger(cap) || cap < 1)) {
-      rmErrors.push("Hall capacity must be a whole number ≥ 1.");
-    }
-    if (min != null && (!Number.isInteger(min) || min < 1)) {
-      rmErrors.push("Minimum pax must be a whole number ≥ 1.");
-    }
-    if (cap != null && min != null && min > cap) {
-      rmErrors.push("Minimum pax can't exceed the hall capacity.");
-    }
-  }
-
-  async function save() {
-    if (rmErrors.length > 0) {
-      toast.error(rmErrors[0]);
-      return;
-    }
-    setBusy(true);
-    try {
-      const patch: Record<string, unknown> = {
-        model,
-        royaltyPct: numOrNull(royaltyPct),
-        lockinYears: intOrNull(lockinYears),
-        isExclusive,
-        expectedMonthlyEvents: numOrNull(expectedMonthlyEvents),
-        projectedFeeValue: numOrNull(projectedFeeValue),
-        ownerCurrentMonthlyRevenue: numOrNull(ownerRevenue),
-        avgEventsPerMonth: numOrNull(avgEvents),
-        peakRateCard: numOrNull(peakRateCard),
-        banquetSizeSft: intOrNull(banquetSizeSft),
-      };
-      // Frozen → never send the locked commercials (the server would reject).
-      // The Revenue-Margin prices are locked by the same freeze.
-      if (!frozen) {
-        patch.baseFeePct = numOrNull(baseFeePct);
-        patch.incentivePct = numOrNull(incentivePct);
-        patch.termYears = intOrNull(termYears);
-        // Only the Revenue-Margin model owns these columns — don't write (and
-        // change-log) them on a Management/Franchise deal. Values already saved
-        // are left untouched, so switching models back keeps the agreed prices.
-        if (model === "REVENUE_MARGIN") {
-          patch.rmBasePrice = numOrNull(rmBasePrice);
-          patch.rmBestPrice = numOrNull(rmBestPrice);
-          patch.rmPriceBasis = rmPriceBasis;
-          patch.rmHallCapacity = numOrNull(rmHallCapacity);
-          // Minimum pax only means anything on a per-pax price — clear it on a
-          // per-event price so a stale floor can't quietly inflate a projection.
-          patch.rmMinimumPax =
-            rmPriceBasis === "PER_PAX" ? numOrNull(rmMinimumPax) : null;
-        }
-      }
-      const res = await updateAcqDeal(deal.id, patch);
-      if (!res.success) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success("Economics saved");
-      onMutate();
-    } catch {
-      toast.error("Couldn't save — please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function toggleFreeze() {
-    setFreezing(true);
-    try {
-      const res = await setAcqDealEconomicsFrozen(deal.id, !frozen);
-      if (!res.success) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(frozen ? "Economics unfrozen" : "Economics frozen");
-      onMutate();
-    } catch {
-      toast.error("Couldn't update — please try again.");
-    } finally {
-      setFreezing(false);
-    }
-  }
-
-  // Inline below-floor detection (mirrors the server-side requiresBdHeadApproval rule).
-  const belowBase = model === "MANAGEMENT" && baseFeePct !== "" && Number(baseFeePct) < 5;
-  const belowIncentive = model === "MANAGEMENT" && incentivePct !== "" && Number(incentivePct) < 15;
-  const belowRoyalty = model === "FRANCHISE" && royaltyPct !== "" && Number(royaltyPct) < 20;
-  const belowLockin = lockinYears !== "" && Number(lockinYears) < 3;
-  const anyBelowFloor = belowBase || belowIncentive || belowRoyalty || belowLockin;
-  const FLOOR_WARN = "Below floor — BD Head approval required before the contract can be sent.";
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-body tracking-[-0.01em]">Economics &amp; Model</CardTitle>
-        <CardDescription>
-          {model === "REVENUE_MARGIN"
-            ? "Revenue Margin quotes absolute prices — the % floors don't apply. Lock-in ≥ 3 yrs still needs BD Head approval when shorter."
-            : "Floors: base ≥ 5%, incentive ≥ 15%, royalty ≥ 20%, lock-in ≥ 3 yrs. Below these requires BD Head approval."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label>Commercial model</Label>
-            <Select value={model} onValueChange={(v) => setModel(v as AcqDealModel)}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ACQ_DEAL_MODEL.map((m) => (
-                  <SelectItem key={m} value={m}>
-                    {ACQ_DEAL_MODEL_LABEL[m]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {model === "MANAGEMENT" && (
-            <>
-              <NumField
-                label="Base fee %"
-                value={baseFeePct}
-                onChange={setBaseFeePct}
-                disabled={frozen}
-                warn={belowBase ? FLOOR_WARN : undefined}
-              />
-              <NumField
-                label="Incentive %"
-                value={incentivePct}
-                onChange={setIncentivePct}
-                disabled={frozen}
-                warn={belowIncentive ? FLOOR_WARN : undefined}
-              />
-            </>
-          )}
-          {model === "FRANCHISE" && (
-            <NumField
-              label="Royalty %"
-              value={royaltyPct}
-              onChange={setRoyaltyPct}
-              disabled={frozen}
-              warn={belowRoyalty ? FLOOR_WARN : undefined}
-            />
-          )}
-          {/* REVENUE_MARGIN inputs — only this model has them. */}
-          {model === "REVENUE_MARGIN" && (
-            <>
-              <div className="space-y-1.5">
-                <Label>Price basis</Label>
-                <Select
-                  value={rmPriceBasis}
-                  onValueChange={(v) => setRmPriceBasis(v as AcqRmPriceBasis)}
-                  disabled={frozen}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACQ_RM_PRICE_BASIS.map((b) => (
-                      <SelectItem key={b} value={b}>
-                        {ACQ_RM_PRICE_BASIS_LABEL[b]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-meta text-muted-foreground">
-                  {rmPriceBasis === "PER_PAX"
-                    ? "Priced per head — pax multiplies the gross, capped by hall capacity."
-                    : "Priced per event — pax is not a multiplier."}
-                </p>
-              </div>
-              <NumField
-                label="Base price (₹, owner guaranteed)"
-                value={rmBasePrice}
-                onChange={setRmBasePrice}
-                disabled={frozen}
-              />
-              <NumField
-                label="Best price (₹, expected sell)"
-                value={rmBestPrice}
-                onChange={setRmBestPrice}
-                disabled={frozen}
-              />
-              <NumField
-                label="Hall capacity (pax)"
-                value={rmHallCapacity}
-                onChange={setRmHallCapacity}
-                disabled={frozen}
-              />
-              {rmPriceBasis === "PER_PAX" && (
-                <NumField
-                  label="Minimum pax (billable floor)"
-                  value={rmMinimumPax}
-                  onChange={setRmMinimumPax}
-                  disabled={frozen}
-                />
-              )}
-            </>
-          )}
-
-          <NumField
-            label="Term (years)"
-            value={termYears}
-            onChange={setTermYears}
-            disabled={frozen}
-          />
-          <NumField
-            label="Lock-in (years)"
-            value={lockinYears}
-            onChange={setLockinYears}
-            warn={belowLockin ? FLOOR_WARN : undefined}
-          />
-          <NumField
-            label="Expected monthly events"
-            value={expectedMonthlyEvents}
-            onChange={setExpectedMonthlyEvents}
-          />
-          <NumField
-            label="Projected fee value"
-            value={projectedFeeValue}
-            onChange={setProjectedFeeValue}
-          />
-          <NumField
-            label="Owner current monthly revenue"
-            value={ownerRevenue}
-            onChange={setOwnerRevenue}
-          />
-          <NumField
-            label="Avg events / month"
-            value={avgEvents}
-            onChange={setAvgEvents}
-          />
-          <NumField
-            label="Peak rate card"
-            value={peakRateCard}
-            onChange={setPeakRateCard}
-          />
-          <NumField
-            label="Venue size (sqft)"
-            value={banquetSizeSft}
-            onChange={setBanquetSizeSft}
-          />
-        </div>
-
-        <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 p-3">
-          <div className="space-y-0.5">
-            <Label className="text-body">Exclusive</Label>
-            <p className="text-meta text-muted-foreground">
-              Venue committed exclusively to Veloria.
-            </p>
-          </div>
-          <Switch checked={isExclusive} onCheckedChange={setIsExclusive} />
-        </div>
-
-        {/* Freeze banner — locks the agreed base fee / incentive / term. */}
-        <div
-          className={cn(
-            "flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between",
-            frozen ? "border-emerald-300 bg-emerald-50/60" : "border-border/60"
-          )}
-        >
-          <div className="space-y-0.5">
-            <Label className="flex items-center gap-1.5 text-body">
-              {frozen && <Lock className="size-3.5 text-emerald-600" />}
-              {frozen ? "Economics frozen" : "Freeze economics"}
-            </Label>
-            <p className="text-meta text-muted-foreground">
-              {frozen
-                ? "Base fee, incentive and term are locked at the agreed terms."
-                : "Lock base fee, incentive and term once agreed with the owner."}
-            </p>
-          </div>
-          {canFreeze && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleFreeze}
-              disabled={freezing}
-            >
-              {freezing && <Loader2 className="size-3.5 animate-spin" />}
-              {frozen ? "Unfreeze" : "Freeze economics"}
-            </Button>
-          )}
-        </div>
-
-        {anyBelowFloor && (
-          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50/70 p-3 text-detail text-amber-800">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            <span>
-              One or more terms are below floor. You can save these, but the deal will
-              require <strong>BD&nbsp;Head approval</strong> before the contract can be sent.
-            </span>
-          </div>
-        )}
-
-        {rmErrors.length > 0 && (
-          <ul className="space-y-1 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-detail text-destructive">
-            {rmErrors.map((e) => (
-              <li key={e}>• {e}</li>
-            ))}
-          </ul>
-        )}
-
-        {model === "REVENUE_MARGIN" && rmErrors.length === 0 && (
-          <p className="text-meta text-muted-foreground">
-            Save, then see the <strong>Projection</strong> tab for the annualised
-            gross revenue and the base-to-best margin.
-          </p>
-        )}
-
-        <div className="flex justify-end">
-          <Button onClick={save} disabled={busy || rmErrors.length > 0}>
-            {busy && <Loader2 className="size-3.5 animate-spin" />}
-            Save
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

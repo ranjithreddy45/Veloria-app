@@ -88,19 +88,20 @@ export async function wefluxSendTemplate(
   creds: WefluxCreds,
   to: string,
   templateName: string,
-  params?: Record<string, string>
+  params?: Record<string, string>,
+  language?: string
 ): Promise<WefluxResult> {
   try {
     const res = await fetch(`${apiBase(creds.endpoint)}/messages`, {
       method: "POST",
       headers: authHeaders(creds.token),
+      // Weflux v2 template format (https://www.weflux.in/docs): recipient in `to`
+      // (E.164), the template name, its language, and the template variables in `vars`.
       body: JSON.stringify({
-        phone: toPhone(to),
-        type: "template",
-        template: { 
-          name: templateName
-        },
-        language: "en"
+        to: `+${toPhone(to)}`,
+        template: templateName,
+        language: language || "en",
+        ...(params && Object.keys(params).length > 0 ? { vars: params } : {}),
       }),
     });
     const data = await res.json().catch(() => ({}));

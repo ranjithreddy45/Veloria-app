@@ -102,9 +102,9 @@ export async function runEventReadinessWatchdog(): Promise<WatchdogResult> {
           }
         }
 
-        // Data quality: a confirmed event with no menu/quotation runs on a generic plan.
+        // Data quality: a confirmed event with neither a saved menu nor a quotation menu runs on a generic plan.
         const menu = await loadBookingMenu(b.id, b.guestCount ?? 0);
-        if (!menu) issues.push("No menu found from a quotation — plan is generic, confirm the order");
+        if (!menu) issues.push("No saved menu or quotation menu — plan is generic, confirm the order");
         if ((b.guestCount ?? 0) <= 0) issues.push("Guest count is missing/zero — kitchen & seating can't be sized");
 
         if (issues.length === 0) continue;

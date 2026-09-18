@@ -10,10 +10,12 @@
 // Money is integer paise throughout; Decimal ↔ paise only at the boundary.
 // ============================================================
 
+import { splitIdFromPaymentNotes } from "@/lib/payments/split-format";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { notifyAwait } from "@/lib/notify";
 import { reportSystemFailure } from "@/lib/ops-alert";
+import { COLLECTIBLE_INVOICE_STATUSES } from "@/lib/finance/issued-invoices";
 import {
   formatPaise,
   rupeesToPaise,
@@ -24,8 +26,8 @@ import {
 /** How long a split link stays payable after it's created. */
 export const SPLIT_LINK_TTL_DAYS = 14;
 
-/** Invoice states cash may be collected against (mirrors recordPayment). */
-export const SPLIT_PAYABLE_INVOICE_STATUSES = ["SENT", "PARTIALLY_PAID", "OVERDUE"] as const;
+/** Invoice states cash may be collected against: finance's owed rule, the statuses recordPayment takes money in. */
+export const SPLIT_PAYABLE_INVOICE_STATUSES = COLLECTIBLE_INVOICE_STATUSES;
 
 /** Smallest split Razorpay will accept (₹1). */
 export const MIN_SPLIT_PAISE = 100;
@@ -92,20 +94,29 @@ export async function settleSplitOnCapture(opts: {
   razorpayOrderId: string;
   razorpayPaymentId?: string | null;
 }): Promise<void> {
-  const split = await prisma.paymentSplit.findFirst({
-    where: { razorpayOrderId: opts.razorpayOrderId },
-    select: {
-      id: true,
-      status: true,
-      amountPaise: true,
-      payerName: true,
-      invoiceId: true,
-      parentLinkId: true,
-      bookingId: true,
-      createdById: true,
-      createdBy: true,
-    },
-  });
+  const select = {
+    id: true,
+    status: true,
+    amountPaise: true,
+    payerName: true,
+    invoiceId: true,
+    parentLinkId: true,
+    bookingId: true,
+    createdById: true,
+    createdBy: true,
+  } as const;
+  let split = await prisma.paymentSplit.findFirst({ where: { razorpayOrderId: opts.razorpayOrderId }, select });
+  if (!split) {
+    // A late capture on an order this split later replaced: the pending Payment
+    // minted with that order names the split (splitPaymentNote). Only a split on
+    // the same invoice is accepted.
+    const pay = await prisma.payment.findUnique({ where: { id: opts.paymentId }, select: { notes: true, invoiceId: true } });
+    const splitId = splitIdFromPaymentNotes(pay?.notes);
+    if (pay && splitId) {
+      const byId = await prisma.paymentSplit.findFirst({ where: { id: splitId }, select });
+      if (byId && (byId.invoiceId ?? byId.parentLinkId) === pay.invoiceId) split = byId;
+    }
+  }
   if (!split) return; // an ordinary (non-split) capture
 
   // Money WAS captured: whatever the split says (PENDING, or CANCELLED /

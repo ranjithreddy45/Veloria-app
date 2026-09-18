@@ -1320,6 +1320,9 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/performance", permission: "performance:read" },
   { prefix: "/crm", permission: "communications:read" },
   { prefix: "/inquiries", permission: "leads:read" },
+  { prefix: "/concierge", permission: "bookings:read" }, // team inbox for customer-app conversations
+  { prefix: "/settings/business-contact", permission: "settings:venues" }, // customer-app contact details
+  { prefix: "/settings/customer-content", permission: "settings:venues" }, // customer-app policies + FAQs
   { prefix: "/settings", permission: "settings:read" },
 ];
 

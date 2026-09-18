@@ -85,6 +85,7 @@ export default async function CalendarPage() {
         initialYear={year}
         initialCancelled={bookingsResult.success ? (bookingsResult.cancelled ?? 0) : 0}
         initialCancelledPaid={bookingsResult.success ? (bookingsResult.cancelledPaid ?? 0) : 0}
+        initialLapsedHolds={bookingsResult.success ? (bookingsResult.lapsedHolds ?? []) : []}
       />
     </div>
   );

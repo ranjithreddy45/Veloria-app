@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { subDays, subMonths, format, startOfMonth, endOfMonth } from "date-fns";
 import { hasPermission } from "@/lib/permissions";
+import { bookingBalance, isIssuedInvoice, NOT_ISSUED_INVOICE_STATUSES } from "@/lib/finance/issued-invoices";
 
 // ============================================================
 // Types
@@ -660,11 +661,10 @@ export async function getSettlementReport(range: DateRange = "12m") {
         eventName: true,
         status: true,
         invoices: {
-          // Cancelled invoices keep their totalAmount (only balanceDue is zeroed
-          // on cancel), so counting them would inflate invoiced/outstanding.
-          where: { status: { not: "CANCELLED" } },
           select: {
+            status: true,
             totalAmount: true,
+            balanceDue: true,
             payments: {
               where: { status: "COMPLETED" },
               select: { amount: true },
@@ -675,24 +675,39 @@ export async function getSettlementReport(range: DateRange = "12m") {
     });
 
     const bookings = bookingsWithFinancials.map((b) => {
-      const invoiced = b.invoices.reduce((sum, inv) => sum + Number(inv.totalAmount), 0);
+      // Finance's two invoice rules (issued-invoices.ts), as the team booking
+      // page, event profitability and the customer app apply them:
+      //  - Invoiced counts BILLED invoices (isIssuedInvoice): a DRAFT is unsent
+      //    and a CANCELLED invoice is void (cancelling keeps its totalAmount).
+      //  - Outstanding is what the customer still OWES (bookingBalance: the
+      //    balanceDue of SENT, PARTIALLY_PAID and OVERDUE invoices), so a fully
+      //    refunded invoice is billed but no longer outstanding.
+      // Paid is the cash collected (COMPLETED payments), as event profitability
+      // counts it.
+      const invoiced = b.invoices
+        .filter((inv) => isIssuedInvoice(inv.status))
+        .reduce((sum, inv) => sum + Number(inv.totalAmount), 0);
       const paid = b.invoices.reduce(
         (sum, inv) => sum + inv.payments.reduce((pSum, p) => pSum + Number(p.amount), 0),
         0
       );
+      const outstanding = bookingBalance(
+        b.invoices.map((inv) => ({ status: inv.status, balanceDue: Number(inv.balanceDue) }))
+      ).balanceDue;
       return {
         bookingId: b.id,
         eventName: b.eventName,
         invoiced,
         paid,
-        outstanding: invoiced - paid,
+        outstanding,
         status: b.status,
       };
     });
 
     const totalInvoiced = bookings.reduce((sum, b) => sum + b.invoiced, 0);
     const totalPaid = bookings.reduce((sum, b) => sum + b.paid, 0);
-    const totalOutstanding = totalInvoiced - totalPaid;
+    // Added in paise, as bookingBalance adds each row, so the total matches its rows.
+    const totalOutstanding = bookings.reduce((paise, b) => paise + Math.round(b.outstanding * 100), 0) / 100;
 
     return serialize({
       success: true as const,
@@ -804,8 +819,9 @@ export async function getRevenueBreakdownReport(range: DateRange = "12m") {
       where: {
         invoice: {
           issueDate: { gte: start, lte: end },
-          // Don't count line items from cancelled invoices as revenue.
-          status: { not: "CANCELLED" },
+          // Only issued invoices are revenue: finance's rule (issued-invoices.ts)
+          // leaves out unsent DRAFTs and void CANCELLED invoices.
+          status: { notIn: [...NOT_ISSUED_INVOICE_STATUSES] },
         },
       },
       select: {
@@ -921,13 +937,13 @@ export async function getClientLedger(contactId: string) {
         select: { firstName: true, lastName: true, email: true },
       }),
       prisma.invoice.findMany({
-        // Exclude cancelled invoices so they don't inflate the ledger's
-        // totalInvoiced / outstanding balance (cancel keeps totalAmount intact).
-        where: { contactId, status: { not: "CANCELLED" } },
+        // Every status; the ledger applies finance's invoice rules (see below).
+        where: { contactId },
         select: {
           id: true,
           invoiceNumber: true,
           totalAmount: true,
+          balanceDue: true,
           status: true,
           issueDate: true,
         },
@@ -952,13 +968,23 @@ export async function getClientLedger(contactId: string) {
       return { success: false as const, error: "Contact not found" };
     }
 
-    const invoiceList = invoices.map((inv) => ({
-      id: inv.id,
-      number: inv.invoiceNumber,
-      amount: Number(inv.totalAmount),
-      status: inv.status,
-      date: format(new Date(inv.issueDate), "yyyy-MM-dd"),
-    }));
+    // Finance's two invoice rules (issued-invoices.ts):
+    //  - The ledger lists BILLED invoices (isIssuedInvoice): a DRAFT is unsent
+    //    and a CANCELLED invoice is void (cancelling keeps its totalAmount), so
+    //    neither is listed or counts toward totalInvoiced.
+    //  - The balance is what the customer still OWES (bookingBalance over their
+    //    invoices: the balanceDue of SENT, PARTIALLY_PAID and OVERDUE ones), the
+    //    customer app's figure. A fully refunded invoice stays in totalInvoiced
+    //    (it was billed) but is not in the balance.
+    const invoiceList = invoices
+      .filter((inv) => isIssuedInvoice(inv.status))
+      .map((inv) => ({
+        id: inv.id,
+        number: inv.invoiceNumber,
+        amount: Number(inv.totalAmount),
+        status: inv.status,
+        date: format(new Date(inv.issueDate), "yyyy-MM-dd"),
+      }));
 
     const paymentList = payments.map((p) => ({
       id: p.id,
@@ -969,7 +995,9 @@ export async function getClientLedger(contactId: string) {
 
     const totalInvoiced = invoiceList.reduce((sum, inv) => sum + inv.amount, 0);
     const totalPaid = paymentList.reduce((sum, p) => sum + p.amount, 0);
-    const balance = totalInvoiced - totalPaid;
+    const balance = bookingBalance(
+      invoices.map((inv) => ({ status: inv.status, balanceDue: Number(inv.balanceDue) }))
+    ).balanceDue;
 
     return serialize({
       success: true as const,
@@ -1284,7 +1312,7 @@ export async function getGSTReport(range: DateRange = "12m") {
     const invoices = await prisma.invoice.findMany({
       where: {
         issueDate: { gte: start, lte: end },
-        status: { notIn: ["DRAFT", "CANCELLED"] },
+        status: { notIn: [...NOT_ISSUED_INVOICE_STATUSES] },
       },
       select: {
         subtotal: true,

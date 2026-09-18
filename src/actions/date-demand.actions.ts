@@ -4,6 +4,8 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { utcDayRange } from "@/lib/sales/slot-util";
+import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
+import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
 import {
   classifyDateDemand,
   DEFAULT_DEMAND_CONFIG,
@@ -79,11 +81,15 @@ export async function getDateDemand(
       : null;
 
     // Scarcity — how many slots on this date are already taken at this venue.
+    // A lapsed hold (window passed, no money against it) has not taken one: the
+    // availability board's rule (src/lib/holds/lapsed-hold.ts).
     let bookedSlots = 0;
     if (venueId) {
-      bookedSlots = await prisma.booking.count({
+      const rows = await prisma.booking.findMany({
         where: { venueId, date: { gte, lt }, status: { notIn: ["CANCELLED"] } },
+        select: { id: true, status: true, holdExpiresAt: true },
       });
+      bookedSlots = withoutLapsedHolds(rows, await findLapsedHoldIds(rows)).length;
     }
 
     const demand = classifyDateDemand(config, weekdayUtc, peak, bookedSlots);

@@ -22,7 +22,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { StatusBadge } from "@/components/shared/status-badge";
-import { BOOKING_STATUS_COLORS, TIME_SLOT_LABELS } from "@/lib/constants";
+import { BOOKING_STATUS_COLORS } from "@/lib/constants";
+import { SLOT_NAME, slotTimeText, toTimeSlot, type TimeSlotEnum } from "@/lib/sales/slot";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -67,19 +68,35 @@ interface DayDetailPanelProps {
   bookings: CalendarBooking[];
   blackouts: BlackoutDateEntry[];
   leads?: CalendarLead[];
+  /**
+   * Lapsed holds on this day (window passed, no money against them). They no
+   * longer occupy their slot, so they are not in `bookings`; each is named on
+   * the free slot it used to block until the release job cancels it.
+   */
+  lapsedHolds?: CalendarBooking[];
   onClose: () => void;
   onBookSlot: (timeSlot: string) => void;
 }
 
 // ============================================================
 // Time Slots for Display
+// ------------------------------------------------------------
+// Names and hours come from src/lib/sales/slot.ts, the one slot definition. A
+// slot the team has set no hours for shows no time.
 // ============================================================
 
-const DISPLAY_SLOTS = [
-  { key: "MORNING", label: "Morning", time: "8:00 AM - 12:00 PM" },
-  { key: "AFTERNOON", label: "Afternoon", time: "12:00 PM - 5:00 PM" },
-  { key: "EVENING", label: "Evening", time: "5:00 PM - 11:00 PM" },
-];
+const DISPLAY_SLOT_KEYS: TimeSlotEnum[] = ["MORNING", "AFTERNOON", "EVENING"];
+const DISPLAY_SLOTS = DISPLAY_SLOT_KEYS.map((key) => ({
+  key,
+  label: SLOT_NAME[key],
+  time: slotTimeText(key),
+}));
+
+/** A stored slot value's name ("EVENING" → "Evening"); an unknown value as it is. */
+function slotName(value: string): string {
+  const slot = toTimeSlot(value);
+  return slot ? SLOT_NAME[slot] : value;
+}
 
 // ============================================================
 // DayDetailPanel Component
@@ -90,6 +107,7 @@ export function DayDetailPanel({
   bookings,
   blackouts,
   leads = [],
+  lapsedHolds = [],
   onClose,
   onBookSlot,
 }: DayDetailPanelProps) {
@@ -103,6 +121,14 @@ export function DayDetailPanel({
   // Check if a specific slot is booked
   function getBookingForSlot(slotKey: string): CalendarBooking | undefined {
     return bookings.find(
+      (b) => b.timeSlot === slotKey || b.timeSlot === "FULL_DAY"
+    );
+  }
+
+  // The lapsed hold that used to block this slot, if any: the slot's own hold
+  // or a full-day hold, the availability board's rule.
+  function getLapsedHoldForSlot(slotKey: string): CalendarBooking | undefined {
+    return lapsedHolds.find(
       (b) => b.timeSlot === slotKey || b.timeSlot === "FULL_DAY"
     );
   }
@@ -197,6 +223,7 @@ export function DayDetailPanel({
                   const booking = getBookingForSlot(slot.key);
                   const blackout = isSlotBlackedOut(slot.key);
                   const isAvailable = !booking && !blackout && !fullDayBlackout;
+                  const lapsedHold = isAvailable ? getLapsedHoldForSlot(slot.key) : undefined;
 
                   return (
                     <div
@@ -210,9 +237,11 @@ export function DayDetailPanel({
                       <div className="flex items-center justify-between mb-1">
                         <div>
                           <span className="text-sm font-medium">{slot.label}</span>
-                          <span className="text-xs text-muted-foreground/70 ml-2">
-                            {slot.time}
-                          </span>
+                          {slot.time && (
+                            <span className="text-xs text-muted-foreground/70 ml-2">
+                              {slot.time}
+                            </span>
+                          )}
                         </div>
                         {isAvailable && (
                           <Badge
@@ -270,6 +299,15 @@ export function DayDetailPanel({
                         </p>
                       )}
 
+                      {lapsedHold && (
+                        <Link
+                          href={`/bookings/${lapsedHold.id}`}
+                          className="mt-1 block text-xs text-amber-700 hover:underline"
+                        >
+                          Lapsed hold · <span className="numeric">{lapsedHold.bookingNumber}</span> (unpaid, slot free)
+                        </Link>
+                      )}
+
                       {isAvailable && (
                         <Button
                           variant="outline"
@@ -306,11 +344,7 @@ export function DayDetailPanel({
                       <p className="text-sm font-medium">{booking.eventName}</p>
                       <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
                         <ClockIcon className="size-3" />
-                        <span>
-                          {TIME_SLOT_LABELS[booking.timeSlot]
-                            ?.split("(")[0]
-                            ?.trim() || booking.timeSlot}
-                        </span>
+                        <span>{slotName(booking.timeSlot)}</span>
                         <span>{booking.venue.name}</span>
                       </div>
                     </div>

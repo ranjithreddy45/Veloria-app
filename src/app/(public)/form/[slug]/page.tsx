@@ -3,6 +3,7 @@ import { getWebformBySlug } from "@/actions/webform.actions";
 import { PublicForm } from "./_components/public-form";
 import type { WebformField } from "@/schemas/webform.schema";
 import { HelpChip } from "@/components/public/help-chip";
+import { getPublicContact } from "@/lib/public/business-contact";
 
 // ============================================================
 // Public Webform Page (No Auth Required)
@@ -35,6 +36,8 @@ export default async function PublicFormPage({
   const result = await getWebformBySlug(slug);
 
   if (!result.success || !result.data) {
+    // The help buttons use the numbers the team keeps in Settings → Business contact.
+    const contact = await getPublicContact();
     return (
       <div className="py-20 text-center">
         <h1 className="text-foreground text-h1 sm:text-h1">
@@ -43,7 +46,7 @@ export default async function PublicFormPage({
         <p className="text-muted-foreground mx-auto mt-3 max-w-md text-copy leading-relaxed">
           This form does not exist or has been removed.
         </p>
-        <HelpChip className="mt-5" />
+        <HelpChip className="mt-5" contact={contact} />
       </div>
     );
   }
@@ -51,6 +54,7 @@ export default async function PublicFormPage({
   const webform = result.data;
 
   if (!webform.isActive) {
+    const contact = await getPublicContact();
     return (
       <div className="py-20 text-center">
         <h1 className="text-foreground text-h1 sm:text-h1">
@@ -59,7 +63,7 @@ export default async function PublicFormPage({
         <p className="text-muted-foreground mx-auto mt-3 max-w-md text-copy leading-relaxed">
           This form is no longer accepting submissions.
         </p>
-        <HelpChip className="mt-5" />
+        <HelpChip className="mt-5" contact={contact} />
       </div>
     );
   }
