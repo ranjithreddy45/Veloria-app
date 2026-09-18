@@ -47,11 +47,9 @@ export const rsvpResponseSchema = z.object({
     .max(500)
     .optional()
     .or(z.literal("")),
-  message: z
-    .string()
-    .max(1000)
-    .optional()
-    .or(z.literal("")),
+  // No reply note: nothing on the guest or the invitation stores one, so the RSVP
+  // page doesn't offer it. A `message` from an old copy of the page is dropped here
+  // (z.object strips unknown keys), not refused.
   // DPDP consent — required (checked in the action, not via .default(): a
   // default would make the field mandatory in the inferred input type).
   consent: z.boolean().optional(),

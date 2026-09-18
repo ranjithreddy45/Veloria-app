@@ -56,6 +56,11 @@ interface WhatsAppConfigData {
   crmWebhookSecret: string | null;
   eventSigningSecret: string | null;
   verifyToken: string;
+  // Approved templates for customer messages (blank = plain-text fallback)
+  otpTemplateName?: string | null;
+  otpTemplateLanguage?: string | null;
+  bookingUpdateTemplateName?: string | null;
+  guestInviteTemplateName?: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -92,6 +97,16 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
   const [verifyToken, setVerifyToken] = useState(
     initialConfig?.verifyToken || "veloria_whatsapp_verify"
   );
+  const [otpTemplateName, setOtpTemplateName] = useState(initialConfig?.otpTemplateName || "");
+  const [otpTemplateLanguage, setOtpTemplateLanguage] = useState(
+    initialConfig?.otpTemplateLanguage || "en"
+  );
+  const [bookingUpdateTemplateName, setBookingUpdateTemplateName] = useState(
+    initialConfig?.bookingUpdateTemplateName || ""
+  );
+  const [guestInviteTemplateName, setGuestInviteTemplateName] = useState(
+    initialConfig?.guestInviteTemplateName || ""
+  );
   const [connected, setConnected] = useState(false);
   const [connectionInfo, setConnectionInfo] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -122,6 +137,10 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
           crmWebhookSecret: crmWebhookSecret || undefined,
           eventSigningSecret: eventSigningSecret || undefined,
           verifyToken,
+          otpTemplateName: otpTemplateName.trim(),
+          otpTemplateLanguage: otpTemplateLanguage.trim(),
+          bookingUpdateTemplateName: bookingUpdateTemplateName.trim(),
+          guestInviteTemplateName: guestInviteTemplateName.trim(),
           isActive: true,
         });
 
@@ -175,6 +194,10 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
         setCrmWebhookSecret("");
         setEventSigningSecret("");
         setVerifyToken("veloria_whatsapp_verify");
+        setOtpTemplateName("");
+        setOtpTemplateLanguage("en");
+        setBookingUpdateTemplateName("");
+        setGuestInviteTemplateName("");
         setConnected(false);
         setConnectionInfo("");
       } else {
@@ -410,6 +433,68 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
                 ? "A secret string of your choice. It's embedded in the webhook URL below so only weflux can post to your app."
                 : "A custom string you also enter in the Meta Developer Console for webhook verification."}
             </p>
+          </div>
+
+          {/* Customer message templates (both providers) */}
+          <div className="space-y-4 rounded-lg border border-border/70 bg-muted/20 p-4">
+            <div className="space-y-1">
+              <div className="text-sm font-semibold">Customer message templates</div>
+              <p className="text-xs text-muted-foreground">
+                WhatsApp only delivers free text to people who messaged you in the last 24 hours.
+                To reach customers at any time, create these templates in{" "}
+                {isWeflux ? "Weflux" : "Meta WhatsApp Manager"}, wait for approval, then enter the
+                exact approved names here. Leave a name blank to send plain text instead.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-[1fr_9rem]">
+              <div className="space-y-2">
+                <Label htmlFor="waOtpTemplate">Sign-in code template</Label>
+                <Input
+                  id="waOtpTemplate"
+                  placeholder="e.g. customer_sign_in_code"
+                  value={otpTemplateName}
+                  onChange={(e) => setOtpTemplateName(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Sends the 6-digit code customers use to sign in to the customer app. Use an
+                  authentication template whose only variable is the code.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waOtpLanguage">Template language</Label>
+                <Input
+                  id="waOtpLanguage"
+                  placeholder="en"
+                  value={otpTemplateLanguage}
+                  onChange={(e) => setOtpTemplateLanguage(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">As approved, e.g. en, en_US or hi.</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="waBookingUpdateTemplate">Booking update template</Label>
+              <Input
+                id="waBookingUpdateTemplate"
+                placeholder="e.g. booking_update"
+                value={bookingUpdateTemplateName}
+                onChange={(e) => setBookingUpdateTemplateName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                For booking update messages sent to customers.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="waGuestInviteTemplate">Invite template</Label>
+              <Input
+                id="waGuestInviteTemplate"
+                placeholder="e.g. event_invite"
+                value={guestInviteTemplateName}
+                onChange={(e) => setGuestInviteTemplateName(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                For guest invitations, whether a host sends them from the customer app or the team sends them from the guest list.
+              </p>
+            </div>
           </div>
 
           {/* Connection Status */}

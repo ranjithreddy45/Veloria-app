@@ -9,6 +9,11 @@
 //   - WITHOUT leaking any internal data — it returns ONLY booleans, never
 //     blackout reasons, booking numbers, customer labels, or identities.
 //
+// Like both of those, a LAPSED hold (window passed, no money against the
+// booking) does not block the slot: the one decision in
+// src/lib/holds/lapsed-hold.ts, shared with the team's availability board and
+// the customer's calendar.
+//
 // This is a NEW file (not an edit of public-hold.actions.ts) so that the
 // session-free check lives in src/lib — never re-exported from a "use server"
 // file and never wired to a route — making it the single source of truth for
@@ -23,6 +28,8 @@
 import { prisma } from "@/lib/prisma";
 import { utcDayRange } from "@/lib/sales/slot-util";
 import type { TimeSlotEnum } from "@/lib/sales/slot";
+import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
+import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
 
 const PARTIAL_SLOTS: TimeSlotEnum[] = ["MORNING", "AFTERNOON", "EVENING"];
 
@@ -32,7 +39,8 @@ const PARTIAL_SLOTS: TimeSlotEnum[] = ["MORNING", "AFTERNOON", "EVENING"];
  * Replicates publicSlotIsFree's OR-logic exactly:
  *  - a FULL_DAY request clashes with ANY booking/partial blackout on the day;
  *  - a partial request clashes with its own slot or a FULL_DAY booking / a
- *    whole-day blackout.
+ *    whole-day blackout;
+ *  - a lapsed hold clashes with nothing.
  *
  * Returns true only when nothing blocks the slot. Best-effort: any DB error
  * resolves to `false` (conservative — never over-promise availability).
@@ -60,9 +68,14 @@ export async function slotLikelyFree(
         status: { notIn: ["CANCELLED"] },
         OR: bookingOr,
       },
-      select: { date: true },
+      // status + holdExpiresAt only decide lapsed holds; nothing leaves this function.
+      select: { id: true, date: true, status: true, holdExpiresAt: true },
     });
-    if (bookings.some((b) => new Date(b.date).getUTCDate() === utcDay)) {
+    const dayBookings = bookings.filter((b) => new Date(b.date).getUTCDate() === utcDay);
+    // If the lapsed lookup itself fails it returns no ids, so holds keep
+    // blocking and this still never over-promises.
+    const lapsedIds = await findLapsedHoldIds(dayBookings);
+    if (withoutLapsedHolds(dayBookings, lapsedIds).length > 0) {
       return false;
     }
 

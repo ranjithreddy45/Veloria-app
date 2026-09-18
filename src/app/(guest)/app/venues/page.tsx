@@ -1,78 +1,150 @@
+import { ArrowLeftRight } from "lucide-react";
 import { NavLink } from "../../_components/nav-transition";
-import { Star } from "lucide-react";
-import { getStorefrontVenues } from "@/actions/storefront.actions";
-import { getGuestPhotos, getGuestVenueRatings } from "@/actions/guest-public.actions";
-import { VenueImage } from "../../_components/venue-image";
-import { Screen, Title, Chip, EmptyNote } from "../../_components/ui";
-import { formatPrice } from "../../_components/format";
-import { hallStock } from "../../_components/stock";
-import { SavedMark } from "../../_components/shortlist";
+import { getGuestHallFeed } from "@/actions/guest-public.actions";
+import { Chip, EmptyNote, Title } from "../../_components/ui";
+import { CompareSavedLink } from "../../_components/shortlist";
+import { compareHref } from "./_lib/links";
+import { HALL_CAP_BANDS, hallSearchHref, hallSearchIsEmpty, noMatchAdvice, parseHallSearch, resultCountText } from "./_lib/hall-search";
+import { HallCard } from "./_components/hall-card";
+import { HallSearchPill } from "./_components/search-sheet";
+
+// ============================================================
+// The halls feed — the screen someone lands on to choose a space.
+//
+// One read (getGuestHallFeed) gives every card its photos, capacity, price,
+// rating and, when a date is searched, that date's availability and price.
+// The whole search lives in the query string, so this page is shareable and
+// the back button undoes one search at a time.
+//
+// Honesty rules this screen: halls with no photo show a labelled illustration
+// and say so at the foot; a hall with no usable price reads "Price on
+// request"; a location line appears only for a hall whose address the team has
+// filled in; availability is only ever shown for a date actually searched, and
+// a busy hall is sorted lower, never hidden.
+// ============================================================
 
 export const metadata = { title: "Our halls — Veloria Grand" };
-export const revalidate = 60;
+// Availability and prices are read per request: a stale cache could offer a date that has since gone.
+export const dynamic = "force-dynamic";
 
-const CAPS = [
-  { key: "all", label: "All" },
-  { key: "200", label: "Up to 200" },
-  { key: "500", label: "Up to 500" },
-  { key: "501", label: "500+" },
-] as const;
+const BASE = "/app/venues";
 
-export default async function VenuesPage({ searchParams }: { searchParams: Promise<{ cap?: string }> }) {
-  const { cap = "all" } = await searchParams;
-  const [venues, ratings, photos] = await Promise.all([getStorefrontVenues(), getGuestVenueRatings(), getGuestPhotos({ limit: 60 })]);
-  const cover = new Map<string, string>();
-  for (const p of photos) if (p.venueId && !cover.has(p.venueId)) cover.set(p.venueId, p.url);
+export default async function VenuesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string | string[]; slot?: string | string[]; guests?: string | string[]; amenity?: string | string[]; cap?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const feed = await getGuestHallFeed(parseHallSearch(params));
+  // What the server actually applied — an unreal date or an amenity no hall lists was dropped.
+  const search = feed.applied;
 
-  const visible = venues.filter((v) =>
-    cap === "200" ? v.capacity <= 200 : cap === "500" ? v.capacity <= 500 : cap === "501" ? v.capacity > 500 : true
-  );
+  const freeCount = feed.halls.filter((h) => h.availability === "FREE").length;
+  const countLine = resultCountText({ total: feed.totalPublished, shown: feed.halls.length, dateISO: search.dateISO, freeCount });
+  const anyIllustration = feed.halls.some((h) => h.photos.length === 0);
+  const filtered = !hallSearchIsEmpty(search);
+
+  const chips = [
+    ...HALL_CAP_BANDS.filter((b) => feed.capacityOptions.includes(b.key)).map((b) => ({
+      key: `cap-${b.key}`,
+      label: b.label,
+      active: search.cap === b.key,
+      href: hallSearchHref(BASE, search, { cap: search.cap === b.key ? null : b.key }),
+    })),
+    ...feed.amenityOptions.map((a) => ({
+      key: `amenity-${a}`,
+      label: a,
+      active: search.amenity === a,
+      href: hallSearchHref(BASE, search, { amenity: search.amenity === a ? null : a }),
+    })),
+  ];
 
   return (
-    <Screen className="gap-4 pt-[calc(var(--sat)+1rem)]">
-      <div>
-        <Title>Our halls</Title>
-        <p className="mt-1.5 text-detail text-[#6e6e73]">
-          {venues.length > 1 ? `${venues.length} spaces, one address.` : "One address."} Pick the one that fits your celebration.
-        </p>
-      </div>
+    <div className="vg-rise flex flex-col">
+      {/* The pill sticks under the laptop's top bar (56px of row + its 1px rule),
+          and under nothing on a phone; its padding tracks the column's gutter so
+          the search box lines up with the headings below it. */}
+      <HallSearchPill search={search} amenityOptions={feed.amenityOptions} basePath={BASE} className="sm:px-7 lg:top-[57px] lg:px-8" />
 
-      <div className="vg-scroll-x vg-bleed">
-        {CAPS.map((c) => (
-          <Chip key={c.key} active={cap === c.key} href={c.key === "all" ? "/app/venues" : `/app/venues?cap=${c.key}`}>{c.label}</Chip>
-        ))}
-      </div>
+      <div className="vg-gutter flex flex-col gap-4 pt-2">
+        <div>
+          <Title>Our halls</Title>
+          <p className="mt-1.5 max-w-[60ch] text-detail text-[#6e6e73]">
+            {feed.totalPublished > 1 ? `${feed.totalPublished} spaces to choose from.` : "One space."} Pick the one that fits your celebration.
+          </p>
+        </div>
 
-      {visible.length === 0 ? (
-        <EmptyNote>{venues.length === 0 ? "Halls will appear here once published." : "No hall matches that size — try another filter."}</EmptyNote>
-      ) : (
-        visible.map((v, i) => {
-          const r = ratings[v.id];
-          return (
-            <NavLink key={v.id} href={`/app/venues/${v.id}`} kind="push" className="vg-press block overflow-hidden rounded-[20px] border border-black/[.06] bg-white shadow-[0_12px_28px_-20px_rgba(29,29,31,.25)]">
-              <div className="relative h-[170px]">
-                <VenueImage seed={v.id} alt={v.name} name={v.name} src={cover.get(v.id) ?? hallStock(v.id).cover} priority={i === 0} className="h-full w-full" />
-                <SavedMark venueId={v.id} className="absolute left-3 top-3" />
-                {r && (
-                  <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-[#fdf5f3]/[.92] px-2.5 py-1 text-meta font-semibold text-[#1d1d1f]">
-                    <Star className="size-3 fill-[#b88513] text-[#b88513]" /> {r.rating}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center justify-between gap-3 px-4 py-3.5">
-                <div className="min-w-0">
-                  <div className="text-copy font-semibold">{v.name}</div>
-                  <div className="mt-0.5 truncate text-meta text-[#6e6e73]">Up to {v.capacity.toLocaleString("en-IN")} guests{v.description ? ` · ${v.description}` : ""}</div>
-                </div>
-                <div className="shrink-0 text-right">
-                  <div className="text-[10.5px] text-[#8a8a8e]">from</div>
-                  <div className="numeric text-copy font-semibold text-[#6d1b52]">{formatPrice(v.pricePerSlot)}</div>
-                </div>
-              </div>
+        {/* A rail on a phone; on a wider column every chip fits, so they wrap instead. */}
+        {chips.length > 0 && (
+          <div className="vg-scroll-x vg-bleed sm:flex-wrap">
+            {chips.map((c) => (
+              <Chip key={c.key} active={c.active} href={c.href}>
+                {c.label}
+              </Chip>
+            ))}
+            {filtered && (
+              <Chip href={BASE} className="border-dashed text-[#6e6e73]">
+                Clear all
+              </Chip>
+            )}
+          </div>
+        )}
+
+        {feed.totalPublished > 1 && (
+          <div className="-mt-1 flex flex-wrap gap-2">
+            <NavLink
+              href={compareHref()}
+              kind="push"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-black/[.08] bg-white px-3.5 py-2 text-detail font-semibold text-[#1d1d1f]"
+            >
+              <ArrowLeftRight className="size-3.5" aria-hidden /> Compare halls
             </NavLink>
-          );
-        })
-      )}
-    </Screen>
+            <CompareSavedLink />
+          </div>
+        )}
+
+        {/* role=status: applying a search from the sheet is a client navigation,
+            so this line changes with nothing else moving. A screen-reader user
+            has to be told what the search did. */}
+        {countLine && (
+          <div role="status" className="-mb-1 flex items-baseline justify-between gap-3">
+            <p className="text-detail font-semibold text-[#1d1d1f]">{countLine}</p>
+            {search.dateISO && <p className="shrink-0 text-meta text-[#636368]">Free halls first</p>}
+          </div>
+        )}
+
+        {feed.totalPublished === 0 ? (
+          <EmptyNote>Halls will appear here once published. Call or message us and we will talk you through the spaces.</EmptyNote>
+        ) : feed.halls.length === 0 ? (
+          <EmptyNote className="flex flex-col items-center gap-3">
+            <span>{noMatchAdvice(search)}</span>
+            <NavLink href={BASE} kind="push" className="inline-flex min-h-10 items-center rounded-full border border-[#6d1b52]/25 bg-[#f7eef2] px-4 py-2 text-detail font-semibold text-[#6d1b52]">
+              Show all {feed.totalPublished} halls
+            </NavLink>
+          </EmptyNote>
+        ) : (
+          // One column on a phone, two on a tablet, three on a laptop — the
+          // same card either way, so a hall never reads as two different halls.
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {feed.halls.map((hall, i) => (
+              <HallCard
+                key={hall.id}
+                hall={hall}
+                dateISO={search.dateISO}
+                slot={search.slot}
+                matchAmenity={search.amenity}
+                eager={i === 0}
+              />
+            ))}
+          </div>
+        )}
+
+        {anyIllustration && feed.halls.length > 0 && (
+          <p className="max-w-[70ch] text-meta leading-[1.5] text-[#636368]">
+            Pictures marked &ldquo;Illustration&rdquo; are not photos of our halls. Each is replaced as soon as our team publishes a real photo of that hall.
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

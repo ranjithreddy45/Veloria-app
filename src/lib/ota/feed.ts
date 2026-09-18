@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { TimeSlot } from "@prisma/client";
+import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
+import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
 
 // ============================================================
 // OTA Outbound Feed Builders (public-safe projection)
@@ -9,7 +11,8 @@ import type { TimeSlot } from "@prisma/client";
 // (getAvailabilityGrid / getAvailabilityMonth in src/actions/availability.actions.ts):
 //   - Booking.date / BlackoutDate.date are @db.Date and read back as UTC-midnight,
 //     so we scan a full UTC day range and bucket by getUTCDate().
-//   - Any non-CANCELLED booking occupies a slot.
+//   - Any non-CANCELLED booking occupies a slot, except a lapsed hold (window
+//     passed, no money against it: src/lib/holds/lapsed-hold.ts).
 //   - A whole-day blackout (timeSlot === null) blocks all four slots.
 //   - A FULL_DAY booking blocks every partial slot for that day.
 // CRITICAL (PII gate): the feed emits ONLY date / timeSlot / status. It NEVER
@@ -71,17 +74,21 @@ export async function buildAvailabilityJson(
   });
   if (!venue) return null;
 
-  const [bookings, blackouts] = await Promise.all([
+  const [bookingRows, blackouts] = await Promise.all([
     prisma.booking.findMany({
       // Same conflict semantics as the grid: any non-CANCELLED booking occupies a slot.
       where: { venueId, date: { gte: start, lte: end }, status: { not: "CANCELLED" } },
-      select: { date: true, timeSlot: true },
+      // id/status/holdExpiresAt only decide lapsed holds; the feed still emits date/slot/status only.
+      select: { id: true, date: true, timeSlot: true, status: true, holdExpiresAt: true },
     }),
     prisma.blackoutDate.findMany({
       where: { venueId, date: { gte: start, lte: end } },
       select: { date: true, timeSlot: true },
     }),
   ]);
+  // ...except a lapsed hold, exactly as on the grid. If that lookup fails, holds
+  // keep occupying their slots, so the feed never over-promises to a channel.
+  const bookings = withoutLapsedHolds(bookingRows, await findLapsedHoldIds(bookingRows));
 
   const slots: FeedSlot[] = [];
 

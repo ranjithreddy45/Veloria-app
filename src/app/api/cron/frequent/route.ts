@@ -20,6 +20,7 @@ const JOBS = [
   "quote-nudge", // viewed-but-unpaid 24h quote nudge (one-shot via QuoteShareLink.silentNudgeFiredAt; NOT quote-silent-nudge)
   "event-interval-reminders", // 48/24/12/4h pre-event reminders (vendor/guest/property) + T-1h readiness check
   "sync-callvibe", // pull CallVibe call records (CallVibe cannot push to us)
+  "lapsed-hold-release", // unpaid HOLDs past holdExpiresAt → CANCELLED + PublicHold EXPIRED; never a hold with any payment (src/lib/holds/lapsed-hold.ts)
 ] as const;
 
 export async function GET(request: Request) {

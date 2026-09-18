@@ -14,6 +14,7 @@ import {
   LEGACY_INVOICE_TERMS,
 } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
+import { invoicePresentation } from "@/lib/finance/invoice-presentation";
 import { PAYMENT_TERMS_LINES } from "@/lib/sales/quotation-calc";
 
 // ============================================================
@@ -128,19 +129,28 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
   const sgstAmount = toNum(invoice.sgstAmount);
   const igstAmount = toNum(invoice.igstAmount);
   const isInterstate = igstRate > 0;
-  // Proforma until paid in full; Tax Invoice only on 100% payment.
-  const fullyPaid = toNum(invoice.balanceDue) <= 0 || invoice.status === "PAID";
-  // Goal-gradient collection progress (derived — no new data).
+  // Title, balance line and what is owed by the shared rules
+  // (src/lib/finance/invoice-presentation.ts), as the print PDF, the portal and
+  // the customer app show them: Proforma until paid in full, Tax Invoice on 100%
+  // payment (kept after a full refund); a refunded, cancelled or draft invoice
+  // owes nothing, whatever its stored balanceDue.
+  const view = invoicePresentation({ status: invoice.status, balanceDue: toNum(invoice.balanceDue) });
+  const fullyPaid = view.title === "TAX INVOICE";
+  const balanceClass =
+    view.tone === "due" ? "text-red-600" : view.tone === "clear" ? "text-green-700" : "text-zinc-500";
+  // Goal-gradient collection progress (derived — no new data), only while the
+  // invoice is owed or once it is paid: nothing is collected on the rest.
+  const showProgress = view.kind === "owed" || view.kind === "paid";
   const totalNum = toNum(invoice.totalAmount);
   const paidNum = toNum(invoice.paidAmount);
-  const balanceNum = Math.max(0, toNum(invoice.balanceDue));
+  const balanceNum = Math.max(0, view.owed);
   const paidPct = fullyPaid
     ? 100
     : totalNum > 0
       ? Math.min(99, Math.max(0, Math.round((paidNum / totalNum) * 100)))
       : 0;
   const almostThere = !fullyPaid && paidPct >= 80;
-  const docTitle = fullyPaid ? "TAX INVOICE" : "PROFORMA INVOICE";
+  const docTitle = view.title;
   // Drop the retired default T&C boilerplate from old invoices; keep custom terms.
   const customTerms =
     invoice.terms && invoice.terms.trim() !== LEGACY_INVOICE_TERMS.trim()
@@ -449,52 +459,48 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
             </div>
             <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-zinc-200 pt-2.5 text-lede font-bold">
               <span className="text-zinc-900">Balance Due</span>
-              <span
-                className={
-                  toNum(invoice.balanceDue) > 0
-                    ? "numeric text-red-600"
-                    : "numeric text-green-700"
-                }
-              >
-                {formatINR(invoice.balanceDue)}
-              </span>
+              <span className={`numeric ${balanceClass}`}>{view.balanceLabel}</span>
             </div>
 
-            {/* Goal-gradient: collection progress (screen only, not printed) */}
-            <div className="pt-3 print:hidden">
-              <div className="flex items-center justify-between text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
-                <span>Collection progress</span>
-                <span className="numeric tracking-normal">{paidPct}%</span>
+            {/* Goal-gradient: collection progress (screen only, not printed).
+                Only an owed or paid invoice has any: the balance line above
+                already says a refunded, cancelled or draft one owes nothing. */}
+            {showProgress && (
+              <div className="pt-3 print:hidden">
+                <div className="flex items-center justify-between text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                  <span>Collection progress</span>
+                  <span className="numeric tracking-normal">{paidPct}%</span>
+                </div>
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200/70">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      fullyPaid ? "bg-emerald-500" : "bg-violet-500"
+                    }`}
+                    style={{ width: `${paidPct}%` }}
+                  />
+                </div>
+                {fullyPaid ? (
+                  <p className="mt-2 text-detail font-medium text-emerald-600">
+                    Fully paid
+                  </p>
+                ) : almostThere ? (
+                  <p className="mt-2 text-detail font-medium text-amber-600">
+                    Almost there —{" "}
+                    <span className="numeric text-emerald-700">
+                      {inr(balanceNum)}
+                    </span>{" "}
+                    to go
+                  </p>
+                ) : (
+                  <p className="mt-2 text-detail text-zinc-500">
+                    <span className="numeric font-semibold text-zinc-700">
+                      {inr(balanceNum)}
+                    </span>{" "}
+                    away from fully paid
+                  </p>
+                )}
               </div>
-              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-zinc-200/70">
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    fullyPaid ? "bg-emerald-500" : "bg-violet-500"
-                  }`}
-                  style={{ width: `${paidPct}%` }}
-                />
-              </div>
-              {fullyPaid ? (
-                <p className="mt-2 text-detail font-medium text-emerald-600">
-                  Fully paid
-                </p>
-              ) : almostThere ? (
-                <p className="mt-2 text-detail font-medium text-amber-600">
-                  Almost there —{" "}
-                  <span className="numeric text-emerald-700">
-                    {inr(balanceNum)}
-                  </span>{" "}
-                  to go
-                </p>
-              ) : (
-                <p className="mt-2 text-detail text-zinc-500">
-                  <span className="numeric font-semibold text-zinc-700">
-                    {inr(balanceNum)}
-                  </span>{" "}
-                  away from fully paid
-                </p>
-              )}
-            </div>
+            )}
           </div>
         </div>
 

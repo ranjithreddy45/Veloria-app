@@ -18,6 +18,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { FIN_ACCOUNT_CODES } from "@/lib/finance/coa-seed";
+import { COLLECTIBLE_INVOICE_STATUSES } from "@/lib/finance/issued-invoices";
 
 const WEEKS = 13;
 const RUN_RATE_WEEKS = 8;
@@ -113,10 +114,12 @@ export async function getCashForecast(stress = false): Promise<CashForecast> {
   const inflows = new Array<number>(WEEKS).fill(0);
 
   // --- Inflows = open receivables, bucketed by dueDate ------------------
+  // Open = still owed, by finance's shared rule (isCollectibleInvoice): the
+  // invoices the invoice stats and the customer's balance due count.
   const openInvoices = await prisma.invoice.findMany({
     where: {
       balanceDue: { gt: 0 },
-      status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] },
+      status: { in: [...COLLECTIBLE_INVOICE_STATUSES] },
     },
     select: { balanceDue: true, dueDate: true },
   });

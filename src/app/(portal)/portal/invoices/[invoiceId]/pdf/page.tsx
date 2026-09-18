@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { auth } from "@/../auth";
 import { getPortalInvoiceForPdf } from "@/actions/portal.actions";
 import { formatINR } from "@/lib/utils";
+import { invoicePresentation } from "@/lib/finance/invoice-presentation";
 import { PAYMENT_TERMS_LINES } from "@/lib/sales/quotation-calc";
 import {
   COMPANY_ADDRESS,
@@ -37,8 +38,11 @@ export default async function PortalInvoicePdfPage({
   if (!invoice) notFound();
 
   const isInterstate = invoice.igstRate > 0;
-  const fullyPaid = invoice.balanceDue <= 0 || invoice.status === "PAID";
-  const docTitle = fullyPaid ? "TAX INVOICE" : "PROFORMA INVOICE";
+  // Title and balance line by the shared rules (src/lib/finance/invoice-presentation.ts),
+  // exactly as the team's print page and the customer app's invoice document print them.
+  const view = invoicePresentation({ status: invoice.status, balanceDue: invoice.balanceDue });
+  const fullyPaid = view.title === "TAX INVOICE";
+  const docTitle = view.title;
 
   const customTerms =
     invoice.terms && invoice.terms.trim() !== LEGACY_INVOICE_TERMS.trim()
@@ -87,6 +91,7 @@ export default async function PortalInvoicePdfPage({
             .totals-row.balance { font-size: 16px; font-weight: 700; }
             .totals-row.balance .value.due { color: #dc2626; }
             .totals-row.balance .value.clear { color: #15803d; }
+            .totals-row.balance .value.muted { color: #71717a; }
             .notes-section { margin-top: 32px; border-top: 1px solid #e4e4e7; padding-top: 16px; }
             .notes-section h4 { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #a1a1aa; margin-bottom: 6px; }
             .notes-section p { font-size: 12px; color: #52525b; white-space: pre-line; }
@@ -311,9 +316,7 @@ export default async function PortalInvoicePdfPage({
               </div>
               <div className="totals-row balance">
                 <span>Balance Due</span>
-                <span className={`value ${invoice.balanceDue > 0 ? "due" : "clear"}`}>
-                  {formatINR(invoice.balanceDue)}
-                </span>
+                <span className={`value ${view.tone}`}>{view.balanceLabel}</span>
               </div>
             </div>
           </div>

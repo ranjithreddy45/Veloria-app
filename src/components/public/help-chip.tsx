@@ -1,13 +1,28 @@
 // ============================================================
 // HelpChip — "Questions? WhatsApp / Call us" for client-facing surfaces.
-// Reads the configured public contact channels; renders NOTHING when none is
-// set (so a placeholder number can never reach a customer). Use on every
-// transaction / discovery page and inside error cards.
+//
+// Pass `contact` from getPublicContact() (Settings → Business contact, which
+// has the env numbers as its own fallback): the server page loads it and hands
+// it down, through client components where needed, so customers reach the
+// numbers the team maintains. With no `contact`, the NEXT_PUBLIC_COMPANY_PHONE /
+// NEXT_PUBLIC_COMPANY_WHATSAPP constants are used.
+//
+// Renders NOTHING when no channel is set, so a placeholder number can never
+// reach a customer. Support hours show only when they are published.
+// Client-safe: nothing server-only is imported.
 // ============================================================
 
 import { MessageCircle, Phone } from "lucide-react";
-import { COMPANY_PHONE, COMPANY_WHATSAPP, HAS_PUBLIC_CONTACT } from "@/lib/constants";
+import { COMPANY_PHONE, COMPANY_WHATSAPP } from "@/lib/constants";
+import { telLink, waMeHref } from "@/app/(dashboard)/settings/business-contact/_lib/contact-rules";
 import { cn } from "@/lib/utils";
+
+/** The published contact fields HelpChip reads. A PublicContact from getPublicContact() fits. */
+export interface HelpChipContact {
+  phone?: string | null;
+  whatsapp?: string | null;
+  supportHours?: string | null;
+}
 
 interface HelpChipProps {
   /** Optional prefilled WhatsApp message (e.g. an invoice/quote reference). */
@@ -15,15 +30,34 @@ interface HelpChipProps {
   /** "inline" (compact chips) or "banner" (full-width helper row). */
   variant?: "inline" | "banner";
   className?: string;
+  /**
+   * The business's published channels, loaded on the server with getPublicContact().
+   * When passed it is the whole answer: a number it doesn't have stays hidden.
+   * When omitted, the build-time constants are used.
+   */
+  contact?: HelpChipContact | null;
 }
 
-export function HelpChip({ message, variant = "inline", className }: HelpChipProps) {
-  if (!HAS_PUBLIC_CONTACT) return null;
+/** The links (and hours) to show, or null when there is no channel at all. */
+export function helpChipChannels(contact: HelpChipContact | null | undefined, message?: string) {
+  const whatsapp = (contact ? contact.whatsapp : COMPANY_WHATSAPP)?.trim() || null;
+  const phone = (contact ? contact.phone : COMPANY_PHONE)?.trim() || null;
+  if (!whatsapp && !phone) return null;
+  return {
+    waHref: whatsapp ? waMeHref(whatsapp, message) : null,
+    telHref: phone ? telLink(phone) : null,
+    supportHours: contact?.supportHours?.trim() || null,
+  };
+}
 
-  const waHref = COMPANY_WHATSAPP
-    ? `https://wa.me/${COMPANY_WHATSAPP}${message ? `?text=${encodeURIComponent(message)}` : ""}`
-    : null;
-  const telHref = COMPANY_PHONE ? `tel:${COMPANY_PHONE.replace(/[^\d+]/g, "")}` : null;
+export function HelpChip({ message, variant = "inline", className, contact }: HelpChipProps) {
+  const channels = helpChipChannels(contact, message);
+  if (!channels) return null;
+  const { waHref, telHref, supportHours } = channels;
+
+  const hours = supportHours ? (
+    <span className="basis-full text-center text-meta text-muted-foreground">{`Support hours: ${supportHours}`}</span>
+  ) : null;
 
   if (variant === "banner") {
     return (
@@ -41,6 +75,7 @@ export function HelpChip({ message, variant = "inline", className }: HelpChipPro
             <Phone className="size-3.5" /> Call us
           </a>
         )}
+        {hours}
       </div>
     );
   }
@@ -59,6 +94,7 @@ export function HelpChip({ message, variant = "inline", className }: HelpChipPro
           <Phone className="size-3.5" /> Call
         </a>
       )}
+      {hours}
     </div>
   );
 }

@@ -1,8 +1,11 @@
+import { after } from "next/server";
 import { initBookingConfirmationArtifacts } from "@/lib/sales/booking-confirmation-artifacts";
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/notify";
+import { notifyCustomer } from "@/lib/customer-notify";
+import { logActivity } from "@/lib/activity-logger";
 import { sendEmail } from "@/lib/email";
-import { sendSMSFireAndForget } from "@/lib/sms";
+import { sendSMS, isSmsConfigured } from "@/lib/sms";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { provisionEventOperations } from "@/lib/ops/provision";
 import { reportSystemFailure } from "@/lib/ops-alert";
@@ -12,19 +15,193 @@ import {
   type BookingEventInfo,
 } from "@/lib/sales/ops-assignment";
 
-const fmtINR = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
-const SLOT_LABEL: Record<string, string> = {
-  MORNING: "Morning",
-  AFTERNOON: "Afternoon (11am–3pm)",
-  EVENING: "Evening (5pm–10pm)",
-  FULL_DAY: "Full Day",
+import { SLOT_LABEL } from "@/lib/sales/slot";
+
+// ============================================================
+// Customer confirmation delivery — what was actually sent, and what wasn't.
+// ------------------------------------------------------------
+// Every channel reports its real outcome: sent, failed (with the provider's
+// reason), skipped (not configured / nothing to send to), or unconfirmed (no
+// answer in time). The outcome is written to the booking's ActivityLog, and
+// the booking owner is alerted when the customer was not reached, so nobody
+// assumes a confirmation went out when it didn't.
+// ============================================================
+
+type ChannelResult =
+  | { status: "sent"; detail?: string }
+  | { status: "failed"; reason: string }
+  | { status: "skipped"; reason: string }
+  | { status: "unconfirmed"; reason: string };
+
+const CHANNEL_TIMEOUT_MS = 20_000;
+
+const skipped = (reason: string): ChannelResult => ({ status: "skipped", reason });
+
+/** Await one send, bounded in time, and classify the outcome honestly. */
+async function settle(
+  send: () => Promise<{ success: boolean; error?: string }>,
+  skipReason: (error: string) => string | null = () => null
+): Promise<ChannelResult> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const res = await Promise.race([
+      send(),
+      new Promise<"timeout">((resolve) => {
+        timer = setTimeout(() => resolve("timeout"), CHANNEL_TIMEOUT_MS);
+      }),
+    ]);
+    if (res === "timeout") {
+      return { status: "unconfirmed", reason: `no answer from the provider within ${CHANNEL_TIMEOUT_MS / 1000}s` };
+    }
+    if (res.success) return { status: "sent" };
+    const error = res.error || "unknown error";
+    const skip = skipReason(error);
+    return skip ? skipped(skip) : { status: "failed", reason: error };
+  } catch (e) {
+    return { status: "failed", reason: e instanceof Error ? e.message : "unknown error" };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/** The approved WhatsApp template for booking updates, when the team has set one. */
+async function bookingUpdateTemplateName(): Promise<string | null> {
+  try {
+    const cfg = await prisma.whatsAppConfig.findFirst({
+      where: { isActive: true },
+      select: { bookingUpdateTemplateName: true },
+    });
+    return cfg?.bookingUpdateTemplateName?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+const EMAIL_SKIPS: Record<string, string> = {
+  "Email not configured": "email is not configured",
+  "No deliverable recipient": "no deliverable email address",
 };
+
+const CHANNEL_NAME: Record<string, string> = { email: "Email", sms: "SMS", whatsapp: "WhatsApp", app: "App" };
+
+function describeDelivery(record: Record<string, ChannelResult & { via?: string }>): string {
+  return Object.entries(record)
+    .map(([channel, r]) => {
+      const name = `${CHANNEL_NAME[channel] ?? channel}${r.via ? ` (${r.via})` : ""}`;
+      const why = "reason" in r ? ` — ${r.reason}` : r.detail ? ` — ${r.detail}` : "";
+      return `${name}: ${r.status}${why}`;
+    })
+    .join(" · ");
+}
+
+interface ConfirmationDelivery {
+  bookingId: string;
+  bookingNumber: string;
+  ownerId: string;
+  contactId: string;
+  email: string | null;
+  phone: string | null;
+  firstName: string;
+  emailSubject: string;
+  emailHtml: string;
+  /** Plain text for SMS, and for WhatsApp when no approved template is set. */
+  textMessage: string;
+  /** {{2}} of the approved booking-update template ({{1}} is the first name). */
+  templateUpdate: string;
+  appTitle: string;
+  appMessage: string;
+}
+
+async function deliverCustomerConfirmation(d: ConfirmationDelivery): Promise<void> {
+  try {
+    const template = d.phone ? await bookingUpdateTemplateName() : null;
+    const phone = d.phone;
+    const [email, sms, whatsapp, app] = await Promise.all([
+      d.email
+        ? settle(
+            () => sendEmail({ to: d.email as string, subject: d.emailSubject, html: d.emailHtml }),
+            (error) => EMAIL_SKIPS[error] ?? null
+          )
+        : Promise.resolve(skipped("no email address on file")),
+      !phone
+        ? Promise.resolve(skipped("no phone number on file"))
+        : !isSmsConfigured()
+          ? Promise.resolve(skipped("SMS is not configured"))
+          : settle(() => sendSMS({ to: phone, message: d.textMessage })),
+      !phone
+        ? Promise.resolve(skipped("no phone number on file"))
+        : settle(
+            () =>
+              template
+                ? sendWhatsApp({ to: phone, template, params: { "1": d.firstName, "2": d.templateUpdate } })
+                : sendWhatsApp({ to: phone, message: d.textMessage }),
+            (error) => (error.startsWith("WhatsApp not configured") ? "WhatsApp is not configured" : null)
+          ),
+      notifyCustomer({
+        contactId: d.contactId,
+        bookingId: d.bookingId,
+        type: "BOOKING_UPDATED",
+        title: d.appTitle,
+        message: d.appMessage,
+        actionUrl: "/app/event",
+      }).then(
+        (logins): ChannelResult =>
+          logins > 0
+            ? { status: "sent", detail: `${logins} app login${logins === 1 ? "" : "s"}` }
+            : skipped("no app login is linked to this customer")
+      ),
+    ]);
+
+    const record = {
+      email,
+      sms,
+      whatsapp: { ...whatsapp, via: phone ? (template ? `approved template ${template}` : "text message") : undefined },
+      app,
+    };
+    await logActivity({
+      userId: d.ownerId,
+      action: "customer_confirmation_delivery",
+      entityType: "Booking",
+      entityId: d.bookingId,
+      changes: { sentBy: "system", ...record },
+    });
+
+    const results = [email, sms, whatsapp, app];
+    const reached = results.filter((r) => r.status === "sent").length;
+    const trouble = results.some((r) => r.status === "failed" || r.status === "unconfirmed");
+    if (reached === 0 || trouble) {
+      notify({
+        userId: d.ownerId,
+        type: "SYSTEM",
+        title:
+          reached === 0
+            ? `Customer not told yet: ${d.bookingNumber} is confirmed`
+            : `Confirmation not fully delivered: ${d.bookingNumber}`,
+        message: describeDelivery(record),
+        actionUrl: `/bookings/${d.bookingId}`,
+      });
+    }
+  } catch (e) {
+    console.error("[CONFIRM_CUSTOMER_DELIVERY_ERROR]", e);
+  }
+}
+
+/** After the response when inside a request (the payment call isn't held up); inline otherwise. */
+function runAfterResponse(task: () => Promise<void>): Promise<void> {
+  try {
+    after(task);
+    return Promise.resolve();
+  } catch {
+    return task();
+  }
+}
 
 /**
  * BookMyShow-style auto-confirm: once a verified payment covers the 20%
  * booking advance, the HOLD booking flips to CONFIRMED — locking the slot —
- * and the customer is sent confirmations across every available channel
- * (email + SMS + WhatsApp). Idempotent (only acts on a HOLD booking) and
+ * and the customer is sent confirmations on every configured channel (email,
+ * SMS, WhatsApp — through the approved booking-update template when one is set —
+ * and an in-app notice). Idempotent (only acts on a HOLD booking) and
  * never throws, so it's safe to call from both the manual recordPayment
  * path and the Razorpay webhook.
  */
@@ -48,6 +225,7 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
             timeSlot: true,
             guestCount: true,
             createdById: true,
+            contactId: true,
             eventType: true,
             contact: { select: { firstName: true, lastName: true, email: true, phone: true } },
             venue: { select: { name: true } },
@@ -83,7 +261,13 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
     // idempotent, system-actored on the payment path.
     await initBookingConfirmationArtifacts(b.id, null);
 
-    const dateStr = new Date(b.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+    // booking.date is @db.Date (UTC midnight): format the day in IST.
+    const dateStr = new Date(b.date).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "Asia/Kolkata",
+    });
     const slot = SLOT_LABEL[b.timeSlot] ?? b.timeSlot;
     const name = `${b.contact?.firstName ?? "Guest"} ${b.contact?.lastName ?? ""}`.trim();
 
@@ -120,25 +304,30 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
     const pocLine = poc?.name
       ? ` Your point of contact is ${poc.name}${poc.phone ? ` (${poc.phone})` : ""}.`
       : "";
+    const venueName = b.venue?.name ?? "Veloria Grand";
 
-    // Customer confirmations — every channel, all best-effort.
-    const line = `Hi ${b.contact?.firstName ?? "there"}, your booking ${b.bookingNumber} at ${b.venue?.name ?? "Veloria Grand"} is CONFIRMED for ${dateStr} (${slot}). Thank you for the advance payment.${pocLine} — Veloria Grand`;
-
-    if (b.contact?.email) {
-      sendEmail({
-        to: b.contact.email,
-        subject: `Booking Confirmed — ${b.bookingNumber}`,
-        html: `<p>Dear ${name || "Guest"},</p><p>Your booking <strong>${b.bookingNumber}</strong> at <strong>${b.venue?.name ?? "Veloria Grand"}</strong> is <strong>confirmed</strong> for <strong>${dateStr}</strong> (${slot}).</p><p>We have received your booking advance and the slot is now locked in your name.</p>${
+    // Customer confirmations: every configured channel, each outcome recorded.
+    await runAfterResponse(() =>
+      deliverCustomerConfirmation({
+        bookingId: b.id,
+        bookingNumber: b.bookingNumber,
+        ownerId: b.createdById,
+        contactId: b.contactId,
+        email: b.contact?.email ?? null,
+        phone: b.contact?.phone ?? null,
+        firstName: b.contact?.firstName ?? "there",
+        emailSubject: `Booking Confirmed — ${b.bookingNumber}`,
+        emailHtml: `<p>Dear ${name || "Guest"},</p><p>Your booking <strong>${b.bookingNumber}</strong> at <strong>${venueName}</strong> is <strong>confirmed</strong> for <strong>${dateStr}</strong> (${slot}).</p><p>We have received your booking advance and the slot is now locked in your name.</p>${
           poc?.name
             ? `<p><strong>Your point of contact:</strong> ${poc.name}${poc.phone ? ` · ${poc.phone}` : ""}${poc.email ? ` · ${poc.email}` : ""}</p>`
             : ""
         }<p>Warm regards,<br/>Veloria Grand</p>`,
-      }).catch((e) => console.error("[CONFIRM_EMAIL_ERROR]", e));
-    }
-    if (b.contact?.phone) {
-      sendSMSFireAndForget({ to: b.contact.phone, message: line });
-      sendWhatsApp({ to: b.contact.phone, message: line }).catch((e) => console.error("[CONFIRM_WA_ERROR]", e));
-    }
+        textMessage: `Hi ${b.contact?.firstName ?? "there"}, your booking ${b.bookingNumber} at ${venueName} is CONFIRMED for ${dateStr} (${slot}). Thank you for the advance payment.${pocLine} — Veloria Grand`,
+        templateUpdate: `Your booking ${b.bookingNumber} at ${venueName} is confirmed for ${dateStr} (${slot}).`,
+        appTitle: `Booking confirmed: ${b.eventName}`,
+        appMessage: `${b.bookingNumber} at ${venueName} is confirmed for ${dateStr} (${slot}).`,
+      })
+    );
 
     // Shared event context for the ops + vendor triggers below.
     const eventInfo: BookingEventInfo = {

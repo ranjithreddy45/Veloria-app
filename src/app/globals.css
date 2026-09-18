@@ -362,8 +362,8 @@
  * -------------------------------------------------------------- */
 @utility bg-material {
   background-color: oklch(1 0 0 / 72%);
-  backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
 }
 .dark .bg-material {
   background-color: oklch(0.225 0.004 286 / 72%);
@@ -372,8 +372,8 @@
 /* Thicker, more opaque material for the sidebar chrome. */
 @utility bg-material-sidebar {
   background-color: oklch(0.978 0.0015 286 / 80%);
-  backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
 }
 .dark .bg-material-sidebar {
   background-color: oklch(0.185 0.003 286 / 80%);
@@ -450,8 +450,8 @@
 /* Glass topbar — blur over scrolling content, hairline border */
 @utility topbar-glass {
   background-color: oklch(0.968 0.0015 286 / 72%);
-  backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
 }
 .dark .topbar-glass {
   background-color: oklch(0.16 0.003 286 / 72%);

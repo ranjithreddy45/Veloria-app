@@ -17,6 +17,9 @@
 //  - All public input is zod-validated server-side (untrusted).
 //  - A naive in-memory IP rate limiter mirrors the /api/webforms limiter to
 //    blunt slot-squatting spam; the short hold window + cron release back it up.
+//    The IP is the one our proxy appended (clientIpOfHeaders), and since an IP
+//    is cheap to change, each phone number and each email may also place only
+//    MAX_PUBLIC_HOLDS_PER_CUSTOMER new holds a day (DB-backed; recentHoldCounts).
 // ============================================================
 
 import { prisma } from "@/lib/prisma";
@@ -24,7 +27,7 @@ import { eventTypeTag } from "@/lib/enquiry-source";
 import { Prisma, type TimeSlot } from "@prisma/client";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { notify } from "@/lib/notify";
 // captureLeadFromExternal: mint CRM follow-up lead. getSystemUserId: first
 // active SUPER_ADMIN/ADMIN, used as createdById for the public (no-login) flow.
@@ -34,9 +37,31 @@ import { captureLeadFromExternal, getSystemUserId } from "@/lib/lead-capture";
 import { generateBookingNumber } from "@/actions/booking.actions";
 import { utcDayRange } from "@/lib/sales/slot-util";
 import { SLOT_LABEL, plannerSlotToEnum } from "@/lib/sales/slot";
-import { publicHoldSchema, type PublicHoldInput } from "@/schemas/public-hold.schema";
-import { recordConsent } from "@/lib/privacy/consent";
+import {
+  PUBLIC_HOLD_CAP_WINDOW_HOURS,
+  publicHoldCapError,
+  publicHoldSchema,
+  type PublicHoldCounts,
+  type PublicHoldInput,
+} from "@/schemas/public-hold.schema";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
+import { normalizeOtpPhone, phoneKeySql } from "@/lib/otp";
+import { hashPrivacyIp, recordConsent, requestClientMeta } from "@/lib/privacy/consent";
 import { CONSENT_TEXT_ENQUIRY } from "@/lib/privacy/consent-text";
+import { getPublishedPolicy, recordPolicyConsent } from "@/lib/public/policies";
+import { BOOKING_STATUS_LABEL, customerLabel } from "@/lib/customer-app/status-labels";
+// Lapsed holds: ONE decision shared with the team's availability view and the
+// frequent-lane release job (src/lib/holds/lapsed-hold.ts).
+import { HOLD_FACTS_SELECT, holdMoneyState, holdPhase, releasableHoldWhere, type HoldPhase } from "@/lib/holds/lapsed-hold";
+import { findLapsedHoldIds, releaseLapsedHoldsForSlot } from "@/lib/holds/release-lapsed-holds";
+import { slotIsFree } from "@/lib/holds/slot-occupancy";
+import {
+  HOLD_TERMS_KEYS,
+  holdConsentRows,
+  holdTermsMatch,
+  type HoldTermsAcceptance,
+  type HoldTermsDoc,
+} from "@/lib/holds/hold-terms";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -94,15 +119,32 @@ function rateLimited(ip: string): boolean {
 
 async function clientIp(): Promise<string> {
   try {
-    const h = await headers();
-    return (
-      h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      h.get("x-real-ip") ||
-      "unknown"
-    );
+    // The address our proxy appended, never the client's own X-Forwarded-For entry.
+    return clientIpOfHeaders(await headers()) || "unknown";
   } catch {
     return "unknown";
   }
+}
+
+/**
+ * New holds placed in the cap window with this phone number, compared the way
+ * WhatsApp sign-in compares numbers ("+91 98765 43210" and "09876543210" are
+ * one number), and with this email, case-insensitive. Every PublicHold row
+ * counts, released and lapsed ones too, so abandoning holds doesn't reset it.
+ */
+async function recentHoldCounts(phone: string, email: string | null): Promise<PublicHoldCounts> {
+  const since = new Date(Date.now() - PUBLIC_HOLD_CAP_WINDOW_HOURS * 60 * 60 * 1000);
+  const phoneKey = normalizeOtpPhone(phone);
+  const emailKey = (email ?? "").trim().toLowerCase();
+  const byEmail = emailKey
+    ? Prisma.sql`(count(*) FILTER (WHERE lower(btrim("customerEmail")) = ${emailKey}))::int`
+    : Prisma.sql`0`;
+  const rows = await prisma.$queryRaw<{ byPhone: number | bigint; byEmail: number | bigint }[]>`
+    SELECT (count(*) FILTER (WHERE ${phoneKeySql("customerPhone")} = ${phoneKey}))::int AS "byPhone",
+           ${byEmail} AS "byEmail"
+    FROM "PublicHold"
+    WHERE "createdAt" >= ${since}`;
+  return { byPhone: Number(rows[0]?.byPhone ?? 0), byEmail: Number(rows[0]?.byEmail ?? 0) };
 }
 
 // ============================================================
@@ -140,7 +182,7 @@ export async function getPublicAvailabilityMonth(
     const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
     const end = new Date(Date.UTC(year, month - 1, daysInMonth, 23, 59, 59, 999));
 
-    const [venues, bookings, blackouts] = await Promise.all([
+    const [venues, occupied, blackouts] = await Promise.all([
       prisma.venue.findMany({
         where: { isActive: true, ...(venueId ? { id: venueId } : {}) },
         select: { id: true, name: true },
@@ -152,14 +194,19 @@ export async function getPublicAvailabilityMonth(
           status: { not: "CANCELLED" },
           ...(venueId ? { venueId } : {}),
         },
-        // PUBLIC-SAFE projection: occupancy only, no labels/identities.
-        select: { venueId: true, date: true, timeSlot: true },
+        // PUBLIC-SAFE projection: occupancy only, no labels/identities. The
+        // hold fields only decide lapsed holds; they never leave the server.
+        select: { id: true, venueId: true, date: true, timeSlot: true, status: true, holdExpiresAt: true },
       }),
       prisma.blackoutDate.findMany({
         where: { date: { gte: start, lte: end }, ...(venueId ? { venueId } : {}) },
         select: { venueId: true, date: true, timeSlot: true },
       }),
     ]);
+    // A lapsed hold (window passed, no payment) no longer makes a day busy —
+    // the same decision the team's availability board uses.
+    const lapsedIds = await findLapsedHoldIds(occupied);
+    const bookings = occupied.filter((b) => !lapsedIds.has(b.id));
 
     const rows: PublicVenueMonth[] = venues.map((v) => {
       const days: PublicMonthDay[] = [];
@@ -239,8 +286,9 @@ export async function getPublicAvailabilityGrid(
           status: { not: "CANCELLED" },
           ...(venueId ? { venueId } : {}),
         },
-        // PUBLIC-SAFE: timeSlot occupancy only.
-        select: { venueId: true, date: true, timeSlot: true },
+        // PUBLIC-SAFE: timeSlot occupancy only. The hold fields only decide
+        // lapsed holds; they never leave the server.
+        select: { id: true, venueId: true, date: true, timeSlot: true, status: true, holdExpiresAt: true },
       }),
       prisma.blackoutDate.findMany({
         where: { date: { gte: dayStart, lte: dayEnd }, ...(venueId ? { venueId } : {}) },
@@ -249,7 +297,10 @@ export async function getPublicAvailabilityGrid(
       }),
     ]);
 
-    const bookings = allBookings.filter((b) => new Date(b.date).getUTCDate() === targetUTCDay);
+    const dayBookings = allBookings.filter((b) => new Date(b.date).getUTCDate() === targetUTCDay);
+    // A lapsed hold (window passed, no payment) no longer occupies its slot.
+    const lapsedIds = await findLapsedHoldIds(dayBookings);
+    const bookings = dayBookings.filter((b) => !lapsedIds.has(b.id));
     const blackouts = allBlackouts.filter((b) => new Date(b.date).getUTCDate() === targetUTCDay);
 
     const rows: PublicVenueDay[] = venues.map((v) => {
@@ -308,30 +359,23 @@ async function publicSlotIsFree(
 ): Promise<boolean> {
   const { gte, lt, utcDay } = utcDayRange(date);
 
-  const partialSlots: TimeSlot[] = ["MORNING", "AFTERNOON", "EVENING"];
-  const bookingOr =
-    timeSlot === "FULL_DAY"
-      ? [{ timeSlot: "FULL_DAY" as TimeSlot }, ...partialSlots.map((s) => ({ timeSlot: s }))]
-      : [{ timeSlot }, { timeSlot: "FULL_DAY" as TimeSlot }];
+  const [bookings, blackouts] = await Promise.all([
+    prisma.booking.findMany({
+      where: { venueId, date: { gte, lt }, status: { notIn: ["CANCELLED"] } },
+      select: { id: true, date: true, timeSlot: true, status: true, holdExpiresAt: true },
+    }),
+    prisma.blackoutDate.findMany({
+      where: { venueId, date: { gte, lt } },
+      select: { date: true, timeSlot: true },
+    }),
+  ]);
+  const dayBookings = bookings.filter((b) => new Date(b.date).getUTCDate() === utcDay);
+  const dayBlackouts = blackouts.filter((b) => new Date(b.date).getUTCDate() === utcDay);
 
-  const bookings = await prisma.booking.findMany({
-    where: { venueId, date: { gte, lt }, status: { notIn: ["CANCELLED"] }, OR: bookingOr },
-    select: { date: true },
-  });
-  if (bookings.some((b) => new Date(b.date).getUTCDate() === utcDay)) return false;
-
-  const blackoutOr =
-    timeSlot === "FULL_DAY"
-      ? [{ timeSlot: null }, ...partialSlots.map((s) => ({ timeSlot: s }))]
-      : [{ timeSlot: null }, { timeSlot }];
-
-  const blackouts = await prisma.blackoutDate.findMany({
-    where: { venueId, date: { gte, lt }, OR: blackoutOr },
-    select: { date: true },
-  });
-  if (blackouts.some((b) => new Date(b.date).getUTCDate() === utcDay)) return false;
-
-  return true;
+  // A lapsed hold (window passed, no payment) no longer blocks the slot. The
+  // conflict rules themselves live in slotIsFree (src/lib/holds/slot-occupancy.ts).
+  const lapsedIds = await findLapsedHoldIds(dayBookings);
+  return slotIsFree(timeSlot, dayBookings.filter((b) => !lapsedIds.has(b.id)), dayBlackouts);
 }
 
 // Exported for the public configurator (C6): is a venue + date + planner-slot
@@ -361,8 +405,30 @@ export interface CreatePublicHoldResult {
   tokenAmount: number;
 }
 
-export async function createPublicHold(
-  input: PublicHoldInput
+/**
+ * Runs once the HOLD booking exists, before the invoice, hold row, lead or
+ * notification. Resolve to null to continue, or to a customer-facing error to
+ * roll the hold back (booking cancelled, freshly minted contact removed), so a
+ * hold never exists without what the hook records.
+ */
+type AfterBookingCreated = (ctx: {
+  bookingId: string;
+  contactId: string;
+  email: string | null;
+  phone: string;
+}) => Promise<string | null>;
+
+interface PlaceHoldOptions {
+  /** Where the hold came from; shown to the team in the booking's internal notes. */
+  channel: "WEBSITE" | "APP";
+  afterBookingCreated?: AfterBookingCreated;
+}
+
+// Shared by createPublicHold (website /hold) and createAppHold (customer app),
+// so both create the very same HOLD booking + token invoice + PublicHold row.
+async function placeHold(
+  input: PublicHoldInput,
+  options: PlaceHoldOptions
 ): Promise<Result<CreatePublicHoldResult>> {
   // (a) Validate untrusted public input.
   const parsed = publicHoldSchema.safeParse(input);
@@ -394,6 +460,14 @@ export async function createPublicHold(
   }
 
   try {
+    // Per-customer caps: the IP limit above is per process and an IP is cheap to
+    // change, so each phone number and each email may place at most
+    // MAX_PUBLIC_HOLDS_PER_CUSTOMER new holds in PUBLIC_HOLD_CAP_WINDOW_HOURS
+    // (public-hold.schema.ts). Checked before anything is written. Requests
+    // racing in the same instant can each pass; the IP limit bounds that.
+    const capError = publicHoldCapError(await recentHoldCounts(data.customerPhone, data.customerEmail || null));
+    if (capError) return { success: false, error: capError };
+
     // Confirm the venue exists + is active (public must not hold an inactive venue).
     const venue = await prisma.venue.findFirst({
       where: { id: data.venueId, isActive: true },
@@ -406,6 +480,15 @@ export async function createPublicHold(
     if (!free) {
       return { success: false, error: "That slot is already taken — please pick another." };
     }
+
+    // A lapsed hold (window passed, no payment) reads as free above but its
+    // booking row still occupies the slot. Release it with the SAME guarded
+    // cancel the frequent-lane job uses, so the transaction below can take the
+    // slot. A hold that gained money meanwhile is left alone, and the
+    // transaction's clash check then refuses the slot.
+    await releaseLapsedHoldsForSlot(venue.id, date, timeSlot).catch((e) => {
+      console.error("[PUBLIC_HOLD_LAPSED_RELEASE_ERROR]", e);
+    });
 
     // (d) Resolve createdById via the system-admin user (no logged-in user).
     const systemUserId = await getSystemUserId();
@@ -502,6 +585,7 @@ export async function createPublicHold(
           return tx.booking.create({
             data: {
               bookingNumber,
+              // At most 80 + 3 + 80 characters: the schema caps eventType and customerName.
               eventName: data.eventType
                 ? `${data.eventType} — ${data.customerName.trim()}`
                 : `Date hold — ${data.customerName.trim()}`,
@@ -512,7 +596,10 @@ export async function createPublicHold(
               totalAmount: new Prisma.Decimal(0),
               holdExpiresAt,
               specialRequests: data.notes || null,
-              internalNotes: "Public online date hold (/(public)/hold)",
+              internalNotes:
+                options.channel === "APP"
+                  ? "Customer app date hold (/app/book)"
+                  : "Public online date hold (/(public)/hold)",
               venueId: venue.id,
               contactId: contactId as string,
               createdById: systemUserId,
@@ -545,6 +632,28 @@ export async function createPublicHold(
         await prisma.contact.delete({ where: { id: mintedContactId } }).catch(() => {});
       }
     };
+
+    // Whatever must exist alongside the hold (the app's terms acceptance) is
+    // written now, before the invoice, lead or notification. If it can't be
+    // written, the hold is undone rather than left without it.
+    if (options.afterBookingCreated) {
+      let hookError: string | null;
+      try {
+        hookError = await options.afterBookingCreated({
+          bookingId: booking.id,
+          contactId: contactId as string,
+          email,
+          phone,
+        });
+      } catch (e) {
+        console.error("[PUBLIC_HOLD_AFTER_CREATE_ERROR]", e);
+        hookError = "We couldn't complete your hold. Please try again.";
+      }
+      if (hookError) {
+        await rollbackBooking();
+        return { success: false, error: hookError };
+      }
+    }
 
     const token = randomUUID();
     const tokenAmount = new Prisma.Decimal(PUBLIC_HOLD_TOKEN_AMOUNT);
@@ -665,7 +774,7 @@ export async function createPublicHold(
     notify({
       userId: systemUserId,
       type: "BOOKING_CREATED",
-      title: "New online date hold",
+      title: options.channel === "APP" ? "New date hold (customer app)" : "New online date hold",
       message: `${firstName} placed a hold on ${venue.name} for ${data.dateISO} (${SLOT_LABEL[reqSlot as keyof typeof SLOT_LABEL]}). Awaiting token payment.`,
       actionUrl: `/bookings/${booking.id}`,
     });
@@ -690,6 +799,93 @@ export async function createPublicHold(
   }
 }
 
+/** Website /hold form. */
+export async function createPublicHold(
+  input: PublicHoldInput
+): Promise<Result<CreatePublicHoldResult>> {
+  return placeHold(input, { channel: "WEBSITE" });
+}
+
+// ============================================================
+// (2b) Customer app: the terms come BEFORE the hold.
+// ------------------------------------------------------------
+// Only PUBLISHED policies are shown and accepted. Each carries a fingerprint
+// of exactly what was on screen; createAppHold refuses an acceptance of text
+// that has since changed, so a ConsentRecord never claims a customer agreed to
+// words they never saw. With no published cancellation and refund policy the
+// customer acknowledges the honest notice, recorded with policyVersion null.
+// ============================================================
+
+async function loadHoldTermsDocs(): Promise<HoldTermsDoc[]> {
+  const published = await Promise.all(HOLD_TERMS_KEYS.map((key) => getPublishedPolicy(key)));
+  return published.flatMap((p, i) => {
+    if (!p) return [];
+    const key = HOLD_TERMS_KEYS[i];
+    const fingerprint = createHash("sha256")
+      .update(JSON.stringify([key, p.version, p.title, p.body]))
+      .digest("hex");
+    return [{ key, title: p.title, body: p.body, version: p.version, publishedAt: p.publishedAt, fingerprint }];
+  });
+}
+
+/** The published terms a customer accepts before an app hold, in display order. */
+export async function getAppHoldTerms(): Promise<HoldTermsDoc[]> {
+  return loadHoldTermsDocs();
+}
+
+export type AppHoldResult =
+  | { success: true; data: CreatePublicHoldResult }
+  | { success: false; error: string; code?: "TERMS_REQUIRED" | "TERMS_CHANGED" };
+
+/**
+ * Customer-app hold: the same HOLD booking, token invoice and PublicHold row as
+ * a website hold, placed only after the customer accepted the published terms.
+ * The acceptance is written as ConsentRecord rows on the new booking (source
+ * "APP_HOLD": policy key, version, exact text, contact, phone, email) before
+ * anything else; if that write fails the hold is undone.
+ */
+export async function createAppHold(
+  input: PublicHoldInput,
+  acceptance: HoldTermsAcceptance
+): Promise<AppHoldResult> {
+  if (!acceptance || acceptance.accepted !== true) {
+    return { success: false, error: "Please read the terms and tick the box to hold your date.", code: "TERMS_REQUIRED" };
+  }
+  const docs = await loadHoldTermsDocs();
+  if (!holdTermsMatch(docs, acceptance)) {
+    return {
+      success: false,
+      error: "The terms were updated a moment ago. Please read them again and tick the box.",
+      code: "TERMS_CHANGED",
+    };
+  }
+  const rows = holdConsentRows(docs);
+  const meta = await requestClientMeta();
+  const ipHash = hashPrivacyIp(meta.ip);
+
+  return placeHold(input, {
+    channel: "APP",
+    afterBookingCreated: async ({ bookingId, contactId, email, phone }) => {
+      for (const row of rows) {
+        const id = await recordPolicyConsent({
+          policyKey: row.policyKey,
+          policyVersion: row.policyVersion,
+          consentText: row.consentText,
+          source: "APP_HOLD",
+          bookingId,
+          contactId,
+          email,
+          phone,
+          ipHash,
+          userAgent: meta.userAgent,
+        });
+        if (!id) return "We couldn't record your acceptance of the terms, so the date wasn't held. Please try again.";
+      }
+      return null;
+    },
+  });
+}
+
 // ============================================================
 // (3) Public hold view — minimal safe projection for /hold/[token].
 // ============================================================
@@ -709,10 +905,18 @@ export interface PublicHoldView {
   currency: string;
   customerFirstName: string;
   invoiceId: string | null;
+  /** When the date stops being held: the team's Booking.holdExpiresAt (the hold row's expiry only when no booking exists). */
   expiresAt: string | null;
+  /** The token invoice is settled. */
   paid: boolean;
   /** true while the slot is held and payable */
   active: boolean;
+  /** Where the hold stands, derived from the team's booking (holdPhase in src/lib/holds/lapsed-hold.ts). */
+  phase: HoldPhase;
+  /** The team's Booking.status (null when the booking is missing)… */
+  bookingStatus: string | null;
+  /** …and its customer wording from src/lib/customer-app/status-labels.ts. */
+  bookingStatusLabel: string | null;
 }
 
 /** Token amount + hold window, for the guest app to state BEFORE asking anyone to pay. */
@@ -746,39 +950,52 @@ export async function getPublicHold(token: string): Promise<Result<PublicHoldVie
     });
     if (!hold) return { success: false, error: "Hold not found." };
 
-    // Reflect live payment state: if the linked Invoice is PAID, the hold is paid
-    // (and its booking has likely auto-confirmed) even if the row says SLOT_CLAIMED.
-    let paid = !!hold.paidAt || hold.status === "PAID" || hold.status === "CONFIRMED";
-    let effectiveStatus = hold.status;
-    if (!paid && hold.invoiceId) {
-      const inv = await prisma.invoice.findUnique({
-        where: { id: hold.invoiceId },
-        select: { status: true, balanceDue: true },
-      });
-      if (inv && (inv.status === "PAID" || Number(inv.balanceDue) <= 0)) {
-        paid = true;
-        effectiveStatus = "PAID";
-      }
-    }
+    const now = new Date();
 
-    // Reflect expiry / cancellation from the booking if the cron hasn't flipped
-    // the row yet (read-only — don't mutate here).
-    if (!paid && (effectiveStatus === "INITIATED" || effectiveStatus === "SLOT_CLAIMED")) {
-      if (hold.expiresAt && hold.expiresAt.getTime() < Date.now()) {
-        effectiveStatus = "EXPIRED";
-      } else if (hold.bookingId) {
-        const bk = await prisma.booking.findUnique({
+    // The team's Booking is the source of truth: its status, its hold window
+    // and the money on ALL of its invoices, not just the token invoice. Read
+    // only — nothing is mutated here.
+    const booking = hold.bookingId
+      ? await prisma.booking.findUnique({
           where: { id: hold.bookingId },
-          select: { status: true },
-        });
-        if (bk && bk.status === "CANCELLED") effectiveStatus = "EXPIRED";
-      }
+          select: {
+            ...HOLD_FACTS_SELECT,
+            invoices: { select: { ...HOLD_FACTS_SELECT.invoices.select, id: true, balanceDue: true } },
+          },
+        })
+      : null;
+
+    // Token paid: the hold's own token invoice is settled.
+    const tokenInvoice =
+      booking?.invoices.find((i) => i.id === hold.invoiceId) ??
+      (hold.invoiceId
+        ? await prisma.invoice.findUnique({ where: { id: hold.invoiceId }, select: { status: true, balanceDue: true } })
+        : null);
+    const paid =
+      !!hold.paidAt ||
+      hold.status === "PAID" ||
+      hold.status === "CONFIRMED" ||
+      (!!tokenInvoice && (tokenInvoice.status === "PAID" || Number(tokenInvoice.balanceDue) <= 0));
+
+    const phase = holdPhase({ publicHoldStatus: hold.status, publicHoldExpiresAt: hold.expiresAt, booking }, now);
+
+    // Legacy status for the website /hold page, derived from the booking so the
+    // two can't disagree: a hold with money on it never reads EXPIRED, and a
+    // hold the team extended or confirmed never reads EXPIRED either.
+    let effectiveStatus = hold.status;
+    if (paid) {
+      if (effectiveStatus === "INITIATED" || effectiveStatus === "SLOT_CLAIMED" || effectiveStatus === "EXPIRED") effectiveStatus = "PAID";
+    } else if (phase === "LAPSED" || phase === "CANCELLED") {
+      if (effectiveStatus !== "RELEASED") effectiveStatus = "EXPIRED";
+    } else if (phase === "BOOKED") {
+      effectiveStatus = "CONFIRMED";
+    } else if (phase === "HELD" || phase === "PAYMENT_PENDING" || phase === "PAYMENT_RECEIVED") {
+      if (effectiveStatus === "EXPIRED" || effectiveStatus === "RELEASED" || effectiveStatus === "INITIATED") effectiveStatus = "SLOT_CLAIMED";
     }
 
     const dateISO = formatUTCDateISO(hold.date);
-    const active =
-      !paid &&
-      (effectiveStatus === "INITIATED" || effectiveStatus === "SLOT_CLAIMED");
+    const active = !paid && (phase === "HELD" || phase === "PAYMENT_PENDING" || phase === "PAYMENT_RECEIVED");
+    const heldUntil = booking ? booking.holdExpiresAt : hold.expiresAt;
 
     return {
       success: true,
@@ -797,9 +1014,12 @@ export async function getPublicHold(token: string): Promise<Result<PublicHoldVie
         // Only the customer's own first name — never the full identity/notes.
         customerFirstName: hold.customerName.trim().split(/\s+/)[0] || "there",
         invoiceId: hold.invoiceId,
-        expiresAt: hold.expiresAt ? hold.expiresAt.toISOString() : null,
+        expiresAt: heldUntil ? heldUntil.toISOString() : null,
         paid,
         active,
+        phase,
+        bookingStatus: booking?.status ?? null,
+        bookingStatusLabel: booking ? customerLabel(BOOKING_STATUS_LABEL, booking.status) : null,
       },
     };
   } catch (error) {
@@ -826,7 +1046,37 @@ export async function releasePublicHold(token: string): Promise<Result<{ release
     if (hold.paidAt || !(hold.status === "INITIATED" || hold.status === "SLOT_CLAIMED")) {
       return { success: false, error: "This hold can no longer be released." };
     }
-    if (hold.invoiceId) {
+    const now = new Date();
+    let cancelledBooking = false;
+    if (hold.bookingId) {
+      // Money on ANY invoice of the booking — received, in flight or awaiting
+      // verification — means the hold is no longer the customer's to release.
+      const booking = await prisma.booking.findUnique({
+        where: { id: hold.bookingId },
+        select: HOLD_FACTS_SELECT,
+      });
+      if (booking && holdMoneyState(booking.invoices, now) !== "NONE") {
+        return {
+          success: false,
+          error: "A payment has been made or started for this hold, so it can't be released here. Please contact us.",
+        };
+      }
+      if (booking && booking.status !== "HOLD" && booking.status !== "CANCELLED") {
+        return { success: false, error: "This hold can no longer be released." };
+      }
+      if (booking?.status === "HOLD") {
+        // Cancel the booking FIRST, with the shared money guard inside the
+        // UPDATE: a payment landing this instant wins and nothing is changed.
+        const cancelled = await prisma.booking.updateMany({
+          where: { id: hold.bookingId, ...releasableHoldWhere(now) },
+          data: { status: "CANCELLED" },
+        });
+        if (cancelled.count === 0) {
+          return { success: false, error: "This hold can no longer be released." };
+        }
+        cancelledBooking = true;
+      }
+    } else if (hold.invoiceId) {
       const inv = await prisma.invoice.findUnique({
         where: { id: hold.invoiceId },
         select: { status: true, balanceDue: true },
@@ -836,20 +1086,14 @@ export async function releasePublicHold(token: string): Promise<Result<{ release
       }
     }
 
-    // Atomic, idempotent guards: flip the PublicHold only if still claimable, and
-    // cancel the Booking only if still HOLD (so it stops blocking the slot).
+    // Then the PublicHold, still guarded to its claimable, unpaid states, so the
+    // customer's link and the team's booking say the same thing.
     const flipped = await prisma.publicHold.updateMany({
       where: { id: hold.id, status: { in: ["INITIATED", "SLOT_CLAIMED"] }, paidAt: null },
       data: { status: "RELEASED" },
     });
-    if (flipped.count === 0) {
+    if (flipped.count === 0 && !cancelledBooking) {
       return { success: false, error: "This hold can no longer be released." };
-    }
-    if (hold.bookingId) {
-      await prisma.booking.updateMany({
-        where: { id: hold.bookingId, status: "HOLD" },
-        data: { status: "CANCELLED" },
-      });
     }
 
     revalidatePath(`/hold/${token}`);

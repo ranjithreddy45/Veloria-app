@@ -173,7 +173,11 @@ export const ACQ_DEAL_MODEL_LABEL: Record<AcqDealModel, string> = {
   REVENUE_MARGIN: "Revenue Margin",
 };
 
-/** How REVENUE_MARGIN prices are quoted. */
+/**
+ * How a Revenue-Margin price is quoted. This belongs to the PROJECTION builder
+ * (AcqProjection.inputsJson), not to the deal — the deal stopped carrying
+ * Revenue-Margin prices when the Economics & Model tab was removed.
+ */
 export const ACQ_RM_PRICE_BASIS = ["PER_EVENT", "PER_PAX"] as const;
 export type AcqRmPriceBasis = (typeof ACQ_RM_PRICE_BASIS)[number];
 export const ACQ_RM_PRICE_BASIS_LABEL: Record<AcqRmPriceBasis, string> = {

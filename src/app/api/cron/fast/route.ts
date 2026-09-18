@@ -9,6 +9,7 @@ import {
 import { escalateAcqLeadSlaBreaches } from "@/lib/acq/sla-escalation";
 import { runSlaWarRoomEscalation } from "@/lib/sla/war-room-escalation";
 import { sendEventDayTaskReminders } from "@/lib/ops/event-reminders";
+import { releaseLapsedHolds } from "@/lib/holds/release-lapsed-holds";
 
 export const maxDuration = 120;
 
@@ -20,6 +21,7 @@ export const maxDuration = 120;
 //   • exit cadences whose prospect replied (don't over-message)
 //   • escalate breached first-response SLAs (speed-to-lead)
 //   • escalate overdue follow-up tasks
+//   • release lapsed date holds           (the database agrees with availability)
 //
 // Drive it every 1–5 minutes. On Vercel Pro add a per-minute cron in
 // vercel.json (`*/2 * * * *`). On Hobby (capped at daily crons), point a
@@ -77,6 +79,18 @@ export async function GET(request: Request) {
     results.eventTaskReminders = await sendEventDayTaskReminders();
   } catch (e) {
     results.eventTaskReminders = `error: ${e instanceof Error ? e.message : "unknown"}`;
+  }
+  try {
+    // Unpaid HOLDs past holdExpiresAt → CANCELLED (and their PublicHold →
+    // EXPIRED), so the bookings calendar, reports and the team's booking form
+    // agree with the availability views within minutes. Guarded by the one
+    // lapsed-hold rule (src/lib/holds/lapsed-hold.ts): never a hold with any
+    // money, a proof awaiting verification, or a checkout in flight.
+    // Idempotent, so overlapping with the frequent lane's lapsed-hold-release
+    // job is safe.
+    results.lapsedHoldRelease = await releaseLapsedHolds();
+  } catch (e) {
+    results.lapsedHoldRelease = `error: ${e instanceof Error ? e.message : "unknown"}`;
   }
 
   // Surface partial failures with a non-2xx so the lane orchestrator

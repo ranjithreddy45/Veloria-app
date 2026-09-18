@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { verifyRedirect } from "@/lib/email-tracking";
 
 // ============================================================
@@ -49,10 +50,7 @@ export async function GET(
 
     if (pixel) {
       // Record the click event
-      const ip =
-        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-        request.headers.get("x-real-ip") ||
-        null;
+      const ip = clientIpOfHeaders(request.headers);
       const userAgent = request.headers.get("user-agent") || null;
 
       await prisma.emailTrackingEvent.create({

@@ -8,7 +8,7 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { PublicPay } from "@/app/pay/[token]/_components/public-pay";
+import { PublicPay, type PayContact } from "@/app/pay/[token]/_components/public-pay";
 import { createSplitRazorpayOrder } from "@/actions/payment-split.actions";
 
 interface Props {
@@ -20,6 +20,8 @@ interface Props {
   payerEmail: string;
   payerPhone: string;
   eventName: string | null;
+  /** Published contact channels for the result and error states. */
+  contact?: PayContact | null;
 }
 
 export function SplitPay({
@@ -31,6 +33,7 @@ export function SplitPay({
   payerEmail,
   payerPhone,
   eventName,
+  contact,
 }: Props) {
   const router = useRouter();
   const createOrder = useCallback(() => createSplitRazorpayOrder(token), [token]);
@@ -49,6 +52,9 @@ export function SplitPay({
       createOrder={createOrder}
       description={`${payerName}'s share${eventName ? ` — ${eventName}` : ""} (${invoiceNumber})`}
       onSuccess={onSuccess}
+      contact={contact}
+      // The payer is chipping in for someone else's event: no app or calendar links.
+      eventLinks={false}
     />
   );
 }

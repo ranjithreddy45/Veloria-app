@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isValidCronSecret } from "@/lib/cron-auth";
 import { notifyAwait } from "@/lib/notify";
+import { COLLECTIBLE_INVOICE_STATUSES } from "@/lib/finance/issued-invoices";
 
 export const maxDuration = 60;
 
@@ -32,7 +33,8 @@ export async function GET(request: Request) {
     const dayKey = now.toISOString().slice(0, 10); // YYYY-MM-DD
     const horizon = new Date(now.getTime() + 15 * DAY_MS);
 
-    // Invoices due within the next 15 days OR already past, still unpaid.
+    // Invoices due within the next 15 days OR already past, still OWED: finance's
+    // shared owed rule (SENT, PARTIALLY_PAID, OVERDUE) with a balance left.
     let invoices: Array<{
       id: string;
       invoiceNumber: string;
@@ -44,7 +46,7 @@ export async function GET(request: Request) {
     try {
       invoices = await prisma.invoice.findMany({
         where: {
-          status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] },
+          status: { in: [...COLLECTIBLE_INVOICE_STATUSES] },
           balanceDue: { gt: 0 },
           dueDate: { lte: horizon },
         },

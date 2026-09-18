@@ -99,6 +99,30 @@ export async function getGalleryItems(params?: {
 // Get Single Gallery Item
 // ============================================================
 
+/**
+ * How many photos each hall shows in the customer app. A hall's photos reach
+ * customers only when the item is marked public, so this is what a customer can
+ * actually see — 0 means that hall falls back to an illustration.
+ */
+export async function getPublicPhotoCountsByVenue(): Promise<Record<string, number>> {
+  try {
+    const session = await auth();
+    if (!session?.user) return {};
+    if (!hasPermission(session.user.role as string, "gallery:read")) return {};
+    const rows = await prisma.galleryItem.groupBy({
+      by: ["venueId"],
+      where: { isPublic: true, mediaType: "PHOTO", venueId: { not: null } },
+      _count: { _all: true },
+    });
+    const counts: Record<string, number> = {};
+    for (const row of rows) if (row.venueId) counts[row.venueId] = row._count._all;
+    return counts;
+  } catch (error) {
+    console.error("[GET_PUBLIC_PHOTO_COUNTS_ERROR]", error);
+    return {};
+  }
+}
+
 export async function getGalleryItem(id: string) {
   try {
     const session = await auth();

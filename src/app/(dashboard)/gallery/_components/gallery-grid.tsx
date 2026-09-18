@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition, useMemo } from "react";
+import React, { useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import {
   ImageIcon,
@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { deleteGalleryItem, updateGalleryItem } from "@/actions/gallery.actions";
+import { GalleryVisibilityToggle } from "@/components/customer-app/gallery-visibility-toggle";
 import { MEDIA_TYPE_LABELS } from "@/lib/constants";
 import { AddGalleryItemDialog } from "./add-gallery-item-dialog";
 
@@ -80,16 +81,20 @@ type Venue = {
 interface GalleryGridProps {
   data: GalleryItem[];
   venues: Venue[];
+  /** Hall to show first, from ?venue=<id> — the "Add photos" link on Settings → Venues. */
+  initialVenueId?: string | null;
 }
 
 // ============================================================
 // Gallery Grid Component
 // ============================================================
 
-export function GalleryGrid({ data, venues }: GalleryGridProps) {
+export function GalleryGrid({ data, venues, initialVenueId = null }: GalleryGridProps) {
   const [search, setSearch] = useState("");
   const [mediaTypeFilter, setMediaTypeFilter] = useState<string>("all");
-  const [venueFilter, setVenueFilter] = useState<string>("all");
+  const [venueFilter, setVenueFilter] = useState<string>(
+    initialVenueId && venues.some((v) => v.id === initialVenueId) ? initialVenueId : "all"
+  );
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -435,6 +440,7 @@ export function GalleryGrid({ data, venues }: GalleryGridProps) {
                     year: "numeric",
                   })}
                 </p>
+                <GalleryVisibilityToggle item={item} venues={venues} />
               </CardContent>
             </Card>
           ))}

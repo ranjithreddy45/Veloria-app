@@ -4,28 +4,38 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2, Minus, Plus, ChevronLeft } from "lucide-react";
-import { createPublicHold, getPublicAvailabilityMonth } from "@/actions/public-hold.actions";
+import { createAppHold, getPublicAvailabilityMonth } from "@/actions/public-hold.actions";
 import { getGuestPeakDates } from "@/actions/guest-public.actions";
+import { TermsConsent } from "@/components/customer-app/terms-consent";
+import type { HoldTermsDoc } from "@/lib/holds/hold-terms";
+import { TIME_SLOTS, type TimeSlotEnum } from "@/lib/sales/slot";
 import { PrimaryButton, KeyValue } from "../../../_components/ui";
-import { formatPrice, inr, toISODateLocal, SLOT_SHORT } from "../../../_components/format";
+import { hallPriceText, inr, toISODateLocal, SLOT_SHORT, slotShortText } from "../../../_components/format";
 
 // ============================================================
 // Four-step reserve flow (the design's "stepper" variant):
-//   0 occasion → 1 date + slot → 2 guests + hall → 3 review + hold.
-// Availability is the public month feed; the hold itself is the existing
-// createPublicHold (token invoice + Razorpay), so an app hold and a website
-// hold are the same object to the team.
+//   0 occasion → 1 date + slot → 2 guests + hall → 3 review, terms + hold.
+// Availability is the public month feed (lapsed holds already count as free,
+// exactly as on the team's board). Hall prices are the team's price engine
+// "from" figures (getGuestHallPrices), the same as the hall pages. The hold is
+// createAppHold: the same HOLD booking + token invoice as a website hold, plus
+// the customer's acceptance of the published terms recorded on that booking.
 // ============================================================
 
 const OCCASIONS = ["Wedding", "Reception", "Engagement", "Sangeet", "Birthday Party", "Corporate Event"];
-const SLOTS = ["MORNING", "AFTERNOON", "EVENING", "FULL_DAY"] as const;
-type Slot = (typeof SLOTS)[number];
+type Slot = TimeSlotEnum;
 
-interface VenueLite { id: string; name: string; capacity: number; pricePerSlot: number }
+interface VenueLite { id: string; name: string; capacity: number }
 interface Terms { tokenAmount: number; holdHours: number; currency: string }
+type HallPrice = { fromSlotPrice: number | null; perGuestRate: number };
 
-export function ReserveStepper({ venues, terms, initial, prefill }: {
-  venues: VenueLite[]; terms: Terms;
+export function ReserveStepper({ venues, prices, terms, holdTerms, initial, prefill }: {
+  venues: VenueLite[];
+  /** getGuestHallPrices() output, keyed by hall id. A missing hall reads "Price on request". */
+  prices: Record<string, HallPrice | undefined>;
+  terms: Terms;
+  /** Published CANCELLATION_REFUND / BOOKING_TERMS as loaded by the server page, each with its policy page link. */
+  holdTerms: (HoldTermsDoc & { href?: string | null })[];
   initial: { venueId: string; occasion: string; date: string };
   prefill: { name: string; email: string };
 }) {
@@ -41,6 +51,8 @@ export function ReserveStepper({ venues, terms, initial, prefill }: {
   const [name, setName] = React.useState(prefill.name);
   const [phone, setPhone] = React.useState("");
   const [email, setEmail] = React.useState(prefill.email);
+  const [termsOk, setTermsOk] = React.useState(false);
+  const [termsError, setTermsError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [dayState, setDayState] = React.useState<Record<string, "busy" | "full">>({});
@@ -78,23 +90,49 @@ export function ReserveStepper({ venues, terms, initial, prefill }: {
 
   async function hold() {
     if (!venue || !dateISO) return;
-    setBusy(true); setError(null);
-    const res = await createPublicHold({
-      venueId: venue.id, dateISO, timeSlot: slot, eventType: occasion, guestCount: guests,
-      customerName: name.trim(), customerPhone: phone.trim(), customerEmail: email.trim() || undefined,
-    });
-    setBusy(false);
-    if (!res.success) return setError(res.error);
-    router.push(`/app/book/held/${res.data.token}`);
+    if (!termsOk) {
+      setTermsError("Please read the terms above and tick the box to hold your date.");
+      return;
+    }
+    setBusy(true); setError(null); setTermsError(null);
+    try {
+      const res = await createAppHold(
+        {
+          venueId: venue.id, dateISO, timeSlot: slot, eventType: occasion, guestCount: guests,
+          customerName: name.trim(), customerPhone: phone.trim(), customerEmail: email.trim() || undefined,
+        },
+        { accepted: true, seen: holdTerms.map((d) => ({ key: d.key, version: d.version, fingerprint: d.fingerprint })) }
+      );
+      if (!res.success) {
+        if (res.code === "TERMS_CHANGED") {
+          // The policy changed after this page loaded: show the new text and ask again.
+          setTermsOk(false);
+          setTermsError(res.error);
+          router.refresh();
+          return;
+        }
+        setError(res.error);
+        return;
+      }
+      router.push(`/app/book/held/${res.data.token}`);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const back = () => (step > 0 ? setStep(step - 1) : router.push("/app"));
   const dateLabel = dateISO ? new Date(dateISO + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : "—";
-  const field = "w-full rounded-xl border border-black/[.08] bg-white px-3.5 py-3 text-copy text-[#1d1d1f] placeholder:text-[#8a8a8e] focus:border-[#6d1b52] focus:outline-none focus:ring-2 focus:ring-[#6d1b52]/15";
+  const visitHref = venue
+    ? `/visit?${new URLSearchParams({ venueId: venue.id, kind: "SITE_VISIT", eventType: occasion, guests: String(guests), ...(dateISO ? { eventDate: dateISO } : {}) }).toString()}`
+    : "/visit";
+  const venuePrice = hallPriceText(venue ? prices[venue.id] : null);
+  const field = "w-full rounded-xl border border-black/[.08] bg-white px-3.5 py-3 text-copy text-[#1d1d1f] placeholder:text-[#636368] focus:border-[#6d1b52] focus:outline-none focus:ring-2 focus:ring-[#6d1b52]/15";
   const h2 = "font-editorial text-[26px] font-semibold leading-[1.15] tracking-[-.015em]";
 
   return (
-    <div className="vg-rise flex flex-col gap-5 px-5 pt-[calc(var(--sat)+0.5rem)]">
+    <div className="vg-rise flex flex-col gap-5 px-5 pb-8 pt-[calc(var(--sat)+0.5rem)]">
       <div className="flex items-center gap-3">
         <button type="button" onClick={back} aria-label={step === 0 ? "Back to home" : "Previous step"} className="flex size-10 shrink-0 items-center justify-center rounded-full border border-black/[.08] bg-white text-[#1d1d1f]"><ChevronLeft className="size-5" /></button>
         <div className="flex-1 text-copy font-semibold">Reserve a date</div>
@@ -137,9 +175,10 @@ export function ReserveStepper({ venues, terms, initial, prefill }: {
           {dateISO && peak[dateISO] && <p className="text-detail text-[#b88513]">✦ {peak[dateISO]}</p>}
           <div className="mt-1 text-detail font-semibold">Slot</div>
           <div className="grid grid-cols-4 gap-[3px] rounded-xl bg-[#e9e9ec] p-[3px]">
-            {SLOTS.map((s) => (
+            {TIME_SLOTS.map((s) => (
               <button key={s} type="button" onClick={() => setSlot(s)} className={`rounded-[10px] px-1 py-2.5 text-detail font-semibold ${slot === s ? "bg-white text-[#1d1d1f] shadow-[0_1px_3px_rgba(0,0,0,.12)]" : "text-[#6e6e73]"}`}>
-                <div>{SLOT_SHORT[s].label}</div><div className="mt-0.5 text-[10px] font-medium opacity-70">{SLOT_SHORT[s].time}</div>
+                <div>{SLOT_SHORT[s].label}</div>
+                {SLOT_SHORT[s].time && <div className="mt-0.5 text-[10px] font-medium opacity-70">{SLOT_SHORT[s].time}</div>}
               </button>
             ))}
           </div>
@@ -158,12 +197,15 @@ export function ReserveStepper({ venues, terms, initial, prefill }: {
           <div className="mt-1 text-detail font-semibold">Hall</div>
           <div className="flex flex-col gap-2">
             {venues.map((v) => {
-              const sel = v.id === venueId; const fits = v.capacity >= guests;
+              const sel = v.id === venueId; const fits = v.capacity >= guests; const price = hallPriceText(prices[v.id]);
               return (
                 <button key={v.id} type="button" onClick={() => setVenueId(v.id)} className={`flex w-full items-center gap-3 rounded-[14px] border-[1.5px] bg-white p-3 text-left ${sel ? "border-[#6d1b52]" : "border-black/[.06]"}`}>
                   <span className={`flex size-5 items-center justify-center rounded-full border-[1.5px] ${sel ? "border-[#6d1b52]" : "border-black/20"}`}>{sel && <span className="size-2.5 rounded-full bg-[#6d1b52]" />}</span>
                   <span className="min-w-0 flex-1"><span className="block text-body font-semibold">{v.name}</span><span className={`block text-meta ${fits ? "text-[#2a9d4a]" : "text-[#ff3b30]"}`}>Up to {v.capacity.toLocaleString("en-IN")} guests · {fits ? "fits" : "too small"}</span></span>
-                  <span className="numeric text-detail font-semibold text-[#6d1b52]">{formatPrice(v.pricePerSlot)}</span>
+                  <span className="shrink-0 text-right">
+                    <span className="numeric block text-detail font-semibold text-[#6d1b52]">{price.main}</span>
+                    {price.sub && <span className="block text-[10.5px] text-[#6e6e73]">{price.sub}</span>}
+                  </span>
                 </button>
               );
             })}
@@ -179,16 +221,16 @@ export function ReserveStepper({ venues, terms, initial, prefill }: {
             rows={[
               { k: "Occasion", v: occasion },
               { k: "Date", v: dateLabel },
-              { k: "Slot", v: `${SLOT_SHORT[slot].label} · ${SLOT_SHORT[slot].time}` },
+              { k: "Slot", v: slotShortText(slot) ?? SLOT_SHORT[slot].label },
               { k: "Hall", v: `${venue.name} · ${guests} guests` },
             ]}
-            total={{ k: "Hall rental from", v: `${formatPrice(venue.pricePerSlot)} / slot` }}
+            total={{ k: "Hall rental", v: venuePrice.sub ? `${venuePrice.main} ${venuePrice.sub}` : venuePrice.main }}
           />
           <div className="vg-gold-note flex items-start gap-3.5 rounded-2xl p-4">
             <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-[#faf3e1]"><span className="size-3 rounded-full bg-[#b88513]" /></span>
             <div>
-              <div className="text-body font-semibold">{inr(terms.tokenAmount)} refundable hold</div>
-              <div className="mt-0.5 text-detail leading-[1.5] text-[#6e6e73]">Locks the date for {terms.holdHours} hours while our team confirms details and prepares your quotation. Refunded in full if you don&apos;t proceed.</div>
+              <div className="text-body font-semibold">Held for {terms.holdHours} hours · {inr(terms.tokenAmount)} token</div>
+              <div className="mt-0.5 text-detail leading-[1.5] text-[#6e6e73]">Placing the hold reserves this date for you straight away, for {terms.holdHours} hours. Pay the {inr(terms.tokenAmount)} token within that time to keep it. If it isn&apos;t paid, the hold lapses and the date opens to other customers.</div>
             </div>
           </div>
           <div className="flex flex-col gap-2.5">
@@ -196,11 +238,18 @@ export function ReserveStepper({ venues, terms, initial, prefill }: {
             <input className={field} type="tel" inputMode="tel" autoComplete="tel" placeholder="Mobile number" value={phone} onChange={(e) => setPhone(e.target.value)} required />
             <input className={field} type="email" autoComplete="email" placeholder="Email (optional)" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
-          {error && <p className="rounded-xl bg-[#ff3b30]/10 px-3 py-2 text-detail text-[#b3261e]">{error}</p>}
+          <TermsConsent
+            policies={holdTerms}
+            checked={termsOk}
+            onCheckedChange={(v) => { setTermsOk(v); if (v) setTermsError(null); }}
+            error={termsError}
+          />
+          {error && <p role="alert" className="rounded-xl bg-[#ff3b30]/10 px-3 py-2 text-detail text-[#b3261e]">{error}</p>}
           <PrimaryButton className="mt-1" disabled={busy || name.trim().length < 2 || phone.replace(/\D/g, "").length < 7} onClick={hold}>
-            {busy ? <Loader2 className="size-4 animate-spin" /> : `Pay ${inr(terms.tokenAmount)} and hold date`}
+            {busy ? <Loader2 className="size-4 animate-spin" /> : "Hold this date"}
           </PrimaryButton>
-          <p className="text-center text-meta leading-[1.5] text-[#8a8a8e]">Secured by Razorpay · UPI, cards and net banking</p>
+          <p className="text-center text-meta leading-[1.5] text-[#636368]">You&apos;ll pay the {inr(terms.tokenAmount)} token on the next screen.</p>
+          <Link href={visitHref} className="text-center text-detail font-semibold text-[#6d1b52]">Not ready? Book a site visit</Link>
           <Link href={`/app/book/enquire?venueId=${venue.id}&occasion=${encodeURIComponent(occasion)}`} className="text-center text-detail font-semibold text-[#6d1b52]">Prefer a callback first? Request one instead</Link>
         </div>
       )}

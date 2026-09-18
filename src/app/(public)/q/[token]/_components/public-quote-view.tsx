@@ -1,6 +1,7 @@
 import { CalendarDays, Clock, Sparkles, Check, Star, Users, MapPin } from "lucide-react";
 import { SocialProofStrip } from "@/components/public/social-proof-strip";
 import type { SocialProofData } from "@/lib/public/social-proof-types";
+import type { HelpChipContact } from "@/components/public/help-chip";
 import { OneTapPay } from "./one-tap-pay";
 import { SlotScarcity } from "./slot-scarcity";
 import type { PublicQuoteTier, PublicQuoteView, PublicSlotScarcity } from "./public-quote-types";
@@ -24,12 +25,14 @@ function TierCard({
   isOnly,
   slotBusy,
   eventDateLabel,
+  contact,
 }: {
   tier: PublicQuoteTier;
   view: PublicQuoteView;
   isOnly: boolean;
   slotBusy: boolean;
   eventDateLabel: string | null;
+  contact: HelpChipContact | null;
 }) {
   const secured = view.paid || view.blocked || tier.isSelected;
   return (
@@ -144,6 +147,7 @@ function TierCard({
             tierQuotationId={view.tiers.length > 1 ? tier.quotationId : undefined}
             eventDateLabel={eventDateLabel}
             slotLabel={view.slotLabel}
+            contact={contact}
           />
         </div>
       </div>
@@ -187,10 +191,13 @@ export function PublicQuoteView({
   view,
   scarcity,
   socialProof,
+  contact,
 }: {
   view: PublicQuoteView;
   scarcity: PublicSlotScarcity | null;
   socialProof: SocialProofData | null;
+  /** The business's published contact channels (getPublicContact() on the server) for the pay card's help buttons. */
+  contact?: HelpChipContact | null;
 }) {
   const eventDateLabel = view.eventDate
     ? new Date(view.eventDate).toLocaleDateString("en-IN", {
@@ -278,6 +285,7 @@ export function PublicQuoteView({
             isOnly={!isMultiTier}
             slotBusy={scarcity ? !scarcity.selectedSlotFree : false}
             eventDateLabel={eventDateLabel}
+            contact={contact ?? null}
           />
         ))}
       </div>

@@ -18,12 +18,11 @@
 
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
-import { generateShareToken } from "@/lib/quote-radar/token";
+import { ensureQuoteShareLink } from "@/lib/quote-radar/share-link";
 import { ensureProformaForShareLink } from "@/lib/sales/quote-onetap";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -77,46 +76,9 @@ export async function createQuoteShareLink(
     return { success: false, error: "Approve the quotation before sharing a tracked link." };
 
   try {
-    // Reuse an existing ACTIVE link for this quotation (idempotent share).
-    let link = await prisma.quoteShareLink.findFirst({
-      where: { primaryQuotationId: quotationId, status: "ACTIVE" },
-      select: { id: true, token: true, payInvoiceId: true },
-      orderBy: { createdAt: "desc" },
-    });
-
-    if (!link) {
-      const token = generateShareToken();
-      const created = await prisma.quoteShareLink.create({
-        data: {
-          token,
-          status: "ACTIVE",
-          quoteGroupId: q.quoteGroupId || null,
-          primaryQuotationId: quotationId,
-          leadId: q.leadId || null,
-          contactId: q.contactId || null,
-          venueId: q.venueId || null,
-          clientName: q.clientName || null,
-          clientPhone: q.clientPhone || null,
-          occasion: q.occasion || null,
-          eventDate: q.eventDate || null,
-          timeSlot: q.timeSlot || null,
-          grandTotal: q.grandTotal ?? new Prisma.Decimal(0),
-          createdById: user.id,
-        },
-        select: { id: true, token: true, payInvoiceId: true },
-      });
-      link = created;
-      // Stamp the quotation so the rep UI can show "shared".
-      await prisma.salesQuotation.update({
-        where: { id: quotationId },
-        data: { shareLinkToken: token },
-      });
-    } else if (q.shareLinkToken !== link.token) {
-      await prisma.salesQuotation.update({
-        where: { id: quotationId },
-        data: { shareLinkToken: link.token },
-      });
-    }
+    // Reuse the quotation's live link, or mint one (idempotent share). Either way
+    // SalesQuotation.shareLinkToken is stamped so the rep UI can show "shared".
+    const link = await ensureQuoteShareLink(prisma, q, { actorId: user.id });
 
     // Eagerly raise the booking-advance proforma so the public "Pay 20%" button
     // has an invoice ready (run as the rep so invoice authorship is correct).
@@ -132,8 +94,8 @@ export async function createQuoteShareLink(
         userId: user.id,
         action: "QUOTE_SHARE_LINK_CREATED",
         entityType: "QuoteShareLink",
-        entityId: link!.id,
-        changes: { quotationId, token: link!.token },
+        entityId: link.id,
+        changes: { quotationId, token: link.token },
       })
     );
 

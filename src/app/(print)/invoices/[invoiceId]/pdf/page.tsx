@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { getInvoice } from "@/actions/invoice.actions";
 import { formatINR } from "@/lib/utils";
+import { invoicePresentation } from "@/lib/finance/invoice-presentation";
 import { COMPANY_ADDRESS, COMPANY_GSTIN, COMPANY_LEGAL_LINE, LEGACY_INVOICE_TERMS } from "@/lib/constants";
 import { PAYMENT_TERMS_LINES } from "@/lib/sales/quotation-calc";
 
@@ -45,10 +46,15 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
   const igstAmount = toNum(invoice.igstAmount);
   const isInterstate = igstRate > 0;
 
-  // A Tax Invoice is only issued once the booking is paid in full. Until then
-  // the document is a Proforma Invoice (a preliminary bill, not a tax document).
-  const fullyPaid = toNum(invoice.balanceDue) <= 0 || invoice.status === "PAID";
-  const docTitle = fullyPaid ? "TAX INVOICE" : "PROFORMA INVOICE";
+  // Title and balance line by the shared rules (src/lib/finance/invoice-presentation.ts),
+  // the same ones the portal PDF and the customer app's invoice document print:
+  // a Tax Invoice once the invoice is paid in full (kept after a full refund of
+  // it), a Proforma Invoice (a preliminary bill, not a tax document) until then.
+  // The balance line is what is still owed, or why nothing is: a full refund puts
+  // balanceDue back to the total, so the stored figure is never printed as due.
+  const view = invoicePresentation({ status: invoice.status, balanceDue: toNum(invoice.balanceDue) });
+  const fullyPaid = view.title === "TAX INVOICE";
+  const docTitle = view.title;
 
   // Drop the retired default T&C boilerplate from old invoices; keep any custom terms.
   const customTerms =
@@ -118,6 +124,7 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
               .totals-row.balance { font-size: 16px; font-weight: 700; }
               .totals-row.balance .value.due { color: #dc2626; }
               .totals-row.balance .value.clear { color: #15803d; }
+              .totals-row.balance .value.muted { color: #71717a; }
               .notes-section { margin-top: 32px; border-top: 1px solid #e4e4e7; padding-top: 16px; }
               .notes-section h4 { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #a1a1aa; margin-bottom: 6px; }
               .notes-section p { font-size: 12px; color: #52525b; white-space: pre-line; }
@@ -380,11 +387,7 @@ export default async function InvoicePdfPage({ params }: InvoicePdfPageProps) {
               </div>
               <div className="totals-row balance">
                 <span>Balance Due</span>
-                <span
-                  className={`value ${toNum(invoice.balanceDue) > 0 ? "due" : "clear"}`}
-                >
-                  {formatINR(invoice.balanceDue)}
-                </span>
+                <span className={`value ${view.tone}`}>{view.balanceLabel}</span>
               </div>
             </div>
           </div>

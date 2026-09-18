@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 
 // ============================================================
 // 1x1 Transparent GIF (binary)
@@ -29,10 +30,7 @@ export async function GET(
 
     if (pixel) {
       // Record the open event
-      const ip =
-        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-        request.headers.get("x-real-ip") ||
-        null;
+      const ip = clientIpOfHeaders(request.headers);
       const userAgent = request.headers.get("user-agent") || null;
 
       await prisma.emailTrackingEvent.create({

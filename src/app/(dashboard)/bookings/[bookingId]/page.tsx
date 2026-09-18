@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 
 import { getBooking } from "@/actions/booking.actions";
+import { bookingBalance, isCollectibleInvoice, isIssuedInvoice } from "@/lib/finance/issued-invoices";
+import { invoicePresentation } from "@/lib/finance/invoice-presentation";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/layout/page-header";
@@ -69,6 +71,10 @@ import { GuestFeedbackCard } from "./_components/guest-feedback-card";
 import { getGalleryItems } from "@/actions/gallery.actions";
 import { getBookingSplitTargets } from "@/actions/payment-split.actions";
 import { SplitPaymentsPanel } from "@/components/payments/split-payments-panel";
+import { ConciergePanel } from "@/components/customer-app/concierge-panel";
+import { CollaboratorsPanel } from "@/components/customer-app/collaborators-panel";
+import { ConsentPanel } from "@/components/customer-app/consent-panel";
+import { getBookingCollaboratorsForTeam } from "@/actions/guest-collaborators.actions";
 import { hasPermission } from "@/lib/permissions";
 import { formatINR, cn } from "@/lib/utils";
 
@@ -228,6 +234,8 @@ export default async function BookingDetailPage({
   // with payments:read see the list; payments:create can mint/cancel links).
   const canReadPayments = hasPermission(role, "payments:read");
   const canSplitPayments = hasPermission(role, "payments:create");
+  // Family members and planners the customer invited from the app (null without access).
+  const collaborators = await getBookingCollaboratorsForTeam(booking.id);
   const splitTargets = canReadPayments ? await getBookingSplitTargets(booking.id) : [];
   const workOrders = workOrdersResult.success ? workOrdersResult.data : [];
   const vendorOptions = vendorsResult.success
@@ -298,6 +306,7 @@ export default async function BookingDetailPage({
           bookingId={booking.id}
           currentStatus={booking.status}
           canOverride={isSuperAdmin}
+          holdExpiresAt={booking.holdExpiresAt ? new Date(booking.holdExpiresAt).toISOString() : null}
         />
       </PageHeader>
 
@@ -380,14 +389,20 @@ export default async function BookingDetailPage({
       >
         <div className="space-y-4">
       {/* CR-003: Stage 1 payment summary (Total invoiced / Collected / Pending) */}
-      {booking.invoices.length > 0 &&
+      {booking.invoices.some((i) => isIssuedInvoice(i.status)) &&
         (() => {
-          const totalInvoiced = booking.invoices.reduce((s, i) => s + Number(i.totalAmount), 0);
-          const pending = booking.invoices.reduce((s, i) => s + Number(i.balanceDue), 0);
-          const collected = Math.max(0, totalInvoiced - pending);
+          // Finance's shared rules: invoiced counts billed invoices (not drafts or cancelled ones),
+          // pending counts only invoices still owed, and collected is what was actually paid
+          // (a refund reduces paidAmount). The customer app uses the same rules.
+          const issuedInvoices = booking.invoices.filter((i) => isIssuedInvoice(i.status));
+          const totalInvoiced = issuedInvoices.reduce((s, i) => s + Number(i.totalAmount), 0);
+          const pending = bookingBalance(
+            issuedInvoices.map((i) => ({ status: i.status, balanceDue: Number(i.balanceDue) }))
+          ).balanceDue;
+          const collected = issuedInvoices.reduce((s, i) => s + Number(i.paidAmount), 0);
           const pct = totalInvoiced > 0 ? Math.round((collected / totalInvoiced) * 100) : 0;
-          const dueDates = booking.invoices
-            .filter((i) => Number(i.balanceDue) > 0 && i.dueDate)
+          const dueDates = issuedInvoices
+            .filter((i) => isCollectibleInvoice(i.status) && Number(i.balanceDue) > 0 && i.dueDate)
             .map((i) => new Date(i.dueDate as unknown as string).getTime())
             .sort((a, b) => a - b);
           const nextDue = dueDates.length ? new Date(dueDates[0]) : null;
@@ -479,7 +494,7 @@ export default async function BookingDetailPage({
         beoStatus={existingBeo?.status ?? null}
         hasInvoices={booking.invoices.length > 0}
         hasBalanceDue={booking.invoices.some(
-          (inv) => Number(inv.balanceDue) > 0
+          (inv) => isCollectibleInvoice(inv.status) && Number(inv.balanceDue) > 0
         )}
         guestCount={booking.guestCount}
         eventDate={booking.date}
@@ -607,6 +622,7 @@ export default async function BookingDetailPage({
           <TabsTrigger value="communications">
             Communications
           </TabsTrigger>
+          <TabsTrigger value="customer-app">Customer app</TabsTrigger>
         </TabsList>
 
         {/* Details Tab */}
@@ -896,6 +912,13 @@ export default async function BookingDetailPage({
           />
         </TabsContent>
 
+        {/* Customer app Tab: the conversation, co-hosts and accepted terms from the customer app */}
+        <TabsContent value="customer-app" className="mt-6 space-y-6">
+          <ConciergePanel bookingId={booking.id} />
+          {collaborators && <CollaboratorsPanel data={collaborators} />}
+          <ConsentPanel bookingId={booking.id} />
+        </TabsContent>
+
         {/* Invoices Tab */}
         <TabsContent value="invoices" className="mt-6">
           <Card className="rounded-2xl shadow-card">
@@ -959,11 +982,20 @@ export default async function BookingDetailPage({
                             <p className="numeric text-sm font-semibold">
                               {formatINR(invoice.totalAmount)}
                             </p>
-                            {Number(invoice.balanceDue) > 0 && (
-                              <p className="numeric text-destructive text-detail">
-                                Due {formatINR(invoice.balanceDue)}
-                              </p>
-                            )}
+                            {/* Due only on an invoice still owed (finance's owed rule,
+                                src/lib/finance/invoice-presentation.ts): a fully refunded
+                                invoice's balanceDue is back to its total, but nothing is due. */}
+                            {(() => {
+                              const { owed } = invoicePresentation({
+                                status: invoice.status,
+                                balanceDue: Number(invoice.balanceDue),
+                              });
+                              return owed > 0 ? (
+                                <p className="numeric text-destructive text-detail">
+                                  Due {formatINR(owed)}
+                                </p>
+                              ) : null;
+                            })()}
                           </div>
                           <StatusBadge
                             status={invoice.status}

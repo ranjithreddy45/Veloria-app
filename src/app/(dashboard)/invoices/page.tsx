@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatINR } from "@/lib/utils";
+import { bookingBalance, isIssuedInvoice } from "@/lib/finance/issued-invoices";
 import { InvoicesView } from "./_components/invoices-view";
 import type { InvoiceRow } from "./_components/invoices-table";
 
@@ -29,8 +30,16 @@ export default async function InvoicesPage() {
 
   const invoices: InvoiceRow[] = result.success ? result.data?.data ?? [] : [];
 
-  const totalInvoiced = invoices.reduce((s, i) => s + num(i.totalAmount), 0);
-  const outstanding = invoices.reduce((s, i) => s + num(i.balanceDue), 0);
+  // Finance's shared rules (src/lib/finance/issued-invoices.ts), the ones the
+  // booking page, the portal and the customer app use: invoiced counts billed
+  // invoices (not an unsent draft or a void cancelled one), and outstanding is
+  // the balance of invoices still owed, so a fully refunded invoice, whose
+  // stored balanceDue is back to its total, is not outstanding.
+  const billed = invoices.filter((i) => isIssuedInvoice(i.status));
+  const totalInvoiced = billed.reduce((s, i) => s + num(i.totalAmount), 0);
+  const outstanding = bookingBalance(
+    invoices.map((i) => ({ status: i.status, balanceDue: num(i.balanceDue) }))
+  ).balanceDue;
   const paid = invoices.reduce((s, i) => s + num(i.paidAmount), 0);
   const overdueCount = invoices.filter((i) => i.status === "OVERDUE").length;
 
@@ -84,7 +93,7 @@ export default async function InvoicesPage() {
               value={<span className="numeric">{formatINR(totalInvoiced)}</span>}
               accent="indigo"
               icon={<ReceiptIndianRupeeIcon className="size-4" />}
-              sub={`${invoices.length} invoice${invoices.length === 1 ? "" : "s"}`}
+              sub={`${billed.length} billed invoice${billed.length === 1 ? "" : "s"}`}
             />
             <StatTile
               label="Outstanding"

@@ -67,7 +67,7 @@ import {
   removeGuest,
   bulkImportGuests,
 } from "@/actions/guest.actions";
-import { sendGuestInvitation } from "@/actions/invitation.actions";
+import { canSendInvite } from "@/app/(guest)/app/event/guests/_lib/guest-invites";
 import { AddGuestDialog } from "./add-guest-dialog";
 import { InvitationDialog } from "./invitation-dialog";
 import { InvitationStatusBadge } from "./invitation-status-badge";
@@ -172,9 +172,15 @@ export function CreateGuestListButton({ bookingId }: { bookingId: string }) {
 interface GuestManagerProps {
   bookingId: string;
   guestList: GuestList;
+  /**
+   * Why this booking can't send WhatsApp invitations (bookingInviteRefusal, from its status),
+   * or null when it can. The server refuses HOLD, CANCELLED and COMPLETED bookings, so the
+   * screen gives the same reason instead of offering Send.
+   */
+  invitesBlockedReason: string | null;
 }
 
-export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
+export function GuestManager({ bookingId, guestList, invitesBlockedReason }: GuestManagerProps) {
   const [isPending, startTransition] = useTransition();
 
   // Filters
@@ -478,6 +484,13 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
         </Card>
       </div>
 
+      {/* The server refuses invitations for this booking's status: give its reason instead of offering Send. */}
+      {invitesBlockedReason && (
+        <p role="status" className="rounded-lg border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
+          {invitesBlockedReason}
+        </p>
+      )}
+
       {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {/* Search + two 140px selects need ~300px of fixed width, leaving the
@@ -519,14 +532,16 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={handleSendAllInvitations}
-            disabled={guests.length === 0}
-          >
-            <MailCheckIcon className="mr-2 size-4" />
-            Send All Invitations
-          </Button>
+          {!invitesBlockedReason && (
+            <Button
+              variant="outline"
+              onClick={handleSendAllInvitations}
+              disabled={guests.length === 0}
+            >
+              <MailCheckIcon className="mr-2 size-4" />
+              Send All Invitations
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => setBulkImportOpen(true)}
@@ -677,7 +692,12 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          {guest.phone && (!guest.invitation || guest.invitation.invitationStatus === "NOT_SENT") && (
+                          {/* The server's rules: a booking that can send, and a guest with a phone WhatsApp can reach, never invited, no reply yet. */}
+                          {!invitesBlockedReason && canSendInvite({
+                            phone: guest.phone,
+                            rsvpStatus: guest.rsvpStatus,
+                            invitation: guest.invitation ?? null,
+                          }) && (
                             <Button
                               variant="ghost"
                               size="icon"
@@ -784,7 +804,8 @@ export function GuestManager({ bookingId, guestList }: GuestManagerProps) {
           id: g.id,
           name: g.name,
           phone: g.phone,
-          invitationStatus: g.invitation?.invitationStatus || null,
+          rsvpStatus: g.rsvpStatus,
+          invitation: g.invitation ?? null,
         }))}
         mode={invitationMode}
       />

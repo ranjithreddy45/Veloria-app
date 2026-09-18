@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/../auth";
+import { getVerifiedContactIds } from "@/lib/portal-identity";
 import {
   computeQuotation,
   PAYMENT_TERMS_LINES,
@@ -8,6 +10,12 @@ import {
 import { renderBookingTermsQuoteHtml } from "@/lib/legal/booking-terms";
 import { COMPANY_LEGAL_LINE, COMPANY_ADDRESS, COMPANY_GSTIN } from "@/lib/constants";
 import { SLOT_LABEL, plannerSlotToEnum } from "@/lib/sales/slot";
+import {
+  decideQuotationPdfAccess,
+  shareTokenParam,
+  staffMayReadQuotations,
+  type QuotationShareLinkFact,
+} from "./access";
 
 export const runtime = "nodejs";
 
@@ -15,9 +23,33 @@ export const runtime = "nodejs";
 // Sales quotation — branded, print-to-PDF document.
 // Rendered server-side from the FROZEN snapshot (outputsJson), so what
 // the sales manager approved is exactly what the customer sees.
-// Accessible by the unguessable id for APPROVED/SENT quotations
-// (customer has no login).
+// Opened from the team's quotation page, the customer's documents screen and
+// links sent to the customer. The id alone opens nothing: ./access.ts decides
+// who may (a team login with quotes:read, the customer's own verified login,
+// or ?token= of a live /q share link). For them it serves only quotations
+// finalised for the customer: APPROVED, SENT, or CONVERTED (accepted and
+// turned into a booking). Drafts, quotations waiting for approval and ones
+// returned for changes are never served.
 // ============================================================
+
+/** Statuses whose frozen snapshot may be shown to the customer. */
+const CUSTOMER_VISIBLE_STATUSES = new Set<string>(["APPROVED", "SENT", "CONVERTED"]);
+
+/** On every answer: never cached, indexed or sniffed, and a token in the address never leaves in a Referer. */
+const PRIVATE_HEADERS: Record<string, string> = {
+  "Cache-Control": "no-store",
+  "Referrer-Policy": "no-referrer",
+  "X-Robots-Tag": "noindex, nofollow",
+  "X-Content-Type-Options": "nosniff",
+};
+
+/** One answer for "no such quotation" and "not yours", so a guessed id reveals nothing. */
+function notAvailable(): Response {
+  return new Response("This quotation isn't available. Open it from the Veloria Grand app, or from the link we sent you.", {
+    status: 404,
+    headers: { ...PRIVATE_HEADERS, "Content-Type": "text/plain; charset=utf-8" },
+  });
+}
 
 const PLUM = "#2D1B3D";
 const GOLD = "#C9A96E";
@@ -29,16 +61,48 @@ function esc(s: string): string {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] as string));
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const q = await prisma.salesQuotation.findUnique({
     where: { id },
     include: { venue: { select: { name: true } }, contact: { select: { firstName: true, lastName: true } } },
   });
+  if (!q) return notAvailable();
 
-  if (!q) return new Response("Quotation not available.", { status: 404 });
-  if (q.status !== "APPROVED" && q.status !== "SENT") {
-    return new Response("This quotation is not finalized.", { status: 403 });
+  // Who is asking. A session that still owes its second factor counts as signed out.
+  const session = await auth();
+  const user = session?.user?.id && !session.user.twoFactorPending ? session.user : null;
+  const viewer = user ? { role: user.role, perms: user.perms } : null;
+  const token = shareTokenParam(new URL(req.url).searchParams.get("token"));
+
+  let shareLinks: QuotationShareLinkFact[] = [];
+  let verifiedContactIds: string[] = [];
+  if (!staffMayReadQuotations(viewer)) {
+    [shareLinks, verifiedContactIds] = await Promise.all([
+      token
+        ? prisma.quoteShareLink.findMany({
+            // A link shows this quotation as its primary quote or as one of its tiers.
+            where: { OR: [{ primaryQuotationId: q.id }, { tiers: { some: { quotationId: q.id } } }] },
+            select: { token: true, status: true, expiresAt: true },
+            take: 50,
+          })
+        : Promise.resolve([]),
+      user && q.contactId ? getVerifiedContactIds(user.id) : Promise.resolve([]),
+    ]);
+  }
+
+  const access = decideQuotationPdfAccess({
+    contactId: q.contactId,
+    viewer,
+    verifiedContactIds,
+    token,
+    shareLinks,
+    now: new Date(),
+  });
+  if (!access.allowed) return notAvailable();
+
+  if (!CUSTOMER_VISIBLE_STATUSES.has(q.status)) {
+    return new Response("This quotation is not finalized.", { status: 403, headers: PRIVATE_HEADERS });
   }
 
   // Prefer the frozen snapshot; fall back to recompute (defensive).
@@ -172,7 +236,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     ${renderBookingTermsQuoteHtml()}
 
     <div class="footer">
-      <span>This quotation is valid for 15 days. Prices inclusive of applicable taxes as shown.</span>
+      <span>${q.status === "CONVERTED" ? "This quotation was accepted and converted to a booking." : "This quotation is valid for 15 days."} Prices inclusive of applicable taxes as shown.</span>
       <span>Generated ${quotationDate}</span>
     </div>
   </div>
@@ -186,9 +250,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const safeName = (q.quoteNumber || "quotation").replace(/[^a-zA-Z0-9._-]+/g, "-");
   return new Response(html, {
     headers: {
+      ...PRIVATE_HEADERS,
       "Content-Type": "text/html; charset=utf-8",
       "Content-Disposition": `inline; filename="Quotation-${safeName}.html"`,
-      "Cache-Control": "no-store",
     },
   });
 }

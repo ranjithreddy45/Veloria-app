@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { applyRazorpayCapture } from "@/lib/payments/apply-capture";
 import { razorpayKeySecret } from "@/lib/payments/razorpay-creds";
 
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit: 10 payment verification requests per minute per user
-    const identifier = session?.user?.id || request.headers.get("x-forwarded-for") || "anonymous";
+    const identifier = session?.user?.id || clientIpOfHeaders(request.headers) || "anonymous";
     const rateCheck = checkRateLimit(`payment-verify:${identifier}`, { maxRequests: 10, windowSeconds: 60 });
     if (!rateCheck.success) {
       return rateLimitResponse(rateCheck.resetIn);

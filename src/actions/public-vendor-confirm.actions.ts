@@ -21,6 +21,7 @@
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { z } from "zod";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { assertTransition } from "@/lib/ops/state-machine";
 import { SLOT_LABEL } from "@/lib/sales/slot";
 import { reportSystemFailure } from "@/lib/ops-alert";
@@ -53,11 +54,7 @@ function rateLimited(ip: string): boolean {
 async function clientIp(): Promise<string> {
   try {
     const h = await headers();
-    return (
-      h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      h.get("x-real-ip") ||
-      "unknown"
-    );
+    return clientIpOfHeaders(h) || "unknown";
   } catch {
     return "unknown";
   }

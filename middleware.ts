@@ -59,6 +59,7 @@ const INTERNAL_ROUTES = [
   "/chat", // internal team chat — any logged-in staff (no per-route permission)
   "/my-work",
   "/recruitment",
+  "/concierge", // team inbox for customer-app conversations
   "/contacts",
   "/leads",
   "/pipeline",
@@ -207,6 +208,6 @@ export const config = {
      * - favicon.ico, sitemap.xml, robots.txt
      * - Public assets (images, svgs, etc.)
      */
-    "/((?!api/auth|api/widget|api/track|api/webforms|api/webhooks|api/v1|api/ota|form|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|\\.well-known|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.ico$|.*\\.webp$).*)",
+    "/((?!api/auth|api/guest|api/widget|api/track|api/webforms|api/webhooks|api/v1|api/ota|form|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|\\.well-known|.*\\.png$|.*\\.jpg$|.*\\.jpeg$|.*\\.gif$|.*\\.svg$|.*\\.ico$|.*\\.webp$).*)",
   ],
 };

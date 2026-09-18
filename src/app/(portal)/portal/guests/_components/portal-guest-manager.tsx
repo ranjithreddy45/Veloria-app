@@ -16,6 +16,11 @@ import {
   portalAddGuest, portalBulkImportGuests, portalRemoveGuest,
   portalSendInvitation, portalBulkSendInvitations,
 } from "@/actions/portal-guest.actions";
+// The one invite rule the guest app and the team's Guest Manager use too (client-safe, no imports).
+import {
+  GUEST_INVITE_STATE_LABEL, canSendInvite, guestInviteState, type GuestInviteState,
+} from "@/app/(guest)/app/event/guests/_lib/guest-invites";
+import { importResultMessage, sendAllLabel, sendAllNote, sendAllResult } from "../_lib/portal-invite-copy";
 
 type InviteStatus = "NOT_SENT" | "SENT" | "DELIVERED" | "OPENED" | "RSVP_ACCEPTED" | "RSVP_DECLINED";
 type Rsvp = "PENDING" | "ACCEPTED" | "DECLINED";
@@ -28,7 +33,7 @@ export interface PortalGuest {
   category: string;
   plusOnes: number;
   rsvpStatus: Rsvp;
-  invitation: { invitationStatus: InviteStatus; sentAt: string | null } | null;
+  invitation: { invitationStatus: InviteStatus; sentAt: string | null; rsvpRespondedAt: string | null } | null;
 }
 
 interface Stats { total: number; invited: number; accepted: number; declined: number; pending: number; sent: number }
@@ -36,12 +41,14 @@ interface Stats { total: number; invited: number; accepted: number; declined: nu
 const CATEGORIES = ["VIP", "FAMILY", "FRIEND", "CORPORATE", "OTHER"];
 
 export function PortalGuestManager({
-  bookingId, eventName, guests, stats,
+  bookingId, eventName, guests, stats, invitesBlockedReason,
 }: {
   bookingId: string;
   eventName: string;
   guests: PortalGuest[];
   stats: Stats;
+  /** Why this booking can't send WhatsApp invitations (the server's bookingInviteRefusal), or null when it can. */
+  invitesBlockedReason: string | null;
 }) {
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
@@ -83,7 +90,7 @@ export function PortalGuestManager({
     startTransition(async () => {
       const res = await portalBulkImportGuests(bookingId, { guests: rows });
       if (res.success) {
-        toast.success(`${res.data.count} guest${res.data.count === 1 ? "" : "s"} imported.`);
+        toast.success(importResultMessage(res.data));
         setImportText(""); setShowImport(false); refresh();
       } else toast.error(res.error);
     });
@@ -103,7 +110,9 @@ export function PortalGuestManager({
     startTransition(async () => {
       const res = await portalBulkSendInvitations(bookingId);
       if (res.success) {
-        toast.success(`${res.data.sent} invitation${res.data.sent === 1 ? "" : "s"} sent${res.data.skipped ? ` · ${res.data.skipped} skipped` : ""}.`);
+        // Only accepted sends count; failures, the next batch and guests over the 24-hour limit are named.
+        const { tone, message } = sendAllResult(res.data);
+        toast[tone](message);
         refresh();
       } else toast.error(res.error);
     });
@@ -120,7 +129,11 @@ export function PortalGuestManager({
     });
   }
 
-  const unsent = guests.filter((g) => g.phone && (!g.invitation || g.invitation.invitationStatus === "NOT_SENT")).length;
+  // The checks portalSendInvitation makes: the booking's status allows sending, and the shared
+  // guest rule (a phone WhatsApp can reach, never invited, no reply yet).
+  const invitable = (g: PortalGuest) => !invitesBlockedReason && canSendInvite(g);
+  const eligible = guests.filter(invitable).length;
+  const batchNote = sendAllNote(eligible);
 
   return (
     <div className="space-y-6">
@@ -169,14 +182,22 @@ export function PortalGuestManager({
 
       {/* Guest list */}
       <div className="rounded-2xl border border-border bg-card shadow-sm">
-        <div className="flex items-center justify-between border-b border-border p-4">
-          <h2 className="text-sm font-semibold">Guests <span className="text-muted-foreground">({stats.total})</span></h2>
-          {unsent > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border p-4">
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold">Guests <span className="text-muted-foreground">({stats.total})</span></h2>
+            {batchNote && <p className="mt-0.5 text-xs text-muted-foreground">{batchNote}</p>}
+          </div>
+          {eligible > 0 && (
             <Button size="sm" onClick={sendAll} disabled={pending} className="gap-1.5 bg-success hover:bg-success/90">
-              {pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} Send all invitations ({unsent})
+              {pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />} {sendAllLabel(eligible)}
             </Button>
           )}
         </div>
+        {invitesBlockedReason && (
+          <p role="status" className="border-b border-border bg-muted/40 px-4 py-3 text-xs text-muted-foreground">
+            {invitesBlockedReason}
+          </p>
+        )}
         {guests.length === 0 ? (
           <p className="p-8 text-center text-sm text-muted-foreground">No guests yet — add your first above.</p>
         ) : (
@@ -190,15 +211,12 @@ export function PortalGuestManager({
                   <p className="truncate text-xs text-muted-foreground">{[g.phone, g.email].filter(Boolean).join(" · ") || "No contact info"}</p>
                 </div>
                 <RsvpBadge status={g.rsvpStatus} />
-                <InviteBadge status={g.invitation?.invitationStatus ?? "NOT_SENT"} />
+                <InviteBadge state={guestInviteState(g)} />
                 <div className="flex items-center gap-1">
-                  {(!g.invitation || g.invitation.invitationStatus === "NOT_SENT") ? (
-                    <Button size="sm" variant="outline" disabled={pending || !g.phone} onClick={() => sendOne(g)} className="h-8 gap-1.5" title={g.phone ? "Send invitation" : "Add a phone number first"}>
+                  {/* Only a first invitation: the server refuses a customer re-send to an invited or replied guest. */}
+                  {invitable(g) && (
+                    <Button size="sm" variant="outline" disabled={pending} onClick={() => sendOne(g)} className="h-8 gap-1.5" title="Send invitation on WhatsApp">
                       {busyId === g.id ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />} Invite
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="ghost" disabled={pending} onClick={() => sendOne(g)} className="h-8 gap-1.5 text-xs text-muted-foreground" title="Resend invitation">
-                      Resend
                     </Button>
                   )}
                   <Button size="icon" variant="ghost" disabled={pending} onClick={() => remove(g)} className="size-8 text-muted-foreground hover:text-destructive">
@@ -237,7 +255,14 @@ function RsvpBadge({ status }: { status: Rsvp }) {
   return <Badge variant="outline" className={`hidden sm:inline-flex ${m.cls}`}>{m.label}</Badge>;
 }
 
-function InviteBadge({ status }: { status: InviteStatus }) {
-  if (status === "NOT_SENT") return <Badge variant="outline" className="border-border bg-muted text-muted-foreground">Not invited</Badge>;
-  return <Badge variant="outline" className="border-primary/20 bg-primary/10 text-primary">Invited</Badge>;
+// The guest app's labels (guest-invites.ts): "Invite sent" only when the row says it was sent.
+const INVITE_BADGE_CLASS: Record<GuestInviteState, string> = {
+  NOT_INVITED: "border-border bg-muted text-muted-foreground",
+  NO_PHONE: "border-warning/20 bg-warning/10 text-warning",
+  INVITE_SENT: "border-primary/20 bg-primary/10 text-primary",
+  RSVP_RECEIVED: "border-primary/20 bg-primary/10 text-primary",
+};
+
+function InviteBadge({ state }: { state: GuestInviteState }) {
+  return <Badge variant="outline" className={INVITE_BADGE_CLASS[state]}>{GUEST_INVITE_STATE_LABEL[state]}</Badge>;
 }

@@ -1,5 +1,7 @@
 "use server";
 
+import { EMAIL_CHANGE_PREFIX } from "@/app/(guest)/app/account/_lib/account-rules";
+
 // ============================================================
 // Data-privacy actions (India DPDP Act 2023).
 // ------------------------------------------------------------
@@ -517,6 +519,54 @@ export async function anonymiseContact(
             message: "Personal details removed under a privacy request.",
           },
         });
+      }
+
+      // Customer app: no login keeps access to this contact. A CLIENT login whose
+      // only link was this contact is deactivated and scrubbed (deactivation also
+      // ends its sessions on the next token check).
+      const links = await tx.customerLink.findMany({ where: { contactId }, select: { userId: true } });
+      const linkedUserIds = [...new Set(links.map((l) => l.userId))];
+      await tx.customerLink.deleteMany({ where: { contactId } });
+      if (linkedUserIds.length > 0) {
+        const stillLinked = new Set(
+          (
+            await tx.customerLink.findMany({ where: { userId: { in: linkedUserIds } }, select: { userId: true } })
+          ).map((l) => l.userId)
+        );
+        const orphanClients = await tx.user.findMany({
+          where: { id: { in: linkedUserIds.filter((id) => !stillLinked.has(id)) }, role: "CLIENT" },
+          select: { id: true },
+        });
+        for (const u of orphanClients) {
+          await tx.user.update({
+            where: { id: u.id },
+            data: {
+              name: "Anonymised",
+              email: `anonymised+${u.id.slice(-10)}@removed.invalid`,
+              phone: null,
+              phoneVerifiedAt: null,
+              image: null,
+              isActive: false,
+            },
+          });
+          // A pending email change for a scrubbed login would otherwise outlive the erasure.
+          await tx.verificationToken.deleteMany({ where: { identifier: { startsWith: `${EMAIL_CHANGE_PREFIX}${u.id}:` } } });
+        }
+      }
+      // Concierge conversations and menu-request notes hold the same personal details.
+      const threads = await tx.conciergeThread.findMany({ where: { contactId }, select: { id: true } });
+      if (threads.length > 0) {
+        await tx.conciergeMessage.updateMany({
+          where: { threadId: { in: threads.map((t) => t.id) } },
+          data: { body: "Message removed under a privacy request." },
+        });
+      }
+      await tx.menuSelectionRequest.updateMany({ where: { contactId }, data: { notes: null } });
+      // Family members and planners this customer invited: their names and numbers go with the erasure,
+      // and they lose access to the anonymised bookings.
+      const erasedBookings = await tx.booking.findMany({ where: { contactId }, select: { id: true } });
+      if (erasedBookings.length > 0) {
+        await tx.bookingCollaborator.deleteMany({ where: { bookingId: { in: erasedBookings.map((b) => b.id) } } });
       }
     });
 

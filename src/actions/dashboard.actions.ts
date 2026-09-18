@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { serialize, type Serialized } from "@/lib/utils";
+import { COLLECTIBLE_INVOICE_STATUSES } from "@/lib/finance/issued-invoices";
 import { subMonths, format, addDays } from "date-fns";
 
 // ============================================================
@@ -263,12 +264,14 @@ export async function getDashboardStats(): Promise<Serialized<DashboardStats>> {
         },
       },
     }),
-    // Overdue Payments (invoices past due with balance > 0)
+    // Overdue Payments: invoices the customer still OWES (finance's shared
+    // rule, isCollectibleInvoice: never a draft, paid, cancelled or refunded
+    // invoice), past due, with a balance.
     prisma.invoice.findMany({
       where: {
         dueDate: { lt: now },
         balanceDue: { gt: 0 },
-        status: { notIn: ["PAID", "CANCELLED", "REFUNDED"] },
+        status: { in: [...COLLECTIBLE_INVOICE_STATUSES] },
       },
       orderBy: { dueDate: "asc" },
       take: 10,

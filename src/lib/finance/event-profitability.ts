@@ -19,6 +19,10 @@
 //                         refund flips the whole Payment to REFUNDED, so the
 //                         net is simply the COMPLETED sum; the gross and the
 //                         refunded figure are kept so the row can say so.
+// Balance due is neither: it is Σ Invoice.balanceDue over OWED invoices, status
+// SENT, PARTIALLY_PAID or OVERDUE (isCollectibleInvoice, the figure bookingBalance
+// gives the booking page and the customer app). It is not invoiced − collected:
+// a fully REFUNDED invoice stays invoiced but is no longer owed.
 //
 // Costs (all tied to the booking by bookingId):
 //   vendorPaid      = Σ Payout(VENDOR_PAYMENT, PAID) — cash actually out,
@@ -61,9 +65,13 @@ export interface BookingRef {
 }
 
 export interface RevenueInput {
-  /** Σ Invoice.totalAmount, status ∉ {DRAFT, CANCELLED}. */
+  /** Σ Invoice.totalAmount over BILLED invoices (isIssuedInvoice: status ∉ {DRAFT, CANCELLED}). */
   invoicedIssued: number;
+  /** BILLED invoices (isIssuedInvoice). */
   issuedInvoiceCount: number;
+  /** Σ Invoice.balanceDue over OWED invoices (isCollectibleInvoice: SENT, PARTIALLY_PAID, OVERDUE),
+   * bookingBalance()'s figure. A fully REFUNDED invoice is billed but not owed. */
+  balanceDue: number;
   /** Σ Payment.amount, status COMPLETED. */
   paymentsCompleted: number;
   /** Σ Payment.amount, status REFUNDED (was collected, then returned). */
@@ -116,7 +124,7 @@ export interface EventProfitabilityInput {
 
 export type ProfitabilityFlag =
   | "NO_INVOICE" // nothing issued yet
-  | "BALANCE_DUE" // invoiced > collected
+  | "BALANCE_DUE" // the customer still owes money (balanceDue > 0)
   | "REFUNDED" // some cash went back
   | "NO_COST_DATA" // no approved/paid bill, payout, commission or cash reward
   | "COSTS_PENDING_APPROVAL" // cost records exist but none is approved yet
@@ -145,6 +153,7 @@ export interface EventProfitabilityRow extends BookingRef {
   collected: number;
   collectedGross: number;
   refunded: number;
+  /** What the customer still owes: RevenueInput.balanceDue (finance's owed rule). */
   balanceDue: number;
   vendorPaid: number;
   vendorCommitted: number;
@@ -246,7 +255,9 @@ export function computeEventProfitability(input: EventProfitabilityInput): Event
   const refunded = r2(pos(revenue.paymentsRefunded));
   const collected = r2(pos(revenue.paymentsCompleted));
   const collectedGross = r2(collected + refunded);
-  const balanceDue = r2(Math.max(invoiced - collected, 0));
+  // What the customer still owes, by finance's owed rule: not invoiced − collected,
+  // which would count a fully refunded invoice as due.
+  const balanceDue = r2(pos(revenue.balanceDue));
 
   // ---- vendor cost ----
   const vendorPaid = r2(pos(vendor.paidPayoutTotal));

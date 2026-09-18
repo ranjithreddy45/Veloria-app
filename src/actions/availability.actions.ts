@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import type { TimeSlot } from "@prisma/client";
+import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -13,6 +14,12 @@ export interface SlotCell {
   status: "FREE" | "HOLD" | "TENTATIVE" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "BLACKOUT";
   label: string | null; // booking number / event / blackout reason
   bookingId: string | null;
+  /**
+   * true on a FREE cell that a lapsed hold used to block (window passed, no
+   * payment). The slot is free — exactly as customers see it — and the hold is
+   * listed (label + bookingId) until the release job cancels it.
+   */
+  lapsedHold?: boolean;
 }
 export interface VenueRow {
   venueId: string;
@@ -62,21 +69,39 @@ export async function getAvailabilityGrid(dateISO: string): Promise<Result<Venue
     prisma.booking.findMany({
       // Match the form's conflict semantics: any non-CANCELLED booking occupies a slot.
       where: { date: { gte: dayStart, lte: dayEnd }, status: { not: "CANCELLED" } },
-      select: { id: true, venueId: true, date: true, timeSlot: true, status: true, bookingNumber: true, eventName: true },
+      select: { id: true, venueId: true, date: true, timeSlot: true, status: true, bookingNumber: true, eventName: true, holdExpiresAt: true },
     }),
     prisma.blackoutDate.findMany({ where: { date: { gte: dayStart, lte: dayEnd } }, select: { venueId: true, date: true, timeSlot: true, reason: true } }),
   ]);
 
-  const bookings = allBookings.filter((b) => new Date(b.date).getUTCDate() === targetUTCDay);
+  const dayBookings = allBookings.filter((b) => new Date(b.date).getUTCDate() === targetUTCDay);
   const blackouts = allBlackouts.filter((b) => new Date(b.date).getUTCDate() === targetUTCDay);
+
+  // Lapsed holds (window passed, no payment against the booking) no longer
+  // occupy a slot. Same decision as the customer's availability and the
+  // release job (src/lib/holds/lapsed-hold.ts), so a slot free for a customer
+  // is free here too. The hold stays listed on the cell it used to block until
+  // the frequent-lane release job cancels it.
+  const lapsedIds = await findLapsedHoldIds(dayBookings);
+  const bookings = dayBookings.filter((b) => !lapsedIds.has(b.id));
+  const lapsedHolds = dayBookings.filter((b) => lapsedIds.has(b.id));
 
   const rows: VenueRow[] = venues.map((v) => {
     const vb = bookings.filter((b) => b.venueId === v.id);
     const vx = blackouts.filter((b) => b.venueId === v.id);
+    const vl = lapsedHolds.filter((b) => b.venueId === v.id);
     const fullDayBooking = vb.find((b) => b.timeSlot === "FULL_DAY");
     const fullDayBlackout = vx.find((b) => b.timeSlot === null); // null timeSlot = whole-day blackout
     const anyPartialBooking = vb.some((b) => b.timeSlot !== "FULL_DAY");
     const anyPartialBlackout = vx.some((b) => b.timeSlot !== null);
+
+    // A FREE cell, naming the lapsed hold that used to block it (if any).
+    const freeCell = (slot: TimeSlot): SlotCell => {
+      const lapsed = slot === "FULL_DAY" ? vl[0] : vl.find((b) => b.timeSlot === slot || b.timeSlot === "FULL_DAY");
+      return lapsed
+        ? { status: "FREE", label: `Lapsed hold · ${lapsed.bookingNumber} (unpaid, slot free)`, bookingId: lapsed.id, lapsedHold: true }
+        : { status: "FREE", label: null, bookingId: null };
+    };
 
     const slots: Record<string, SlotCell> = {};
     for (const slot of SLOTS) {
@@ -91,7 +116,7 @@ export async function getAvailabilityGrid(dateISO: string): Promise<Result<Venue
         } else if (anyPartialBooking || anyPartialBlackout) {
           slots[slot] = { status: "HOLD", label: anyPartialBlackout && !anyPartialBooking ? "Partially blocked" : "Partially booked", bookingId: null };
         } else {
-          slots[slot] = { status: "FREE", label: null, bookingId: null };
+          slots[slot] = freeCell(slot);
         }
         continue;
       }
@@ -109,7 +134,7 @@ export async function getAvailabilityGrid(dateISO: string): Promise<Result<Venue
       const b = vb.find((x) => x.timeSlot === slot);
       slots[slot] = b
         ? { status: b.status as SlotCell["status"], label: `${b.bookingNumber} · ${b.eventName}`, bookingId: b.id }
-        : { status: "FREE", label: null, bookingId: null };
+        : freeCell(slot);
     }
     return { venueId: v.id, venueName: v.name, capacity: v.capacity, slots };
   });
@@ -146,11 +171,15 @@ export async function getAvailabilityMonth(year: number, month: number): Promise
   const start = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0));
   const end = new Date(Date.UTC(year, month - 1, daysInMonth, 23, 59, 59, 999));
 
-  const [venues, bookings, blackouts] = await Promise.all([
+  const [venues, occupied, blackouts] = await Promise.all([
     prisma.venue.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-    prisma.booking.findMany({ where: { date: { gte: start, lte: end }, status: { not: "CANCELLED" } }, select: { venueId: true, date: true, timeSlot: true } }),
+    prisma.booking.findMany({ where: { date: { gte: start, lte: end }, status: { not: "CANCELLED" } }, select: { id: true, venueId: true, date: true, timeSlot: true, status: true, holdExpiresAt: true } }),
     prisma.blackoutDate.findMany({ where: { date: { gte: start, lte: end } }, select: { venueId: true, date: true, timeSlot: true } }),
   ]);
+  // Lapsed holds don't count towards occupancy — the same decision as the day
+  // grid above and the customer's month view.
+  const lapsedIds = await findLapsedHoldIds(occupied);
+  const bookings = occupied.filter((b) => !lapsedIds.has(b.id));
 
   const rows: VenueMonth[] = venues.map((v) => {
     const days: MonthDay[] = [];

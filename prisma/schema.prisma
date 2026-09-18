@@ -333,6 +333,9 @@ enum ReminderStatus {
 // ============================================================
 
 model User {
+  // Customer app: set when the phone number is proven by a WhatsApp code; UI language (en, kn, hi)
+  phoneVerifiedAt   DateTime?
+  preferredLanguage String?
   id                      String    @id @default(cuid())
   name                    String?
   email                   String    @unique
@@ -850,6 +853,13 @@ model VenueTaxSlab {
 }
 
 model Venue {
+  // Customer app: practical hall information (empty = hidden on customer screens)
+  publicAddress  String?
+  mapUrl         String?
+  parkingInfo    String?  @db.Text
+  directionsNote String?  @db.Text
+  videoUrl       String?
+  virtualTourUrl String?
   id            String   @id @default(cuid())
   name          String
   description   String?  @db.Text
@@ -4212,6 +4222,11 @@ model WhatsAppTemplate {
 }
 
 model WhatsAppConfig {
+  // Approved WhatsApp message templates for customer messages (empty = plain-text fallback)
+  otpTemplateName           String?
+  otpTemplateLanguage       String?  @default("en")
+  bookingUpdateTemplateName String?
+  guestInviteTemplateName   String?
   id                String   @id @default(cuid())
   // "META" (Cloud API) or "WATI" (wati.io). Legacy rows default to META.
   provider          String   @default("META")
@@ -9537,6 +9552,10 @@ model PushSubscription {
 // (prod-push safety, per the project pattern).
 // ============================================================
 model ConsentRecord {
+  // Which published policy version was accepted, and for which booking
+  policyKey     String?
+  policyVersion Int?
+  bookingId     String?
   id          String   @id @default(cuid())
   subjectType String // CONTACT | GUEST | CANDIDATE | EMPLOYEE
   subjectId   String? // id of the Contact / Guest / RecCandidate / User row, when known
@@ -9690,4 +9709,138 @@ model StoredFile {
 
   @@index([ownerType, ownerId])
   @@index([createdAt])
+}
+
+// ============================================================
+// Customer app (guest app at /app): additive models, plain ids, no relations
+// ============================================================
+
+/// The venue's public contact details (single row). NEXT_PUBLIC_COMPANY_* env vars are the fallback.
+model BusinessProfile {
+  id           String   @id @default(cuid())
+  displayName  String?
+  phone        String?
+  whatsapp     String?
+  email        String?
+  address      String?  @db.Text
+  mapUrl       String?
+  supportHours String?
+  updatedById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// Customer-facing policies. Customers only ever see the published version.
+model PolicyDocument {
+  id          String    @id @default(cuid())
+  key         String    @unique // CANCELLATION_REFUND | HOUSE_RULES | BOOKING_TERMS
+  title       String
+  body        String    @db.Text
+  version     Int       @default(1)
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  updatedById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+/// Frequently asked questions, optionally for one hall.
+model FaqItem {
+  id          String   @id @default(cuid())
+  question    String
+  answer      String   @db.Text
+  category    String?
+  venueId     String?
+  order       Int      @default(0)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublished, order])
+  @@index([venueId])
+}
+
+/// A login's verified right to see one contact's bookings.
+model CustomerLink {
+  id         String   @id @default(cuid())
+  userId     String
+  contactId  String
+  method     String // PHONE (WhatsApp code) | EMAIL (verified email) | STAFF (linked by the team)
+  verifiedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, contactId])
+  @@index([contactId])
+}
+
+/// A family member or planner the host shares one booking with.
+model BookingCollaborator {
+  id          String    @id @default(cuid())
+  bookingId   String
+  phone       String // normalizeOtpPhone() form
+  name        String?
+  role        String    @default("CO_HOST") // CO_HOST | VIEWER
+  status      String    @default("INVITED") // INVITED | ACTIVE | REVOKED
+  userId      String?
+  invitedById String
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([bookingId, phone])
+  @@index([phone])
+  @@index([userId])
+}
+
+/// Two-way concierge conversation for a customer (per booking, or per contact before a booking).
+model ConciergeThread {
+  id             String    @id @default(cuid())
+  contactId      String
+  bookingId      String?
+  status         String    @default("OPEN") // OPEN | CLOSED
+  assignedToId   String?
+  lastMessageAt  DateTime  @default(now())
+  lastCustomerAt DateTime?
+  lastStaffAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([contactId])
+  @@index([bookingId])
+  @@index([assignedToId, status])
+  @@index([lastMessageAt])
+}
+
+model ConciergeMessage {
+  id             String    @id @default(cuid())
+  threadId       String
+  authorType     String // CUSTOMER | STAFF | SYSTEM
+  authorUserId   String?
+  body           String    @db.Text
+  customerReadAt DateTime?
+  staffReadAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+/// A host's menu choices, submitted for the team to confirm into BookingMenu.
+model MenuSelectionRequest {
+  id           String    @id @default(cuid())
+  bookingId    String
+  contactId    String
+  userId       String?
+  packageId    String?
+  items        Json // [{ menuItemId, quantity?, note? }]
+  notes        String?   @db.Text
+  status       String    @default("SUBMITTED") // SUBMITTED | ACCEPTED | DECLINED | WITHDRAWN
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNote   String?   @db.Text
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
 }

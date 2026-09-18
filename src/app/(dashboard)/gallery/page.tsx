@@ -13,8 +13,15 @@ export const metadata: Metadata = { title: "Gallery" };
 // Gallery List Page
 // ============================================================
 
-export default async function GalleryPage() {
-  const [itemsResult, venuesResult] = await Promise.all([
+export default async function GalleryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ venue?: string }>;
+}) {
+  // ?venue=<id> comes from "Add photos" on Settings → Venues, so the team lands
+  // on that hall's photos instead of the whole library.
+  const [{ venue }, itemsResult, venuesResult] = await Promise.all([
+    searchParams,
     getGalleryItems(),
     getVenues(),
   ]);
@@ -36,6 +43,7 @@ export default async function GalleryPage() {
       <GalleryGrid
         data={items}
         venues={venues}
+        initialVenueId={venue ?? null}
       />
     </div>
   );

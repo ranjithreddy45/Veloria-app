@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { INVOICE_STATUS_COLORS } from "@/lib/constants";
 import { formatINR } from "@/lib/utils";
+import { isCollectibleInvoice, isIssuedInvoice } from "@/lib/finance/issued-invoices";
+import { invoicePresentation } from "@/lib/finance/invoice-presentation";
 import { InvoicePreview } from "./_components/invoice-preview";
 import { RecordPaymentDialog } from "./_components/record-payment-dialog";
 import { AdjustAmountsDialog } from "./_components/adjust-amounts-dialog";
@@ -51,11 +53,13 @@ export default async function InvoiceDetailPage({
   // payments must be cancelled first. Reflect that in the UI instead of
   // offering a button the server will always reject.
   const hasCollectedMoney = Number(invoice.paidAmount) > 0;
-  const cancellableStatus =
-    invoice.status !== "DRAFT" &&
-    invoice.status !== "CANCELLED" &&
-    !invoice.cancelPending;
+  // Only a billed invoice is cancelled (finance's billed rule: a draft is
+  // deleted instead, and a cancelled one is already void).
+  const cancellableStatus = isIssuedInvoice(invoice.status) && !invoice.cancelPending;
   const isCancellable = cancellableStatus && !hasCollectedMoney;
+  // What is still owed on it, or why nothing is, as the PDF, the portal and the
+  // customer app show it: a full refund puts balanceDue back to the total.
+  const balance = invoicePresentation({ status: invoice.status, balanceDue: Number(invoice.balanceDue) });
 
   // Resolve the requester's name for the pending-cancellation banner.
   let requestedByName: string | null = null;
@@ -77,7 +81,13 @@ export default async function InvoiceDetailPage({
             INVOICE ·{" "}
             <span className="numeric">{formatINR(invoice.totalAmount)}</span>{" "}
             total ·{" "}
-            <span className="numeric">{formatINR(invoice.balanceDue)}</span> due
+            {balance.kind === "owed" ? (
+              <>
+                <span className="numeric">{balance.balanceLabel}</span> due
+              </>
+            ) : (
+              balance.balanceLabel
+            )}
           </span>
         }
         title={`Invoice ${invoice.invoiceNumber}`}
@@ -112,16 +122,17 @@ export default async function InvoiceDetailPage({
               </form>
             </>
           )}
-          {invoice.status !== "CANCELLED" && invoice.status !== "DRAFT" && (
+          {isIssuedInvoice(invoice.status) && (
             <AdjustAmountsDialog
               invoiceId={invoice.id}
               totalAmount={Number(invoice.totalAmount)}
               paidAmount={Number(invoice.paidAmount)}
             />
           )}
-          {invoice.status !== "PAID" &&
-            invoice.status !== "CANCELLED" &&
-            invoice.status !== "DRAFT" && (
+          {/* Money is only collected on an owed invoice (finance's owed rule,
+              the one recordPayment enforces): never a paid, cancelled, draft
+              or fully refunded one. */}
+          {isCollectibleInvoice(invoice.status) && (
               <>
                 <PaymentLinkDialog
                   invoiceId={invoice.id}
