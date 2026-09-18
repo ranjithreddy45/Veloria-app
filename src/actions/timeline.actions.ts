@@ -21,7 +21,8 @@ export interface TimelineItem {
     | "whatsapp"
     | "contract"
     | "task"
-    | "lead";
+    | "lead"
+    | "callvibe";
   title: string;
   description: string | null;
   timestamp: string;
@@ -380,6 +381,57 @@ export async function getContact360Timeline(
           metadata: { status: c.status, signedAt: c.signedAt?.toISOString(), bookingId: c.bookingId },
           entityId: c.id,
           entityUrl: `/contracts/${c.id}`,
+        });
+      }
+    }
+
+    // ── 7b. CallVibe lead pushes (one entry per push, retries folded in) ──
+    if (!types || types.has("callvibe")) {
+      const pushes = await prisma.callVibePushJob.findMany({
+        where: { contactId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        select: {
+          id: true,
+          trigger: true,
+          status: true,
+          attempts: true,
+          lastError: true,
+          nextRunAt: true,
+          createdAt: true,
+          updatedAt: true,
+          completedAt: true,
+        },
+      });
+      const PUSH_TITLE: Record<string, string> = {
+        SUCCESS: "Pushed to CallVibe",
+        FAILED: "CallVibe push failed",
+        RETRY: "CallVibe push will retry",
+        RUNNING: "Sending to CallVibe",
+        PENDING: "Queued for CallVibe",
+      };
+      const TRIGGER: Record<string, string> = {
+        manual: "from the contact",
+        bulk: "from the contacts list",
+        auto: "automatically for a new lead",
+        lead_button: "from the lead page",
+      };
+      for (const j of pushes) {
+        const parts = [
+          `Sent ${TRIGGER[j.trigger] ?? j.trigger}`,
+          j.attempts > 1 ? `${j.attempts} attempts` : null,
+          j.status === "RETRY" ? `next try ${j.nextRunAt.toISOString().slice(11, 16)} UTC` : null,
+          j.lastError,
+        ].filter(Boolean);
+        items.push({
+          id: j.id,
+          type: "callvibe",
+          title: PUSH_TITLE[j.status] ?? `CallVibe push: ${j.status}`,
+          description: parts.join(" — "),
+          timestamp: (j.completedAt ?? j.updatedAt ?? j.createdAt).toISOString(),
+          metadata: { status: j.status, attempts: j.attempts, trigger: j.trigger },
+          entityId: j.id,
+          entityUrl: null,
         });
       }
     }

@@ -44,6 +44,8 @@ import { LeadStatusSelect } from "./_components/lead-status-select";
 import { LeadQualitySelect } from "./_components/lead-quality-select";
 import { LeadDeleteButton } from "./_components/lead-delete-button";
 import { LeadQuickActions } from "./_components/lead-quick-actions";
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { LeadInlineFields } from "./_components/lead-inline-fields";
 import { AIScoreCard } from "./_components/ai-score-card";
 import { AIEmailComposer } from "@/components/ai/ai-email-composer";
@@ -65,6 +67,8 @@ interface LeadDetailPageProps {
 
 export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
   const { leadId } = await params;
+  const session = await auth();
+  const canSendToCallVibe = !!session?.user?.role && hasPermission(session.user.role, "leads:update");
   const result = await getLead(leadId);
 
   if (!result.success || !result.data) {
@@ -187,6 +191,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
             leadTitle={lead.title}
             contactEmail={lead.contact.email}
             alreadyConverted={!!lead.deal}
+            canSendToCallVibe={canSendToCallVibe}
           />
           {/* Nine controls wrap into a five-row block on a phone, which buries
               the one action this page exists for. On mobile the primary CTA is

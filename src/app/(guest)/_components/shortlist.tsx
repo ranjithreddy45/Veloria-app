@@ -3,6 +3,8 @@
 import * as React from "react";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { NavLink } from "./nav-transition";
+import { compareHref } from "../app/venues/_lib/links";
 
 // A guest's shortlist lives on their device (localStorage) so it works before
 // they have an account. It is a convenience, not a record: nothing here is
@@ -68,4 +70,19 @@ export function SavedMark({ venueId, className }: { venueId: string; className?:
 export function ShortlistCount() {
   const { ids } = useShortlist();
   return <>{ids.length === 0 ? "None yet" : `${ids.length} saved`}</>;
+}
+
+/** "Compare saved halls" — appears once two or more halls are on this device's shortlist (the first three are compared). */
+export function CompareSavedLink({ className }: { className?: string }) {
+  const { ids } = useShortlist();
+  if (ids.length < 2) return null;
+  return (
+    <NavLink
+      href={compareHref(ids.slice(0, 3))}
+      kind="push"
+      className={cn("inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#6d1b52]/25 bg-[#f7eef2] px-3.5 py-2 text-detail font-semibold text-[#6d1b52]", className)}
+    >
+      <Heart className="size-3.5" fill="#6d1b52" aria-hidden /> Compare saved halls
+    </NavLink>
+  );
 }

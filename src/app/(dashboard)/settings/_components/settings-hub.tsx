@@ -25,6 +25,8 @@ const CATEGORIES: Category[] = [
     title: "General", icon: Building2, accent: "text-blue-600 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-300",
     items: [
       { label: "Venues", href: "/settings/venues", icon: MapPin, desc: "Halls, capacities & availability" },
+      { label: "Business Contact", href: "/settings/business-contact", icon: Phone, desc: "Numbers, email and hours customers see" },
+      { label: "Customer Content", href: "/settings/customer-content", icon: FileText, desc: "Policies and FAQs in the customer app" },
       { label: "Notifications", href: "/settings/notifications", icon: Bell, desc: "Email & SMS preferences" },
     ],
   },

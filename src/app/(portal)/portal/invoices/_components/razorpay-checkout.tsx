@@ -1,9 +1,16 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { CreditCard, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  CHECKOUT_CLOSE_FALLBACK_MS,
+  CHECKOUT_TIMED_OUT_DETAIL,
+  CHECKOUT_TIMED_OUT_TITLE,
+  RAZORPAY_CHECKOUT_TIMEOUT_SECONDS,
+  checkoutClosedByTimeout,
+} from "@/lib/holds/checkout-timeout";
 
 // ============================================================
 // Types
@@ -65,13 +72,21 @@ export function RazorpayCheckout({
 }: RazorpayCheckoutProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  // "timeout": the checkout closed on its time limit (src/lib/holds/checkout-timeout.ts).
+  const [status, setStatus] = useState<"idle" | "success" | "error" | "timeout">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  // The page's own close, for a checkout Razorpay leaves open past its timeout.
+  const closeTimer = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const timer = closeTimer;
+    return () => window.clearTimeout(timer.current);
+  }, []);
 
   const handlePayment = useCallback(async () => {
     setIsLoading(true);
     setStatus("idle");
     setErrorMessage("");
+    window.clearTimeout(closeTimer.current);
 
     try {
       // 1. Load Razorpay script
@@ -99,6 +114,17 @@ export function RazorpayCheckout({
 
       const { orderId, amount: amountInPaise, currency, keyId } = orderData.data;
 
+      // The checkout closes before the 15-minute protection a started checkout
+      // gives a hold runs out (src/lib/holds/checkout-timeout.ts); a close on
+      // that timeout says so instead of silently resetting the button.
+      let openedAt = 0;
+      let paid = false; // Razorpay handed back a payment: the verify call decides what shows
+      let closed = false;
+      const timedOut = () => {
+        setStatus("timeout");
+        setIsLoading(false);
+      };
+
       // 3. Open Razorpay checkout
       const options = {
         key: keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -115,7 +141,10 @@ export function RazorpayCheckout({
         theme: {
           color: "#4f46e5",
         },
+        timeout: RAZORPAY_CHECKOUT_TIMEOUT_SECONDS,
         handler: async (response: RazorpayResponse) => {
+          paid = true;
+          window.clearTimeout(closeTimer.current);
           try {
             // 4. Verify payment
             const verifyRes = await fetch("/api/payments/verify", {
@@ -152,8 +181,11 @@ export function RazorpayCheckout({
           }
         },
         modal: {
-          ondismiss: () => {
+          ondismiss: (reason?: unknown) => {
+            closed = true;
+            window.clearTimeout(closeTimer.current);
             setIsLoading(false);
+            if (!paid && checkoutClosedByTimeout(openedAt, Date.now(), reason)) timedOut();
           },
         },
       };
@@ -171,7 +203,20 @@ export function RazorpayCheckout({
         }
       );
 
+      openedAt = Date.now();
       razorpay.open();
+      // If Razorpay hasn't closed the checkout by now, close it here, still
+      // inside the hold's checkout protection.
+      closeTimer.current = window.setTimeout(() => {
+        if (paid || closed) return;
+        closed = true;
+        try {
+          razorpay.close();
+        } catch {
+          // Already closed.
+        }
+        timedOut();
+      }, CHECKOUT_CLOSE_FALLBACK_MS);
     } catch (err) {
       setStatus("error");
       setErrorMessage(
@@ -209,15 +254,17 @@ export function RazorpayCheckout({
 
   return (
     <div className="space-y-4">
-      {/* Error Message */}
-      {status === "error" && (
+      {/* Error Message, or the checkout's time limit running out */}
+      {(status === "error" || status === "timeout") && (
         <div className="flex items-start gap-3 rounded-xl border border-destructive/20 bg-destructive/10 p-4">
           <AlertCircle className="size-5 text-destructive flex-shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-destructive">
-              Payment Failed
+              {status === "timeout" ? CHECKOUT_TIMED_OUT_TITLE : "Payment Failed"}
             </p>
-            <p className="mt-0.5 text-sm text-destructive">{errorMessage}</p>
+            <p className="mt-0.5 text-sm text-destructive">
+              {status === "timeout" ? CHECKOUT_TIMED_OUT_DETAIL : errorMessage}
+            </p>
           </div>
         </div>
       )}

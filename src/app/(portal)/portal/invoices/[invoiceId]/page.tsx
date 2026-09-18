@@ -25,6 +25,8 @@ import {
 import { RazorpayCheckout } from "../_components/razorpay-checkout";
 import { UploadProof } from "../_components/upload-proof";
 import { PortalPdfButton } from "../_components/portal-pdf-button";
+import { invoiceBalance, portalPayState } from "../_components/invoice-balance";
+import { bookingStatusByInvoice } from "../invoice-booking-status";
 import { formatINR } from "@/lib/utils";
 
 // ============================================================
@@ -68,11 +70,15 @@ export default async function PortalInvoiceDetailPage({
 
   if (!invoice) notFound();
 
-  const isPayable =
-    invoice.balanceDue > 0 &&
-    invoice.status !== "CANCELLED" &&
-    invoice.status !== "DRAFT" &&
-    invoice.status !== "REFUNDED";
+  // Finance's owed rule: only a SENT, PARTIALLY_PAID or OVERDUE invoice with a
+  // balance left takes money (submitPaymentProof and recordPayment accept no
+  // other), so a paid, cancelled or refunded invoice offers no payment. Then the
+  // public pay links' rule: nothing is paid online on a cancelled booking, whose
+  // date is no longer reserved, and the customer is told why (portalPayState).
+  const bookingStatus = (await bookingStatusByInvoice([invoice.id])).get(invoice.id) ?? null;
+  const pay = portalPayState({ status: invoice.status, balanceDue: invoice.balanceDue, bookingStatus });
+  const isPayable = pay.payable;
+  const balance = invoiceBalance(invoice);
 
   return (
     <div className="space-y-8">
@@ -359,19 +365,29 @@ export default async function PortalInvoiceDetailPage({
                   </span>
                 </div>
 
+                {/* Owed: the balance still due. Paid or refunded: the status, never
+                    the stored balance (a full refund puts it back to the total). */}
                 <div className="bg-muted/50 flex items-center justify-between rounded-xl px-4 py-3">
                   <span className="text-foreground text-sm font-semibold">
                     Balance due
                   </span>
-                  <span
-                    className={`numeric text-title font-semibold ${
-                      invoice.balanceDue > 0
-                        ? "text-destructive"
-                        : "text-success"
-                    }`}
-                  >
-                    {formatINR(invoice.balanceDue)}
-                  </span>
+                  {balance.kind === "owed" ? (
+                    <span
+                      className={`numeric text-title font-semibold ${
+                        balance.amount > 0 ? "text-destructive" : "text-success"
+                      }`}
+                    >
+                      {formatINR(balance.amount)}
+                    </span>
+                  ) : (
+                    <span
+                      className={`text-title font-semibold ${
+                        balance.kind === "paid" ? "text-success" : "text-muted-foreground"
+                      }`}
+                    >
+                      {balance.kind === "none" ? "—" : balance.label}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -515,6 +531,23 @@ export default async function PortalInvoiceDetailPage({
                     invoiceId={invoice.id}
                     balanceDue={Number(invoice.balanceDue)}
                   />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Owed, but the booking is cancelled: why there is no Pay button. */}
+          {pay.reason && (
+            <Card className="shadow-card border-warning/25 bg-warning/[0.06] rounded-2xl py-0">
+              <CardContent className="flex items-start gap-3 p-6">
+                <AlertCircle className="text-warning mt-0.5 size-5 shrink-0" aria-hidden />
+                <div>
+                  <h3 className="font-editorial text-foreground text-title font-semibold">
+                    Payment isn&apos;t available
+                  </h3>
+                  <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+                    {pay.reason}
+                  </p>
                 </div>
               </CardContent>
             </Card>

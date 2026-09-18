@@ -1,30 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { dayCountHeadline, daysUntilEventDay, diffParts, timedHeadline } from "./countdown";
 
 // ============================================================
 // Live countdown for the client event-plan hero. Renders on the client so the
-// "in N days" copy stays fresh without a reload. Pure presentation — receives
-// only the (already client-safe) event datetime + a friendly noun.
+// copy stays fresh without a reload. Pure presentation: receives only the
+// (already client-safe) event day, start instant, whether the slot has hours,
+// and a friendly noun. The wording lives in ./countdown.ts.
+//
+// A slot without hours (Morning, Full Day) counts whole days only: its
+// eventAtISO is a planning anchor, never a time to show.
 // ============================================================
-
-function diffParts(targetMs: number, nowMs: number) {
-  const ms = Math.max(0, targetMs - nowMs);
-  const totalMinutes = Math.floor(ms / 60000);
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
-  const minutes = totalMinutes % 60;
-  return { ms, days, hours, minutes };
-}
 
 export function EventCountdown({
   eventAtISO,
+  eventDateISO,
+  hasHours,
   occasion,
 }: {
   eventAtISO: string;
+  eventDateISO: string;
+  /** The slot has hours set by the team (Afternoon, Evening). */
+  hasHours: boolean;
   occasion: string;
 }) {
-  const target = new Date(eventAtISO).getTime();
   const [now, setNow] = useState<number>(() => Date.now());
 
   useEffect(() => {
@@ -32,35 +32,45 @@ export function EventCountdown({
     return () => clearInterval(id);
   }, []);
 
-  const { ms, days, hours, minutes } = diffParts(target, now);
-  const isPast = ms <= 0;
-
-  if (isPast) {
+  if (!hasHours) {
+    const daysAway = daysUntilEventDay(eventDateISO, now);
+    const headline = dayCountHeadline(occasion, daysAway);
+    if (!headline) return <HereMessage occasion={occasion} />;
     return (
-      <p className="text-sm font-medium text-white/90">
-        Your {occasion} is here — enjoy every moment! ✨
-      </p>
+      <div className="flex flex-col items-center gap-3">
+        <p className="text-sm font-medium text-white/90">{headline}</p>
+        {daysAway > 1 && (
+          <div className="flex items-center gap-2">
+            <Unit value={daysAway} label="days" />
+          </div>
+        )}
+      </div>
     );
   }
 
-  const headline =
-    days > 0
-      ? `Your ${occasion} is in ${days} ${days === 1 ? "day" : "days"}`
-      : hours > 0
-        ? `Your ${occasion} is in ${hours} ${hours === 1 ? "hour" : "hours"}`
-        : `Your ${occasion} starts in ${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+  const parts = diffParts(new Date(eventAtISO).getTime(), now);
+  const headline = timedHeadline(occasion, parts);
+  if (!headline) return <HereMessage occasion={occasion} />;
 
   return (
     <div className="flex flex-col items-center gap-3">
       <p className="text-sm font-medium text-white/90">{headline}</p>
       <div className="flex items-center gap-2">
-        <Unit value={days} label="days" />
+        <Unit value={parts.days} label="days" />
         <Sep />
-        <Unit value={hours} label="hrs" />
+        <Unit value={parts.hours} label="hrs" />
         <Sep />
-        <Unit value={minutes} label="min" />
+        <Unit value={parts.minutes} label="min" />
       </div>
     </div>
+  );
+}
+
+function HereMessage({ occasion }: { occasion: string }) {
+  return (
+    <p className="text-sm font-medium text-white/90">
+      Your {occasion} is here — enjoy every moment! ✨
+    </p>
   );
 }
 

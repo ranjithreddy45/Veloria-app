@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
+import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
 import {
   computeSellDownDrafts,
   utcDateFromKey,
@@ -70,14 +72,15 @@ export async function GET(request: Request) {
 
   const venueIds = venueRows.map((v) => v.id);
 
-  const [bookings, blackouts, leads, peakDates] = await Promise.all([
+  const [bookingRows, blackouts, leads, peakDates] = await Promise.all([
     prisma.booking.findMany({
       where: {
         venueId: { in: venueIds },
         status: { not: "CANCELLED" },
         date: { gte: windowStart, lt: windowEnd },
       },
-      select: { venueId: true, date: true, timeSlot: true },
+      // status/holdExpiresAt decide lapsed holds (filtered out below).
+      select: { id: true, venueId: true, date: true, timeSlot: true, status: true, holdExpiresAt: true },
     }),
     prisma.blackoutDate.findMany({
       where: {
@@ -107,6 +110,9 @@ export async function GET(request: Request) {
       select: { date: true, venueId: true },
     }),
   ]);
+  // Lapsed holds (window passed, no money against them) don't occupy their
+  // slot, as on the availability board (src/lib/holds/lapsed-hold.ts).
+  const bookings = withoutLapsedHolds(bookingRows, await findLapsedHoldIds(bookingRows, ranAt));
 
   // Peak-date exclusion keys: all-venues rows as "YYYY-MM-DD", venue-scoped
   // rows as "venueId|YYYY-MM-DD". Weekends are excluded inside the engine.

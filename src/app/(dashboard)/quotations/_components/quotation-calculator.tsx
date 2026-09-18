@@ -64,6 +64,25 @@ interface VenueOpt {
   name: string;
   inHouseCateringRequired?: boolean;
   inHouseCateringNote?: string | null;
+  /** GST rates this property charges. Empty = the planner's 5% fallback. */
+  taxSlabs?: {
+    id: string;
+    name: string;
+    cgstRate: unknown;
+    sgstRate: unknown;
+    igstRate: unknown;
+    isDefault: boolean;
+  }[];
+}
+
+/** Combined percentage of a slab row, whatever shape the Decimal arrived in. */
+function slabTotal(s: { cgstRate: unknown; sgstRate: unknown; igstRate: unknown }): number {
+  return Number(s.cgstRate) + Number(s.sgstRate) + Number(s.igstRate);
+}
+
+/** 0.18 → "18%", 0.05 → "5%" — no trailing zeros. */
+function pct(rate: number): string {
+  return `${Number((rate * 100).toFixed(2))}%`;
 }
 
 export interface QuotationInitial {
@@ -85,6 +104,9 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
   // ---- Customer / context ----
   const [leadId, setLeadId] = useState(initial?.meta.leadId ?? "");
   const [venueId, setVenueId] = useState(initial?.meta.venueId ?? "");
+  // Which of the property's GST rates this quote uses. Empty = let the property
+  // decide, which is exactly what happens when it has one rate or a default.
+  const [taxSlabId, setTaxSlabId] = useState(initial?.meta.taxSlabId ?? "");
   const [clientName, setClientName] = useState(initial?.meta.clientName ?? "");
   const [clientPhone, setClientPhone] = useState(initial?.meta.clientPhone ?? "");
   const [clientEmail, setClientEmail] = useState(initial?.meta.clientEmail ?? "");
@@ -259,7 +281,23 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
     ]
   );
 
-  const result = useMemo(() => computeQuotation(input), [input]);
+  const selectedVenue = venues.find((v) => v.id === venueId) ?? null;
+
+  // The rate that will actually be charged, worked out the same way the server
+  // does it: an explicit pick wins, then the property's default, then its only
+  // rate. Several rates and no pick means the quote cannot go for approval, so
+  // the picker says so rather than quietly using one.
+  const venueRates = selectedVenue?.taxSlabs ?? [];
+  const chosenRate =
+    venueRates.find((r) => r.id === taxSlabId) ??
+    (venueRates.length === 1 ? venueRates[0] : venueRates.find((r) => r.isDefault) ?? null);
+  const mustPickRate = venueRates.length > 1 && !chosenRate;
+  const effectiveTaxRate = chosenRate ? slabTotal(chosenRate) / 100 : undefined;
+
+  const result = useMemo(
+    () => computeQuotation(effectiveTaxRate != null ? { ...input, taxRate: effectiveTaxRate } : input),
+    [input, effectiveTaxRate]
+  );
 
   // Demand-based pricing guidance for the chosen date (Muhurtham / weekend / scarcity).
   const [demand, setDemand] = useState<DateDemandResult | null>(null);
@@ -272,12 +310,11 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
     return () => { active = false; };
   }, [eventDate, venueId, timeSlot]);
 
-  const selectedVenue = venues.find((v) => v.id === venueId) ?? null;
-
   const meta: QuotationMeta = {
     clientName, clientPhone, clientEmail, occasion,
     eventDate: eventDate || null, timeSlot, notes,
     leadId: leadId || null, venueId: venueId || null,
+    taxSlabId: chosenRate?.id ?? null,
     contactId: leads.find((l) => l.id === leadId)?.contactId ?? null,
   };
 
@@ -368,6 +405,45 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
                 </p>
               )}
             </div>
+            {/* GST — only for a property that has rates configured. One rate
+                applies itself; several have to be chosen, because a quote sent
+                at the wrong rate is a number the customer has already agreed
+                to. Properties with none keep the planner's 5%. */}
+            {venueRates.length > 0 && (
+              <div className={field}>
+                <Label>
+                  GST rate
+                  {mustPickRate && <span className="text-destructive"> *</span>}
+                </Label>
+                <Select
+                  value={chosenRate?.id ?? NONE}
+                  onValueChange={(v) => setTaxSlabId(v === NONE ? "" : v)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose the GST rate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {venueRates.length > 1 && <SelectItem value={NONE}>—</SelectItem>}
+                    {venueRates.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.name} — {slabTotal(r)}%
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p
+                  className={
+                    mustPickRate
+                      ? "text-destructive text-meta"
+                      : "text-muted-foreground text-meta"
+                  }
+                >
+                  {mustPickRate
+                    ? "This property charges more than one rate. Pick one before sending for approval."
+                    : "From the property type. Change it here if this event is charged differently."}
+                </p>
+              </div>
+            )}
             <div className={field}>
               <Label>Client Name</Label>
               <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Mr/Mrs. ..." />
@@ -796,7 +872,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
               {result.discountAmount > 0 && (
                 <div className="text-success flex justify-between"><span>Discount ({result.discountPct}%)</span><span className="numeric">− {inr(result.discountAmount)}</span></div>
               )}
-              <div className="flex justify-between"><span className="text-muted-foreground">Tax (5%)</span><span className="numeric">{inr(result.tax)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">GST ({pct(result.taxRate)})</span><span className="numeric">{inr(result.tax)}</span></div>
               <div className="mt-1 flex items-baseline justify-between gap-4 border-t pt-3">
                 <span className="text-meta font-semibold uppercase tracking-wide text-muted-foreground">Grand Total</span>
                 <span className="numeric text-lg font-bold tracking-[-0.02em]">{inr(result.grandTotal)}</span>

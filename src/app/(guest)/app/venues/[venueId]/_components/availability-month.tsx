@@ -9,11 +9,23 @@ import { toISODateLocal } from "../../../../_components/format";
 
 // Month grid: booked days grey + struck, auspicious days carry a gold dot,
 // picking a free day arms the sticky "Hold this date" bar. Availability and
-// peak dates come from the same sources the staff calendar uses.
+// peak dates come from the same sources the staff calendar uses. priceLabel is
+// the hall's "from" price from the team's pricing engine, or null (no price).
+//
+// `title` renames the heading only ("Check a date · October 2026"). `onPick`
+// hands the chosen day to a parent that owns the sticky bar instead (see
+// hall-booking.tsx); without it this component still renders its own, exactly
+// as before. Nothing else about the grid changes either way.
 
 const DOW = ["S", "M", "T", "W", "T", "F", "S"];
 
-export function AvailabilityMonth({ venueId, venueName, priceLabel }: { venueId: string; venueName: string; priceLabel: string }) {
+export function AvailabilityMonth({ venueId, venueName, priceLabel, title = "Availability", onPick }: {
+  venueId: string;
+  venueName: string;
+  priceLabel: string | null;
+  title?: string;
+  onPick?: (dateISO: string | null) => void;
+}) {
   const today = React.useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
   const [offset, setOffset] = React.useState(0);
   const [busy, setBusy] = React.useState<Record<string, "busy" | "full">>({});
@@ -47,22 +59,29 @@ export function AvailabilityMonth({ venueId, venueName, priceLabel }: { venueId:
     return () => { alive = false; };
   }, [y, m, venueId, fromISO, toISO]);
 
+  // Keep a parent-owned sticky bar in step with the day on screen.
+  React.useEffect(() => { onPick?.(pick); }, [pick, onPick]);
+
   const cells: (number | null)[] = [...Array<null>(first).fill(null), ...Array.from({ length: dim }, (_, i) => i + 1)];
   const pickLabel = pick ? new Date(pick + "T00:00:00").toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }) : null;
+  // Day status is only known for the month on screen.
+  const pickDay = pick && pick.startsWith(fromISO.slice(0, 8)) ? Number(pick.slice(8, 10)) : null;
+  const pickStatus = pickDay == null ? "" : `${peak[pickDay] ? " · auspicious" : ""} · ${busy[pickDay] === "busy" ? "some slots taken" : "available"}`;
   const bookHref = pick ? `/app/book?venueId=${venueId}&date=${pick}` : `/app/book?venueId=${venueId}`;
 
   return (
     <>
       <div>
         <div className="flex items-baseline justify-between">
-          <div className="text-copy font-semibold">Availability · {base.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</div>
+          {/* A heading, not a styled div: it is one of the hall page's sections. */}
+          <h2 className="text-copy font-semibold">{title} · {base.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}</h2>
           <div className="flex gap-1">
             <button type="button" aria-label="Previous month" disabled={offset === 0} onClick={() => setOffset((o) => Math.max(0, o - 1))} className="flex size-[30px] items-center justify-center rounded-full border border-black/[.08] bg-white disabled:opacity-40"><ChevronLeft className="size-4" /></button>
             <button type="button" aria-label="Next month" disabled={offset >= 11} onClick={() => setOffset((o) => Math.min(11, o + 1))} className="flex size-[30px] items-center justify-center rounded-full border border-black/[.08] bg-white disabled:opacity-40"><ChevronRight className="size-4" /></button>
           </div>
         </div>
         <div className={`vg-card mt-2.5 rounded-2xl p-3 ${loading ? "opacity-60" : ""}`} aria-busy={loading}>
-          <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold tracking-[.06em] text-[#8a8a8e]">{DOW.map((d, i) => <div key={i}>{d}</div>)}</div>
+          <div className="mb-1 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold tracking-[.06em] text-[#636368]">{DOW.map((d, i) => <div key={i}>{d}</div>)}</div>
           <div className="grid grid-cols-7 gap-1">
             {cells.map((n, i) => {
               if (n === null) return <div key={`e${i}`} className="h-9" />;
@@ -101,16 +120,23 @@ export function AvailabilityMonth({ venueId, venueName, priceLabel }: { venueId:
         </div>
       </div>
 
-      {/* Sticky CTA — bottom:0 because the tab bar is hidden on inner screens. */}
-      <div className="vg-glass fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-md items-center gap-2.5 px-5 pb-[calc(var(--sab)+12px)] pt-3">
-        <div className="min-w-0 flex-1">
-          <div className="text-meta text-[#6e6e73]">{pickLabel ? `${pickLabel} · ${peak[Number(pick!.slice(8, 10))] ? "auspicious · " : ""}available` : "Pick a date above"}</div>
-          <div className="numeric text-copy font-semibold text-[#6d1b52]">{priceLabel} <span className="text-meta font-medium text-[#8a8a8e]">/ slot</span></div>
+      {/* Sticky CTA — bottom:0 because the tab bar is hidden on inner screens.
+          Suppressed when a parent owns the bar (onPick), so only one shows. */}
+      {!onPick && (
+        <div className="vg-glass vg-col vg-gutter fixed inset-x-0 bottom-0 z-30 flex items-center gap-2.5 pb-[calc(var(--sab)+12px)] pt-3">
+          <div className="min-w-0 flex-1">
+            <div className="text-meta text-[#6e6e73]">{pickLabel ? `${pickLabel}${pickStatus}` : "Pick a date above"}</div>
+            {priceLabel ? (
+              <div className="numeric text-copy font-semibold text-[#6d1b52]">{priceLabel} <span className="text-meta font-medium text-[#636368]">/ slot</span></div>
+            ) : (
+              <div className="text-copy font-semibold text-[#6d1b52]">Price on request</div>
+            )}
+          </div>
+          <NavLink href={bookHref} kind="push" className="vg-primary vg-press rounded-[14px] px-5 py-[15px] text-body font-semibold" aria-label={pick ? `Hold ${pickLabel} at ${venueName}` : `Check availability at ${venueName}`}>
+            {pick ? "Hold this date" : "Reserve a date"}
+          </NavLink>
         </div>
-        <NavLink href={bookHref} kind="push" className="vg-primary vg-press rounded-[14px] px-5 py-[15px] text-body font-semibold" aria-label={pick ? `Hold ${pickLabel} at ${venueName}` : `Check availability at ${venueName}`}>
-          {pick ? "Hold this date" : "Reserve a date"}
-        </NavLink>
-      </div>
+      )}
     </>
   );
 }

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { FileTextIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { QUOTE_CATALOG } from "@/lib/sales/quotation-calc";
+import { SLOT_NAME } from "@/lib/sales/slot";
 import { QuotationCalculator } from "../_components/quotation-calculator";
 
 export const metadata: Metadata = { title: "New Quotation" };
@@ -40,6 +42,20 @@ export default async function NewQuotationPage({
         name: true,
         inHouseCateringRequired: true,
         inHouseCateringNote: true,
+        // The GST rates this property offers. The calculator preselects the
+        // default one and asks when a property has more than one.
+        taxSlabs: {
+          where: { isActive: true },
+          orderBy: [{ isDefault: "desc" }, { name: "asc" }],
+          select: {
+            id: true,
+            name: true,
+            cgstRate: true,
+            sgstRate: true,
+            igstRate: true,
+            isDefault: true,
+          },
+        },
       },
       orderBy: { name: "asc" },
     }),
@@ -68,16 +84,20 @@ export default async function NewQuotationPage({
     clientEmail: l.contact?.email ?? null,
   }));
 
-  // The lead stores its slot as "Lunch"/"Dinner"; the quotation time-slot picker
-  // uses "11am to 3pm"/"5pm to 10pm"/"Full Day". Map so the prefill actually
-  // lands on a valid option (otherwise the dropdown silently shows blank).
+  // The lead stores its slot as "Lunch"/"Dinner" (lead.schema.ts); the quotation
+  // time-slot picker's options are the slot names in QUOTE_CATALOG.timeSlots
+  // ("Morning", "Afternoon", "Evening", "Full Day"). Lunch is the Afternoon slot
+  // and Dinner the Evening slot (src/lib/sales/slot.ts). Return the picker's exact
+  // option so the prefill lands on it (otherwise the dropdown silently shows
+  // blank); a value that isn't an option leaves the picker empty, never a guess.
   const mapSlotToTimeSlot = (slot?: string | null): string | undefined => {
-    if (!slot) return undefined;
-    const s = slot.toLowerCase();
-    if (s.includes("lunch")) return "11am to 3pm";
-    if (s.includes("dinner")) return "5pm to 10pm";
-    if (s.includes("full")) return "Full Day";
-    return slot; // already a valid value
+    const s = slot?.trim().toLowerCase();
+    if (!s) return undefined;
+    let wanted = s;
+    if (s.includes("lunch")) wanted = SLOT_NAME.AFTERNOON;
+    else if (s.includes("dinner")) wanted = SLOT_NAME.EVENING;
+    else if (s.includes("full")) wanted = SLOT_NAME.FULL_DAY;
+    return QUOTE_CATALOG.timeSlots.find((option) => option.toLowerCase() === wanted.toLowerCase());
   };
 
   // Optional prefill from ?leadId= ("Create Quotation" on a lead). The empty

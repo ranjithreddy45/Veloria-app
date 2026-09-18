@@ -8,8 +8,21 @@
 @keyframes vg-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(52, 199, 89, .5); } 70% { box-shadow: 0 0 0 8px rgba(52, 199, 89, 0); } }
 
 .vg-shell { color-scheme: light; background: #f3f0ec; color: #1d1d1f; letter-spacing: -.01em; }
-.vg-rise { animation: vg-rise .28s cubic-bezier(.22, 1, .36, 1) both; }
-.vg-rise-slow { animation: vg-rise .6s cubic-bezier(.22, 1, .36, 1) both; }
+/* `backwards`, NOT `both`. Almost every screen wears .vg-rise on its outermost
+   element, and a `position: fixed` descendant of a TRANSFORMED element is
+   positioned against that element instead of the viewport. `both` keeps the
+   last frame applied forever, so the transform never goes away and the hall
+   page's booking bar, the concierge composer, the package and menu action bars
+   and every toast end up pinned to the bottom of the PAGE — on a phone, 273px
+   below the fold, which is exactly what production was doing.
+   `backwards` applies the `from` frame before the animation starts (so there is
+   still no flash of un-risen content) and then hands the element back to the
+   cascade, where transform is `none` and opacity is 1 — the end state the
+   keyframes were aiming at anyway. Ending the `to` frame on `transform: none`
+   does NOT work: an interpolated `none` is an identity MATRIX, and a matrix
+   still makes a containing block. Measured, not assumed. */
+.vg-rise { animation: vg-rise .28s cubic-bezier(.22, 1, .36, 1) backwards; }
+.vg-rise-slow { animation: vg-rise .6s cubic-bezier(.22, 1, .36, 1) backwards; }
 .vg-pulse { animation: vg-pulse 1.8s ease-out infinite; }
 
 /* Layered card: hairline border + a soft, low, wide shadow. */
@@ -26,8 +39,41 @@
 /* Bleed a horizontal scroller to the screen edge while content stays padded. */
 .vg-bleed { margin-left: -20px; margin-right: -20px; padding-left: 20px; padding-right: 20px; }
 
-.vg-glass { background: rgba(243, 240, 236, .86); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border-top: .5px solid rgba(0, 0, 0, .08); }
-.vg-glass-white { background: rgba(255, 255, 255, .86); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border-top: .5px solid rgba(0, 0, 0, .1); }
+/* ============================================================
+   v5 — one responsive column, so the app is a real app on a tablet and a
+   laptop as well as a phone. WhatsApp links get opened on laptops too.
+
+   .vg-col is the single source of truth for how wide the content column is:
+   the shell, the sticky booking bar and the navigation all read it, so none
+   of them can drift out of line with the others. Phone width is exactly what
+   it always was (28rem = max-w-md), so nothing below 640px moves.
+
+   .vg-gutter is the matching side padding — and, because a horizontal
+   scroller has to start exactly where its section's text starts, it also
+   re-bleeds any .vg-bleed inside it. The override is scoped to .vg-gutter on
+   purpose: screens still laid out on plain px-5 keep their -20px bleeds and
+   are untouched.
+   ============================================================ */
+.vg-col { width: 100%; max-width: 28rem; margin-inline: auto; }
+.vg-gutter { padding-inline: 20px; }
+
+@media (min-width: 640px) {
+  .vg-col { max-width: 45rem; }
+  .vg-gutter { padding-inline: 28px; }
+  .vg-gutter .vg-bleed { margin-left: -28px; margin-right: -28px; padding-left: 28px; padding-right: 28px; }
+}
+
+@media (min-width: 1024px) {
+  .vg-col { max-width: 70rem; }
+  .vg-gutter { padding-inline: 32px; }
+  .vg-gutter .vg-bleed { margin-left: -32px; margin-right: -32px; padding-left: 32px; padding-right: 32px; }
+  /* Inside a two-column split the left column's edge is no longer the screen's,
+     so a rail in there must stop at the column instead of bleeding past it. */
+  .vg-gutter .vg-split .vg-bleed { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; }
+}
+
+.vg-glass { background: rgba(243, 240, 236, .86); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); border-top: .5px solid rgba(0, 0, 0, .08); }
+.vg-glass-white { background: rgba(255, 255, 255, .86); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); border-top: .5px solid rgba(0, 0, 0, .1); }
 .vg-divide > * + * { border-top: .5px solid rgba(60, 60, 67, .12); }
 
 .vg-press { transition: transform .12s ease; }

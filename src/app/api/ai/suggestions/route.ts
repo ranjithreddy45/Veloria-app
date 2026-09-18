@@ -3,6 +3,7 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { generateSuggestions } from "@/lib/ai/suggestions";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
     }
 
     // Rate limit: 30 AI suggestion requests per minute per user
-    const identifier = session?.user?.id || request.headers.get("x-forwarded-for") || "anonymous";
+    const identifier = session?.user?.id || clientIpOfHeaders(request.headers) || "anonymous";
     const rateCheck = checkRateLimit(`ai-suggestions:${identifier}`, { maxRequests: 30, windowSeconds: 60 });
     if (!rateCheck.success) {
       return rateLimitResponse(rateCheck.resetIn);

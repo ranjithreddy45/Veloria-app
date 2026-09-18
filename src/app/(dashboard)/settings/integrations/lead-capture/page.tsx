@@ -1,9 +1,11 @@
 import { getAutoWelcomeConfigs } from "@/actions/auto-welcome.actions";
 import { getLeadCaptureConfigs } from "@/actions/lead-capture-config.actions";
 import { listApiKeys } from "@/actions/api-key.actions";
+import { getPushApiMetrics } from "@/actions/push-api-metrics.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { LeadCaptureConfig } from "./_components/lead-capture-config";
 import { AutoWelcomeConfig } from "./_components/auto-welcome-config";
+import { PushApiMetrics } from "./_components/push-api-metrics";
 import { Webhook } from "lucide-react";
 
 export const metadata = {
@@ -11,10 +13,11 @@ export const metadata = {
 };
 
 export default async function LeadCapturePage() {
-  const [welcomeConfigsResult, leadConfigsResult, apiKeysResult] = await Promise.all([
+  const [welcomeConfigsResult, leadConfigsResult, apiKeysResult, metricsResult] = await Promise.all([
     getAutoWelcomeConfigs(),
     getLeadCaptureConfigs(),
     listApiKeys(),
+    getPushApiMetrics(),
   ]);
 
   const welcomeConfigs = welcomeConfigsResult.success ? welcomeConfigsResult.data : [];
@@ -41,6 +44,11 @@ export default async function LeadCapturePage() {
           isActive: k.isActive,
           lastUsedAt: k.lastUsedAt ? new Date(k.lastUsedAt).toISOString() : null,
           createdAt: new Date(k.createdAt).toISOString(),
+          scopes: k.scopes,
+          source: k.source,
+          expiresAt: k.expiresAt ? new Date(k.expiresAt).toISOString() : null,
+          revokedAt: k.revokedAt ? new Date(k.revokedAt).toISOString() : null,
+          rotatedFromId: k.rotatedFromId,
         }))
       : [];
 
@@ -57,6 +65,8 @@ export default async function LeadCapturePage() {
       />
 
       <LeadCaptureConfig baseUrl={baseUrl} configs={leadConfigs} apiKeys={apiKeys} />
+
+      {metricsResult.success && <PushApiMetrics metrics={metricsResult.data} />}
 
       <AutoWelcomeConfig initialConfigs={welcomeConfigs} />
     </div>

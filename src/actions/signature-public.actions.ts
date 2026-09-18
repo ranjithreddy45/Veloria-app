@@ -13,6 +13,7 @@
 import { headers } from "next/headers";
 
 import { prisma } from "@/lib/prisma";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import {
@@ -34,12 +35,9 @@ async function captureRequestAudit(): Promise<{
 }> {
   try {
     const h = await headers();
-    const xff = h.get("x-forwarded-for");
-    // On Vercel x-forwarded-for is a comma list; take the first hop.
-    const ip =
-      (xff ? xff.split(",")[0]?.trim() : null) ||
-      h.get("x-real-ip") ||
-      null;
+    // Audit evidence: the address our proxy appended, never the first
+    // X-Forwarded-For entry, which the signer's browser can set to anything.
+    const ip = clientIpOfHeaders(h);
     const userAgent = h.get("user-agent");
     return { ip: ip || null, userAgent: userAgent || null };
   } catch {

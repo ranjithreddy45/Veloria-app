@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { sendSMSFireAndForget } from "@/lib/sms";
 import { notifyAwait } from "@/lib/notify";
+// Event start for hours-to-event: the slot start in IST, shared with ops schedules and the public event page.
+import { eventStartUtc } from "@/lib/ops/schedule";
 
 // ============================================================
 // Pre-event interval reminders — fire once each at ~48h / 24h / 12h / 4h before an
@@ -12,15 +14,6 @@ import { notifyAwait } from "@/lib/notify";
 // ============================================================
 
 const OFFSETS = [48, 24, 12, 4] as const;
-
-// Approx IST start hour per slot (event start used to compute hours-to-event).
-const SLOT_START_IST: Record<string, number> = { MORNING: 9, AFTERNOON: 11, EVENING: 17, FULL_DAY: 9 };
-
-function eventStartUtc(date: Date, slot: string): Date {
-  const startIst = SLOT_START_IST[slot] ?? 10;
-  // booking.date is UTC-midnight for the calendar day; IST = UTC + 5.5h.
-  return new Date(new Date(date).getTime() + (startIst - 5.5) * 3600_000);
-}
 
 async function already(bookingId: string, offsetHours: number, audience: string): Promise<boolean> {
   const row = await prisma.eventReminderLog.findUnique({

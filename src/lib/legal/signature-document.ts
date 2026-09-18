@@ -25,17 +25,11 @@ import {
   renderBookingTermsEmailHtml,
   BOOKING_TERMS_VERSION,
 } from "@/lib/legal/booking-terms";
+import { slotLabel } from "@/lib/sales/slot";
 
 // Re-export so the action that freezes the snapshot can stamp which
 // terms version was signed onto the SignatureRequest metadata.
 export { BOOKING_TERMS_VERSION };
-
-const TIME_SLOT_LABELS: Record<string, string> = {
-  MORNING: "Morning (8 AM – 12 PM)",
-  AFTERNOON: "Afternoon (12 PM – 5 PM)",
-  EVENING: "Evening (5 PM – 11 PM)",
-  FULL_DAY: "Full Day (8 AM – 11 PM)",
-};
 
 function escapeHtml(s: string): string {
   return s
@@ -74,7 +68,7 @@ export function buildSignatureDocumentTitle(bookingNumber: string): string {
 export function buildSignatureDocumentHtml(
   data: SignatureDocumentData
 ): string {
-  const timeLabel = TIME_SLOT_LABELS[data.timeSlot] || data.timeSlot;
+  const timeLabel = slotLabel(data.timeSlot);
 
   const row = (label: string, value: string, strong = false) => `
     <tr>

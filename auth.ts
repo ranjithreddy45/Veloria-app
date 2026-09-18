@@ -8,9 +8,18 @@ import prisma from "@/lib/prisma";
 import { signInSchema } from "@/schemas/auth.schema";
 import authConfig from "./auth.config";
 import {
+  clientIpOf,
+  completeOtpLogin,
+  isValidOtpPhone,
+  maskPhone,
   normalizeOtpPhone,
+  otpRateLimit,
+  OtpLoginDisabledError,
+  OtpNoRecordError,
+  OtpRateLimitedError,
+  OtpSharedNumberError,
+  OtpTryAgainError,
   verifyLoginOtp,
-  findActiveUserByPhone,
 } from "@/lib/otp";
 import { getEffectivePermissions } from "@/lib/rbac";
 import {
@@ -231,9 +240,12 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
       },
     }),
 
-    // Passwordless WhatsApp OTP login. Verifies a one-time code (which was
-    // sent only if an active account exists for the number), then signs that
-    // user in. Works for staff and portal clients alike.
+    // Passwordless WhatsApp code sign-in, for the customer app (/app/welcome)
+    // and staff (/sign-in) alike. A code proves control of ONE WhatsApp number;
+    // completeOtpLogin (src/lib/otp.ts) then finds or creates the login for
+    // exactly the records that carry that number. Existing logins keep their
+    // role; new ones are CLIENT. Refusals after a valid code throw a coded
+    // error so the screen can say what to do next.
     Credentials({
       id: "otp",
       name: "WhatsApp Code",
@@ -241,17 +253,37 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
         phone: { label: "Phone", type: "tel" },
         code: { label: "Code", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const normalized = normalizeOtpPhone(String(credentials?.phone ?? ""));
-        const code = String(credentials?.code ?? "");
-        if (!normalized || !/^\d{6}$/.test(code)) return null;
+        const code = String(credentials?.code ?? "").trim();
+        if (!isValidOtpPhone(normalized) || !/^\d{6}$/.test(code)) return null;
 
-        // Verify (and consume) the code first, then resolve the user.
+        // Per-IP and per-number caps on code checks, on top of 5 tries per code.
+        const byIp = otpRateLimit("verify", "ip", clientIpOf(request?.headers));
+        const byNumber = otpRateLimit("verify", "number", normalized);
+        if (!byIp.success || !byNumber.success) {
+          console.warn(`[auth] otp sign-in refused · too many attempts · ${maskPhone(normalized)}`);
+          throw new OtpRateLimitedError();
+        }
+
+        // Verify (and consume) the code first, then resolve the login.
         const ok = await verifyLoginOtp(normalized, code);
         if (!ok) return null;
 
-        const user = await findActiveUserByPhone(normalized);
-        if (!user) return null;
+        let result: Awaited<ReturnType<typeof completeOtpLogin>>;
+        try {
+          result = await completeOtpLogin(normalized);
+        } catch (error) {
+          console.error(`[auth] otp sign-in failed after a valid code · ${maskPhone(normalized)}`, error);
+          throw new OtpTryAgainError();
+        }
+        if (!result.ok) {
+          console.warn(`[auth] otp sign-in refused · ${result.reason} · ${maskPhone(normalized)}`);
+          if (result.reason === "SHARED_NUMBER") throw new OtpSharedNumberError();
+          if (result.reason === "LOGIN_DISABLED") throw new OtpLoginDisabledError();
+          throw new OtpNoRecordError();
+        }
+        const { user } = result;
 
         return {
           id: user.id,

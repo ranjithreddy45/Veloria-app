@@ -16,9 +16,9 @@
 //
 //  2. Every write is keyed on CallLog.externalCallId = "callvibe:<call id>",
 //     so re-running the sync over an overlapping window imports nothing twice.
-//     (externalCallId has no unique index, matching the rest of this codebase,
-//     so the guard is a findFirst — a duplicate needs two syncs racing on the
-//     same call, and the lane runs one at a time.)
+//     (externalCallId has no unique index, so the write goes through
+//     insertCallOnce, which checks and inserts under an advisory lock — the
+//     same call can also arrive by push to /api/v1/push/call-activity.)
 //
 // The AI fields are stored under the same metadata keys the call-insights
 // dialog already reads (isAiTranscription, transcription, chapters,
@@ -30,6 +30,7 @@ import { CallDisposition, CommunicationDirection, CommunicationType, Prisma } fr
 
 import { prisma } from "@/lib/prisma";
 import { handleMissedCallRescue } from "@/lib/telephony/missed-call-rescue";
+import { insertCallOnce } from "@/lib/telephony/call-dedupe";
 import { listCalls, type CallVibeCall, type CallVibeCreds } from "@/lib/integrations/callvibe";
 
 export interface CallVibeSyncSummary {
@@ -258,40 +259,48 @@ export async function syncCallVibeCalls(opts?: {
           callvibePayload: call.raw as Prisma.InputJsonValue,
         } as Prisma.InputJsonValue;
 
-        await prisma.communication.create({
-          data: {
-            type: CommunicationType.CALL,
-            subject: call.summary ? call.summary.slice(0, 180) : null,
-            content: summaryContent(call),
-            direction: call.inbound
-              ? CommunicationDirection.INBOUND
-              : CommunicationDirection.OUTBOUND,
-            contactId: contact.id,
-            createdById: agentId,
-            createdAt: call.startedAt,
-            metadata,
-            sentiment: call.sentiment,
-            sentimentScore: call.sentimentScore,
-            sentimentAt: call.sentiment ? call.startedAt : null,
-            callLog: {
-              create: {
-                disposition: dispositionFor(call),
-                durationSeconds: call.durationSeconds,
-                recordingUrl: call.recordingUrl,
-                externalCallId,
-                notes: call.summary,
-                tags: [
-                  "callvibe",
-                  ...(call.category ? [call.category] : []),
-                  ...(call.sentiment ? [call.sentiment.toLowerCase()] : []),
-                ],
-                contactId: contact.id,
-                agentId,
-                createdAt: call.startedAt,
+        // Atomic with its duplicate check: a push of the same call may be writing right now.
+        const written = await insertCallOnce(externalCallId, (tx) =>
+          tx.communication.create({
+            data: {
+              type: CommunicationType.CALL,
+              subject: call.summary ? call.summary.slice(0, 180) : null,
+              content: summaryContent(call),
+              direction: call.inbound
+                ? CommunicationDirection.INBOUND
+                : CommunicationDirection.OUTBOUND,
+              contactId: contact.id,
+              createdById: agentId,
+              createdAt: call.startedAt,
+              metadata,
+              sentiment: call.sentiment,
+              sentimentScore: call.sentimentScore,
+              sentimentAt: call.sentiment ? call.startedAt : null,
+              callLog: {
+                create: {
+                  disposition: dispositionFor(call),
+                  durationSeconds: call.durationSeconds,
+                  recordingUrl: call.recordingUrl,
+                  externalCallId,
+                  notes: call.summary,
+                  tags: [
+                    "callvibe",
+                    ...(call.category ? [call.category] : []),
+                    ...(call.sentiment ? [call.sentiment.toLowerCase()] : []),
+                  ],
+                  contactId: contact.id,
+                  agentId,
+                  createdAt: call.startedAt,
+                },
               },
             },
-          },
-        });
+          })
+        );
+        if (!written.inserted) {
+          summary.deduped++;
+          if (!latestCallAt || call.startedAt > latestCallAt) latestCallAt = call.startedAt;
+          continue;
+        }
 
         summary.imported++;
         if (!latestCallAt || call.startedAt > latestCallAt) latestCallAt = call.startedAt;

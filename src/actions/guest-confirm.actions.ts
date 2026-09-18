@@ -10,6 +10,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { serialize } from "@/lib/utils";
 import { BookingStatus } from "@prisma/client";
 import { BOOKING_TERMS, BOOKING_TERMS_VERSION } from "@/lib/legal/booking-terms";
@@ -42,7 +43,7 @@ function rateLimited(ip: string): boolean {
 async function clientIp(): Promise<string | null> {
   try {
     const h = await headers();
-    return (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || h.get("x-real-ip") || null;
+    return clientIpOfHeaders(h);
   } catch {
     return null;
   }

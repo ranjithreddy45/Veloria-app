@@ -41,7 +41,9 @@ const FAST_RESPONSE_MS = 15 * 60 * 1000;
  */
 export async function recordFirstContact(
   leadId: string | null | undefined,
-  actorId: string
+  actorId: string,
+  /** When the contact happened, if not now (a call reported after the fact). */
+  contactedAt?: Date
 ): Promise<void> {
   if (!leadId) return;
   try {
@@ -57,7 +59,9 @@ export async function recordFirstContact(
     });
     if (!lead) return;
 
-    const now = new Date();
+    const now = contactedAt ?? new Date();
+    // A contact from before the lead existed can't be its first response.
+    if (now < lead.createdAt) return;
 
     // Award "contacted" WITHOUT a keySuffix on purpose.
     //

@@ -13,6 +13,7 @@ import {
 } from "@/actions/public-site-visit.actions";
 import type { VisitSlotOption } from "@/lib/site-visit/slots";
 import { ConsentCheckbox } from "@/components/public/consent-checkbox";
+import { readVisitPrefill } from "./visit-prefill";
 
 // ============================================================
 // PUBLIC client — visit/tasting booking wizard.
@@ -51,8 +52,11 @@ export function VisitScheduler({ venues, kinds }: Props) {
   const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
 
-  const [kind, setKind] = useState(kinds[0]?.kind ?? "SITE_VISIT");
-  const [venueId, setVenueId] = useState<string>(venues[0]?.id ?? "");
+  // Links from the customer app and brochures prefill the hall, kind, event type and guest count.
+  const [prefill] = useState(() => readVisitPrefill((key) => searchParams.get(key), venues, kinds));
+
+  const [kind, setKind] = useState(prefill.kind ?? kinds[0]?.kind ?? "SITE_VISIT");
+  const [venueId, setVenueId] = useState<string>(prefill.venueId ?? venues[0]?.id ?? "");
   const [dateISO, setDateISO] = useState<string>(todayISO());
   const [slots, setSlots] = useState<VisitSlotOption[]>([]);
   const [slotIso, setSlotIso] = useState<string>("");
@@ -61,8 +65,8 @@ export function VisitScheduler({ venues, kinds }: Props) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [eventType, setEventType] = useState("");
-  const [guestCount, setGuestCount] = useState("");
+  const [eventType, setEventType] = useState(prefill.eventType ?? "");
+  const [guestCount, setGuestCount] = useState(prefill.guestCount ? String(prefill.guestCount) : "");
   const [notes, setNotes] = useState("");
   const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState<string | null>(null);

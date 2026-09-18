@@ -9,21 +9,17 @@
 // ============================================================
 
 import type { EventPhaseType } from "@prisma/client";
+import { slotScheduleStartMin } from "@/lib/sales/slot";
 
-// The venue operates in IST (UTC+5:30). Slot start times are local; convert to
-// the absolute UTC instant so stored slaStartBy/slaFinishBy compare correctly
-// against `now` regardless of server timezone.
+// The venue operates in IST (UTC+5:30). Slot start times are local, from the
+// team's one slot definition (src/lib/sales/slot.ts); convert to the absolute
+// UTC instant so stored slaStartBy/slaFinishBy compare correctly against `now`
+// regardless of server timezone.
 const IST_OFFSET_MIN = 330;
-const SLOT_START_LOCAL_MIN: Record<string, number> = {
-  MORNING: 9 * 60,
-  AFTERNOON: 12 * 60,
-  EVENING: 18 * 60,
-  FULL_DAY: 10 * 60,
-};
 
 /** Absolute UTC instant the event starts, from the @db.Date (UTC midnight) booking date + slot. */
 export function eventStartUtc(bookingDate: Date, timeSlot?: string | null): Date {
-  const localMin = SLOT_START_LOCAL_MIN[(timeSlot || "EVENING").toUpperCase()] ?? SLOT_START_LOCAL_MIN.EVENING;
+  const localMin = slotScheduleStartMin(timeSlot);
   // bookingDate is UTC midnight of the local calendar day; local slot time minus
   // the IST offset gives the true UTC instant.
   return new Date(bookingDate.getTime() + (localMin - IST_OFFSET_MIN) * 60_000);

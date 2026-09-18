@@ -9,6 +9,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { resolveBdRange, type BdRangeKey } from "@/lib/acq/analytics-range";
+import { COLLECTIBLE_INVOICE_STATUSES, isCollectibleInvoice, isIssuedInvoice } from "@/lib/finance/issued-invoices";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -47,18 +48,30 @@ export async function getSalesEventTracker(params: { employeeIds?: string[] | nu
 
   const ids = bookings.map((b) => b.id);
   const invoices = ids.length
-    ? await prisma.invoice.findMany({ where: { bookingId: { in: ids } }, select: { bookingId: true, totalAmount: true, paidAmount: true, installments: { select: { label: true, status: true, dueDate: true } } } })
+    ? await prisma.invoice.findMany({ where: { bookingId: { in: ids } }, select: { bookingId: true, status: true, totalAmount: true, paidAmount: true, installments: { select: { label: true, status: true, dueDate: true } } } })
     : [];
-  const invByBooking = new Map<string, (typeof invoices)[number]>();
-  for (const inv of invoices) if (inv.bookingId) invByBooking.set(inv.bookingId, inv);
+  // Every invoice on each booking (not just one), read through finance's shared rules below.
+  const invByBooking = new Map<string, (typeof invoices)[number][]>();
+  for (const inv of invoices) {
+    if (!inv.bookingId) continue;
+    const list = invByBooking.get(inv.bookingId) ?? [];
+    list.push(inv);
+    invByBooking.set(inv.bookingId, list);
+  }
 
   const rows = bookings.map((b) => {
-    const inv = invByBooking.get(b.id);
-    const total = num(inv?.totalAmount) || num(b.totalAmount);
-    const paid = num(inv?.paidAmount);
+    const invs = invByBooking.get(b.id) ?? [];
+    // Total and paid over BILLED invoices (isIssuedInvoice): a draft is unsent and a cancelled
+    // invoice is void. Until something is billed, the total is the booking's contract value.
+    const billed = invs.filter((i) => isIssuedInvoice(i.status));
+    const total = billed.reduce((s, i) => s + num(i.totalAmount), 0) || num(b.totalAmount);
+    const paid = billed.reduce((s, i) => s + num(i.paidAmount), 0);
     const pctPaid = total > 0 ? Math.round((paid / total) * 100) : 0;
-    const nextDue = inv?.installments
-      ?.filter((i) => i.status !== "COMPLETED")
+    // The next milestone is one the customer still OWES (isCollectibleInvoice).
+    const nextDue = invs
+      .filter((i) => isCollectibleInvoice(i.status))
+      .flatMap((i) => i.installments)
+      .filter((i) => i.status !== "COMPLETED")
       .sort((a, b2) => a.dueDate.getTime() - b2.dueDate.getTime())[0];
     return {
       id: b.id, ref: b.bookingNumber, event: b.eventName, eventType: b.eventType, status: b.status,
@@ -90,7 +103,8 @@ export async function getSalesRevenueCollections(params: Params): Promise<Result
   const [confirmed, payments, openInvoices, installments] = await Promise.all([
     prisma.booking.findMany({ where: { status: "CONFIRMED", createdAt: inRange, ...(empIds ? { createdById: { in: empIds } } : {}) }, select: { totalAmount: true, decorCharges: true, otherServices: true } }),
     prisma.payment.findMany({ where: { status: "COMPLETED", paidAt: inRange, ...invoiceEmp }, select: { amount: true } }),
-    prisma.invoice.findMany({ where: { status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] }, ...bookingEmp }, select: { balanceDue: true } }),
+    // Pending collection: what customers still OWE (isCollectibleInvoice).
+    prisma.invoice.findMany({ where: { status: { in: [...COLLECTIBLE_INVOICE_STATUSES] }, ...bookingEmp }, select: { balanceDue: true } }),
     prisma.installment.findMany({ where: { dueDate: inRange, ...invoiceEmp }, select: { label: true, amount: true, status: true } }),
   ]);
 
@@ -137,9 +151,9 @@ export async function getSalesFollowupAlerts(params: { employeeIds?: string[] | 
   const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
 
   const [overdue, followups, stale] = await Promise.all([
-    // Overdue payments: due date passed, balance remaining
+    // Overdue payments: still OWED (isCollectibleInvoice), due date passed, balance remaining
     prisma.invoice.findMany({
-      where: { status: { in: ["SENT", "PARTIALLY_PAID", "OVERDUE"] }, dueDate: { lt: now }, balanceDue: { gt: 0 }, ...(empIds ? { createdById: { in: empIds } } : {}) },
+      where: { status: { in: [...COLLECTIBLE_INVOICE_STATUSES] }, dueDate: { lt: now }, balanceDue: { gt: 0 }, ...(empIds ? { createdById: { in: empIds } } : {}) },
       select: { id: true, invoiceNumber: true, dueDate: true, balanceDue: true, createdBy: { select: { name: true } }, booking: { select: { eventName: true, contact: { select: { firstName: true, lastName: true } } } } },
       orderBy: { dueDate: "asc" }, take: 200,
     }),
@@ -149,9 +163,9 @@ export async function getSalesFollowupAlerts(params: { employeeIds?: string[] | 
       select: { id: true, followUpDate: true, contact: { select: { firstName: true, lastName: true } }, assignedTo: { select: { name: true } } },
       orderBy: { followUpDate: "asc" }, take: 200,
     }),
-    // Bookings with balance but no payment activity in 7+ days
+    // Bookings with balance but no payment activity in 7+ days: still OWED, and not already OVERDUE
     prisma.invoice.findMany({
-      where: { status: { in: ["SENT", "PARTIALLY_PAID"] }, balanceDue: { gt: 0 }, updatedAt: { lt: sevenDaysAgo }, bookingId: { not: null }, ...(empIds ? { createdById: { in: empIds } } : {}) },
+      where: { status: { in: [...COLLECTIBLE_INVOICE_STATUSES], not: "OVERDUE" }, balanceDue: { gt: 0 }, updatedAt: { lt: sevenDaysAgo }, bookingId: { not: null }, ...(empIds ? { createdById: { in: empIds } } : {}) },
       select: { id: true, invoiceNumber: true, balanceDue: true, updatedAt: true, createdBy: { select: { name: true } }, booking: { select: { eventName: true, contact: { select: { firstName: true, lastName: true } } } } },
       orderBy: { updatedAt: "asc" }, take: 200,
     }),

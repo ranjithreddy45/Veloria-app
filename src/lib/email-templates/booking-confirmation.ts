@@ -3,6 +3,7 @@
 // ============================================================
 
 import { renderBookingTermsEmailHtml } from "@/lib/legal/booking-terms";
+import { slotLabel } from "@/lib/sales/slot";
 
 interface BookingConfirmationData {
   contactName: string;
@@ -17,16 +18,9 @@ interface BookingConfirmationData {
   specialRequests?: string | null;
 }
 
-const TIME_SLOT_LABELS: Record<string, string> = {
-  MORNING: "Morning (8 AM – 12 PM)",
-  AFTERNOON: "Afternoon (12 PM – 5 PM)",
-  EVENING: "Evening (5 PM – 11 PM)",
-  FULL_DAY: "Full Day (8 AM – 11 PM)",
-};
-
 export function bookingConfirmationEmail(data: BookingConfirmationData): string {
   const portalUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-  const timeLabel = TIME_SLOT_LABELS[data.timeSlot] || data.timeSlot;
+  const timeLabel = slotLabel(data.timeSlot);
 
   return `
 <!DOCTYPE html>

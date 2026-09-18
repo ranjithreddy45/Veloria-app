@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
+import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
 import { SLOT_LABEL, type TimeSlotEnum } from "@/lib/sales/slot";
 import {
   computeSellDownDrafts,
@@ -217,14 +219,15 @@ export async function computeSellDownNow(): Promise<Result<{ upserts: number }>>
   if (venueRows.length === 0) return { success: true, data: { upserts: 0 } };
   const venueIds = venueRows.map((v) => v.id);
 
-  const [bookings, blackouts, leads, peakDates] = await Promise.all([
+  const [bookingRows, blackouts, leads, peakDates] = await Promise.all([
     prisma.booking.findMany({
       where: {
         venueId: { in: venueIds },
         status: { not: "CANCELLED" },
         date: { gte: windowStart, lt: windowEnd },
       },
-      select: { venueId: true, date: true, timeSlot: true },
+      // status/holdExpiresAt decide lapsed holds (filtered out below).
+      select: { id: true, venueId: true, date: true, timeSlot: true, status: true, holdExpiresAt: true },
     }),
     prisma.blackoutDate.findMany({
       where: { venueId: { in: venueIds }, date: { gte: windowStart, lt: windowEnd } },
@@ -251,6 +254,9 @@ export async function computeSellDownNow(): Promise<Result<{ upserts: number }>>
       select: { date: true, venueId: true },
     }),
   ]);
+  // Lapsed holds (window passed, no money against them) don't occupy their
+  // slot, as on the availability board (src/lib/holds/lapsed-hold.ts).
+  const bookings = withoutLapsedHolds(bookingRows, await findLapsedHoldIds(bookingRows, ranAt));
 
   // Peak-date exclusion keys: all-venues rows as "YYYY-MM-DD", venue-scoped
   // rows as "venueId|YYYY-MM-DD". Weekends are excluded inside the engine.

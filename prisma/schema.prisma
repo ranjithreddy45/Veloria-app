@@ -333,6 +333,9 @@ enum ReminderStatus {
 // ============================================================
 
 model User {
+  // Customer app: set when the phone number is proven by a WhatsApp code; UI language (en, kn, hi)
+  phoneVerifiedAt   DateTime?
+  preferredLanguage String?
   id                      String    @id @default(cuid())
   name                    String?
   email                   String    @unique
@@ -626,6 +629,20 @@ model Contact {
   callLogs           CallLog[]
   salesQuotations    SalesQuotation[]
   reviewRequests     ReviewRequest[]
+  callVibePushJobs   CallVibePushJob[]
+
+  // CallVibe write side (lead push). CallVibe keys leads by phone, so the phone
+  // we last pushed under is what identifies the lead there; the id is kept only
+  // if CallVibe ever returns one (its responses are undocumented).
+  callvibeLeadId         String?
+  callvibePushedPhone    String?
+  /// "<E.164>|<lead id>" the agent context note was last added for (retried if it failed).
+  callvibeNotedPhone     String?
+  callvibeLastPushedAt   DateTime?
+  /// SUCCESS | FAILED | PENDING
+  callvibeLastPushStatus String?
+  callvibeLastPushError  String?   @db.Text
+
   corporateAccountId String?
   corporateAccount   CorporateAccount? @relation("ContactCorporateAccount")
   enquiryVenue       Venue?            @relation("ContactEnquiryVenue", fields: [enquiryVenueId], references: [id])
@@ -753,6 +770,11 @@ model Lead {
   @@index([leadQuality, qualifiedAt])
   @@index([qlUploadStatus])
   @@index([bookingUploadStatus])
+
+  // Push API (/api/v1/push/*): external ids that resolve to this lead, and every
+  // marketing touch it arrived through. Relations only — no columns on Lead.
+  externalRefs LeadExternalRef[]
+  touches      LeadTouch[]
 }
 
 // ============================================================
@@ -850,6 +872,13 @@ model VenueTaxSlab {
 }
 
 model Venue {
+  // Customer app: practical hall information (empty = hidden on customer screens)
+  publicAddress  String?
+  mapUrl         String?
+  parkingInfo    String?  @db.Text
+  directionsNote String?  @db.Text
+  videoUrl       String?
+  virtualTourUrl String?
   id            String   @id @default(cuid())
   name          String
   description   String?  @db.Text
@@ -857,6 +886,14 @@ model Venue {
   pricePerSlot  Decimal  @db.Decimal(10, 2)
   amenities     String[]
   isActive      Boolean  @default(true)
+  // What kind of property this is, which is what decides the GST rate. A 4- or
+  // 5-star hotel is a "specified premises" under GST (it let rooms above the
+  // ₹7,500/night threshold), so its banquet and catering package carries 18%
+  // with input credit, while an ordinary banquet hall or lawn is 5% without it.
+  // Stored as a plain string, not an enum, so adding a category later needs no
+  // migration — the accepted values live in src/lib/sales/property-type.ts.
+  propertyType String?
+
   // In-house catering requirement: some halls (e.g. HHI) don't charge hall rent
   // but require food to be purchased from their own caterer. Surfaces an advisory
   // on the quote so the correct in-house food vendor is used.
@@ -4062,6 +4099,24 @@ model ApiKey {
   createdById String
   createdBy   User   @relation("UserApiKeys", fields: [createdById], references: [id])
 
+  // Push API. All additive, so every key minted before these existed keeps
+  // working on /api/leads/capture exactly as it did. An empty scope list grants
+  // NOTHING on /api/v1/push/* — a push key has to be granted "leads:create".
+  scopes        String[]  @default([])
+  /// The system that holds this key ("meta_ads", "website", "partner:acme").
+  source        String?
+  expiresAt     DateTime?
+  revokedAt     DateTime?
+  /// Set on the replacement key when an old one is rotated.
+  rotatedFromId String?
+  /// The integration this key belongs to: the id of the first key in its
+  /// rotation chain. External ids and Idempotency-Keys are scoped to it, so a
+  /// rotation doesn't break retries and one integration can't touch another's
+  /// leads. Null on keys minted before this existed — treated as the key's own id.
+  lineageId     String?
+
+  idempotencyRecords PushIdempotencyRecord[]
+
   @@index([keyHash])
   @@index([isActive])
 }
@@ -4119,6 +4174,18 @@ model CallVibeConfig {
   lastSyncAt   DateTime?
   lastSyncNote String?   @db.Text
 
+  // Lead push (write side). Off until someone turns it on.
+  /// Push every newly created lead's contact to CallVibe automatically.
+  pushEnabled         Boolean   @default(false)
+  /// CallVibe agent a pushed lead is assigned to when its CRM lead has no owner.
+  pushDefaultAssignee String?
+  /// Written to custom_fields.calling_list on every pushed lead.
+  pushCallingList     String?
+  lastPushAt          DateTime?
+  /// SUCCESS | FAILED
+  lastPushStatus      String?
+  lastPushError       String?   @db.Text
+
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -4127,6 +4194,39 @@ model CallVibeConfig {
   createdBy   User   @relation("UserCallVibeConfigs", fields: [createdById], references: [id])
 
   @@index([isActive])
+}
+
+/// One queued push of a contact to CallVibe. Attempted straight after the
+/// request that queued it, then retried with backoff by the fast cron lane.
+/// dedupeKey holds the contact id while a push is outstanding, so a contact
+/// never has two pushes queued at once; it is cleared when the job finishes.
+model CallVibePushJob {
+  id          String    @id @default(cuid())
+  contactId   String
+  contact     Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  /// manual | bulk | auto | lead_button
+  trigger     String
+  /// PENDING | RUNNING | RETRY | SUCCESS | FAILED
+  status      String    @default("PENDING")
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(6)
+  nextRunAt   DateTime  @default(now())
+  /// A running attempt's lease; an expired lease means the worker died.
+  lockedUntil DateTime?
+  lastError   String?   @db.Text
+  lastStatus  Int?
+  dedupeKey   String?   @unique
+  /// Another push was asked for while this one was running: queue it once this settles.
+  rerunRequested Boolean @default(false)
+  /// Token of the attempt holding the lease; a finish only counts if it still matches.
+  leaseId        String?
+  requestedById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([status, nextRunAt])
+  @@index([contactId, createdAt])
 }
 
 model TelephonyConfig {
@@ -4212,6 +4312,11 @@ model WhatsAppTemplate {
 }
 
 model WhatsAppConfig {
+  // Approved WhatsApp message templates for customer messages (empty = plain-text fallback)
+  otpTemplateName           String?
+  otpTemplateLanguage       String?  @default("en")
+  bookingUpdateTemplateName String?
+  guestInviteTemplateName   String?
   id                String   @id @default(cuid())
   // "META" (Cloud API) or "WATI" (wati.io). Legacy rows default to META.
   provider          String   @default("META")
@@ -7723,6 +7828,172 @@ model LeadAttribution {
   @@index([gclid])
 }
 
+// ============================================================
+// Push API — authorised external systems pushing data into the CRM.
+// ------------------------------------------------------------
+// Lead creation itself is NOT here: /api/v1/push/leads hands the lead to
+// captureLeadFromExternal (src/lib/lead-capture.ts), the same function every
+// webhook uses, so contact matching, assignment, scoring, consent and the
+// intake workflows can never differ between channels. These tables only carry
+// what that function has no home for.
+// ============================================================
+
+/// (source, externalId) → lead. The indexed replacement for looking for an
+/// "[ext:…]" marker inside Lead.description, which stays in place for the
+/// webhooks that still rely on it.
+model LeadExternalRef {
+  id         String   @id @default(cuid())
+  source     String
+  externalId String
+  leadId     String
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  apiKeyId   String?
+  /// ApiKey.lineageId of the integration that pushed it — part of the key.
+  lineageId  String
+  createdAt  DateTime @default(now())
+
+  @@unique([lineageId, source, externalId])
+  @@index([leadId])
+}
+
+/// One row per Idempotency-Key, per API key. A retry with the same body gets the
+/// stored response back; the same key with a different body is refused.
+model PushIdempotencyRecord {
+  id             String   @id @default(cuid())
+  apiKeyId       String
+  apiKey         ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  /// Integration scope (ApiKey.lineageId), so a retry after key rotation still replays.
+  lineageId      String
+  idempotencyKey String
+  /// SHA-256 of the canonical JSON body.
+  requestHash    String
+  /// PROCESSING while the first request is in flight, then COMPLETED.
+  state          String   @default("PROCESSING")
+  responseStatus Int?
+  responseBody   Json?
+  resourceType   String?
+  resourceId     String?
+  /// While PROCESSING: after this instant the claim is considered abandoned
+  /// (crash, deploy, timeout) and a retry may take it over.
+  lockedUntil    DateTime?
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([lineageId, idempotencyKey])
+  @@index([expiresAt])
+}
+
+/// Fixed-window request counters. Kept in Postgres rather than in memory
+/// because production runs several app instances, and an in-memory counter
+/// would let each of them admit the full limit.
+model PushRateLimitCounter {
+  id          String   @id @default(cuid())
+  apiKeyId    String
+  /// "minute" | "hour"
+  window      String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@unique([apiKeyId, window, windowStart])
+  @@index([windowStart])
+}
+
+/// Audit trail: one row per request, success or failure. Deliberately holds no
+/// request body, no Authorization header and no phone number or email.
+model PushApiRequestLog {
+  id             String   @id @default(cuid())
+  requestId      String   @unique
+  apiKeyId       String?
+  apiKeyPrefix   String?
+  source         String?
+  endpoint       String
+  method         String
+  /// SHA-256 of the client IP (salted), never the raw address.
+  ipHash         String?
+  userAgent      String?
+  /// created | updated | duplicate | replayed | rejected | error
+  outcome        String
+  responseStatus Int
+  errorCode      String?
+  leadId         String?
+  externalId     String?
+  durationMs     Int
+  createdAt      DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([apiKeyId, createdAt])
+  @@index([outcome, createdAt])
+  @@index([leadId])
+}
+
+/// Every marketing touch a lead arrived through, newest last. First touch stays
+/// in LeadAttribution and is never overwritten; the latest row here is the last
+/// touch. metadata takes any extra ad-platform parameter without a migration.
+model LeadTouch {
+  id          String   @id @default(cuid())
+  leadId      String
+  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  channel     String
+  source      String?
+  medium      String?
+  campaign    String?
+  campaignId  String?
+  adset       String?
+  adsetId     String?
+  adId        String?
+  creative    String?
+  keyword     String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmTerm     String?
+  utmContent  String?
+  landingPage String?
+  metadata    Json?
+  externalId  String?
+  apiKeyId    String?
+  requestId   String?
+  createdAt   DateTime @default(now())
+
+  @@index([leadId, createdAt])
+}
+
+/// Short-lived per-person locks for the Push API, so simultaneous pushes about
+/// the same person (same phone, email or external id) are processed one at a
+/// time instead of each creating a lead. A lease, not a held connection: a
+/// crashed holder's lock simply expires. lockKey is a SHA-256, never raw PII.
+model PushIngestLock {
+  lockKey     String   @id
+  token       String
+  lockedUntil DateTime
+
+  @@index([lockedUntil])
+}
+
+/// Outbox for internal domain events ("lead.created"). Written after the lead
+/// is saved and never sent anywhere inside the request, so a slow or failing
+/// consumer (Google Ads, Meta CAPI, BI) can never cost a lead.
+model IntegrationEvent {
+  id           String    @id @default(cuid())
+  type         String
+  /// e.g. "lead.created:<leadId>" — makes emitting an event idempotent.
+  dedupeKey    String?   @unique
+  resourceType String
+  resourceId   String
+  payload      Json
+  /// PENDING until a consumer claims it.
+  status       String    @default("PENDING")
+  attempts     Int       @default(0)
+  lastError    String?
+  processedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([type, createdAt])
+  @@index([resourceType, resourceId])
+}
+
 // Google Ads offline-conversion config (single row, id = "singleton").
 // valueMap overrides the per-event-type ₹/qualified-lead defaults; offlineApiKey
 // is the Bearer key the offline-conversion read API authenticates against — both
@@ -9537,6 +9808,10 @@ model PushSubscription {
 // (prod-push safety, per the project pattern).
 // ============================================================
 model ConsentRecord {
+  // Which published policy version was accepted, and for which booking
+  policyKey     String?
+  policyVersion Int?
+  bookingId     String?
   id          String   @id @default(cuid())
   subjectType String // CONTACT | GUEST | CANDIDATE | EMPLOYEE
   subjectId   String? // id of the Contact / Guest / RecCandidate / User row, when known
@@ -9690,4 +9965,138 @@ model StoredFile {
 
   @@index([ownerType, ownerId])
   @@index([createdAt])
+}
+
+// ============================================================
+// Customer app (guest app at /app): additive models, plain ids, no relations
+// ============================================================
+
+/// The venue's public contact details (single row). NEXT_PUBLIC_COMPANY_* env vars are the fallback.
+model BusinessProfile {
+  id           String   @id @default(cuid())
+  displayName  String?
+  phone        String?
+  whatsapp     String?
+  email        String?
+  address      String?  @db.Text
+  mapUrl       String?
+  supportHours String?
+  updatedById  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+/// Customer-facing policies. Customers only ever see the published version.
+model PolicyDocument {
+  id          String    @id @default(cuid())
+  key         String    @unique // CANCELLATION_REFUND | HOUSE_RULES | BOOKING_TERMS
+  title       String
+  body        String    @db.Text
+  version     Int       @default(1)
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  updatedById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+/// Frequently asked questions, optionally for one hall.
+model FaqItem {
+  id          String   @id @default(cuid())
+  question    String
+  answer      String   @db.Text
+  category    String?
+  venueId     String?
+  order       Int      @default(0)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublished, order])
+  @@index([venueId])
+}
+
+/// A login's verified right to see one contact's bookings.
+model CustomerLink {
+  id         String   @id @default(cuid())
+  userId     String
+  contactId  String
+  method     String // PHONE (WhatsApp code) | EMAIL (verified email) | STAFF (linked by the team)
+  verifiedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, contactId])
+  @@index([contactId])
+}
+
+/// A family member or planner the host shares one booking with.
+model BookingCollaborator {
+  id          String    @id @default(cuid())
+  bookingId   String
+  phone       String // normalizeOtpPhone() form
+  name        String?
+  role        String    @default("CO_HOST") // CO_HOST | VIEWER
+  status      String    @default("INVITED") // INVITED | ACTIVE | REVOKED
+  userId      String?
+  invitedById String
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([bookingId, phone])
+  @@index([phone])
+  @@index([userId])
+}
+
+/// Two-way concierge conversation for a customer (per booking, or per contact before a booking).
+model ConciergeThread {
+  id             String    @id @default(cuid())
+  contactId      String
+  bookingId      String?
+  status         String    @default("OPEN") // OPEN | CLOSED
+  assignedToId   String?
+  lastMessageAt  DateTime  @default(now())
+  lastCustomerAt DateTime?
+  lastStaffAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([contactId])
+  @@index([bookingId])
+  @@index([assignedToId, status])
+  @@index([lastMessageAt])
+}
+
+model ConciergeMessage {
+  id             String    @id @default(cuid())
+  threadId       String
+  authorType     String // CUSTOMER | STAFF | SYSTEM
+  authorUserId   String?
+  body           String    @db.Text
+  customerReadAt DateTime?
+  staffReadAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+/// A host's menu choices, submitted for the team to confirm into BookingMenu.
+model MenuSelectionRequest {
+  id           String    @id @default(cuid())
+  bookingId    String
+  contactId    String
+  userId       String?
+  packageId    String?
+  items        Json // [{ menuItemId, quantity?, note? }]
+  notes        String?   @db.Text
+  status       String    @default("SUBMITTED") // SUBMITTED | ACCEPTED | DECLINED | WITHDRAWN
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNote   String?   @db.Text
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
 }

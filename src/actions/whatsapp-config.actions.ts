@@ -1,11 +1,48 @@
 "use server";
 
+import { z } from "zod";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { testWhatsAppConnection } from "@/lib/integrations/whatsapp";
 import { whatsappConfigSchema, type WhatsAppConfigInput } from "@/schemas/whatsapp-config.schema";
 import { revalidatePath } from "next/cache";
+
+// ============================================================
+// Approved templates for customer messages. Blank = plain-text fallback, which
+// WhatsApp only delivers inside the 24-hour customer-service window. Parsed
+// here (not in whatsappConfigSchema) so the shared connection schema is
+// untouched.
+// ============================================================
+
+const templateName = z
+  .string()
+  .trim()
+  .max(512, "Template names are at most 512 characters.")
+  .regex(
+    /^[A-Za-z0-9_.-]*$/,
+    "Template names can only use letters, numbers, underscores, dots and hyphens. Copy the exact approved name."
+  )
+  .optional();
+
+const templateSettingsSchema = z.object({
+  otpTemplateName: templateName,
+  otpTemplateLanguage: z
+    .string()
+    .trim()
+    .max(15)
+    .regex(/^([A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})?)?$/, "Use a language code such as en, en_US or hi.")
+    .optional(),
+  bookingUpdateTemplateName: templateName,
+  guestInviteTemplateName: templateName,
+});
+
+export type WhatsAppTemplateSettings = {
+  otpTemplateName?: string;
+  otpTemplateLanguage?: string;
+  bookingUpdateTemplateName?: string;
+  guestInviteTemplateName?: string;
+};
 
 // ============================================================
 // Get active WhatsApp configuration (masked for client)
@@ -37,6 +74,10 @@ export async function getWhatsAppConfig() {
         crmWebhookSecret: true,
         eventSigningSecret: true,
         verifyToken: true,
+        otpTemplateName: true,
+        otpTemplateLanguage: true,
+        bookingUpdateTemplateName: true,
+        guestInviteTemplateName: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
@@ -49,7 +90,7 @@ export async function getWhatsAppConfig() {
 
     // Mask sensitive fields — never return raw secrets to client. The CRM
     // webhook URL is not masked (the form needs to show/edit it), but the two
-    // signing secrets are.
+    // signing secrets are. Template names are not secrets.
     const masked = {
       ...config,
       accessToken: config.accessToken
@@ -73,7 +114,7 @@ export async function getWhatsAppConfig() {
 // Save WhatsApp configuration
 // ============================================================
 
-export async function saveWhatsAppConfig(input: WhatsAppConfigInput) {
+export async function saveWhatsAppConfig(input: WhatsAppConfigInput & WhatsAppTemplateSettings) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -90,7 +131,23 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput) {
       return { success: false as const, error: parsed.error.issues[0]?.message ?? "Validation failed" };
     }
 
+    const templates = templateSettingsSchema.safeParse({
+      otpTemplateName: input.otpTemplateName,
+      otpTemplateLanguage: input.otpTemplateLanguage,
+      bookingUpdateTemplateName: input.bookingUpdateTemplateName,
+      guestInviteTemplateName: input.guestInviteTemplateName,
+    });
+    if (!templates.success) {
+      return { success: false as const, error: templates.error.issues[0]?.message ?? "Check the template names" };
+    }
+
     const data = parsed.data;
+    const templateData = {
+      otpTemplateName: templates.data.otpTemplateName || null,
+      otpTemplateLanguage: templates.data.otpTemplateLanguage || "en",
+      bookingUpdateTemplateName: templates.data.bookingUpdateTemplateName || null,
+      guestInviteTemplateName: templates.data.guestInviteTemplateName || null,
+    };
 
     // Deactivate all existing configs first
     await prisma.whatsAppConfig.updateMany({
@@ -135,6 +192,7 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput) {
           crmWebhookSecret,
           eventSigningSecret,
           verifyToken: data.verifyToken,
+          ...templateData,
           isActive: data.isActive,
         },
       });
@@ -151,6 +209,7 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput) {
           crmWebhookSecret: data.crmWebhookSecret || null,
           eventSigningSecret: data.eventSigningSecret || null,
           verifyToken: data.verifyToken,
+          ...templateData,
           isActive: data.isActive,
           createdById: session.user.id,
         },

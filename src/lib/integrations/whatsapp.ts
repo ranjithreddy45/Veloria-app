@@ -31,6 +31,8 @@ interface SendWhatsAppParams {
   template?: string; // template name
   message?: string; // custom text message
   params?: Record<string, string>; // template params
+  language?: string; // template language code (default "en")
+  codeButton?: string; // one-time code for an authentication template's copy-code button (Meta)
 }
 
 interface SendWhatsAppResult {
@@ -117,7 +119,7 @@ export async function sendWhatsApp(
   if (config.provider === "WEFLUX") {
     const creds = { endpoint: config.apiEndpoint, token: config.accessToken };
     if (params.template) {
-      return await wefluxSendTemplate(creds, to, params.template, params.params);
+      return await wefluxSendTemplate(creds, to, params.template, params.params, params.language);
     }
     if (!params.message) {
       return { success: false, error: "No message content provided" };
@@ -128,7 +130,7 @@ export async function sendWhatsApp(
   try {
     // If a template is specified, send template message
     if (params.template) {
-      return await sendTemplateMessage(config, to, params.template, params.params);
+      return await sendTemplateMessage(config, to, params.template, params.params, params.language, params.codeButton);
     }
 
     // Otherwise send a text message
@@ -320,7 +322,9 @@ async function sendTemplateMessage(
   config: WhatsAppApiConfig,
   to: string,
   templateName: string,
-  params?: Record<string, string>
+  params?: Record<string, string>,
+  language?: string,
+  codeButton?: string
 ): Promise<SendWhatsAppResult> {
   try {
     // Build template components from params
@@ -335,6 +339,16 @@ async function sendTemplateMessage(
       components.push({
         type: "body",
         parameters,
+      });
+    }
+
+    // Authentication (one-time code) templates also carry the code on their button.
+    if (codeButton) {
+      components.push({
+        type: "button",
+        sub_type: "url",
+        index: "0",
+        parameters: [{ type: "text", text: codeButton }],
       });
     }
 
@@ -353,7 +367,7 @@ async function sendTemplateMessage(
           type: "template",
           template: {
             name: templateName,
-            language: { code: "en" },
+            language: { code: language || "en" },
             ...(components.length > 0 ? { components } : {}),
           },
         }),

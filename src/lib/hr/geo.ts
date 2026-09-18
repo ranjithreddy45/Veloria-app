@@ -55,11 +55,50 @@ export function ipAllowed(ip: string | null | undefined, allowList: string | nul
   return allowed.includes(ip.trim());
 }
 
-/** Extract the best client IP from forwarded headers. */
-export function clientIpFromHeaders(xff: string | null, realIp: string | null): string | null {
-  if (xff) return xff.split(",")[0].trim();
-  if (realIp) return realIp.trim();
-  return null;
+/** Reverse proxies in front of the app when TRUSTED_PROXY_COUNT is unset: production's Apache. */
+const DEFAULT_TRUSTED_PROXY_COUNT = 1;
+
+/**
+ * How many reverse proxies in front of the app append to X-Forwarded-For, from
+ * the TRUSTED_PROXY_COUNT env var. Unset, empty, zero, negative or non-integer
+ * values mean 1 (production: Apache mod_proxy → next start). Set 2 when a CDN
+ * that also appends (e.g. Cloudflare) sits in front of Apache.
+ */
+export function trustedProxyCount(raw: string | undefined = process.env.TRUSTED_PROXY_COUNT): number {
+  const text = (raw ?? "").trim();
+  const n = /^\d+$/.test(text) ? Number(text) : NaN;
+  return Number.isSafeInteger(n) && n >= 1 ? n : DEFAULT_TRUSTED_PROXY_COUNT;
+}
+
+/**
+ * The client IP, for rate limits, abuse hashing and office-network matching.
+ *
+ * X-Forwarded-For is a comma-separated list that each proxy APPENDS to, so the
+ * left-hand entries are whatever the client chose to send; only the entries our
+ * own proxies added can be believed. With N trusted proxies the client is the
+ * entry N positions from the RIGHT (Apache appends the address it accepted the
+ * connection from; Next.js fills the header in only when it is absent). A header
+ * with fewer entries than N skipped a proxy, and its leftmost entry is the
+ * nearest thing to the client we have. X-Real-IP is read only when
+ * X-Forwarded-For is absent or empty.
+ */
+export function clientIpFromHeaders(
+  xff: string | null | undefined,
+  realIp: string | null | undefined,
+  proxyCount: number = trustedProxyCount()
+): string | null {
+  const hops = (xff ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (hops.length > 0) {
+    const n = Number.isSafeInteger(proxyCount) && proxyCount >= 1 ? proxyCount : DEFAULT_TRUSTED_PROXY_COUNT;
+    return hops[Math.max(0, hops.length - n)];
+  }
+  return realIp?.trim() || null;
+}
+
+/** clientIpFromHeaders() for a Headers-like object (next/headers, Request#headers). */
+export function clientIpOfHeaders(headers: { get(name: string): string | null } | null | undefined): string | null {
+  if (!headers) return null;
+  return clientIpFromHeaders(headers.get("x-forwarded-for"), headers.get("x-real-ip"));
 }
 
 /** An EXPLICIT allow-list match. Unlike ipAllowed(), an empty list is NOT a match —

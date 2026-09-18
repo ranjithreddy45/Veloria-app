@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 
 import { getWhiteLabelStorefront } from "@/actions/franchise-storefront.actions";
 import { WhiteLabelShell } from "./_components/white-label-shell";
+import { getGuestHallPrices } from "@/actions/guest-public.actions";
+import { hallPriceText } from "@/app/(guest)/_components/format";
 
 // ============================================================
 // PUBLIC white-label storefront — /s/<slug> (no auth)
@@ -40,8 +42,14 @@ export default async function WhiteLabelStorefrontPage({
     notFound();
   }
 
+  // Same "from" price the customer app and the team's price simulator show.
+  const prices = await getGuestHallPrices([data.venue.id]);
+  const price = hallPriceText(prices[data.venue.id]);
+
   return (
     <WhiteLabelShell
+      priceAmount={price.amount}
+      priceSub={price.sub}
       brandName={data.brandName}
       logoUrl={data.logoUrl}
       primaryColor={data.primaryColor}

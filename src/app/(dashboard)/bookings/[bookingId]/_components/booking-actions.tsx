@@ -11,6 +11,7 @@ import {
   CheckCircle2Icon,
   AlertTriangleIcon,
   CalendarIcon,
+  CalendarClockIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,8 @@ import {
   confirmBooking,
 } from "@/actions/booking.actions";
 import { celebrate } from "@/lib/celebrate";
+import { EXTEND_HOLD_LABEL } from "@/lib/holds/hold-extension";
+import { ExtendHoldDialog } from "./extend-hold-dialog";
 
 // ============================================================
 // BookingActions Component
@@ -50,13 +53,17 @@ interface BookingActionsProps {
   currentStatus: string;
   /** SUPER_ADMIN may override the completion quality gate. */
   canOverride?: boolean;
+  /** When the hold ends (ISO). A hold without an end time can't be extended, so the menu hides it. */
+  holdExpiresAt?: string | null;
 }
 
-export function BookingActions({ bookingId, currentStatus, canOverride = false }: BookingActionsProps) {
+export function BookingActions({ bookingId, currentStatus, canOverride = false, holdExpiresAt = null }: BookingActionsProps) {
   const router = useRouter();
   const [isPending, setIsPending] = React.useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = React.useState(false);
   const [holdDialogOpen, setHoldDialogOpen] = React.useState(false);
+  // Extend hold: placeHold on a HOLD booking, which it checks again (extend-hold-dialog.tsx).
+  const [extendDialogOpen, setExtendDialogOpen] = React.useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = React.useState(false);
   const [cancelReason, setCancelReason] = React.useState("");
   const [holdHours, setHoldHours] = React.useState(48);
@@ -190,6 +197,12 @@ export function BookingActions({ bookingId, currentStatus, canOverride = false }
               Confirm booking
             </DropdownMenuItem>
           )}
+          {isHold && holdExpiresAt && (
+            <DropdownMenuItem onClick={() => setExtendDialogOpen(true)}>
+              <CalendarClockIcon className="mr-2 size-4" />
+              {EXTEND_HOLD_LABEL}
+            </DropdownMenuItem>
+          )}
           {isHold && (
             <DropdownMenuItem onClick={handleReleaseHold}>
               <UnlockIcon className="mr-2 size-4" />
@@ -306,6 +319,13 @@ export function BookingActions({ bookingId, currentStatus, canOverride = false }
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Extend hold — same permission as Place Hold (bookings:update, checked by placeHold) */}
+      <ExtendHoldDialog
+        bookingId={bookingId}
+        open={extendDialogOpen}
+        onOpenChange={setExtendDialogOpen}
+      />
 
       {/* Complete Dialog — quality gate (poka-yoke) */}
       <Dialog open={completeDialogOpen} onOpenChange={setCompleteDialogOpen}>

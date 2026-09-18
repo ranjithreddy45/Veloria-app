@@ -1,0 +1,219 @@
+import { describe, expect, it } from "vitest";
+import { leadSourceFor, normalizePushPhone, parsePushLead } from "./schema";
+
+const minimal = { source: "meta_ads", phone: "+919876543210" };
+
+function fieldsOf(body: unknown) {
+  const r = parsePushLead(body);
+  if (r.ok) throw new Error(`expected a validation failure, got ${JSON.stringify(r.lead)}`);
+  return r.fields;
+}
+
+function leadOf(body: unknown) {
+  const r = parsePushLead(body);
+  if (!r.ok) throw new Error(`expected valid, got ${JSON.stringify(r.fields)}`);
+  return r.lead;
+}
+
+describe("contact identifiers", () => {
+  it("requires a phone or an email", () => {
+    expect(fieldsOf({ source: "meta_ads", name: "Rahul Sharma" }).phone).toMatch(/phone number or an email/);
+    expect(fieldsOf({ source: "meta_ads" }).phone).toBeDefined();
+  });
+
+  it("accepts email alone, or phone alone, with no name", () => {
+    expect(leadOf({ source: "website", email: "rahul@example.com" }).email).toBe("rahul@example.com");
+    expect(leadOf(minimal).phone).toBe("+919876543210");
+  });
+
+  it("treats blank strings as absent", () => {
+    expect(fieldsOf({ source: "website", phone: "  ", email: "" }).phone).toBeDefined();
+  });
+});
+
+describe("phone normalisation", () => {
+  it.each([
+    ["9876543210", "+919876543210"],
+    ["+919876543210", "+919876543210"],
+    ["919876543210", "+919876543210"],
+    ["+91 98765-43210", "+919876543210"],
+    ["098765 43210", "+919876543210"],
+    ["+14155552671", "+14155552671"],
+    ["+971501234567", "+971501234567"],
+  ])("%s → %s", (input, expected) => {
+    expect(normalizePushPhone(input)).toBe(expected);
+    expect(leadOf({ source: "website", phone: input }).phone).toBe(expected);
+  });
+
+  it.each([
+    ["12345"],
+    ["abcdefghij"],
+    ["4155552671"], // bare 10 digits that aren't an Indian mobile: we don't guess a country
+    ["+915555555555"], // +91 but not a mobile range
+    ["+1234"],
+  ])("rejects %s", (input) => {
+    expect(normalizePushPhone(input)).toBeNull();
+    expect(fieldsOf({ source: "website", phone: input }).phone).toBe("Invalid phone number");
+  });
+});
+
+describe("email", () => {
+  it("lowercases and trims", () => {
+    expect(leadOf({ source: "website", email: "  Rahul.Sharma@Example.COM " }).email).toBe("rahul.sharma@example.com");
+  });
+  it.each(["not-an-email", "a@b", "@example.com", "rahul@", "rahul @example.com"])("rejects %s", (email) => {
+    expect(fieldsOf({ source: "website", email }).email).toBe("Invalid email address");
+  });
+});
+
+describe("event date", () => {
+  it("accepts an ISO date and an ISO datetime, keeping the day", () => {
+    expect(leadOf({ ...minimal, event_date: "2026-12-20" }).eventDate).toBe("2026-12-20");
+    expect(leadOf({ ...minimal, event_date: "2026-12-20T18:30:00Z" }).eventDate).toBe("2026-12-20");
+  });
+  it.each(["2026-02-30", "20/12/2026", "2026-13-01", "tomorrow", "2026-12-20 18:30"])("rejects %s", (event_date) => {
+    expect(fieldsOf({ ...minimal, event_date }).event_date).toMatch(/ISO date/);
+  });
+  it("rejects a non-string", () => {
+    expect(fieldsOf({ ...minimal, event_date: 20261220 }).event_date).toBeDefined();
+  });
+});
+
+describe("guest count and budget", () => {
+  it("accepts a positive integer guest count and a positive budget", () => {
+    const lead = leadOf({ ...minimal, guest_count: 250, budget: 250000.5 });
+    expect(lead.guestCount).toBe(250);
+    expect(lead.budget).toBe(250000.5);
+  });
+  it.each([0, -5, 2.5, "250", 100_001])("rejects guest_count %s", (guest_count) => {
+    expect(fieldsOf({ ...minimal, guest_count }).guest_count).toBeDefined();
+  });
+  it.each([0, -1, "250000", 10_000_000_000])("rejects budget %s", (budget) => {
+    expect(fieldsOf({ ...minimal, budget }).budget).toBeDefined();
+  });
+});
+
+describe("consent", () => {
+  it("must be a boolean", () => {
+    expect(leadOf({ ...minimal, consent: true }).consent).toBe(true);
+    expect(leadOf({ ...minimal, consent: false }).consent).toBe(false);
+    expect(fieldsOf({ ...minimal, consent: "yes" }).consent).toBe("Must be true or false");
+    expect(fieldsOf({ ...minimal, consent: 1 }).consent).toBeDefined();
+  });
+});
+
+describe("source", () => {
+  it("is required and must be a slug", () => {
+    expect(fieldsOf({ phone: "+919876543210" }).source).toBeDefined();
+    expect(fieldsOf({ ...minimal, source: "Meta Ads!" }).source).toMatch(/slug/);
+  });
+  it("is lowercased and mapped to the CRM's lead source", () => {
+    const lead = leadOf({ ...minimal, source: "META_ADS" });
+    expect(lead.source).toBe("meta_ads");
+    expect(lead.leadSource).toBe("FACEBOOK_ADS");
+  });
+  it("maps every documented source, and anything else to OTHER", () => {
+    expect(leadSourceFor("google_ads")).toBe("GOOGLE_ADS");
+    expect(leadSourceFor("instagram")).toBe("INSTAGRAM");
+    expect(leadSourceFor("whatsapp")).toBe("WHATSAPP");
+    expect(leadSourceFor("walk_in")).toBe("WALK_IN");
+    expect(leadSourceFor("partner")).toBe("PARTNER");
+    expect(leadSourceFor("partner:acme")).toBe("OTHER");
+  });
+});
+
+describe("untrusted input", () => {
+  it("drops unknown top-level fields instead of passing them on", () => {
+    const lead = leadOf({ ...minimal, status: "WON", assignedToId: "admin", deletedAt: null, score: 999 });
+    expect(Object.keys(lead)).not.toContain("status");
+    expect(JSON.stringify(lead)).not.toContain("WON");
+    expect(JSON.stringify(lead)).not.toContain("admin");
+  });
+
+  it("keeps SQL-looking text as inert data (parameterised queries do the rest)", () => {
+    const lead = leadOf({ ...minimal, name: "Robert'); DROP TABLE \"Lead\";--", message: "1' OR '1'='1" });
+    expect(lead.name).toBe("Robert'); DROP TABLE \"Lead\";--");
+    expect(lead.message).toBe("1' OR '1'='1");
+  });
+
+  it("strips control characters but keeps newlines", () => {
+    expect(leadOf({ ...minimal, message: "line one\nline\u0000 two\u0007" }).message).toBe("line one\nline two");
+  });
+
+  it("caps string lengths", () => {
+    expect(fieldsOf({ ...minimal, name: "x".repeat(201) }).name).toMatch(/at most 200/);
+    expect(fieldsOf({ ...minimal, message: "x".repeat(5001) }).message).toBeDefined();
+  });
+
+  it("only accepts http(s) landing pages", () => {
+    expect(leadOf({ ...minimal, landing_page: "https://veloriagrand.com/x.html" }).touch.landingPage).toBe(
+      "https://veloriagrand.com/x.html"
+    );
+    expect(fieldsOf({ ...minimal, landing_page: "javascript:alert(1)" }).landing_page).toMatch(/http/);
+  });
+
+  it("bounds metadata", () => {
+    const ok = leadOf({ ...minimal, metadata: { fb_lead_id: "1", device: "mobile", nested: { a: [1, 2] } } });
+    expect(ok.metadata).toEqual({ fb_lead_id: "1", device: "mobile", nested: { a: [1, 2] } });
+    const tooMany = Object.fromEntries(Array.from({ length: 51 }, (_, i) => [`k${i}`, i]));
+    expect(fieldsOf({ ...minimal, metadata: tooMany }).metadata).toMatch(/50 keys/);
+    expect(fieldsOf({ ...minimal, metadata: { a: { b: { c: { d: 1 } } } } }).metadata).toMatch(/levels deep/);
+    expect(fieldsOf({ ...minimal, metadata: { big: "x".repeat(9000) } }).metadata).toMatch(/bytes/);
+    expect(fieldsOf({ ...minimal, metadata: ["not", "an", "object"] }).metadata).toBeDefined();
+  });
+});
+
+describe("the full example payload", () => {
+  it("parses into the normalised lead", () => {
+    const lead = leadOf({
+      external_id: "META-987654",
+      source: "meta_ads",
+      campaign: "Blossom Bellandur Wedding Campaign",
+      campaign_id: "123456789",
+      adset: "Wedding Leads",
+      ad_id: "987654321",
+      name: "Rahul Sharma",
+      phone: "+919876543210",
+      email: "rahul@example.com",
+      event_type: "wedding",
+      event_date: "2026-12-20",
+      guest_count: 250,
+      venue: "Blossom Bellandur",
+      budget: 250000,
+      message: "Looking for a wedding venue for 250 guests.",
+      utm_source: "facebook",
+      utm_medium: "paid_social",
+      utm_campaign: "blossom_wedding",
+      utm_content: "video_01",
+      landing_page: "https://veloriagrand.com/blossom-bellandur.html",
+      consent: true,
+      metadata: { fb_lead_id: "123456789", device: "mobile", landing_page_variant: "B" },
+    });
+    expect(lead).toMatchObject({
+      externalId: "META-987654",
+      source: "meta_ads",
+      leadSource: "FACEBOOK_ADS",
+      name: "Rahul Sharma",
+      phone: "+919876543210",
+      email: "rahul@example.com",
+      eventType: "wedding",
+      eventDate: "2026-12-20",
+      guestCount: 250,
+      venue: "Blossom Bellandur",
+      budget: 250000,
+      consent: true,
+      touch: {
+        campaign: "Blossom Bellandur Wedding Campaign",
+        campaignId: "123456789",
+        adset: "Wedding Leads",
+        adId: "987654321",
+        utmSource: "facebook",
+        utmMedium: "paid_social",
+        utmCampaign: "blossom_wedding",
+        utmContent: "video_01",
+        landingPage: "https://veloriagrand.com/blossom-bellandur.html",
+      },
+      metadata: { fb_lead_id: "123456789", device: "mobile", landing_page_variant: "B" },
+    });
+  });
+});

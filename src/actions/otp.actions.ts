@@ -1,67 +1,103 @@
 "use server";
 
-import { checkRateLimit } from "@/lib/rate-limit";
+import { after } from "next/server";
+import { headers } from "next/headers";
+import { getWhatsAppApiConfig } from "@/lib/integrations/whatsapp";
 import {
+  clientIpOf,
+  isValidOtpPhone,
+  issueLoginCode,
+  maskPhone,
   normalizeOtpPhone,
-  findActiveUserByPhone,
-  createLoginOtp,
+  otpRateLimit,
+  OTP_RESEND_SECONDS,
 } from "@/lib/otp";
-import { sendWhatsApp } from "@/lib/integrations/whatsapp";
-import { prisma } from "@/lib/prisma";
 
-// Minimum gap between OTP sends to the same number. Enforced at the DB level so
-// the cap survives serverless cold-starts (the in-memory limiter is per-instance).
-const OTP_MIN_INTERVAL_SECONDS = 60;
+// ============================================================
+// Request a WhatsApp sign-in code (customer app /app/welcome and staff
+// /sign-in). Who actually gets a code is decided in src/lib/otp.ts.
+//
+// No enumeration: once the number is well-formed, within limits and WhatsApp
+// is configured, every number gets the SAME response, and the eligibility
+// check + WhatsApp send run after the response is sent (after()), so neither
+// the body nor the response time says whether the number is on our records.
+// Every refusal below depends only on the network, the number's request count
+// or global configuration — never on whether the number is registered.
+// ============================================================
 
-/**
- * Request a WhatsApp login code. Rate-limited and anti-enumeration: always
- * resolves success, but only actually sends a code when an active account
- * exists for that number. The plaintext code never leaves the server.
- */
-export async function requestLoginOtp(
-  rawPhone: string
-): Promise<{ success: boolean; error?: string }> {
-  const normalized = normalizeOtpPhone(rawPhone);
-  if (normalized.length < 11) {
-    return { success: false, error: "Enter a valid mobile number." };
-  }
+export type RequestLoginOtpResult =
+  | { success: true; message: string; resendInSeconds: number }
+  | {
+      success: false;
+      error: string;
+      reason: "INVALID_NUMBER" | "RATE_LIMITED" | "WHATSAPP_UNAVAILABLE";
+    };
 
-  // Max 3 codes per number per 5 minutes.
-  const rl = checkRateLimit(`otp-request:${normalized}`, {
-    maxRequests: 3,
-    windowSeconds: 300,
-  });
-  if (!rl.success) {
+function waitText(seconds: number): string {
+  if (seconds < 90) return `${Math.max(1, seconds)} seconds`;
+  return `${Math.ceil(seconds / 60)} minutes`;
+}
+
+export async function requestLoginOtp(rawPhone: string): Promise<RequestLoginOtpResult> {
+  const normalized = normalizeOtpPhone(String(rawPhone ?? ""));
+  if (!isValidOtpPhone(normalized)) {
     return {
       success: false,
-      error: `Too many requests. Try again in ${rl.resetIn}s.`,
+      reason: "INVALID_NUMBER",
+      error: "Enter a valid mobile number. Add the country code if it isn't an Indian number.",
     };
   }
 
-  const user = await findActiveUserByPhone(normalized);
-  if (user) {
-    // DB-level recency guard: reject if an unconsumed code for this number was
-    // created within the last N seconds. Shared across instances, so the cap
-    // holds even when the in-memory limiter resets on a cold start.
-    const since = new Date(Date.now() - OTP_MIN_INTERVAL_SECONDS * 1000);
-    const recent = await prisma.otpCode.findFirst({
-      where: { phone: normalized, consumedAt: null, createdAt: { gt: since } },
-      select: { id: true },
-    });
-    if (recent) {
-      return {
-        success: false,
-        error: `Too many requests. Try again in ${OTP_MIN_INTERVAL_SECONDS}s.`,
-      };
-    }
-
-    const code = await createLoginOtp(normalized);
-    await sendWhatsApp({
-      to: normalized,
-      message: `Your Veloria Grand login code is ${code}. It expires in 5 minutes. Never share this code with anyone.`,
-    });
+  let ip: string | null = null;
+  try {
+    ip = clientIpOf(await headers());
+  } catch {
+    ip = null;
+  }
+  const byIp = otpRateLimit("request", "ip", ip);
+  if (!byIp.success) {
+    return {
+      success: false,
+      reason: "RATE_LIMITED",
+      error: `Too many code requests from this network. Try again in ${waitText(byIp.resetIn)}.`,
+    };
   }
 
-  // Generic response either way (don't reveal whether the number is registered).
-  return { success: true };
+  // Global, not per-number — safe to say plainly. The screen adds the venue's
+  // contact options.
+  const whatsapp = await getWhatsAppApiConfig();
+  if (!whatsapp) {
+    return {
+      success: false,
+      reason: "WHATSAPP_UNAVAILABLE",
+      error: "Sign-in by WhatsApp isn't available right now.",
+    };
+  }
+
+  // Applies to every number alike, registered or not.
+  const byNumber = otpRateLimit("request", "number", normalized);
+  if (!byNumber.success) {
+    return {
+      success: false,
+      reason: "RATE_LIMITED",
+      error: `Too many code requests for this number. Try again in ${waitText(byNumber.resetIn)}.`,
+    };
+  }
+
+  after(async () => {
+    try {
+      const outcome = await issueLoginCode(normalized);
+      if (outcome !== "SENT" && outcome !== "NOT_ELIGIBLE") {
+        console.warn(`[otp] no code sent · ${outcome} · ${maskPhone(normalized)}`);
+      }
+    } catch (error) {
+      console.error(`[otp] issuing a sign-in code failed · ${maskPhone(normalized)}`, error);
+    }
+  });
+
+  return {
+    success: true,
+    resendInSeconds: OTP_RESEND_SECONDS,
+    message: "If this number is on a booking or enquiry with us, a code is on its way on WhatsApp.",
+  };
 }

@@ -6,6 +6,7 @@ import { buildCRMSystemPrompt } from "@/lib/ai/system-prompt";
 import { CRM_TOOLS, executeCRMTool, type ToolContext } from "@/lib/ai/crm-tools";
 import { chatRequestSchema } from "@/schemas/ai.schema";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import type OpenAI from "openai";
 
 export const runtime = "nodejs";
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Rate limit: 30 AI requests per minute per user
-  const identifier = session?.user?.id || req.headers.get("x-forwarded-for") || "anonymous";
+  const identifier = session?.user?.id || clientIpOfHeaders(req.headers) || "anonymous";
   const rateCheck = checkRateLimit(`ai-chat:${identifier}`, { maxRequests: 30, windowSeconds: 60 });
   if (!rateCheck.success) {
     return rateLimitResponse(rateCheck.resetIn);

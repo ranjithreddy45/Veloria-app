@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle2, Clock, Loader2, Sparkles } from "lucide-react";
 import { submitBookingInquiry } from "@/actions/storefront.actions";
-import { HelpChip } from "@/components/public/help-chip";
+import type { PublicContact } from "@/lib/public/business-contact";
+import { ContactLinks } from "../../../_components/contact-links";
+import { BackButton } from "../../../_components/nav-transition";
 
 // Values here are sent verbatim as the enquiry's eventType, so each label must
 // carry through as picked (no "Sangeet" → "Social Gathering" style remaps).
@@ -37,7 +39,12 @@ function todayLocal(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export function BookingForm({ venues }: { venues: VenueOption[] }) {
+/**
+ * `contact` is the team's published contact record (Settings → Business
+ * contact). No response time is promised unless the team has set support
+ * hours, and the contact buttons only appear for real numbers.
+ */
+export function BookingForm({ venues, contact }: { venues: VenueOption[]; contact: PublicContact }) {
   const params = useSearchParams();
   const prefillVenueId = params.get("venueId") ?? "";
   const prefillOccasion = params.get("occasion") ?? "";
@@ -56,6 +63,8 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
     venueId: prefillVenueId,
     message: "",
   });
+
+  const hasChannel = Boolean(contact.whatsapp || contact.phone);
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -94,20 +103,25 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
         </h1>
         <p className="mt-2 max-w-xs text-body leading-relaxed text-muted-foreground">
           Thank you, {form.name.split(" ")[0] || "there"}. Our events team will
-          reach out shortly to confirm availability and share a personalised
-          quote.
+          reach out to confirm availability and share a personalised quote.
         </p>
-        <p className="mt-3 inline-flex max-w-xs items-center gap-1.5 rounded-full bg-emerald-50 px-3.5 py-1.5 text-detail font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">
-          <Clock className="size-3.5" /> Our team will call you within 2 hours
-          (10am–8pm).
-        </p>
-        <HelpChip
-          variant="banner"
-          className="mt-6 w-full max-w-xs"
-          message={`Hi, I just submitted an enquiry${
-            form.name ? ` (${form.name})` : ""
-          } and would like to talk to the events team.`}
-        />
+        {contact.supportHours && (
+          <p className="mt-3 inline-flex max-w-xs items-start gap-1.5 rounded-2xl bg-[#e6f6ea] px-3.5 py-2 text-left text-detail font-semibold text-[#1b6b41]">
+            <Clock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+            <span>We call back during our team hours: {contact.supportHours}</span>
+          </p>
+        )}
+        {hasChannel && (
+          <div className="mt-6 w-full max-w-xs">
+            <p className="mb-2 text-detail text-[#6e6e73]">Questions in the meantime?</p>
+            <ContactLinks
+              contact={contact}
+              context={`Hi, I just submitted an enquiry${
+                form.name ? ` (${form.name})` : ""
+              } and would like to talk to the events team.`}
+            />
+          </div>
+        )}
         <Link
           href="/app"
           className="mt-4 text-body font-bold text-[#6d1b52]"
@@ -124,7 +138,8 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
   const labelClass = "mb-1.5 block text-detail font-bold text-zinc-700";
 
   return (
-    <div className="bg-aura bg-grid-faint min-h-screen bg-zinc-50 px-5 pt-[calc(var(--sat)+1.25rem)]">
+    <div className="bg-aura bg-grid-faint min-h-screen bg-zinc-50 px-5 pt-[calc(var(--sat)+0.75rem)]">
+      <BackButton href="/app/book" className="mb-3" />
       <h1 className="large-title text-ink-gradient text-h2">
         Request a callback
       </h1>
@@ -266,6 +281,21 @@ export function BookingForm({ venues }: { venues: VenueOption[] }) {
           enquiry.
         </p>
       </form>
+
+      {hasChannel && (
+        <div className="mt-2 rounded-2xl border border-black/[.06] bg-white p-4">
+          <p className="text-body font-semibold text-[#1d1d1f]">Prefer to talk now?</p>
+          {contact.supportHours && (
+            <p className="mt-0.5 text-detail text-[#6e6e73]">Team hours: {contact.supportHours}</p>
+          )}
+          <ContactLinks
+            contact={contact}
+            context="Hi, I'd like to ask about booking an event."
+            className="mt-3"
+          />
+        </div>
+      )}
+      <div className="h-6" />
     </div>
   );
 }

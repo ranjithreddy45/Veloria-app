@@ -1,9 +1,71 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import {
   haversineMeters, withinRadius, ipAllowed,
   isValidCoord, isTrustedAccuracy, MAX_TRUSTED_ACCURACY_M,
   ipExplicitlyAllowed, evaluateGeofence, evaluateGeofenceMulti, type GeofenceSite,
+  clientIpFromHeaders, clientIpOfHeaders, trustedProxyCount,
 } from "./geo";
+
+// ============================================================
+// Client IP. X-Forwarded-For entries on the LEFT are whatever the client sent;
+// only the ones our proxies appended (on the RIGHT) may key a rate limit or
+// match an office network. Documentation addresses: 192.0.2.66 is a forged
+// value, 203.0.113.9 the real client, 172.70.1.1 a CDN edge.
+// ============================================================
+
+describe("clientIpFromHeaders — trusts only proxy-appended X-Forwarded-For entries", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("ignores a forged first entry: Apache appends the real client on the right", () => {
+    expect(clientIpFromHeaders("192.0.2.66, 203.0.113.9", null, 1)).toBe("203.0.113.9");
+    expect(clientIpFromHeaders("192.0.2.66, 192.0.2.67, 203.0.113.9", null, 1)).toBe("203.0.113.9");
+  });
+
+  it("reads a single entry as the client", () => {
+    expect(clientIpFromHeaders("203.0.113.9", null, 1)).toBe("203.0.113.9");
+  });
+
+  it("uses X-Real-IP only when X-Forwarded-For is absent or empty", () => {
+    expect(clientIpFromHeaders(null, " 203.0.113.9 ", 1)).toBe("203.0.113.9");
+    expect(clientIpFromHeaders("", "203.0.113.9", 1)).toBe("203.0.113.9");
+    expect(clientIpFromHeaders(" , ", "203.0.113.9", 1)).toBe("203.0.113.9");
+    expect(clientIpFromHeaders("203.0.113.9", "192.0.2.66", 1)).toBe("203.0.113.9");
+    expect(clientIpFromHeaders(null, null, 1)).toBeNull();
+    expect(clientIpFromHeaders(undefined, "   ", 1)).toBeNull();
+  });
+
+  it("trims whitespace and skips empty entries", () => {
+    expect(clientIpFromHeaders("  192.0.2.66 ,, 203.0.113.9  ", null, 1)).toBe("203.0.113.9");
+    expect(clientIpFromHeaders("192.0.2.66,203.0.113.9,", null, 1)).toBe("203.0.113.9");
+  });
+
+  it("with TRUSTED_PROXY_COUNT=2 (CDN in front of Apache) takes the second entry from the right", () => {
+    expect(clientIpFromHeaders("192.0.2.66, 203.0.113.9, 172.70.1.1", null, 2)).toBe("203.0.113.9");
+    // Fewer entries than proxies: the request skipped one; the leftmost is the nearest to the client.
+    expect(clientIpFromHeaders("203.0.113.9", null, 2)).toBe("203.0.113.9");
+  });
+
+  it("reads TRUSTED_PROXY_COUNT from the environment, defaulting to 1", () => {
+    const xff = "192.0.2.66, 203.0.113.9, 172.70.1.1";
+    vi.stubEnv("TRUSTED_PROXY_COUNT", "2");
+    expect(clientIpFromHeaders(xff, null)).toBe("203.0.113.9");
+    for (const bad of ["", " ", "0", "-1", "1.5", "two"]) {
+      vi.stubEnv("TRUSTED_PROXY_COUNT", bad);
+      expect(clientIpFromHeaders(xff, null)).toBe("172.70.1.1");
+    }
+    expect(trustedProxyCount(" 3 ")).toBe(3);
+    expect(trustedProxyCount("1e1")).toBe(1);
+  });
+
+  it("clientIpOfHeaders reads a Headers object", () => {
+    vi.stubEnv("TRUSTED_PROXY_COUNT", "");
+    expect(clientIpOfHeaders(new Headers({ "x-forwarded-for": "192.0.2.66, 203.0.113.9" }))).toBe("203.0.113.9");
+    expect(clientIpOfHeaders(new Headers({ "x-real-ip": "203.0.113.9" }))).toBe("203.0.113.9");
+    expect(clientIpOfHeaders(null)).toBeNull();
+  });
+});
 
 // ============================================================
 // Geo INTEGRITY guards. Coordinates and accuracy arrive from the browser and

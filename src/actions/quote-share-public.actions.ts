@@ -17,6 +17,7 @@
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 import { z } from "zod";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { ensureProformaForShareLink, computeAdvanceAmount } from "@/lib/sales/quote-onetap";
 import { parseDeviceFromUA, hashIp, isLikelyBot } from "@/lib/quote-radar/token";
 import { SLOT_LABEL, plannerSlotToEnum } from "@/lib/sales/slot";
@@ -163,7 +164,7 @@ async function recordTierView(shareLinkId: string, status: string): Promise<void
     try {
       const h = await headers();
       ua = h.get("user-agent");
-      ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null;
+      ip = clientIpOfHeaders(h);
     } catch {
       /* outside request scope */
     }

@@ -10,6 +10,7 @@
 
 import { createHash } from "crypto";
 import { headers } from "next/headers";
+import { clientIpOfHeaders } from "@/lib/hr/geo";
 import { prisma } from "@/lib/prisma";
 import {
   CONSENT_TEXT_ENQUIRY,
@@ -60,8 +61,7 @@ export function hashPrivacyIp(ip?: string | null): string | null {
 export async function requestClientMeta(): Promise<{ ip: string | null; userAgent: string | null }> {
   try {
     const h = await headers();
-    const ip =
-      h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip")?.trim() || null;
+    const ip = clientIpOfHeaders(h);
     const userAgent = h.get("user-agent")?.slice(0, 512) || null;
     return { ip, userAgent };
   } catch {

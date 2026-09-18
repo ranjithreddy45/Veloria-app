@@ -7,7 +7,6 @@ import { submitBookingInquiry, type StorefrontVenue } from "@/actions/storefront
 import { getSocialProofAction } from "@/actions/public-social-proof.actions";
 import { SocialProofStrip } from "@/components/public/social-proof-strip";
 import { EMPTY_SOCIAL_PROOF, type SocialProofData } from "@/lib/public/social-proof-types";
-import { formatINR } from "@/lib/utils";
 
 // ============================================================
 // White-label themed shell + public enquiry form.
@@ -16,6 +15,10 @@ import { formatINR } from "@/lib/utils";
 // ============================================================
 
 interface WhiteLabelShellProps {
+  /** "From" amount computed on the server from the team's pricing; null when the hall has no price to show. */
+  priceAmount: string | null;
+  /** "per slot" / "per slot + ₹350 per guest"; null without a price. */
+  priceSub: string | null;
   brandName: string | null;
   logoUrl: string | null;
   primaryColor: string | null;
@@ -25,6 +28,8 @@ interface WhiteLabelShellProps {
 const HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
 export function WhiteLabelShell({
+  priceAmount,
+  priceSub,
   brandName,
   logoUrl,
   primaryColor,
@@ -139,13 +144,20 @@ export function WhiteLabelShell({
             </p>
           </div>
           <div className="text-right">
-            <p className="text-muted-foreground/80 text-meta font-semibold uppercase tracking-[0.14em]">From</p>
-            <p
-              className="numeric mt-1 text-lede font-semibold"
-              style={{ color: "var(--brand)" }}
-            >
-              {formatINR(venue.pricePerSlot)}
-            </p>
+            {priceAmount ? (
+              <>
+                <p className="text-muted-foreground/80 text-meta font-semibold uppercase tracking-[0.14em]">From</p>
+                <p
+                  className="numeric mt-1 text-lede font-semibold"
+                  style={{ color: "var(--brand)" }}
+                >
+                  {priceAmount}
+                </p>
+                {priceSub && <p className="text-muted-foreground mt-0.5 text-meta">{priceSub}</p>}
+              </>
+            ) : (
+              <p className="text-muted-foreground text-xs font-medium">Price on request</p>
+            )}
           </div>
         </div>
         {venue.amenities.length > 0 && (

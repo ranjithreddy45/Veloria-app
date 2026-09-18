@@ -151,8 +151,9 @@ export async function provisionEventOperations(
   if (op.opsProvisionedAt) return summary; // fully done already — fast idempotent exit
 
   const template = await selectTemplate(eventType || booking.eventType);
-  // The customer's actual chosen menu (from their quotation) drives the kitchen
-  // plan + BEO menu note — so the kitchen team gets THE order, not a template.
+  // The customer's actual menu (the booking's saved menu, else their quotation)
+  // drives the kitchen plan + BEO menu note — so the kitchen team gets THE
+  // order, not a template.
   const bookingMenu = await loadBookingMenu(bookingId, booking.guestCount ?? 0);
   // Scale standard procurement/dispatch seed quantities to the ACTUAL guest count
   // (the seeds are written for a ~200-guest baseline) so a 50-guest event doesn't
@@ -222,9 +223,9 @@ export async function provisionEventOperations(
     errors.push(`BEO: ${(e as Error).message}`);
   }
 
-  // 3) Kitchen plan (one per booking): the customer's ACTUAL menu from their
-  //    quotation drives it; only if there's no quotation menu do we fall back to
-  //    the template's standard kitchenSeed.
+  // 3) Kitchen plan (one per booking): the customer's ACTUAL menu (the booking's
+  //    saved menu, else their quotation) drives it; only if neither has a menu do
+  //    we fall back to the template's standard kitchenSeed.
   try {
     const existing = await prisma.kitchenPlan.findFirst({ where: { bookingId }, select: { id: true, operationId: true } });
     if (existing) {
@@ -242,7 +243,11 @@ export async function provisionEventOperations(
         await prisma.kitchenPlan.create({
           data: {
             bookingId, operationId: op.id, covers: booking.guestCount ?? 0, status: "PLANNED", estFoodCost: est, createdById,
-            notes: bookingMenu ? "Auto-generated from the customer's quotation menu." : "Auto-generated from the SOP template.",
+            notes: !bookingMenu
+              ? "Auto-generated from the SOP template."
+              : bookingMenu.source === "booking_menu"
+                ? "Auto-generated from the booking's saved menu."
+                : "Auto-generated from the customer's quotation menu.",
             items: {
               create: menuItems.map((it) => ({
                 name: it.name, category: it.category ?? null, quantity: Number(it.quantity) || 0,

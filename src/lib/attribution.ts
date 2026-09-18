@@ -12,6 +12,7 @@
 // here is wrapped in try/catch and logs-only on failure.
 // ============================================================
 
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { attributionInputSchema } from "@/schemas/attribution.schema";
 
@@ -222,8 +223,7 @@ export async function attachAttributionToLead(
   try {
     if (!leadId) return;
 
-    const parsed = attributionInputSchema.safeParse(input);
-    const data = parsed.success ? parsed.data : {};
+    const data = parseAttributionFieldByField(input);
 
     // Derive the channel hint for campaign resolution: prefer an explicit
     // source label (FB/Google/webform), fall back to utm_source.
@@ -261,32 +261,81 @@ export async function attachAttributionToLead(
       campaignId,
     };
 
-    await prisma.leadAttribution.upsert({
-      where: { leadId },
-      create: { leadId, ...fields },
-      // On dedup/redelivery we keep FIRST-TOUCH: only fill blanks, never
-      // overwrite an already-captured value (??-style via update of nulls).
-      update: {
-        // Re-link campaign in case the MarketingCampaign was created later.
-        campaignId,
-        // Backfill Google ids if the first touch didn't carry them.
-        gadsCampaignId: fields.gadsCampaignId ?? undefined,
-        gadsAdgroupId: fields.gadsAdgroupId ?? undefined,
-        gadsCreativeId: fields.gadsCreativeId ?? undefined,
-      },
-    });
+    // FIRST TOUCH IS KEPT. On a repeat delivery or a re-push, only fields that
+    // are still empty are filled; nothing already recorded is replaced. The
+    // previous version overwrote the Google Ads ids and the campaign link
+    // whenever a later touch carried one (`value ?? undefined` means "replace
+    // when present", not "fill when blank"), and rewrote the lead's utm fields
+    // every time — so a second click from another campaign stole the credit.
+    // Later touches belong in LeadTouch, not here.
+    const existing = await prisma.leadAttribution.findUnique({ where: { leadId } });
+    if (!existing) {
+      await prisma.leadAttribution
+        .create({ data: { leadId, ...fields } })
+        .catch(async (e: unknown) => {
+          // A concurrent writer created it first: fall through to fill blanks.
+          if ((e as { code?: string })?.code !== "P2002") throw e;
+          await fillBlankAttribution(leadId, fields);
+        });
+    } else {
+      await fillBlankAttribution(leadId, fields, existing);
+    }
 
-    // Mirror the canonical utm triple onto the Lead scalars (only set when
-    // we have a value; don't clobber existing with null).
-    const leadUtm: Record<string, string> = {};
-    if (fields.utmSource) leadUtm.utmSource = fields.utmSource;
-    if (fields.utmMedium) leadUtm.utmMedium = fields.utmMedium;
-    if (fields.utmCampaign) leadUtm.utmCampaign = fields.utmCampaign;
-    if (Object.keys(leadUtm).length) {
-      await prisma.lead.update({ where: { id: leadId }, data: leadUtm });
+    // Mirror the utm triple onto the Lead only where the lead has none yet.
+    const lead = await prisma.lead.findUnique({
+      where: { id: leadId },
+      select: { utmSource: true, utmMedium: true, utmCampaign: true },
+    });
+    if (lead) {
+      const leadUtm: Record<string, string> = {};
+      if (!lead.utmSource && fields.utmSource) leadUtm.utmSource = fields.utmSource;
+      if (!lead.utmMedium && fields.utmMedium) leadUtm.utmMedium = fields.utmMedium;
+      if (!lead.utmCampaign && fields.utmCampaign) leadUtm.utmCampaign = fields.utmCampaign;
+      if (Object.keys(leadUtm).length) {
+        await prisma.lead.update({ where: { id: leadId }, data: leadUtm });
+      }
     }
   } catch (error) {
     // NEVER throw — lead capture must not break on attribution failure.
     console.error("[ATTRIBUTION_ATTACH_ERROR]", error);
+  }
+}
+
+/**
+ * Validate each attribution field on its own. One bad field (an fbclid longer
+ * than the column allows) used to fail the whole object, so the lead was saved
+ * with NO attribution at all — utm tags and click ids included.
+ */
+function parseAttributionFieldByField(input: AttributionInput): Partial<Record<keyof AttributionInput, string>> {
+  const whole = attributionInputSchema.safeParse(input);
+  if (whole.success) return whole.data;
+  const shape = attributionInputSchema.shape as Record<string, { safeParse: (v: unknown) => { success: boolean; data?: unknown } }>;
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(input ?? {})) {
+    const field = shape[key];
+    if (!field || value == null) continue;
+    const r = field.safeParse(value);
+    if (r.success && typeof r.data === "string") out[key] = r.data;
+  }
+  return out as Partial<Record<keyof AttributionInput, string>>;
+}
+
+type AttributionFields = Omit<Prisma.LeadAttributionUncheckedCreateInput, "leadId" | "id">;
+
+/** Set only the columns that are still null on the stored row. */
+async function fillBlankAttribution(
+  leadId: string,
+  fields: AttributionFields,
+  existing?: Record<string, unknown> | null
+): Promise<void> {
+  const row = existing ?? (await prisma.leadAttribution.findUnique({ where: { leadId } }));
+  if (!row) return;
+  const data: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(fields)) {
+    if (value == null) continue;
+    if ((row as Record<string, unknown>)[key] == null) data[key] = value;
+  }
+  if (Object.keys(data).length) {
+    await prisma.leadAttribution.update({ where: { leadId }, data });
   }
 }
