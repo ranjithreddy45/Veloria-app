@@ -34,3 +34,12 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Deployment Troubleshooting
+
+If you encounter `Permission denied` or `Operation not permitted` errors during `rsync` when running `./deploy.sh`, it means the server files are owned by `root`. 
+
+Run the following command from your local machine to fix the permissions on the server:
+```bash
+ssh -t -i ./id_rsa theveloriagrand@43.225.53.88 "sudo chown -R theveloriagrand:theveloriagrand ~/veloria-app-prod"
+```

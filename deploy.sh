@@ -4,7 +4,7 @@ echo "🚀 Starting Deployment to VPS..."
 
 # 1. Sync the code
 echo "Syncing files..."
-rsync -avz --exclude 'node_modules' --exclude '.next' --exclude '.git' --exclude '.env' -e "ssh -i ./id_rsa" ./ theveloriagrand@43.225.53.88:~/veloria-app-prod
+rsync -avz --delete --exclude 'node_modules' --exclude '.next' --exclude '.git' --exclude '.env' -e "ssh -i ./id_rsa" ./ theveloriagrand@43.225.53.88:~/veloria-app-prod
 
 # 2. Build and restart on the server
 echo "🔨 Building and Restarting PM2..."
