@@ -52,6 +52,7 @@ import {
   type SendMode,
 } from "@/lib/guests/invitation-send";
 import { recordConsent } from "@/lib/privacy/consent";
+import { recalcGuestListTotals } from "@/lib/guests/totals";
 import { CONSENT_TEXT_RSVP } from "@/lib/privacy/consent-text";
 
 // ============================================================
@@ -448,7 +449,7 @@ export async function processRsvpResponse(data: RsvpResponseInput) {
 
     // No reply message is read: nothing on the invitation or the guest holds one, so the
     // RSVP page no longer offers a note for the hosts (one sent by an old page is ignored).
-    const { token, response, plusOnes, dietaryRestrictions, consent } = parsed.data;
+    const { token, response, plusOnes, dietaryRestrictions, consent, mealVeg, mealNonVeg, mealJain } = parsed.data;
 
     // DPDP: the guest must agree before we store their response. This is our
     // own hosted page, so the tick is enforced here, not just in the UI.
@@ -513,15 +514,32 @@ export async function processRsvpResponse(data: RsvpResponseInput) {
       return { success: false as const, error: "Already responded" };
     }
 
-    // Update guest RSVP status and optional fields
+    // Update guest RSVP status and optional fields.
+    //
+    // The meal counts are written as a SET or not at all: the schema has already
+    // refused a split that doesn't account for the party, and storing one of the
+    // three would leave a total that reads as real but under-counts the party.
+    // Declining clears them, so a changed mind can't leave covers behind it.
+    const mealAnswered =
+      response === "ACCEPTED" && [mealVeg, mealNonVeg, mealJain].some((n) => n != null);
     await prisma.guest.update({
       where: { id: guest.id },
       data: {
         rsvpStatus: response === "ACCEPTED" ? "ACCEPTED" : "DECLINED",
         ...(plusOnes !== undefined && { plusOnes }),
         ...(dietaryRestrictions && { dietaryRestrictions }),
+        ...(mealAnswered
+          ? { mealVeg: mealVeg ?? 0, mealNonVeg: mealNonVeg ?? 0, mealJain: mealJain ?? 0 }
+          : response === "DECLINED"
+            ? { mealVeg: null, mealNonVeg: null, mealJain: null }
+            : {}),
       },
     });
+
+    // Keep the stored guest-list totals in step. Every other RSVP writer does
+    // this; this path did not, so a link RSVP left GuestList.totalRSVP stale —
+    // invisible only because the screens recompute from Guest rows on read.
+    await recalcGuestListTotals(guest.guestListId);
 
     // Consent ledger (DPDP). Awaited (one insert) so a serverless freeze
     // can't drop it; the helper never throws.
