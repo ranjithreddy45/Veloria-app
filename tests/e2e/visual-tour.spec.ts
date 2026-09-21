@@ -24,6 +24,7 @@ const SHOTS = path.join(__dirname, "visual-tour-shots");
 /** One screen from each family of layout: home, list, board, calendar, detail-heavy, settings, ops, finance, HR. */
 const SCREENS: { name: string; path: string }[] = [
   { name: "home", path: "/dashboard" },
+  { name: "sales-dashboard", path: "/sales/dashboard" },
   { name: "leads", path: "/leads" },
   { name: "pipeline", path: "/pipeline" },
   { name: "bookings", path: "/bookings" },

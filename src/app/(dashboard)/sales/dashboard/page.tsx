@@ -5,6 +5,7 @@ import {
   AlertTriangle, CalendarRange, Gauge, PieChart, ThumbsUp,
 } from "lucide-react";
 import { getSalesAnalytics, getSalesExecutives } from "@/actions/sales-analytics.actions";
+import { TopPerformers } from "./_components/top-performers";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -161,6 +162,10 @@ export default async function SalesDashboardPage({
         </Card>
       ) : (
         <>
+          {/* First thing on the page: who closed how many, for everyone to see.
+              Reads the same per-person rows as the table below — no recount. */}
+          <TopPerformers employees={a.employees} period={a.range.label} />
+
           {/* KPI row */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {kpis.map((k) => (
