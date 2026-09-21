@@ -47,7 +47,7 @@ export function GettingStarted({ steps, doneCount, total }: { steps: OnboardingS
   };
 
   return (
-    <Card className="relative overflow-hidden rounded-2xl border-border/60 bg-card shadow-card">
+    <Card className="relative overflow-hidden">
       <CardContent className="relative space-y-5 px-5 py-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">

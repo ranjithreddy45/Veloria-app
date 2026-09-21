@@ -1,78 +1,38 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Mirrors the home layout (header, four tiles, 8/4 band) so nothing jumps when
+// the real page streams in.
 export default function DashboardLoading() {
   return (
-    <div className="space-y-8">
-      {/* Welcome Banner Skeleton */}
-      <Skeleton className="h-[140px] w-full rounded-2xl" />
+    <div className="mx-auto flex max-w-[1500px] flex-col gap-[18px]" aria-busy="true" aria-label="Loading your home">
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-3 w-48" />
+        <Skeleton className="h-9 w-full max-w-[520px]" />
+        <Skeleton className="h-4 w-full max-w-[420px]" />
+      </div>
 
-      {/* KPI Cards Skeleton */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i} className="rounded-2xl border bg-card shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="space-y-3">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-8 w-20" />
-                  <Skeleton className="h-3 w-32" />
-                </div>
-                <Skeleton className="size-11 rounded-xl" />
-              </div>
-            </CardContent>
+          <Card key={i} className="gap-2 p-[18px]">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-3 w-36" />
           </Card>
         ))}
       </div>
 
-      {/* Charts Skeleton */}
-      <div className="grid gap-4 lg:grid-cols-12">
-        <div className="lg:col-span-8">
-          <Card className="rounded-2xl border bg-card shadow-card">
-            <CardHeader className="pb-2">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-3 w-56" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-[300px] w-full" />
-            </CardContent>
-          </Card>
-        </div>
-        <div className="lg:col-span-4">
-          <Card className="rounded-2xl border bg-card shadow-card">
-            <CardHeader className="pb-2">
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-3 w-48" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="mx-auto h-[260px] w-full rounded-full" />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Bottom Section Skeleton */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {Array.from({ length: 2 }).map((_, i) => (
-          <Card key={i} className="rounded-2xl border bg-card shadow-card">
-            <CardHeader className="pb-2">
-              <Skeleton className="h-5 w-36" />
-              <Skeleton className="h-3 w-28" />
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {Array.from({ length: 4 }).map((_, j) => (
-                <div key={j} className="flex items-start gap-3 p-3">
-                  <Skeleton className="size-9 shrink-0 rounded-xl" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                  <Skeleton className="h-5 w-16 rounded-full" />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <Card className="gap-3 p-[18px] lg:col-span-8">
+          <Skeleton className="h-5 w-40" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-[68px] w-full rounded-[15px]" />
+          ))}
+        </Card>
+        <Card className="gap-3 p-[18px] lg:col-span-4">
+          <Skeleton className="h-5 w-44" />
+          <Skeleton className="h-32 w-full rounded-[13px]" />
+        </Card>
       </div>
     </div>
   );
