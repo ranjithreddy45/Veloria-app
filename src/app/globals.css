@@ -398,15 +398,18 @@
 }
 @utility surface-glass {
   background-color: oklch(1 0 0 / 78%);
-  border: 1px solid oklch(1 0 0 / 70%);
   -webkit-backdrop-filter: blur(22px) saturate(170%);
   backdrop-filter: blur(22px) saturate(170%);
-  box-shadow: 0 1px 1px oklch(0.2 0.02 340 / 4%), 0 18px 44px -24px oklch(0.3 0.09 340 / 32%);
+  /* The glass edge is an INSET RING in the shadow, not a `border`. This utility
+   * compiles after Tailwind's border-colour/width/style utilities, so a border
+   * shorthand here silently killed every Card's own border — 21 severity
+   * accents (border-l-4 border-red-…) and 4 dashed cards. The border property
+   * is left entirely to the caller. */
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 70%), 0 1px 1px oklch(0.2 0.02 340 / 4%), 0 18px 44px -24px oklch(0.3 0.09 340 / 32%);
 }
 .dark .surface-glass {
   background-color: oklch(0.24 0.008 300 / 72%);
-  border-color: oklch(1 0 0 / 9%);
-  box-shadow: 0 1px 1px oklch(0 0 0 / 30%), 0 22px 50px -26px oklch(0 0 0 / 80%);
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 9%), 0 1px 1px oklch(0 0 0 / 30%), 0 22px 50px -26px oklch(0 0 0 / 80%);
 }
 /* A card that IS a link or button lifts on hover with a slight spring. Cards
  * holding tables must not move under the pointer, so this is opt-in. */

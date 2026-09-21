@@ -32,7 +32,7 @@ export const metadata: Metadata = { title: "Task Details" };
 // ============================================================
 
 const TASK_STATUS_COLORS: Record<string, string> = {
-  TODO: "bg-zinc-100 text-zinc-700 border-zinc-200",
+  TODO: "bg-muted text-muted-foreground border-border",
   IN_PROGRESS: "bg-blue-100 text-blue-700 border-blue-200",
   IN_REVIEW: "bg-amber-100 text-amber-700 border-amber-200",
   DONE: "bg-green-100 text-green-700 border-green-200",
@@ -54,7 +54,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border bg-card p-5 shadow-card">
+    <section className="surface-glass rounded-[22px] p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-copy font-semibold tracking-[-0.01em]">
@@ -163,7 +163,7 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
       {/* ============================================================
           At-a-glance strip — priority, due, assignee, progress
           ============================================================ */}
-      <div className="grid gap-5 rounded-2xl border bg-card p-5 shadow-card sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-5 surface-glass rounded-[22px] p-5 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Priority">
           <Badge
             variant="outline"

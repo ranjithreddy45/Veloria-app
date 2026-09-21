@@ -49,7 +49,7 @@ export default async function CashFlowPage({
       </PageHeader>
 
       {!forecast.hasData ? (
-        <div className="rounded-xl border bg-card shadow-card">
+        <div className="surface-glass rounded-[22px]">
           <EmptyState
             icon={<BarChart3 className="size-5" />}
             title="No ledger data yet"

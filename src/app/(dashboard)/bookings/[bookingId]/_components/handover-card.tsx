@@ -360,7 +360,7 @@ export function HandoverCard({
           <div className="flex flex-wrap items-center gap-2">
             <Badge
               variant="outline"
-              className="border-slate-300 bg-slate-200 font-medium text-slate-700"
+              className="border-border bg-muted font-medium text-muted-foreground"
             >
               Cancelled
             </Badge>

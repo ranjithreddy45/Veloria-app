@@ -62,7 +62,7 @@ function Stat({
   );
 
   const shell =
-    "flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2";
+    "flex items-center gap-2 surface-glass rounded-xl px-3 py-2";
   // Only the counters that lead somewhere look clickable. A tile that appears
   // interactive and does nothing teaches people to stop clicking tiles.
   return href ? (

@@ -74,7 +74,7 @@ export default async function BadgesPage() {
       </PageHeader>
 
       {badges.length === 0 ? (
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <AwardIcon className="mb-4 size-12 text-muted-foreground/40" />
             <p className="text-lg font-medium text-muted-foreground">
@@ -103,7 +103,7 @@ export default async function BadgesPage() {
             return (
               <Card
                 key={badge.id}
-                className="border-border shadow-sm"
+               
               >
                 <CardContent className="pt-6">
                   <div className="flex flex-col items-center text-center">

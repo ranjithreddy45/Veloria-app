@@ -364,7 +364,7 @@ export function VendorsTable({ data }: VendorsTableProps) {
 
   if (data.length === 0) {
     return (
-      <div className="rounded-2xl border bg-card shadow-card">
+      <div className="surface-glass rounded-[22px]">
         <EmptyState
           icon={<StoreIcon className="size-5" />}
           title="Every great event runs on a good bench"

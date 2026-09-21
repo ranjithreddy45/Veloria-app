@@ -61,7 +61,7 @@ const STATUS_BADGE_CLASSES: Record<string, string> = {
   PARTIALLY_PAID: "bg-amber-100 text-amber-700 border-amber-200",
   SENT: "bg-blue-100 text-blue-700 border-blue-200",
   OVERDUE: "bg-red-100 text-red-700 border-red-200",
-  DRAFT: "bg-zinc-100 text-zinc-500 border-zinc-200",
+  DRAFT: "bg-muted text-muted-foreground border-border",
 };
 
 // ============================================================
@@ -126,14 +126,14 @@ export function FinancialReports({ range }: FinancialReportsProps) {
       {/* Row 1: Payment Method Breakdown + Settlement Report */}
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Card 1: Payment Method Breakdown */}
-        <Card className="border-zinc-200/80 shadow-sm lg:col-span-4">
+        <Card className="lg:col-span-4">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Payment Method Breakdown</CardTitle>
             <p className="text-xs text-muted-foreground">Distribution by payment method</p>
           </CardHeader>
           <CardContent className="pb-4">
             {/* KPI */}
-            <div className="mb-4 flex items-start justify-between rounded-lg bg-zinc-50 p-3">
+            <div className="mb-4 flex items-start justify-between rounded-lg bg-muted p-3">
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">Total Payments Collected</p>
                 <p className="text-xl font-bold">{formatINR(paymentData?.total ?? 0)}</p>
@@ -182,7 +182,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
         </Card>
 
         {/* Card 2: Payment Settlement Report */}
-        <Card className="border-zinc-200/80 shadow-sm lg:col-span-8">
+        <Card className="lg:col-span-8">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
@@ -271,7 +271,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
                           variant="outline"
                           className={cn(
                             "text-meta",
-                            STATUS_BADGE_CLASSES[row.status] ?? "bg-zinc-100 text-zinc-500 border-zinc-200"
+                            STATUS_BADGE_CLASSES[row.status] ?? "bg-muted text-muted-foreground border-border"
                           )}
                         >
                           {row.status.replace(/_/g, " ")}
@@ -289,7 +289,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
       </div>
 
       {/* Card 3: Advance Deposits */}
-      <Card className="border-zinc-200/80 shadow-sm">
+      <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div>
@@ -385,7 +385,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
 
       {/* Card 4: Revenue by Category */}
       {breakdownData && breakdownData.categories.length > 0 && (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Revenue by Category</CardTitle>
             <p className="text-xs text-muted-foreground">Breakdown across service categories</p>
@@ -413,7 +413,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
       )}
 
       {/* Card 5: Discounts Applied */}
-      <Card className="border-zinc-200/80 shadow-sm">
+      <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div>

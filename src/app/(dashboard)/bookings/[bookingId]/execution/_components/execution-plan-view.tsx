@@ -148,7 +148,7 @@ export function ExecutionPlanView({ plan, bookingId }: ExecutionPlanViewProps) {
   return (
     <div className="space-y-6">
       {/* Plan Summary Card */}
-      <Card className="border-border shadow-sm">
+      <Card>
         <CardHeader>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
@@ -340,7 +340,7 @@ export function ExecutionPlanView({ plan, bookingId }: ExecutionPlanViewProps) {
         </div>
 
         {phases.length === 0 ? (
-          <Card className="border-border shadow-sm">
+          <Card>
             <CardContent className="py-10 text-center">
               <AlertTriangleIcon className="mx-auto size-10 text-muted-foreground/40 mb-2" />
               <p className="text-sm text-muted-foreground">

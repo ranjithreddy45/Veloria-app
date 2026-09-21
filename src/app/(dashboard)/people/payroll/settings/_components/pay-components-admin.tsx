@@ -35,7 +35,7 @@ function rateLabel(c: PayComponentRow): string {
 
 export function PayComponentsAdmin({ components }: { components: PayComponentRow[] }) {
   return (
-    <div className="rounded-xl border bg-card p-5">
+    <div className="surface-glass rounded-[22px] p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h3 className="text-copy font-semibold">Pay components</h3>

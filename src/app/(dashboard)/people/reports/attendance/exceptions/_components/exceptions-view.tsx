@@ -88,7 +88,7 @@ export function ExceptionsView({
         </div>
       )}
 
-      <div className="rounded-2xl border border-border/60 bg-card shadow-premium">
+      <div className="overflow-clip surface-glass rounded-[22px]">
         {rows.length === 0 ? (
           <EmptyState icon={<ShieldAlert />} title="No exceptions in this range" description="Every punch here was verified and un-flagged. Widen the range to look further back." />
         ) : (

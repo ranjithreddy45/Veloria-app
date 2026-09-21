@@ -296,7 +296,7 @@ export function BlueprintsTable({ data }: BlueprintsTableProps) {
                         variant="outline"
                         className={
                           ENTITY_TYPE_COLORS[blueprint.entityType] ??
-                          "bg-gray-100 text-gray-800"
+                          "bg-muted text-muted-foreground"
                         }
                       >
                         {blueprint.entityType}

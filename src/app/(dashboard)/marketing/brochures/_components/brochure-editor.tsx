@@ -411,7 +411,7 @@ export function BrochureEditor({
       </Card>
 
       {/* Save / publish bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200/70 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex flex-wrap items-center justify-between gap-3 surface-glass rounded-[22px] p-4">
         <div className="flex items-center gap-3">
           {!isNew &&
             (brochure!.isPublished ? (

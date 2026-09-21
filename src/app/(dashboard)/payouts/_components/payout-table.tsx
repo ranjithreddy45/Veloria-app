@@ -217,7 +217,7 @@ interface PayoutTableProps {
 export function PayoutTable({ data, isFiltered }: PayoutTableProps) {
   if (data.length === 0) {
     return (
-      <div className="rounded-2xl border bg-card shadow-card">
+      <div className="surface-glass rounded-[22px]">
         <EmptyState
           icon={<WalletIcon className="size-5" />}
           title={isFiltered ? "No payouts match the current filters" : "No payouts found"}

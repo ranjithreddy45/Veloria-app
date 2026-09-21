@@ -183,7 +183,7 @@ export function TrackingDashboard({
       {/* Stats Cards Row */}
       <div className="grid gap-4 md:grid-cols-5">
         {statCards.map((c) => (
-          <Card key={c.label} className="border-border shadow-sm">
+          <Card key={c.label}>
             <CardContent className="p-5">
               <div className="flex items-center gap-3">
                 <div

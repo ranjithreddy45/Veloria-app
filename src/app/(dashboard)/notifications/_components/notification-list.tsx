@@ -99,7 +99,7 @@ const NOTIFICATION_ICONS: Record<
   SYSTEM: {
     icon: Info,
     color: "text-muted-foreground",
-    bg: "bg-zinc-100",
+    bg: "bg-muted",
   },
   TASK_ESCALATED: {
     icon: AlertTriangle,
@@ -284,7 +284,7 @@ export function NotificationList({
     <div className="space-y-4">
       {/* Filters and actions bar */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1 rounded-lg bg-zinc-100 p-1">
+        <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
           <button
             onClick={() => setFilter("all")}
             className={cn(
@@ -325,7 +325,7 @@ export function NotificationList({
 
       {/* Notification cards */}
       {filteredNotifications.length === 0 ? (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Bell className="mb-3 size-10" />
             <p className="text-sm font-medium">
@@ -352,7 +352,7 @@ export function NotificationList({
               <Card
                 key={notification.id}
                 className={cn(
-                  "border-zinc-200/80 shadow-sm transition-all duration-200",
+                  "transition-all duration-200",
                   !notification.isRead && "border-l-2 border-l-indigo-500 bg-indigo-50/30"
                 )}
               >

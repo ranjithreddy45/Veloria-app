@@ -237,7 +237,7 @@ export function CommissionTable({ data }: CommissionTableProps) {
 
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border bg-card shadow-card">
+      <div className="surface-glass rounded-[22px]">
         <EmptyState
           icon={<ReceiptIcon className="size-5" />}
           title="No commission entries yet"

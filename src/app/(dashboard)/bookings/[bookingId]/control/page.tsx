@@ -46,7 +46,7 @@ export default async function EventControlPage({ params }: ControlPageProps) {
           bookingId={bookingId}
         />
       ) : (
-        <div className="rounded-2xl border border-dashed bg-card shadow-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<LayoutDashboardIcon className="size-6" />}
             title="Nothing to monitor yet"

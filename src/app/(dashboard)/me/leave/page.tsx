@@ -49,7 +49,7 @@ export default async function MyLeavePage() {
       />
 
       {types.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<CalendarCheck className="size-5" />}
             title="Leave isn’t set up yet"
@@ -57,7 +57,7 @@ export default async function MyLeavePage() {
           />
         </div>
       ) : !dashboard ? (
-        <div className="rounded-2xl border border-dashed bg-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<LogIn className="size-5" />}
             title="Please sign in"
@@ -65,7 +65,7 @@ export default async function MyLeavePage() {
           />
         </div>
       ) : dashboard.linked === false ? (
-        <div className="rounded-2xl border border-dashed bg-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<UserX className="size-5" />}
             title="No employee profile linked"

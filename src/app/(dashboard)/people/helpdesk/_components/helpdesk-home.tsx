@@ -50,7 +50,7 @@ export function HelpdeskHome({
         <div>
           {isAgent && <div className="mb-1.5 text-detail font-semibold uppercase tracking-wide text-muted-foreground">Raised by you</div>}
           {mine.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No tickets yet. Raise one and HR will pick it up.</div>
+            <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">No tickets yet. Raise one and HR will pick it up.</div>
           ) : <TicketList tickets={mine} />}
         </div>
       </TabsContent>
@@ -58,7 +58,7 @@ export function HelpdeskHome({
       {isAgent && (
         <TabsContent value="queue" className="space-y-3">
           {queue.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground"><Inbox className="mx-auto size-7 text-muted-foreground/40" /><p className="mt-2">Queue is clear 🎉</p></div>
+            <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground"><Inbox className="mx-auto size-7 text-muted-foreground/40" /><p className="mt-2">Queue is clear 🎉</p></div>
           ) : <TicketList tickets={queue} showRequester requesters={requesters} />}
         </TabsContent>
       )}
@@ -66,11 +66,11 @@ export function HelpdeskHome({
       <TabsContent value="kb" className="space-y-3">
         {canAdmin && <div className="flex justify-end"><Button variant="outline" size="sm" asChild><Link href="/people/helpdesk?kb=new">Manage articles</Link></Button></div>}
         {articles.length === 0 ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No articles yet. {canAdmin ? "Publish FAQs so staff self-serve." : ""}</div>
+          <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">No articles yet. {canAdmin ? "Publish FAQs so staff self-serve." : ""}</div>
         ) : (
           <div className="space-y-2.5">
             {articles.map((a) => (
-              <details key={a.id} className="rounded-xl border bg-card p-4">
+              <details key={a.id} className="surface-glass rounded-[22px] p-4">
                 <summary className="cursor-pointer font-medium">{a.title}{a.category ? <span className="ml-2 text-detail font-normal text-muted-foreground">{a.category.name}</span> : null}{!a.isPublished && <StatusPill label="Draft" hue="slate" size="xs" className="ml-2" />}</summary>
                 <p className="mt-2 whitespace-pre-wrap text-body text-muted-foreground">{a.body}</p>
               </details>
@@ -84,7 +84,7 @@ export function HelpdeskHome({
 
 function TicketList({ tickets, showRequester, requesters }: { tickets: Ticket[]; showRequester?: boolean; requesters?: Record<string, { name: string | null }> }) {
   return (
-    <div className="overflow-hidden rounded-xl border bg-card divide-y">
+    <div className="overflow-hidden surface-glass rounded-[22px] divide-y">
       {tickets.map((t) => (
         <Link key={t.id} href={`/people/helpdesk/${t.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/40">
           <span className="text-meta font-medium text-muted-foreground tabular-nums">#{t.number}</span>

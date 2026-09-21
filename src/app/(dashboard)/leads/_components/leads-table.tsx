@@ -395,7 +395,7 @@ function StatusTabs({
     // on one line inside their own snap-scrolling strip — the page itself never
     // scrolls sideways — and go back to wrapping from `md` up.
     <div
-      className="flex snap-x snap-mandatory items-center gap-0.5 overflow-x-auto rounded-xl border border-border bg-card p-1 shadow-card [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden"
+      className="flex snap-x snap-mandatory items-center gap-0.5 overflow-x-auto surface-glass rounded-xl p-1 [scrollbar-width:none] md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden"
       role="tablist"
       aria-label="Lead status filter"
     >

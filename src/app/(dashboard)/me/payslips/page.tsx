@@ -99,7 +99,7 @@ export default async function MyPayslipsPage() {
           {payslips.map((p) => {
             const label = p.run.label || `${MONTHS[(p.run.month - 1 + 12) % 12]} ${p.run.fy}`;
             return (
-              <Card key={p.id} className="gap-4 p-5 shadow-card transition-shadow hover:shadow-card-hover">
+              <Card key={p.id} className="gap-4 p-5 transition-shadow hover:shadow-card-hover">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="truncate text-copy font-semibold tracking-[-0.01em]">{label}</div>

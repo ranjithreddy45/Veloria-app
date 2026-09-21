@@ -43,7 +43,7 @@ export default async function PackagesPage() {
       </PageHeader>
 
       {packages.length === 0 ? (
-        <div className="rounded-xl border border-dashed bg-card shadow-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<PackageIcon className="size-5" />}
             title="No packages yet"

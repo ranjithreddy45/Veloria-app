@@ -16,7 +16,7 @@ interface TopExpensesProps {
 
 export function TopExpenses({ fy, rows }: TopExpensesProps) {
   return (
-    <Card className="shadow-card">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
         <CardTitle className="flex items-center gap-2 text-body font-semibold tracking-[-0.01em]">
           <span className="flex size-7 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-300">

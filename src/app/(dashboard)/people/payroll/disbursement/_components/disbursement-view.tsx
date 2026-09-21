@@ -130,7 +130,7 @@ export function DisbursementView({
       </PageHeader>
 
       {!data || !data.runExists ? (
-        <div className="rounded-xl border bg-card p-10 text-center text-sm text-muted-foreground">
+        <div className="surface-glass rounded-[22px] p-10 text-center text-sm text-muted-foreground">
           {runs.length === 0
             ? "No payroll runs yet. Create and compute a run first."
             : "Select a payroll run to view its bank advice."}
@@ -161,7 +161,7 @@ export function DisbursementView({
             />
           </div>
 
-          <div className="rounded-xl border bg-card">
+          <div className="overflow-clip surface-glass rounded-[22px]">
             <div className="flex flex-col gap-3 border-b px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h3 className="text-copy font-semibold">Bank advice</h3>

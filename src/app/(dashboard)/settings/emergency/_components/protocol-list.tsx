@@ -93,7 +93,7 @@ const EMERGENCY_TYPE_COLORS: Record<string, string> = {
   WEATHER: "bg-cyan-100 text-cyan-700 border-cyan-200",
   SECURITY: "bg-amber-100 text-amber-700 border-amber-200",
   POWER_OUTAGE: "bg-purple-100 text-purple-700 border-purple-200",
-  OTHER: "bg-zinc-100 text-zinc-700 border-zinc-200",
+  OTHER: "bg-muted text-muted-foreground border-border",
 };
 
 // ============================================================

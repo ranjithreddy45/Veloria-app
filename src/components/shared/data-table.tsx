@@ -345,7 +345,7 @@ export function DataTable<TData, TValue>({
                 <div
                   key={row.id}
                   data-state={row.getIsSelected() ? "selected" : undefined}
-                  className="rounded-xl border border-border bg-card p-3.5 shadow-[0_1px_2px_oklch(0_0_0/0.04)] transition-colors data-[state=selected]:border-primary/40 data-[state=selected]:bg-primary/[0.04]"
+                  className="rounded-2xl border border-border/60 bg-card/80 p-3.5 shadow-[0_1px_2px_oklch(0_0_0/0.04)] transition-colors data-[state=selected]:border-primary/40 data-[state=selected]:bg-primary/[0.04]"
                 >
                   <div className="flex items-start gap-3">
                     {selectCell && (
@@ -402,7 +402,7 @@ export function DataTable<TData, TValue>({
               );
             })
           ) : (
-            <div className="rounded-xl border border-dashed border-border bg-card px-4 py-10 text-center text-body text-muted-foreground">
+            <div className="rounded-2xl border border-dashed border-border bg-card/40 px-4 py-10 text-center text-body text-muted-foreground">
               No results.
             </div>
           )}
@@ -415,7 +415,10 @@ export function DataTable<TData, TValue>({
           desktop rendering is unchanged. */}
       <div
         className={cn(
-          "rounded-lg border border-border bg-card overflow-x-auto",
+          // Glass at page level (the same material as Card). Inside a Card the
+          // table goes flat — a second box with its own border and blur
+          // inside a glass panel reads as a double frame.
+          "surface-glass rounded-[22px] overflow-x-auto in-data-[slot=card]:rounded-lg in-data-[slot=card]:border-0 in-data-[slot=card]:bg-transparent in-data-[slot=card]:shadow-none in-data-[slot=card]:backdrop-filter-none",
           mobileCards && "hidden md:block"
         )}
       >

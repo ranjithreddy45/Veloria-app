@@ -559,7 +559,7 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
       {invoice.payments.length > 0 && (
         <div className="print:hidden">
           <h3 className="mb-3">Payment History</h3>
-          <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+          <div className="overflow-hidden surface-glass rounded-[22px]">
             {/* Six columns need a sideways drag on a phone; stack them instead. */}
             <ul className="divide-y sm:hidden">
               {invoice.payments.map((payment) => (
@@ -654,7 +654,7 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
       {invoice.installments.length > 0 && (
         <div className="print:hidden">
           <h3 className="mb-3">Installment Schedule</h3>
-          <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+          <div className="overflow-hidden surface-glass rounded-[22px]">
             {/* Same reasoning as the payment history: stacked rows on a phone. */}
             <ul className="divide-y sm:hidden">
               {invoice.installments.map((inst) => (

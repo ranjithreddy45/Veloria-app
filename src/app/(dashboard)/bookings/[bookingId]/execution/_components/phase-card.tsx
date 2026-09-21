@@ -143,7 +143,7 @@ export function PhaseCard({ phase, planStatus, bookingId }: PhaseCardProps) {
   }
 
   return (
-    <Card className="border-border shadow-sm">
+    <Card>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">

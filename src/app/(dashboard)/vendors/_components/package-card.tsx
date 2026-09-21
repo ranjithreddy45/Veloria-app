@@ -51,7 +51,7 @@ export function PackageCard({ data, href }: PackageCardProps) {
   const card = (
     <div
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card shadow-card transition-shadow duration-200",
+        "group relative flex h-full flex-col overflow-hidden surface-glass rounded-[22px] transition-shadow duration-200",
         href && "hover:shadow-card-hover",
         data.status === "ARCHIVED" && "opacity-70"
       )}

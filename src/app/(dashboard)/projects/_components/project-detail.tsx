@@ -178,7 +178,7 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
       <WorkflowStepper stages={steps} currentIndex={idx} gateMessage={stepperGate} />
 
       {/* Workflow / next action */}
-      <Card className="border-0 shadow-card">
+      <Card className="border-0">
         <CardHeader className="pb-2"><CardTitle className="text-base">Workflow — {PROJECT_PHASE_LABEL[phase]}</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">{PROJECT_PHASE_HINT[phase]}</p>
@@ -227,7 +227,7 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
         {/* CAPEX (Spec D) */}
         <TabsContent value="capex" className="space-y-4">
           {(approvedCapex || capexes[0]) && (
-            <Card className="border-0 shadow-card">
+            <Card className="border-0">
               <CardContent className="flex flex-wrap items-end justify-between gap-3 py-4">
                 <div>
                   <p className="text-xs text-muted-foreground">{approvedCapex ? "Approved CapEx" : "Latest CapEx (draft)"}</p>

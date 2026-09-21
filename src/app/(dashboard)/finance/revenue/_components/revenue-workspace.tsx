@@ -91,7 +91,7 @@ export function RevenueWorkspace({
           />
         </div>
 
-        <Card className="overflow-hidden py-0 shadow-card">
+        <Card className="overflow-hidden py-0">
           <CardContent className="p-0">
             {uninvoiced.length === 0 ? (
               <EmptyState
@@ -170,7 +170,7 @@ export function RevenueWorkspace({
           />
         </div>
 
-        <Card className="overflow-hidden py-0 shadow-card">
+        <Card className="overflow-hidden py-0">
           <CardContent className="p-0">
             {statements.length === 0 ? (
               <EmptyState

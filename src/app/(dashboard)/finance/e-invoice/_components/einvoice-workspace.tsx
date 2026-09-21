@@ -112,7 +112,7 @@ export function EInvoiceWorkspace({ rows, canWrite }: { rows: EInvoiceRow[]; can
         <StatTile label="Cancelled" value={counts.cancelled} accent="rose" icon={<Ban className="size-4" />} sub="Cancelled e-invoices" />
       </div>
 
-      <div className="rounded-xl border bg-card shadow-card">
+      <div className="overflow-clip surface-glass rounded-[22px]">
         <div className="border-b px-5 py-3.5">
           <h2 className="text-body font-semibold tracking-[-0.01em] text-foreground">Issued invoices</h2>
           <p className="text-xs text-muted-foreground">Generate an IRN per issued invoice. Showing up to 200 most recent.</p>

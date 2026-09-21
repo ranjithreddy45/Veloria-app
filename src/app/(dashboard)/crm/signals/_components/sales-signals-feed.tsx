@@ -55,7 +55,7 @@ const CATEGORY_CONFIG: Record<
   task: { label: "Task", badgeColor: "bg-emerald-100 text-emerald-700 border-emerald-200" },
   activity: {
     label: "Activity",
-    badgeColor: "bg-zinc-100 text-zinc-700 border-zinc-200",
+    badgeColor: "bg-muted text-muted-foreground border-border",
   },
 };
 
@@ -109,7 +109,7 @@ export function SalesSignalsFeed() {
   }
 
   return (
-    <Card className="border-border shadow-sm">
+    <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

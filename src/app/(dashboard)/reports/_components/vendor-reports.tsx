@@ -84,7 +84,7 @@ export function VendorReports({ range }: VendorReportsProps) {
     <div className="space-y-6">
       {/* Card 1: Vendor Payment Summary */}
       {vendorData && (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
@@ -201,7 +201,7 @@ export function VendorReports({ range }: VendorReportsProps) {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-zinc-200 text-left">
+                    <tr className="border-b border-border text-left">
                       <th className="pb-2 pr-4 font-medium text-muted-foreground">Vendor Name</th>
                       <th className="pb-2 pr-4 font-medium text-muted-foreground">Category</th>
                       <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Paid</th>
@@ -211,7 +211,7 @@ export function VendorReports({ range }: VendorReportsProps) {
                   </thead>
                   <tbody>
                     {vendorData.vendors.map((vendor) => (
-                      <tr key={vendor.vendorId} className="border-b border-zinc-100">
+                      <tr key={vendor.vendorId} className="border-b border-border">
                         <td className="py-2.5 pr-4 font-medium">{vendor.name}</td>
                         <td className="py-2.5 pr-4 text-muted-foreground">{vendor.category}</td>
                         <td className="py-2.5 pr-4 text-right text-green-700">{formatINR(vendor.totalPaid)}</td>
@@ -231,7 +231,7 @@ export function VendorReports({ range }: VendorReportsProps) {
 
       {/* Card 2: Net Revenue Analysis */}
       {netData && (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Net Revenue Analysis</CardTitle>
             <p className="text-xs text-muted-foreground">Gross revenue vs vendor costs per month</p>

@@ -31,7 +31,7 @@ export default async function TrashPage() {
       />
 
       {items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border bg-card py-16 text-center">
+        <div className="flex flex-col items-center justify-center gap-2 surface-glass rounded-[22px] py-16 text-center">
           <Trash2 className="size-6 text-muted-foreground/60" strokeWidth={1.5} />
           <p className="text-body font-medium text-foreground">
             Trash is empty

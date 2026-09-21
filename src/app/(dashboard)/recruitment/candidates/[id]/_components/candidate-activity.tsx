@@ -705,7 +705,7 @@ export function CandidateActivity({
       </div>
 
       <TabsContent value="applications">
-        <Card className="overflow-hidden p-0 shadow-card">
+        <Card className="overflow-hidden p-0">
           <ApplicationsPanel applications={applications} />
         </Card>
       </TabsContent>
@@ -716,7 +716,7 @@ export function CandidateActivity({
             <ScheduleInterviewDialog candidateId={candidateId} applications={applications} />
           </div>
         )}
-        <Card className="overflow-hidden p-0 shadow-card">
+        <Card className="overflow-hidden p-0">
           <InterviewsPanel interviews={interviews} canWrite={canWrite} />
         </Card>
       </TabsContent>
@@ -727,7 +727,7 @@ export function CandidateActivity({
             <CreateOfferDialog candidateId={candidateId} jobOptions={jobOptions} />
           </div>
         )}
-        <Card className="overflow-hidden p-0 shadow-card">
+        <Card className="overflow-hidden p-0">
           <OffersPanel offers={offers} canWrite={canWrite} />
         </Card>
       </TabsContent>

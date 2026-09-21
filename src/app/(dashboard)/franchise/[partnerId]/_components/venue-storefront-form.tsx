@@ -86,7 +86,7 @@ export function VenueStorefrontForm({
   return (
     <form
       onSubmit={handleSave}
-      className="space-y-4 rounded-xl border border-border bg-card p-5"
+      className="space-y-4 surface-glass rounded-[22px] p-5"
     >
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">{venueName}</h3>

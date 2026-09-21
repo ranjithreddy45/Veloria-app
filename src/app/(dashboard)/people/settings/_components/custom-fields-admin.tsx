@@ -26,7 +26,7 @@ const TYPE_LABELS: Record<string, string> = {
 
 export function CustomFieldsAdmin({ defs }: { defs: FieldDef[] }) {
   return (
-    <div className="rounded-xl border bg-card p-5">
+    <div className="surface-glass rounded-[22px] p-5">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h3 className="text-copy font-semibold">Custom employee fields</h3>

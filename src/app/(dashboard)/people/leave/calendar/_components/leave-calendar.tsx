@@ -56,7 +56,7 @@ export function LeaveCalendar({
   while (cells.length % 7 !== 0) cells.push(null);
 
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="surface-glass rounded-[22px]">
       {/* Month title + Prev/Today/Next (44px each on touch) is tight at 375px;
         * wrapping keeps the Next arrow inside the card. */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-4 py-3">

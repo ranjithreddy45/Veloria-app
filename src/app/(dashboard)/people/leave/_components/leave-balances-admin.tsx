@@ -27,7 +27,7 @@ export function LeaveBalancesAdmin({
   const years = Array.from({ length: 9 }, (_, i) => thisYear - 3 + i);
 
   return (
-    <div className="rounded-xl border bg-card p-5">
+    <div className="overflow-clip surface-glass rounded-[22px] p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-copy font-semibold">Balances for {year}</h3>

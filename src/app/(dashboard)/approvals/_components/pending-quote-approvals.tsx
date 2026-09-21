@@ -86,7 +86,7 @@ export function PendingQuoteApprovals({ quotes: initial }: Props) {
   }
 
   return (
-    <Card className="border-purple-200/80 shadow-sm">
+    <Card className="border-purple-200/80">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <FileTextIcon className="size-4 text-purple-600" />

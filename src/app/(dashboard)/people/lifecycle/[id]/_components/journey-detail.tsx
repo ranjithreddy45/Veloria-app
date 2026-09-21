@@ -45,7 +45,7 @@ export function JourneyDetail({ journey, canWrite }: { journey: Journey; canWrit
     <div className="space-y-4">
       {/* Checklist by category */}
       {Object.entries(grouped).map(([cat, tasks]) => (
-        <div key={cat} className="rounded-xl border bg-card p-4">
+        <div key={cat} className="surface-glass rounded-[22px] p-4">
           <h3 className="mb-2 text-detail font-semibold uppercase tracking-wide text-muted-foreground">{cat}</h3>
           <div className="divide-y">
             {tasks.map((t) => (
@@ -59,7 +59,7 @@ export function JourneyDetail({ journey, canWrite }: { journey: Journey; canWrit
       {!isOnboarding && <ExitInterviewCard journeyId={journey.id} existing={journey.exitInterview} canWrite={canWrite && !closed} />}
 
       {/* Complete / status */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 surface-glass rounded-[22px] p-4">
         <div className="text-body text-muted-foreground">
           {closed
             ? <span className="inline-flex items-center gap-1.5 font-medium text-success"><CheckCircle2 className="size-4" /> {isOnboarding ? "Onboarding completed — employee is active." : "Offboarding completed — access revoked."}</span>
@@ -142,7 +142,7 @@ function ExitInterviewCard({
   }
 
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="surface-glass rounded-[22px] p-4">
       <h3 className="mb-3 text-detail font-semibold uppercase tracking-wide text-muted-foreground">Exit interview</h3>
       <div className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">

@@ -164,7 +164,7 @@ export function CategorySection({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-card">
+    <div className="overflow-hidden surface-glass rounded-[22px]">
       <button
         type="button"
         aria-expanded={open}
@@ -214,7 +214,7 @@ export function ChecklistHeader({
   ];
 
   return (
-    <div className="sticky top-0 z-10 -mx-1 mb-3 rounded-xl border bg-card/95 px-4 py-3 shadow-card backdrop-blur supports-[backdrop-filter]:bg-card/80">
+    <div className="sticky top-0 z-10 -mx-1 mb-3 surface-glass rounded-2xl px-4 py-3">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
         <div className="flex items-center gap-3">
           <Donut value={pct} size={44} colorClass={healthTextClass(pct)} ariaLabel={`${title} ${pct}% ready`} />

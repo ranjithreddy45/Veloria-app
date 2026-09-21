@@ -66,7 +66,7 @@ export function SellDownTargetCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border/70 bg-card p-4 shadow-premium transition-shadow hover:shadow-card-hover",
+        "surface-glass rounded-[22px] p-4 transition-shadow hover:shadow-card-hover",
         isClosed && "opacity-70"
       )}
     >

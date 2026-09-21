@@ -29,7 +29,7 @@ export default function DashboardLoading() {
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="shadow-card space-y-3 rounded-2xl border bg-card p-5"
+            className="space-y-3 surface-glass rounded-[22px] p-5"
           >
             <div className="flex items-center gap-2.5">
               <Skeleton className="size-9 rounded-xl" />
@@ -42,7 +42,7 @@ export default function DashboardLoading() {
       </div>
 
       {/* Table */}
-      <div className="shadow-card overflow-hidden rounded-2xl border bg-card">
+      <div className="overflow-hidden surface-glass rounded-[22px]">
         <div className="flex items-center gap-3 border-b p-4">
           <Skeleton className="h-9 w-64 rounded-lg" />
           <Skeleton className="ml-auto h-9 w-24 rounded-lg" />

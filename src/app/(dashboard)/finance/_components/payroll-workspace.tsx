@@ -131,7 +131,7 @@ export function PayrollWorkspace({
             )}
           </div>
 
-          <div className="overflow-hidden rounded-xl border bg-card shadow-card">
+          <div className="overflow-hidden surface-glass rounded-[22px]">
             {employees.length === 0 ? (
               <EmptyState
                 icon={<Users className="size-5" />}
@@ -183,7 +183,7 @@ export function PayrollWorkspace({
             )}
           </div>
 
-          <div className="overflow-hidden rounded-xl border bg-card shadow-card">
+          <div className="overflow-hidden surface-glass rounded-[22px]">
             {runs.length === 0 ? (
               <EmptyState
                 icon={<Receipt className="size-5" />}

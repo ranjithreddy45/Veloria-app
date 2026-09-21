@@ -67,7 +67,7 @@ export default async function ReferrerLeaderboardPage() {
       </PageHeader>
 
       {leaderboard.length === 0 ? (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <TrophyIcon className="mb-4 size-12 text-muted-foreground/40" />
             <p className="text-lg font-medium text-muted-foreground">

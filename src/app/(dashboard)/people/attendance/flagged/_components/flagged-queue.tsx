@@ -84,7 +84,7 @@ function FlaggedCard({ punch, canClear }: { punch: FlaggedPunch; canClear: boole
   }
 
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="surface-glass rounded-[22px] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">

@@ -135,7 +135,7 @@ export function RevshareConfigForm({
       {open && (
         <form
           onSubmit={handleCreate}
-          className="space-y-4 rounded-xl border border-border bg-card p-5"
+          className="space-y-4 surface-glass rounded-[22px] p-5"
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">

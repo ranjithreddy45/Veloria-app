@@ -162,7 +162,7 @@ export function ApprovalRuleForm({ rule, users }: ApprovalRuleFormProps) {
   }
 
   return (
-    <section className="rounded-2xl border bg-card shadow-card">
+    <section className="surface-glass rounded-[22px]">
       <div className="border-b px-5 py-4">
         <h3 className="text-copy font-semibold tracking-[-0.01em]">
           Rule Details

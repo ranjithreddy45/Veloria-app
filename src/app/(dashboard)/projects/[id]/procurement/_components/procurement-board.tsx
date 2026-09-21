@@ -47,7 +47,7 @@ export function ProcurementBoard({ projectId, workPackages, purchaseOrders, vend
       </div>
 
       {/* Work packages */}
-      <div className="rounded-xl border bg-card">
+      <div className="surface-glass rounded-[22px]">
         <div className="flex items-center justify-between border-b px-4 py-2.5">
           <span className="flex items-center gap-2 text-body font-semibold"><Package className="size-4" /> Work packages</span>
           {canManage && <CreateWPDialog projectId={projectId} />}
@@ -62,7 +62,7 @@ export function ProcurementBoard({ projectId, workPackages, purchaseOrders, vend
       </div>
 
       {/* Purchase orders */}
-      <div className="rounded-xl border bg-card">
+      <div className="surface-glass rounded-[22px]">
         <div className="flex items-center justify-between border-b px-4 py-2.5">
           <span className="flex items-center gap-2 text-body font-semibold"><Receipt className="size-4" /> Purchase orders</span>
           {canManage && <CreatePODialog projectId={projectId} vendors={vendors} workPackages={workPackages} />}
@@ -83,7 +83,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   // text-xl on a phone: these tiles sit 2-up at 375px (~133px of inner width),
   // and a rupee figure like ₹1,25,00,000 at text-2xl overflows the card. Budget
   // numbers must stay whole, so the type steps down instead of being cut.
-  return <div className="rounded-xl border bg-card p-4"><div className="text-detail font-medium text-muted-foreground">{label}</div><div className="mt-2 text-xl font-semibold tabular-nums break-words sm:text-2xl">{value}</div></div>;
+  return <div className="surface-glass rounded-[22px] p-4"><div className="text-detail font-medium text-muted-foreground">{label}</div><div className="mt-2 text-xl font-semibold tabular-nums break-words sm:text-2xl">{value}</div></div>;
 }
 
 function WPRow({ wp, canManage }: { wp: WP; canManage: boolean }) {

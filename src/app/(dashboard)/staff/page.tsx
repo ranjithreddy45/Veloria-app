@@ -64,7 +64,7 @@ export default async function StaffPage() {
 
         <TabsContent value="profiles">
           {profiles.length === 0 ? (
-            <div className="rounded-xl border border-dashed bg-card">
+            <div className="rounded-[22px] border border-dashed bg-card/40">
               <EmptyState
                 icon={<UsersIcon className="size-5" />}
                 title="No staff profiles yet"

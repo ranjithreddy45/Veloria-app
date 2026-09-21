@@ -54,7 +54,7 @@ export function TrashList({ items }: TrashListProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card">
+    <div className="overflow-hidden surface-glass rounded-[22px]">
       <div className="flex items-center border-b border-border bg-muted/30 px-3 py-2 text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground">
         <div className="flex-1">Item</div>
         <div className="hidden w-36 text-right sm:block">Deleted</div>

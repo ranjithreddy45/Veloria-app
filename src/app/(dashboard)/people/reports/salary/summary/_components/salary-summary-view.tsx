@@ -83,7 +83,7 @@ export function SalarySummaryView({
             <StatTile label="Employer cost" value={inr(data.totalEmployerCost)} accent="pink" icon={<Landmark />} sub="Above gross" />
           </div>
 
-          <div className="overflow-x-auto rounded-xl border bg-card">
+          <div className="overflow-x-auto surface-glass rounded-[22px]">
             <Table>
               <TableHeader>
                 <TableRow>

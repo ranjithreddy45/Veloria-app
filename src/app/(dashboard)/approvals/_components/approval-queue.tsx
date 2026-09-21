@@ -121,7 +121,7 @@ export function ApprovalQueue({
 
   if (requests.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed bg-card">
+      <div className="rounded-[22px] border border-dashed bg-card/40">
         <EmptyState
           icon={<InboxIcon className="size-5" />}
           title="No approval requests"
@@ -144,7 +144,7 @@ export function ApprovalQueue({
         const isLoading = loadingId === request.id;
 
         return (
-          <Card key={request.id} className="border-border/80 shadow-card hover-lift">
+          <Card key={request.id} className="hover-lift">
             <CardContent className="p-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0 flex-1">

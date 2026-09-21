@@ -62,7 +62,7 @@ export function OpsAuditPanel({
   // ---- Locked state: audit not yet requested ----
   if (items.length === 0) {
     return (
-      <div className="rounded-xl border bg-card shadow-card">
+      <div className="surface-glass rounded-[22px]">
         <EmptyState
           tone="warning"
           icon={<Lock className="size-5" />}

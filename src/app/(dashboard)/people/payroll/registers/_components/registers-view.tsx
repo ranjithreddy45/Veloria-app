@@ -67,7 +67,7 @@ export function RegistersView({ periods, initial }: { periods: Period[]; initial
         <p className="text-detail text-muted-foreground sm:hidden">
           Swipe the register sideways to see PF, ESI, PT, TDS and Net.
         </p>
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <div className="overflow-x-auto surface-glass rounded-[22px]">
           <Table>
             <TableHeader>
               <TableRow>

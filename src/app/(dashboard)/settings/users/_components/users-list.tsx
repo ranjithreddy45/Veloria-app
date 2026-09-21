@@ -115,13 +115,13 @@ const ROLE_COLORS: Record<string, string> = {
   SALES_HEAD: "bg-sky-100 text-sky-700 border-sky-200",
   EVENT_COORDINATOR: "bg-amber-100 text-amber-700 border-amber-200",
   FINANCE: "bg-green-100 text-green-700 border-green-200",
-  STAFF: "bg-zinc-100 text-zinc-700 border-zinc-200",
+  STAFF: "bg-muted text-muted-foreground border-border",
   BD_EXECUTIVE: "bg-cyan-100 text-cyan-700 border-cyan-200",
   BD_HEAD: "bg-teal-100 text-teal-700 border-teal-200",
   PROJECTS_EXEC: "bg-orange-100 text-orange-700 border-orange-200",
   PROJECTS_HEAD: "bg-rose-100 text-rose-700 border-rose-200",
   OPERATIONS: "bg-indigo-100 text-indigo-700 border-indigo-200",
-  LEGAL: "bg-slate-100 text-slate-700 border-slate-200",
+  LEGAL: "bg-muted text-muted-foreground border-border",
   HR_MANAGER: "bg-fuchsia-100 text-fuchsia-700 border-fuchsia-200",
   HR_EXECUTIVE: "bg-pink-100 text-pink-700 border-pink-200",
   MARKETING: "bg-orange-100 text-orange-700 border-orange-200",
@@ -353,7 +353,7 @@ export function UsersList({ users }: UsersListProps) {
                     </CardTitle>
                     <Badge
                       variant="outline"
-                      className={`mt-1 text-meta ${ROLE_COLORS[user.role] || "bg-zinc-100 text-zinc-700 border-zinc-200"}`}
+                      className={`mt-1 text-meta ${ROLE_COLORS[user.role] || "bg-muted text-muted-foreground border-border"}`}
                     >
                       <ShieldIcon className="mr-1 size-2.5" />
                       {ROLE_LABELS[user.role] || user.role}

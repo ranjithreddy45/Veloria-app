@@ -122,7 +122,7 @@ export default async function InsurancePolicyDetailPage({
         {/* ============================================================
             Policy details
             ============================================================ */}
-        <section className="rounded-2xl border bg-card p-5 shadow-card">
+        <section className="surface-glass rounded-[22px] p-5">
           <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Policy details
           </h2>
@@ -166,7 +166,7 @@ export default async function InsurancePolicyDetailPage({
         {/* ============================================================
             Linked entities
             ============================================================ */}
-        <section className="rounded-2xl border bg-card p-5 shadow-card">
+        <section className="surface-glass rounded-[22px] p-5">
           <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Linked to
           </h2>
@@ -209,7 +209,7 @@ export default async function InsurancePolicyDetailPage({
       {/* ============================================================
           Documents
           ============================================================ */}
-      <section className="rounded-2xl border bg-card p-5 shadow-card">
+      <section className="surface-glass rounded-[22px] p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-copy font-semibold tracking-[-0.01em]">

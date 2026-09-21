@@ -211,7 +211,7 @@ export function SurveyForm({ survey }: SurveyFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Survey Details */}
-      <Card className="border-zinc-200/80 shadow-sm">
+      <Card>
         <CardHeader className="pb-4">
           <CardTitle className="text-base font-semibold text-foreground">
             Survey Details
@@ -252,7 +252,7 @@ export function SurveyForm({ survey }: SurveyFormProps) {
       </Card>
 
       {/* Questions Builder */}
-      <Card className="border-zinc-200/80 shadow-sm">
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <CardTitle className="text-base font-semibold text-foreground">
             Questions ({questions.length})
@@ -264,7 +264,7 @@ export function SurveyForm({ survey }: SurveyFormProps) {
         </CardHeader>
         <CardContent className="space-y-4">
           {questions.length === 0 && (
-            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 py-8">
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-8">
               <p className="text-sm text-muted-foreground">No questions added yet</p>
               <Button
                 type="button"
@@ -282,7 +282,7 @@ export function SurveyForm({ survey }: SurveyFormProps) {
           {questions.map((q, index) => (
             <div
               key={q.id}
-              className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-4 space-y-3"
+              className="rounded-lg border border-border bg-muted/50 p-4 space-y-3"
             >
               {/* Question Header */}
               <div className="flex items-start justify-between gap-2">

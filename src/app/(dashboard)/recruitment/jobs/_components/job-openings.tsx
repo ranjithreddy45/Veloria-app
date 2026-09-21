@@ -221,7 +221,7 @@ export function JobOpenings({
         />
 
         <div className="min-w-0 flex-1">
-          <div className="overflow-hidden rounded-xl border bg-card shadow-card">
+          <div className="overflow-hidden surface-glass rounded-[22px]">
             {filtered.length === 0 ? (
               <EmptyState
                 icon={<Briefcase className="size-5" />}

@@ -64,7 +64,7 @@ export default async function ReferralDashboardPage() {
           title="Referral Dashboard"
           description="Overview of your referral engine performance."
         />
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <UsersIcon className="mb-4 size-12 text-muted-foreground/40" />
             <p className="text-lg font-medium text-muted-foreground">
@@ -102,7 +102,7 @@ export default async function ReferralDashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Referrals
@@ -114,7 +114,7 @@ export default async function ReferralDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Conversion Rate
@@ -126,7 +126,7 @@ export default async function ReferralDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Booking Value
@@ -144,7 +144,7 @@ export default async function ReferralDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Pending Rewards
@@ -166,7 +166,7 @@ export default async function ReferralDashboardPage() {
       </div>
 
       {/* Status Breakdown */}
-      <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+      <Card>
         <CardHeader>
           <CardTitle>Status Breakdown</CardTitle>
         </CardHeader>
@@ -193,7 +193,7 @@ export default async function ReferralDashboardPage() {
       </Card>
 
       {/* Top 5 Referrers */}
-      <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Top 5 Referrers</CardTitle>
           <Button variant="ghost" size="sm" asChild>

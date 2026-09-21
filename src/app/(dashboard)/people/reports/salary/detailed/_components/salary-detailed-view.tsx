@@ -72,7 +72,7 @@ export function SalaryDetailedView({
       />
 
       {hasData ? (
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <div className="overflow-x-auto surface-glass rounded-[22px]">
           <Table>
             <TableHeader>
               <TableRow>

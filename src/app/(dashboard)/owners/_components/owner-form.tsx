@@ -123,7 +123,7 @@ export function OwnerForm({
 
   return (
     <form onSubmit={submit} className="space-y-6">
-      <section className="rounded-lg border border-border bg-card p-5">
+      <section className="surface-glass rounded-[22px] p-5">
         <h2 className="mb-4 text-copy font-semibold">Owner & contact</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -160,7 +160,7 @@ export function OwnerForm({
         </div>
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-5">
+      <section className="surface-glass rounded-[22px] p-5">
         <h2 className="mb-4 text-copy font-semibold">Property</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -190,7 +190,7 @@ export function OwnerForm({
         </div>
       </section>
 
-      <section className="rounded-lg border border-border bg-card p-5">
+      <section className="surface-glass rounded-[22px] p-5">
         <h2 className="mb-4 text-copy font-semibold">Commercials & funnel</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>

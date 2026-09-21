@@ -109,7 +109,7 @@ export function RecruitOverview({
 
   if (isEmpty) {
     return (
-      <Card className="shadow-card">
+      <Card>
         <CardContent className="p-0">
           <EmptyState
             icon={<Workflow className="size-5" />}
@@ -166,7 +166,7 @@ export function RecruitOverview({
       </div>
 
       {/* Hiring pipeline */}
-      <Card className="shadow-card">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Workflow className="size-4 text-indigo-500" />
@@ -214,7 +214,7 @@ export function RecruitOverview({
 
       {/* Time-to-fill / Time-to-hire */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Card className="shadow-card">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Timer className="size-4 text-amber-500" />
@@ -259,7 +259,7 @@ export function RecruitOverview({
           </CardContent>
         </Card>
 
-        <Card className="shadow-card">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserCheck className="size-4 text-emerald-500" />

@@ -101,7 +101,7 @@ export function LeaveApplyCalendar({
   }
 
   return (
-    <div className="rounded-xl border border-border/70 bg-card p-4 shadow-card">
+    <div className="surface-glass rounded-[22px] p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="text-body font-semibold">
           {MONTHS[view.month]} {view.year}

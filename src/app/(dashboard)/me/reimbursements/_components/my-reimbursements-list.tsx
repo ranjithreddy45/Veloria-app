@@ -81,7 +81,7 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
   const [trailId, setTrailId] = React.useState<string | null>(null);
 
   return (
-    <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+    <div className="overflow-hidden surface-glass rounded-[22px]">
       <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
         <span className="text-body font-semibold">My claims</span>
         {claims.length > 0 && (

@@ -52,7 +52,7 @@ export function PackageStatusControl({
   };
 
   return (
-    <div className="space-y-3 rounded-2xl border bg-card p-4 shadow-card">
+    <div className="space-y-3 surface-glass rounded-[22px] p-4">
       <p className="text-meta font-semibold uppercase tracking-[0.1em] text-muted-foreground">
         Status control
       </p>

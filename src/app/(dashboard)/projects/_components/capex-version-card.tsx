@@ -97,7 +97,7 @@ export function CapexVersionCard({
   return (
     <Card
       className={cn(
-        "border-0 shadow-card ring-1 ring-inset",
+        "border-0 ring-1 ring-inset",
         isApproved ? "ring-emerald-200/70" : "ring-border/60",
       )}
     >

@@ -69,7 +69,7 @@ export default async function CampaignDetailPage({
       {/* Campaign Details */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Setup */}
-        <section className="rounded-2xl border bg-card p-5 shadow-card">
+        <section className="surface-glass rounded-[22px] p-5">
           <h2 className="text-copy font-semibold tracking-[-0.01em]">Setup</h2>
           <p className="mt-0.5 text-body text-muted-foreground">
             How this campaign is addressed and scheduled.
@@ -135,7 +135,7 @@ export default async function CampaignDetailPage({
         </section>
 
         {/* Content Preview */}
-        <section className="rounded-2xl border bg-card p-5 shadow-card">
+        <section className="surface-glass rounded-[22px] p-5">
           <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Content preview
           </h2>

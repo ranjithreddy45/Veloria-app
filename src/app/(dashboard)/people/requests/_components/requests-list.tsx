@@ -57,7 +57,7 @@ function Card({ req }: { req: ChangeReq }) {
   const name = req.employee ? `${req.employee.firstName} ${req.employee.lastName}` : "Employee";
 
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="surface-glass rounded-[22px] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link href={`/people/${req.employeeId}`} className="font-medium hover:underline">{name}</Link>

@@ -166,7 +166,7 @@ export function AssignmentRulesManager() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border bg-card p-4 shadow-card">
+      <div className="surface-glass rounded-[22px] p-4">
         <div className="space-y-3">
           <Skeleton className="h-4 w-40" />
           <Skeleton className="h-20 w-full rounded-xl" />
@@ -193,7 +193,7 @@ export function AssignmentRulesManager() {
       </div>
 
       {rules.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-card shadow-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<ShieldCheckIcon />}
             title="No assignment rules yet"
@@ -218,7 +218,7 @@ export function AssignmentRulesManager() {
               <div
                 key={rule.id}
                 className={cn(
-                  "rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover",
+                  "surface-glass rounded-[22px] transition-shadow hover:shadow-card-hover",
                   !rule.isActive && "opacity-65"
                 )}
               >

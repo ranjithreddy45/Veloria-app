@@ -34,7 +34,7 @@ function ctcRange(min: number | null, max: number | null): string {
 
 export function GradesAdmin({ grades }: { grades: GradeListItem[] }) {
   return (
-    <div className="rounded-xl border bg-card p-5">
+    <div className="overflow-clip surface-glass rounded-[22px] p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="flex size-9 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-600">

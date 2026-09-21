@@ -289,7 +289,7 @@ export default async function SalesReportsPage({
       />
 
       {/* Filter bar */}
-      <div className="sticky top-2 z-20 -mx-1 rounded-2xl border border-border/70 bg-card/80 px-3 py-2.5 shadow-card backdrop-blur supports-[backdrop-filter]:bg-card/70">
+      <div className="sticky top-2 z-20 -mx-1 surface-glass rounded-2xl px-3 py-2.5">
         <div className="flex items-center gap-2">
           <Filter className="size-4 shrink-0 text-muted-foreground" aria-hidden />
           <span className="hidden text-meta uppercase tracking-wide text-muted-foreground sm:inline">Filters</span>

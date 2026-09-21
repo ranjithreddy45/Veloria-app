@@ -78,7 +78,7 @@ export function PunchesView({
         </div>
       )}
 
-      <div className="rounded-2xl border border-border/60 bg-card shadow-premium">
+      <div className="overflow-clip surface-glass rounded-[22px]">
         {rows.length === 0 ? (
           <EmptyState icon={<Fingerprint />} title="No punches in this range" description="No check-ins recorded here. Widen the range to look further back." />
         ) : (

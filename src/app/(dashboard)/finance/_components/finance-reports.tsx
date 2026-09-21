@@ -81,10 +81,10 @@ export function FinanceReports({
         {/* Profit & Loss */}
         <TabsContent value="pl" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="border-0 shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Income</CardTitle><p className="text-meta text-muted-foreground">Recognized (accrual)</p></CardHeader><CardContent className="px-0"><LineTable rows={pl.income} total={pl.totalIncome} totalLabel="Total income" /></CardContent></Card>
-            <Card className="border-0 shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Expenses</CardTitle></CardHeader><CardContent className="px-0"><LineTable rows={pl.expense} total={pl.totalExpense} totalLabel="Total expenses" /></CardContent></Card>
+            <Card className="border-0"><CardHeader className="pb-2"><CardTitle className="text-sm">Income</CardTitle><p className="text-meta text-muted-foreground">Recognized (accrual)</p></CardHeader><CardContent className="px-0"><LineTable rows={pl.income} total={pl.totalIncome} totalLabel="Total income" /></CardContent></Card>
+            <Card className="border-0"><CardHeader className="pb-2"><CardTitle className="text-sm">Expenses</CardTitle></CardHeader><CardContent className="px-0"><LineTable rows={pl.expense} total={pl.totalExpense} totalLabel="Total expenses" /></CardContent></Card>
           </div>
-          <Card className="border-0 shadow-card">
+          <Card className="border-0">
             {/* The 26px net-profit figure plus its caption is wider than a phone
               * card; wrapping keeps the number whole instead of clipping it. */}
             <CardContent className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-4">
@@ -100,17 +100,17 @@ export function FinanceReports({
             <StatusPill label={bs.balanced ? "Balanced" : "Out of balance"} hue={bs.balanced ? "emerald" : "rose"} size="sm" />
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="border-0 shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Assets</CardTitle></CardHeader><CardContent className="px-0"><LineTable rows={bs.assets} total={bs.totalAssets} totalLabel="Total assets" /></CardContent></Card>
+            <Card className="border-0"><CardHeader className="pb-2"><CardTitle className="text-sm">Assets</CardTitle></CardHeader><CardContent className="px-0"><LineTable rows={bs.assets} total={bs.totalAssets} totalLabel="Total assets" /></CardContent></Card>
             <div className="space-y-4">
-              <Card className="border-0 shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Liabilities</CardTitle></CardHeader><CardContent className="px-0"><LineTable rows={bs.liabilities} total={bs.totalLiabilities} totalLabel="Total liabilities" /></CardContent></Card>
-              <Card className="border-0 shadow-card"><CardHeader className="pb-2"><CardTitle className="text-sm">Equity</CardTitle></CardHeader><CardContent className="px-0"><LineTable rows={bs.equity} total={bs.totalEquity} totalLabel="Total equity" /></CardContent></Card>
+              <Card className="border-0"><CardHeader className="pb-2"><CardTitle className="text-sm">Liabilities</CardTitle></CardHeader><CardContent className="px-0"><LineTable rows={bs.liabilities} total={bs.totalLiabilities} totalLabel="Total liabilities" /></CardContent></Card>
+              <Card className="border-0"><CardHeader className="pb-2"><CardTitle className="text-sm">Equity</CardTitle></CardHeader><CardContent className="px-0"><LineTable rows={bs.equity} total={bs.totalEquity} totalLabel="Total equity" /></CardContent></Card>
             </div>
           </div>
         </TabsContent>
 
         {/* Trial Balance */}
         <TabsContent value="tb">
-          <Card className="border-0 shadow-card">
+          <Card className="border-0">
             <CardContent className="px-0">
               {/* Debit and Credit are the reason to open this table, so they
                 * stay nowrap and the account name is the column allowed to

@@ -356,7 +356,7 @@ export function PhaseBuilder({ templateId, initialPhases }: PhaseBuilderProps) {
       </div>
 
       {phases.length === 0 ? (
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <div className="rounded-full bg-muted p-3 mb-3">
               <ListChecksIcon className="size-6 text-muted-foreground" />
@@ -387,7 +387,7 @@ export function PhaseBuilder({ templateId, initialPhases }: PhaseBuilderProps) {
             return (
               <Card
                 key={phase.id}
-                className="border-border shadow-sm"
+               
               >
                 <CardHeader className="pb-0">
                   <div className="flex items-center justify-between gap-2">

@@ -34,7 +34,7 @@ function CtqCard({ ctq }: { ctq: CtqResult }) {
   const pct = Math.max(0, Math.min(100, (ctq.sigma / 6) * 100));
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border/70 bg-card p-5 shadow-card transition-premium hover:-translate-y-0.5 hover:shadow-card-hover">
+    <div className="group relative overflow-hidden surface-glass rounded-[22px] p-5 transition-premium hover:-translate-y-0.5 hover:shadow-card-hover">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-body font-semibold tracking-[-0.01em] text-foreground">
@@ -121,7 +121,7 @@ export default async function QualityPage() {
       />
 
       {/* Overall sigma hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/70 bg-card p-6 shadow-card sm:p-8">
+      <div className="relative overflow-hidden surface-glass rounded-[22px] p-6 sm:p-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <span className="flex size-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300">

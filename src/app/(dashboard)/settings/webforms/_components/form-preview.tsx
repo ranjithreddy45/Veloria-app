@@ -22,7 +22,7 @@ export function FormPreview({ fields }: FormPreviewProps) {
   }
 
   return (
-    <div className="mx-auto max-w-lg rounded-xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="mx-auto max-w-lg surface-glass rounded-[22px] p-6">
       <div className="space-y-5">
         {fields.map((field, index) => (
           <div key={index}>

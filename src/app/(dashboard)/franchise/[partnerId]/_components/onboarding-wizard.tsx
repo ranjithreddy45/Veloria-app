@@ -222,7 +222,7 @@ export function OnboardingWizard({
         })}
       </ol>
 
-      <div className="rounded-xl border border-border bg-card p-5">
+      <div className="surface-glass rounded-[22px] p-5">
         {step === 0 && (
           <div className="space-y-4">
             <h3 className="text-sm font-semibold">Partner identity</h3>

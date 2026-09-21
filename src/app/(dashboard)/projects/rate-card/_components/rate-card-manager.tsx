@@ -28,7 +28,7 @@ export function RateCardManager({ items, canManage }: { items: RateItem[]; canMa
   return (
     <div className="space-y-5">
       <BuildTimeline items={items.filter((i) => i.isActive)} />
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="overflow-hidden surface-glass rounded-[22px]">
         <div className="border-b px-4 py-2.5 text-body font-semibold">CapEx rate card</div>
         <Table>
           <TableHeader>
@@ -92,7 +92,7 @@ function BuildTimeline({ items }: { items: RateItem[] }) {
   const critical = sorted[0];
 
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="surface-glass rounded-[22px] p-4">
       <div className="mb-3 flex items-center gap-2 text-body font-semibold"><GanttChartSquare className="size-4 text-primary" /> Standard build timeline</div>
       <div className="space-y-1.5">
         {sorted.map((i) => (

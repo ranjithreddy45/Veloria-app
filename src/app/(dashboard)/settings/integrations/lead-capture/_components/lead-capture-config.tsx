@@ -123,7 +123,7 @@ export function LeadCaptureConfig({ baseUrl, configs, apiKeys }: Props) {
 
       {/* Webhooks Tab */}
       <TabsContent value="webhooks">
-        <section className="rounded-2xl border bg-card shadow-card">
+        <section className="surface-glass rounded-[22px]">
           <div className="border-b px-5 py-4">
             <h3 className="flex items-center gap-2 text-copy font-semibold tracking-[-0.01em]">
               <Webhook className="size-4 text-muted-foreground" />

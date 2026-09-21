@@ -301,7 +301,7 @@ export function DealDetailSheet({
           <div className="flex flex-col gap-5 px-4 pb-6">
             {/* Value & Probability */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <div className="rounded-lg border border-border bg-muted p-3">
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <IndianRupee className="size-3.5" />
                   <span className="text-xs font-medium">Deal Value</span>
@@ -319,7 +319,7 @@ export function DealDetailSheet({
                   </p>
                 )}
               </div>
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+              <div className="rounded-lg border border-border bg-muted p-3">
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <TrendingUp className="size-3.5" />
                   <span className="text-xs font-medium">Probability</span>

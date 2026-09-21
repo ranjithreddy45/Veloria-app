@@ -193,7 +193,7 @@ export function MyMonthCalendar({
   return (
     /* p-3 at phone width buys ~16px back for the 7-column grid — at p-5 each day
      * cell is only 38px wide, which reads as a cramped strip on a 375px screen. */
-    <Card className="gap-0 p-3 shadow-card sm:p-5">
+    <Card className="gap-0 p-3 sm:p-5">
       {/* Header + navigation. Wraps on a phone: the month title plus Today +
        * two arrow buttons (44px each under the coarse-pointer rule) are wider
        * than 375px, and without wrapping the arrows overflow the card. */}

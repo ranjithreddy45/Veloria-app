@@ -406,7 +406,7 @@ function SectionEditor({
   const totalItems = section.items.length;
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-card p-4 space-y-3">
+    <div className="surface-glass rounded-[22px] p-4 space-y-3">
       {/* Section header */}
       <div className="flex items-center gap-2">
         <Input
@@ -831,7 +831,7 @@ export function PackageBuilder({ vendors, categories, venues, templates, initial
       ══════════════════════════════════════════════════════ */}
       <div className="space-y-6">
         {/* Basic details card */}
-        <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card space-y-4">
+        <div className="surface-glass rounded-[22px] p-5 space-y-4">
           <h2 className="text-copy font-semibold text-foreground">Package details</h2>
 
           {/* Start from an existing package (create mode only) — item 4 */}
@@ -1243,7 +1243,7 @@ export function PackageBuilder({ vendors, categories, venues, templates, initial
       ══════════════════════════════════════════════════════ */}
       <div className="space-y-5">
         {/* Images card */}
-        <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-card space-y-4">
+        <div className="surface-glass rounded-[22px] p-5 space-y-4">
           <h2 className="text-copy font-semibold text-foreground">Images</h2>
 
           {pkgId ? (

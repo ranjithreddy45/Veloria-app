@@ -118,7 +118,7 @@ export function LateEarlyView({
         </div>
       )}
 
-      <div className="rounded-2xl border border-border/60 bg-card shadow-premium">
+      <div className="overflow-clip surface-glass rounded-[22px]">
         {rows.length === 0 ? (
           <EmptyState icon={<Timer />} title="Nobody late or short here" description="Every worked day in this range met the expected window. Adjust the window or range to review more." />
         ) : (

@@ -101,7 +101,7 @@ export function BankReconcile({
       </div>
 
       {/* Import */}
-      <Card className="border-0 shadow-card">
+      <Card className="border-0">
         <CardHeader className="pb-2"><CardTitle className="text-base">Import statement</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">Upload or paste a CSV with Date, Description, and Debit/Credit (or a signed Amount) columns. Duplicate rows are skipped automatically.</p>
@@ -124,7 +124,7 @@ export function BankReconcile({
       {txns.length === 0 ? (
         <EmptyState icon={<Landmark className="size-5" />} title="No transactions yet" description="Import a statement to begin." />
       ) : (
-        <Card className="border-0 shadow-card">
+        <Card className="border-0">
           <CardHeader className="pb-2"><CardTitle className="text-base">Transactions</CardTitle></CardHeader>
           <CardContent className="px-0">
             <Table>
@@ -184,7 +184,7 @@ export function BankReconcile({
 
 function Stat({ label, value, sub, tone }: { label: string; value: string; sub?: string; tone?: "ok" | "warn" }) {
   return (
-    <div className="rounded-xl border bg-card p-3 shadow-card">
+    <div className="surface-glass rounded-2xl p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className={`text-lg font-semibold numeric ${tone === "warn" ? "text-warning" : tone === "ok" ? "text-success" : ""}`}>{value}</p>
       {sub && <p className="text-meta text-muted-foreground">{sub}</p>}
@@ -200,7 +200,7 @@ function CreateAccountInline({ onCreate, busy }: { onCreate: (d: { name: string;
 
 function CreateAccount({ onCreate, busy }: { onCreate: (d: { name: string; bankName?: string; accountNo?: string; openingBalance?: number }) => void; busy: boolean }) {
   return (
-    <Card className="mx-auto max-w-md border-0 shadow-card">
+    <Card className="mx-auto max-w-md border-0">
       <CardHeader><CardTitle className="text-base">Add a bank account</CardTitle></CardHeader>
       <CardContent><InlineForm onCreate={onCreate} busy={busy} /></CardContent>
     </Card>

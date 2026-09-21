@@ -75,7 +75,7 @@ export function EmployeePayslips({ payslips }: { payslips: EmployeePayslipRow[] 
         const chip = statusChip(p.run.status);
         const isDraft = p.run.status === "DRAFT";
         return (
-          <Card key={p.id} className="gap-4 p-5 shadow-card transition-shadow hover:shadow-card-hover">
+          <Card key={p.id} className="gap-4 p-5 transition-shadow hover:shadow-card-hover">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="truncate text-copy font-semibold tracking-[-0.01em]">{label}</div>

@@ -85,7 +85,7 @@ function ParetoPanel({ ctqId }: { ctqId: string }) {
   const rows = data ?? [];
 
   return (
-    <Card className="border-border/70 shadow-card">
+    <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-copy font-semibold tracking-[-0.01em]">
           Defect Pareto
@@ -178,7 +178,7 @@ function ControlPanel({ ctqId }: { ctqId: string }) {
   const lcl = data?.lcl ?? 0;
 
   return (
-    <Card className="border-border/70 shadow-card">
+    <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-copy font-semibold tracking-[-0.01em]">
           Control chart
@@ -324,7 +324,7 @@ export function QualityDetail({ ctqs }: QualityDetailProps) {
       </div>
 
       {/* Active metric strip */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-border/70 bg-card px-5 py-3.5 shadow-card">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 surface-glass rounded-[22px] px-5 py-3.5">
         <div>
           <p className="text-meta uppercase tracking-[0.08em] text-muted-foreground">{active.domain}</p>
           <p className="text-copy font-semibold text-foreground">{active.label}</p>

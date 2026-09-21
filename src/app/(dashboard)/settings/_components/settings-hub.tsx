@@ -127,7 +127,7 @@ export function SettingsHub() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {categories.map((cat) => (
-            <div key={cat.title} className="rounded-xl border border-border/70 bg-card p-4 shadow-card transition-shadow duration-200 hover:shadow-card-hover">
+            <div key={cat.title} className="surface-glass rounded-[22px] p-4 transition-shadow duration-200 hover:shadow-card-hover">
               <div className="mb-2.5 flex items-center gap-2.5">
                 <span className={cn("flex size-8 items-center justify-center rounded-lg", cat.accent)}>
                   <cat.icon className="size-4" />

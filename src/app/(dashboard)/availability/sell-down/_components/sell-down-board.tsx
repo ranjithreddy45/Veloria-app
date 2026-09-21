@@ -98,7 +98,7 @@ export function SellDownBoard({
 
   if (unauthorized) {
     return (
-      <div className="rounded-2xl border border-border/70 bg-card p-8 text-center text-muted-foreground">
+      <div className="surface-glass rounded-[22px] p-8 text-center text-muted-foreground">
         You don’t have access to the Sell-Down Board.
       </div>
     );
@@ -143,7 +143,7 @@ export function SellDownBoard({
       </div>
 
       {/* Filters + refresh */}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border/70 bg-card p-3">
+      <div className="flex flex-wrap items-center gap-3 surface-glass rounded-2xl p-3">
         <Select value={venueId} onValueChange={setVenueId}>
           <SelectTrigger className="h-9 w-[12rem]">
             <SelectValue placeholder="All venues" />
@@ -191,11 +191,11 @@ export function SellDownBoard({
 
       {/* Target list */}
       {loading ? (
-        <div className="flex items-center justify-center gap-2 rounded-2xl border border-border/70 bg-card p-10 text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 surface-glass rounded-[22px] p-10 text-muted-foreground">
           <Loader2 className="size-4 animate-spin" /> Loading targets…
         </div>
       ) : targets.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border/70 bg-card p-10 text-center">
+        <div className="rounded-[22px] border border-dashed border-border/70 bg-card/40 p-10 text-center">
           <p className="text-copy font-medium">No low-occupancy slots in this window.</p>
           <p className="mt-1 text-body text-muted-foreground">
             Everything in range is well booked, or no targets have been computed yet. Try “Refresh now”.

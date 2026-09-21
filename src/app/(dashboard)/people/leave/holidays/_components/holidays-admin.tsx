@@ -32,7 +32,7 @@ export function HolidaysAdmin({ holidays, year }: { holidays: Holiday[]; year: n
   const years = Array.from({ length: 9 }, (_, i) => thisYear - 3 + i);
 
   return (
-    <div className="rounded-xl border bg-card p-5">
+    <div className="surface-glass rounded-[22px] p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-copy font-semibold">Public holidays</h3>

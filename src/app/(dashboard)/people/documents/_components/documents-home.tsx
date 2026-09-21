@@ -92,7 +92,7 @@ export function DocumentsHome({
         ) : (
           <div className="space-y-2.5">
             {templates.map((t) => (
-              <div key={t.id} className="flex items-center justify-between rounded-xl border bg-card p-4">
+              <div key={t.id} className="flex items-center justify-between surface-glass rounded-[22px] p-4">
                 <div className="flex items-center gap-2">
                   <FileSignature className="size-4 text-muted-foreground" />
                   <span className="font-medium">{t.name}</span>
@@ -120,7 +120,7 @@ function OrgDocCard({ doc, canRead, totalActive }: { doc: OrgDoc; canRead: boole
   }
 
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="surface-glass rounded-[22px] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <FileText className="mt-0.5 size-4 text-muted-foreground" />
@@ -188,7 +188,7 @@ function ExpiringSection({ expiring }: { expiring: ExpiringDoc[] }) {
             ? { label: left === 0 ? "Expires today" : `${left}d left`, hue: "amber" as const }
             : { label: `${left}d left`, hue: "slate" as const };
         return (
-          <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
+          <div key={d.id} className="flex flex-wrap items-center justify-between gap-3 surface-glass rounded-[22px] p-4">
             <div className="flex items-start gap-3">
               <Clock className={`mt-0.5 size-4 ${expired ? "text-destructive" : left <= 14 ? "text-warning" : "text-muted-foreground"}`} />
               <div>

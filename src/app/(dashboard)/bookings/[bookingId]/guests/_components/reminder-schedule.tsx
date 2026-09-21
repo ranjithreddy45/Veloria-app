@@ -89,7 +89,7 @@ export function ReminderSchedule({ bookingId }: ReminderScheduleProps) {
   if (overall.total === 0) return null;
 
   return (
-    <Card className="border-border shadow-sm">
+    <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold text-foreground">

@@ -76,7 +76,7 @@ export function BudgetsWorkspace({
     return (
       <div className="space-y-6">
         {header}
-        <Card className="border-0 shadow-card">
+        <Card className="border-0">
           <EmptyState
             icon={<PiggyBank className="size-5" />}
             title="No budgets yet"
@@ -152,7 +152,7 @@ export function BudgetsWorkspace({
       </div>
 
       {/* Variance table */}
-      <Card className="overflow-hidden border-0 shadow-card">
+      <Card className="overflow-hidden border-0">
         {variance.rows.length === 0 ? (
           <EmptyState
             icon={<Plus className="size-5" />}
@@ -224,7 +224,7 @@ export function BudgetsWorkspace({
 
       {/* Budget lines (with delete) */}
       {canManage && activeLines.length > 0 && (
-        <Card className="overflow-hidden border-0 shadow-card">
+        <Card className="overflow-hidden border-0">
           <div className="border-b px-4 py-2.5 text-body font-medium text-muted-foreground">Budget lines</div>
           <Table>
             <TableHeader>

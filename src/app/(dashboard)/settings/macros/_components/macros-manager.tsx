@@ -155,7 +155,7 @@ export function MacrosManager() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border bg-card p-4 shadow-card">
+      <div className="surface-glass rounded-[22px] p-4">
         <div className="space-y-3">
           <Skeleton className="h-4 w-40" />
           <Skeleton className="h-20 w-full rounded-xl" />
@@ -190,7 +190,7 @@ export function MacrosManager() {
       </div>
 
       {macros.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-card shadow-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<ZapIcon />}
             title="No macros yet"
@@ -215,7 +215,7 @@ export function MacrosManager() {
           {entityTypes.map((et) => (
             <TabsContent key={et} value={et} className="mt-4">
               {macrosByEntity[et].length === 0 ? (
-                <div className="rounded-2xl border border-dashed bg-card shadow-card">
+                <div className="rounded-[22px] border border-dashed bg-card/40">
                   <EmptyState
                     icon={<ZapIcon />}
                     title={`No macros for ${ENTITY_TYPE_LABELS[et].toLowerCase()}`}
@@ -229,7 +229,7 @@ export function MacrosManager() {
                     return (
                       <div
                         key={macro.id}
-                        className="rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover"
+                        className="surface-glass rounded-[22px] transition-shadow hover:shadow-card-hover"
                       >
                         <div className="p-4 sm:p-5">
                           <div className="flex items-start justify-between gap-4">

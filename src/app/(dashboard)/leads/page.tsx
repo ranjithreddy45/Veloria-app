@@ -211,7 +211,7 @@ export default async function LeadsPage({
       <LeadsFilterBar canViewAll={canViewAll} scope={scope} venues={venues} unassignedCount={unassignedCount} />
 
         {leads.length === 0 ? (
-          <div className="rounded-2xl border border-dashed bg-card shadow-card">
+          <div className="rounded-[22px] border border-dashed bg-card/40">
             {filtersActive ? (
               <EmptyState
                 icon={<FilterXIcon className="size-6" />}

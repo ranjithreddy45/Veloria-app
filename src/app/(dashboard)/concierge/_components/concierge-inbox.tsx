@@ -211,7 +211,7 @@ export function ConciergeInbox({
     : threads;
 
   return (
-    <div className="grid h-[calc(100dvh-15rem)] min-h-[560px] overflow-hidden rounded-2xl border bg-card shadow-card md:grid-cols-[minmax(280px,360px)_1fr]">
+    <div className="grid h-[calc(100dvh-15rem)] min-h-[560px] overflow-hidden surface-glass rounded-[22px] md:grid-cols-[minmax(280px,360px)_1fr]">
       <aside className={cn("min-h-0 flex-col border-r", selectedId ? "hidden md:flex" : "flex")}>
         <div className="space-y-2 border-b p-3">
           <SegmentedControl<InboxAssigneeFilter>

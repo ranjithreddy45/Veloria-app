@@ -78,7 +78,7 @@ export default async function SalaryReportsIndexPage() {
             <Link
               key={r.href}
               href={r.href}
-              className="group flex items-start gap-3.5 rounded-xl border bg-card p-4 transition-colors hover:bg-muted/40"
+              className="group flex items-start gap-3.5 surface-glass rounded-[22px] p-4 transition-colors hover:bg-muted/40"
             >
               <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/12 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-300">
                 <Icon className="size-5" />

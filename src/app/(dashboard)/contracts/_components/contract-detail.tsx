@@ -120,7 +120,7 @@ export function ContractDetail({ contract }: ContractDetailProps) {
       {/* Left: Contract Content */}
       <div className="space-y-6 lg:col-span-2">
         {/* Contract Content Card */}
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base font-semibold">
               <FileTextIcon className="size-4 text-indigo-500" />
@@ -136,7 +136,7 @@ export function ContractDetail({ contract }: ContractDetailProps) {
 
         {/* Signature Section */}
         {contract.status === "SIGNED" && (
-          <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20 shadow-sm">
+          <Card className="border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/20">
             <CardContent className="flex flex-col items-center py-8 text-center">
               <CheckCircle2Icon className="size-12 text-green-600 dark:text-green-400" />
               <h3 className="mt-3 text-lg font-semibold text-green-900 dark:text-green-100">
@@ -165,7 +165,7 @@ export function ContractDetail({ contract }: ContractDetailProps) {
 
         {/* Internal Notes */}
         {contract.notes && (
-          <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold">
                 Internal Notes
@@ -183,7 +183,7 @@ export function ContractDetail({ contract }: ContractDetailProps) {
       {/* Right: Actions & Info */}
       <div className="space-y-6">
         {/* Actions */}
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">Actions</CardTitle>
           </CardHeader>
@@ -224,7 +224,7 @@ export function ContractDetail({ contract }: ContractDetailProps) {
         </Card>
 
         {/* Contract Info */}
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-semibold">Details</CardTitle>
           </CardHeader>

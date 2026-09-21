@@ -196,7 +196,7 @@ export function ActivityLogList({
                 const ActionIcon = ACTION_ICONS[log.action] ?? History;
                 const entityRoute = ENTITY_ROUTES[log.entityType];
                 const entityColor =
-                  ENTITY_COLORS[log.entityType] ?? "bg-gray-100 text-gray-800 border-gray-200";
+                  ENTITY_COLORS[log.entityType] ?? "bg-muted text-muted-foreground border-border";
                 const initials =
                   log.user.name
                     ?.split(" ")

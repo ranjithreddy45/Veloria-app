@@ -71,7 +71,7 @@ export function BalanceView({
       {filtered.length === 0 ? (
         <EmptyState title="No balances" description={`No leave balances recorded for ${year}.`} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-border/60 bg-card shadow-premium">
+        <div className="overflow-x-auto surface-glass rounded-[22px]">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/60 text-left text-meta uppercase tracking-wide text-muted-foreground">

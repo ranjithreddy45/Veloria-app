@@ -85,7 +85,7 @@ export function PolicyAdmin({ policies }: { policies: AttendancePolicyDto[] }) {
   }
 
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="overflow-clip surface-glass rounded-[22px]">
       <div className="flex items-center justify-between border-b px-5 py-4">
         <div>
           <h3 className="text-copy font-semibold">Policies</h3>

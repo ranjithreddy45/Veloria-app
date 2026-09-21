@@ -266,9 +266,9 @@ export function GalleryGrid({ data, venues, initialVenueId = null }: GalleryGrid
 
       {/* Gallery Grid */}
       {filteredItems.length === 0 ? (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-zinc-100">
+            <div className="flex size-16 items-center justify-center rounded-full bg-muted">
               <ImageIcon className="size-8 text-muted-foreground" />
             </div>
             <h3 className="mt-4 text-base font-semibold text-foreground">
@@ -295,10 +295,10 @@ export function GalleryGrid({ data, venues, initialVenueId = null }: GalleryGrid
           {filteredItems.map((item) => (
             <Card
               key={item.id}
-              className="group overflow-hidden border-zinc-200/80 shadow-sm transition-all duration-200 hover:shadow-md hover:border-indigo-200"
+              className="group overflow-hidden transition-all duration-200 hover:shadow-md hover:border-indigo-200"
             >
               {/* Image / Video Preview */}
-              <div className="relative aspect-[4/3] overflow-hidden bg-zinc-100">
+              <div className="relative aspect-[4/3] overflow-hidden bg-muted">
                 {item.mediaType === "VIDEO" ? (
                   <div className="flex size-full items-center justify-center bg-zinc-900/5">
                     <VideoIcon className="size-12 text-muted-foreground" />
@@ -334,7 +334,7 @@ export function GalleryGrid({ data, venues, initialVenueId = null }: GalleryGrid
                     className={`text-meta ${
                       item.isPublic
                         ? "bg-green-100 text-green-700 border-green-200"
-                        : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                        : "bg-muted text-muted-foreground border-border"
                     }`}
                   >
                     {item.isPublic ? (

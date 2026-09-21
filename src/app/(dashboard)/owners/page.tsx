@@ -63,7 +63,7 @@ export default async function HallOwnersPage() {
       </PageHeader>
 
       {owners.length === 0 ? (
-        <div className="shadow-premium flex flex-col items-center justify-center gap-2 rounded-2xl border border-border/70 bg-card py-16 text-center">
+        <div className="flex flex-col items-center justify-center gap-2 surface-glass rounded-[22px] py-16 text-center">
           <span className="mb-1 flex size-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 dark:bg-violet-950/50 dark:text-violet-300">
             <Building2 className="size-6" strokeWidth={1.5} />
           </span>

@@ -81,7 +81,7 @@ export default async function AttendanceReportsIndex() {
             <Link
               key={r.href}
               href={r.href}
-              className="group relative flex flex-col gap-3 rounded-2xl border border-border/70 bg-card p-5 shadow-premium transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] hover:-translate-y-1 hover:shadow-card-hover"
+              className="group relative flex flex-col gap-3 surface-glass rounded-[22px] p-5 transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] hover:-translate-y-1 hover:shadow-card-hover"
             >
               <span className={`flex size-11 items-center justify-center rounded-2xl [&>svg]:size-[22px] ${r.chip}`}>
                 <Icon strokeWidth={2} />

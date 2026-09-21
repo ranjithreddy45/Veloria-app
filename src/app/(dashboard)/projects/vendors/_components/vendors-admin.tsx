@@ -15,7 +15,7 @@ interface Vendor { id: string; name: string; trade: string | null; phone: string
 
 export function VendorsAdmin({ vendors, canManage }: { vendors: Vendor[]; canManage: boolean }) {
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="surface-glass rounded-[22px]">
       <div className="flex items-center justify-between border-b px-4 py-2.5">
         <span className="flex items-center gap-2 text-body font-semibold"><Hammer className="size-4" /> Construction vendors</span>
         {canManage && <VendorDialog />}

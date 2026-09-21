@@ -32,7 +32,7 @@ export default async function ContractTemplatesPage() {
       </PageHeader>
 
       {templates.length === 0 ? (
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="flex size-16 items-center justify-center rounded-full bg-muted">
               <FileTextIcon className="size-8 text-muted-foreground" />
@@ -57,7 +57,7 @@ export default async function ContractTemplatesPage() {
           {templates.map((template) => (
             <Card
               key={template.id}
-              className="border-border shadow-sm transition-all hover:shadow-md"
+              className="transition-all hover:shadow-md"
             >
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">

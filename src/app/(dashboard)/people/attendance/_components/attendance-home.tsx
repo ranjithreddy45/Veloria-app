@@ -61,7 +61,7 @@ export function AttendanceHome({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+      <div className="overflow-hidden surface-glass rounded-[22px]">
         {/* "Mark manually" + "Regularize" together are wider than 375px minus the
          * title, so the action pair drops to its own line on a phone. */}
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b px-4 py-3">
@@ -116,7 +116,7 @@ export function AttendanceHome({
 
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-2xl border bg-card p-3 shadow-card sm:p-5">
+    <div className="surface-glass rounded-[22px] p-3 sm:p-5">
       <div className="text-meta uppercase leading-tight tracking-wide text-muted-foreground sm:text-meta">{label}</div>
       <div className="numeric mt-2 text-title font-semibold leading-none sm:mt-2.5 sm:text-h2">{value}</div>
     </div>
@@ -216,7 +216,7 @@ function CheckInCard({ today }: { today: Rec | null }) {
   }
 
   return (
-    <div className="rounded-2xl border bg-card p-4 shadow-card sm:p-5">
+    <div className="surface-glass rounded-[22px] p-4 sm:p-5">
       <div className="flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">
         <Clock className="size-3.5" /> Today
       </div>

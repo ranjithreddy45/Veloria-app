@@ -96,7 +96,7 @@ export function DirectoryTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+    <div className="overflow-hidden surface-glass rounded-[22px]">
       {/* Toolbar: filtered count + CSV export of the whole filtered set. */}
       <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
         <span className="text-body text-muted-foreground">

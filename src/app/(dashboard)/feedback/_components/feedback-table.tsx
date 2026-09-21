@@ -108,7 +108,7 @@ export function FeedbackTable({ rows }: { rows: FeedbackRow[] }) {
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-10 text-center text-sm text-muted-foreground shadow-card">
+      <div className="surface-glass rounded-[22px] p-10 text-center text-sm text-muted-foreground">
         No review requests yet. They’re enqueued automatically when bookings are
         marked completed.
       </div>
@@ -122,7 +122,7 @@ export function FeedbackTable({ rows }: { rows: FeedbackRow[] }) {
           {notice}
         </div>
       )}
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+      <div className="overflow-hidden surface-glass rounded-[22px]">
         <Table>
           <TableHeader>
             <TableRow>

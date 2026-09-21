@@ -63,7 +63,7 @@ export default async function EmployeeHandbookPage() {
           {/* Inline viewer — object with open-in-new-tab fallback; the download
               button above always works even where inline rendering isn't
               available (iOS). */}
-          <div className="overflow-hidden rounded-2xl border border-border/60 bg-card shadow-card">
+          <div className="overflow-hidden surface-glass rounded-[22px]">
             <object
               data={HANDBOOK_URL}
               type="application/pdf"

@@ -195,7 +195,7 @@ export function TransitionsList({
   };
 
   return (
-    <section className="rounded-2xl border bg-card shadow-card">
+    <section className="overflow-clip surface-glass rounded-[22px]">
       <div className="flex flex-row items-start justify-between gap-3 border-b px-5 py-4">
         <div className="min-w-0">
           <h3 className="text-copy font-semibold tracking-[-0.01em]">

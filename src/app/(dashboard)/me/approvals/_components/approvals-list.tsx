@@ -27,7 +27,7 @@ export function ApprovalsList({ rows }: { rows: Row[] }) {
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border bg-card">
+      <div className="surface-glass rounded-[22px]">
         <EmptyState
           icon={<Check className="size-5" />}
           title="Nothing waiting for you"
@@ -38,7 +38,7 @@ export function ApprovalsList({ rows }: { rows: Row[] }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+    <div className="overflow-hidden surface-glass rounded-[22px]">
       <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
         <span className="text-body font-semibold">Waiting for you</span>
         <span className="text-body text-muted-foreground">

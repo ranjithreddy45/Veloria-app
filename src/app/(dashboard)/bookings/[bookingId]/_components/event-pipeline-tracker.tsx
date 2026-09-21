@@ -37,7 +37,7 @@ export function EventPipelineTracker({ stages }: { stages: PipelineStage[] }) {
     health >= 80 ? "text-success" : health >= 40 ? "text-warning" : "text-muted-foreground";
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-premium">
+    <div className="surface-glass rounded-[22px] p-5">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold tracking-tight">Event lifecycle</h2>

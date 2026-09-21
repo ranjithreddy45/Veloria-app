@@ -65,7 +65,7 @@ export default async function SurveyDetailPage({
           className={
             survey.isActive
               ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-              : "bg-zinc-100 text-zinc-600 border-zinc-200"
+              : "bg-muted text-muted-foreground border-border"
           }
         >
           {survey.isActive ? "Active" : "Inactive"}
@@ -81,7 +81,7 @@ export default async function SurveyDetailPage({
 
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-indigo-50">
@@ -96,7 +96,7 @@ export default async function SurveyDetailPage({
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-blue-50">
@@ -111,7 +111,7 @@ export default async function SurveyDetailPage({
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-amber-50">
@@ -128,7 +128,7 @@ export default async function SurveyDetailPage({
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-emerald-50">
@@ -164,7 +164,7 @@ export default async function SurveyDetailPage({
               {results ? (
                 <SurveyResults questionResults={results.questionResults} />
               ) : (
-                <Card className="border-zinc-200/80 shadow-sm">
+                <Card>
                   <CardContent className="py-12 text-center">
                     <p className="text-sm text-muted-foreground">
                       No results available yet
@@ -191,7 +191,7 @@ export default async function SurveyDetailPage({
 
         {/* Questions Tab */}
         <TabsContent value="questions">
-          <Card className="border-zinc-200/80 shadow-sm">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold text-foreground">
                 Survey Questions
@@ -207,7 +207,7 @@ export default async function SurveyDetailPage({
                   {survey.questions.map((question, index) => (
                     <div
                       key={question.id}
-                      className="flex items-start gap-3 rounded-lg border border-zinc-100 bg-zinc-50/50 p-4"
+                      className="flex items-start gap-3 rounded-lg border border-border bg-muted/50 p-4"
                     >
                       <Badge
                         variant="outline"
@@ -261,7 +261,7 @@ export default async function SurveyDetailPage({
 
         {/* Responses Tab */}
         <TabsContent value="responses">
-          <Card className="border-zinc-200/80 shadow-sm">
+          <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-semibold text-foreground">
                 Individual Responses
@@ -283,7 +283,7 @@ export default async function SurveyDetailPage({
                   {survey.responses.map((response, rIndex) => (
                     <div
                       key={response.id}
-                      className="rounded-lg border border-zinc-200 p-4 space-y-3"
+                      className="rounded-lg border border-border p-4 space-y-3"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">

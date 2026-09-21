@@ -98,7 +98,7 @@ export function VelosSurface({
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Identity arc */}
         {identity && (
-          <div className="rounded-xl border bg-card p-5">
+          <div className="surface-glass rounded-[22px] p-5">
             <div className="mb-3 flex items-center gap-2 text-detail font-semibold text-muted-foreground"><Sparkles className="size-4 text-[#C9A96E]" /> Your journey</div>
             <div className="flex items-center gap-3">
               <div className={cn("flex size-12 items-center justify-center rounded-xl ring-1 ring-inset", TIER_HUE[identity.tierKey])}>
@@ -124,7 +124,7 @@ export function VelosSurface({
 
         {/* Team vs Target */}
         {team && (
-          <div className="rounded-xl border bg-card p-5 shadow-card">
+          <div className="surface-glass rounded-[22px] p-5">
             <div className="mb-3 flex items-center gap-2 text-detail font-semibold text-muted-foreground"><Target className="size-4" /> Team vs target</div>
             <div className="flex items-center gap-4">
               <Donut value={Math.min(100, team.pct)} size={64} thickness={7} colorClass={team.pct >= 100 ? "text-emerald-500" : team.pct >= 60 ? "text-[#C9A96E]" : "text-amber-500"} ariaLabel={`${team.pct}% of team target`} />
@@ -141,7 +141,7 @@ export function VelosSurface({
       </div>
 
       {/* Leaderboard (light touch) */}
-      <div className="rounded-xl border bg-card">
+      <div className="surface-glass rounded-[22px]">
         <div className="flex items-center gap-2 border-b px-4 py-3 text-body font-semibold"><Trophy className="size-4 text-[#C9A96E]" /> This month (recognition)</div>
         {leaderboard.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">No Velos earned yet this month. As the team works the pipeline, leads and tasks, points appear here.</div>
@@ -201,7 +201,7 @@ function QuestsBoard({ quests, canManage, silverPlus, configMetrics }: { quests:
   }
 
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="surface-glass rounded-[22px]">
       <div className="flex items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-2 text-body font-semibold"><TargetIcon className="size-4 text-[#C9A96E]" /> Quests &amp; team goals</div>
         {canManage && <CreateQuestControls configMetrics={configMetrics} hasQuests={quests.length > 0} />}
@@ -310,7 +310,7 @@ function CreateQuestControls({ configMetrics, hasQuests }: { configMetrics: { ev
 
 function KudosWall({ feed, remaining, teammates }: { feed: KudosItem[]; remaining: number; teammates: Teammate[] }) {
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="surface-glass rounded-[22px]">
       <div className="flex items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-2 text-body font-semibold"><Heart className="size-4 text-rose-500" /> Kudos wall</div>
         <GiveKudosDialog remaining={remaining} teammates={teammates} />
@@ -401,7 +401,7 @@ function SeedPanel() {
 
 function ConfigPanel({ config }: { config: Cfg[] }) {
   return (
-    <div className="rounded-xl border bg-card p-5">
+    <div className="surface-glass rounded-[22px] p-5">
       <div className="mb-3 flex items-center gap-2 text-body font-semibold"><Settings2 className="size-4" /> Point configuration <span className="text-meta font-normal text-muted-foreground">— retune anytime, no redeploy</span></div>
       <div className="grid gap-2 sm:grid-cols-2">
         {config.map((c) => <ConfigRow key={c.id} cfg={c} />)}

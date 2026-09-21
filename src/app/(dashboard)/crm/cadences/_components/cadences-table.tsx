@@ -75,7 +75,7 @@ const STATUS_BADGE_MAP: Record<string, string> = {
   DRAFT: "bg-muted text-foreground/80 border-border",
   ACTIVE: "bg-green-100 text-green-700 border-green-200",
   PAUSED: "bg-amber-100 text-amber-700 border-amber-200",
-  ARCHIVED: "bg-slate-100 text-slate-700 border-slate-200",
+  ARCHIVED: "bg-muted text-muted-foreground border-border",
 };
 
 const ENTITY_TYPE_BADGE_MAP: Record<string, string> = {

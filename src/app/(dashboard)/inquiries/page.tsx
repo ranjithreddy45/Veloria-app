@@ -74,7 +74,7 @@ export default async function InquiriesPage() {
 
       <div className="animate-rise-in animate-stagger-2">
         {total === 0 ? (
-          <div className="rounded-xl border border-dashed bg-card shadow-premium">
+          <div className="rounded-[22px] border border-dashed bg-card/40">
             <EmptyState
               icon={<InboxIcon className="size-6" />}
               title="No inquiries yet"

@@ -282,7 +282,7 @@ export function SeedBuilder({
   }
 
   return (
-    <Card className="border-border shadow-sm">
+    <Card>
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div>

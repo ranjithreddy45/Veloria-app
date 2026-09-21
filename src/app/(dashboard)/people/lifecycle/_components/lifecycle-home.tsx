@@ -62,7 +62,7 @@ function JourneyList({ journeys, emptyText }: { journeys: Journey[]; emptyText: 
         const initials = `${j.employee.firstName[0] ?? ""}${j.employee.lastName[0] ?? ""}`.toUpperCase();
         return (
           <Link key={j.id} href={`/people/lifecycle/${j.id}`}
-            className="flex items-center gap-3 rounded-xl border bg-card p-4 hover:shadow-sm">
+            className="flex items-center gap-3 surface-glass rounded-[22px] p-4 hover:shadow-sm">
             <Avatar size="sm">
               <AvatarImage src={j.employee.photoUrl || undefined} alt={name} />
               <AvatarFallback className="bg-primary/10 text-meta font-semibold text-primary">{initials}</AvatarFallback>
