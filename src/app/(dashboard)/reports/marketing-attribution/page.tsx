@@ -24,11 +24,11 @@ export default async function MarketingAttributionPage() {
       {!res.success ? (
         <p className="text-sm text-muted-foreground">{res.error}</p>
       ) : res.rows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-sm text-muted-foreground shadow-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-sm text-muted-foreground">
           No leads yet.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border bg-card shadow-card">
+        <div className="overflow-x-auto surface-glass rounded-[22px]">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b bg-muted/30 text-left text-meta uppercase tracking-wide text-muted-foreground">

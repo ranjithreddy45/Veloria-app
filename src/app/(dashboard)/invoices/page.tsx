@@ -70,7 +70,7 @@ export default async function InvoicesPage() {
       </PageHeader>
 
       {invoices.length === 0 ? (
-        <div className="animate-rise-in animate-stagger-1 rounded-2xl border border-dashed bg-card shadow-card">
+        <div className="animate-rise-in animate-stagger-1 rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<ReceiptIndianRupeeIcon className="size-6" />}
             title="No invoices yet"

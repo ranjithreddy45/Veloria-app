@@ -93,7 +93,7 @@ export function TaxReports({ range }: TaxReportsProps) {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
@@ -106,7 +106,7 @@ export function TaxReports({ range }: TaxReportsProps) {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
@@ -122,7 +122,7 @@ export function TaxReports({ range }: TaxReportsProps) {
       </div>
 
       {/* Card 1: Monthly GST Summary Chart */}
-      <Card className="border-zinc-200/80 shadow-sm">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Monthly GST Summary</CardTitle>
           <p className="text-xs text-muted-foreground">CGST and SGST breakdown by month</p>
@@ -146,7 +146,7 @@ export function TaxReports({ range }: TaxReportsProps) {
       </Card>
 
       {/* Card 2: GST Detail Table */}
-      <Card className="border-zinc-200/80 shadow-sm">
+      <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <div>

@@ -123,7 +123,7 @@ export function DateRangePicker({
   );
 
   return (
-    <Card className={cn("rounded-2xl border bg-card py-0 shadow-card", className)}>
+    <Card className={cn("py-0", className)}>
       <CardContent className="px-4 py-3.5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
           <div className="flex items-center gap-1.5 text-muted-foreground">

@@ -4,7 +4,7 @@ import { FileSpreadsheet, Lock } from "lucide-react";
 // access is connected; intentionally non-interactive for now.
 export function Gstr2bReconcileCard() {
   return (
-    <div className="rounded-xl border bg-card p-5 shadow-card">
+    <div className="surface-glass rounded-[22px] p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="flex size-7 items-center justify-center rounded-lg bg-cyan-100 text-cyan-600 dark:bg-cyan-950/50 dark:text-cyan-300">

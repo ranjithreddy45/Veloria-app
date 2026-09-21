@@ -109,7 +109,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   MENU: "bg-orange-100 text-orange-800 border-orange-200",
   LICENSE: "bg-cyan-100 text-cyan-800 border-cyan-200",
   INSURANCE: "bg-indigo-100 text-indigo-800 border-indigo-200",
-  OTHER: "bg-zinc-100 text-zinc-800 border-zinc-200",
+  OTHER: "bg-muted text-foreground border-border",
 };
 
 // ============================================================
@@ -268,9 +268,9 @@ export function DocumentList({ data, venues }: DocumentListProps) {
 
       {/* Documents Grid */}
       {filteredItems.length === 0 ? (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="flex size-16 items-center justify-center rounded-full bg-zinc-100">
+            <div className="flex size-16 items-center justify-center rounded-full bg-muted">
               <FileTextIcon className="size-8 text-muted-foreground" />
             </div>
             <h3 className="mt-4 text-base font-semibold text-foreground">
@@ -297,10 +297,10 @@ export function DocumentList({ data, venues }: DocumentListProps) {
           {filteredItems.map((doc) => (
             <Card
               key={doc.id}
-              className="group overflow-hidden border-zinc-200/80 shadow-sm transition-all duration-200 hover:shadow-md hover:border-indigo-200"
+              className="group overflow-hidden transition-all duration-200 hover:shadow-md hover:border-indigo-200"
             >
               {/* File Preview Area */}
-              <div className="relative flex aspect-[4/3] items-center justify-center bg-zinc-50">
+              <div className="relative flex aspect-[4/3] items-center justify-center bg-muted">
                 {getFileIcon(doc.mimeType)}
 
                 {/* File Type Badge */}
@@ -320,7 +320,7 @@ export function DocumentList({ data, venues }: DocumentListProps) {
                     className={`text-meta ${
                       doc.isPublic
                         ? "bg-green-100 text-green-700 border-green-200"
-                        : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                        : "bg-muted text-muted-foreground border-border"
                     }`}
                   >
                     {doc.isPublic ? (
@@ -380,7 +380,7 @@ export function DocumentList({ data, venues }: DocumentListProps) {
                     variant="outline"
                     className={`text-meta border font-medium ${
                       CATEGORY_COLORS[doc.category] ||
-                      "bg-zinc-100 text-zinc-800 border-zinc-200"
+                      "bg-muted text-foreground border-border"
                     }`}
                   >
                     {CATEGORY_LABELS[doc.category] || doc.category}

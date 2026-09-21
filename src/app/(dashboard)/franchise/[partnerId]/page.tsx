@@ -125,7 +125,7 @@ export default async function FranchisePartnerPage({
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 space-y-4">
-          <div className="rounded-xl border border-border bg-card p-5">
+          <div className="surface-glass rounded-[22px] p-5">
             <h3 className="text-sm font-semibold">Partner details</h3>
             <dl className="mt-3 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
               <div>

@@ -198,7 +198,7 @@ export function AnomaliesWorkspace({ canWrite, anomalies, stats, filter }: Props
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-card">
+      <div className="overflow-hidden surface-glass rounded-[22px]">
         {anomalies.length === 0 ? (
           <EmptyState
             tone="success"

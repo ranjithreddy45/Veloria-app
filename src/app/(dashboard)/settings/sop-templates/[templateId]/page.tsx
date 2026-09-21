@@ -69,7 +69,7 @@ export default async function SOPTemplateDetailPage({
       </PageHeader>
 
       {/* Template Info Card */}
-      <Card className="border-border shadow-sm">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">Template Information</CardTitle>
         </CardHeader>
@@ -128,7 +128,7 @@ export default async function SOPTemplateDetailPage({
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Phases & Task Definitions</h2>
         {phases.length === 0 ? (
-          <Card className="border-border shadow-sm">
+          <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
               No phases defined yet. Edit this template to add phases.
             </CardContent>
@@ -139,7 +139,7 @@ export default async function SOPTemplateDetailPage({
             return (
               <Card
                 key={phase.id as string}
-                className="border-border shadow-sm"
+               
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">

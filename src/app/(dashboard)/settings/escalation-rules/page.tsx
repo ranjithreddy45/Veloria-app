@@ -86,7 +86,7 @@ export default async function EscalationRulesPage() {
       </PageHeader>
 
       {rules.length === 0 ? (
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="rounded-full bg-muted p-4 mb-4">
               <ShieldAlertIcon className="size-8 text-muted-foreground" />
@@ -109,7 +109,7 @@ export default async function EscalationRulesPage() {
           {rules.map((rule) => (
             <Card
               key={rule.id}
-              className="border-border shadow-sm flex flex-col"
+              className="flex flex-col"
             >
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">

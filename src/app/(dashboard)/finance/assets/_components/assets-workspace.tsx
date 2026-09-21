@@ -85,7 +85,7 @@ export function AssetsWorkspace({
             <StatTile label="Net book value" value={formatINR(netBookValue)} accent="emerald" icon={<Landmark className="size-4" />} sub="Cost − accumulated" />
           </div>
 
-          <div className="overflow-hidden rounded-xl border bg-card shadow-card">
+          <div className="overflow-hidden surface-glass rounded-[22px]">
             {assets.length === 0 ? (
               <EmptyState
                 icon={<Boxes className="size-5" />}
@@ -157,7 +157,7 @@ function PnlTable({
   rows: { key: string; income: number; expense: number; net: number }[];
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-card">
+    <div className="overflow-hidden surface-glass rounded-[22px]">
       <div className="flex items-center gap-2 border-b px-4 py-3">
         <span className="flex size-7 items-center justify-center rounded-lg bg-muted text-muted-foreground">{icon}</span>
         <span className="text-sm font-medium">{title}</span>

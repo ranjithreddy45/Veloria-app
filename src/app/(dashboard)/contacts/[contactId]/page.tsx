@@ -529,7 +529,7 @@ export default async function ContactDetailPage({
                             PARTIALLY_PAID: "bg-amber-100 text-amber-800 border-amber-200",
                             PAID: "bg-green-100 text-green-800 border-green-200",
                             OVERDUE: "bg-red-100 text-red-800 border-red-200",
-                            CANCELLED: "bg-slate-100 text-slate-600 border-slate-200",
+                            CANCELLED: "bg-muted text-muted-foreground border-border",
                             REFUNDED: "bg-purple-100 text-purple-800 border-purple-200",
                           }}
                         />

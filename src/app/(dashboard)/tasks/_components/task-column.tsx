@@ -22,7 +22,7 @@ const STATUS_CONFIG: Record<
   TODO: {
     label: "To Do",
     color: "#71717a", // zinc-500
-    bgColor: "bg-zinc-100/80",
+    bgColor: "bg-muted/80",
   },
   IN_PROGRESS: {
     label: "In Progress",

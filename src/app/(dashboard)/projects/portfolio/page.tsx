@@ -36,7 +36,7 @@ export default async function PortfolioPage() {
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">No active venue projects.</div>
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="overflow-hidden surface-glass rounded-[22px]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -87,7 +87,7 @@ export default async function PortfolioPage() {
 // "₹1,20,00,000 / ₹1,50,00,000" would otherwise spill out of the card.
 function Kpi({ icon, label, value, accent, danger, className }: { icon: React.ReactNode; label: string; value: string; accent?: boolean; danger?: boolean; className?: string }) {
   return (
-    <div className={`rounded-xl border bg-card p-4 ${className ?? ""}`}>
+    <div className={`surface-glass rounded-[22px] p-4 ${className ?? ""}`}>
       <div className="flex items-center gap-2 text-muted-foreground"><span className={danger ? "text-red-600" : accent ? "text-primary" : ""}>{icon}</span><span className="text-detail font-medium">{label}</span></div>
       <div className={`mt-2 text-xl font-semibold tabular-nums break-words sm:text-2xl ${danger ? "text-red-700" : ""}`}>{value}</div>
     </div>

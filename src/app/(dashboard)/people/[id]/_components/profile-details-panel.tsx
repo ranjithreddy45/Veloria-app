@@ -124,7 +124,7 @@ function Section<T>({
 }) {
   const [open, setOpen] = React.useState(false);
   return (
-    <div className="rounded-2xl border bg-card p-5 shadow-card">
+    <div className="surface-glass rounded-[22px] p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {icon}

@@ -97,7 +97,7 @@ export function LeaveHome({
           return (
             /* Two cards per row at 375px leaves ~165px each; p-5 would eat 40 of
              * that and squeeze the day count against "of N days left". */
-            <div key={b.id} className="rounded-2xl border border-border/70 bg-card p-3.5 shadow-card transition-shadow duration-200 hover:shadow-card-hover sm:p-5">
+            <div key={b.id} className="surface-glass rounded-[22px] p-3.5 transition-shadow duration-200 hover:shadow-card-hover sm:p-5">
               <div className="flex items-center justify-between">
                 <span className={cn("flex size-9 items-center justify-center rounded-lg", CHIP[b.leaveType.color] ?? CHIP.slate)}>
                   <CalendarDays className="size-4" />
@@ -129,7 +129,7 @@ export function LeaveHome({
         </div>
 
         {holidays.length > 0 && (
-          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-card">
+          <div className="overflow-hidden surface-glass rounded-[22px]">
             <div className="flex items-center gap-2 border-b px-4 py-3 text-body font-semibold">
               <PartyPopper className="size-4 text-[#C9A96E]" /> Upcoming holidays
             </div>
@@ -157,7 +157,7 @@ export function LeaveHome({
         initialEnd={seed.end}
       />
 
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+      <div className="overflow-hidden surface-glass rounded-[22px]">
         <div className="border-b px-4 py-3 text-body font-semibold">My leave requests</div>
         {requests.length === 0 ? (
           <EmptyState

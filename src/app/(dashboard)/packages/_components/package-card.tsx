@@ -121,7 +121,7 @@ export function PackageCard({ pkg }: PackageCardProps) {
 
   return (
     <>
-      <Card className="group relative flex flex-col shadow-card transition-shadow hover:shadow-card-hover">
+      <Card className="group relative flex flex-col transition-shadow hover:shadow-card-hover">
         <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
           <div className="flex flex-wrap items-center gap-2 min-w-0">
             <StatusBadge

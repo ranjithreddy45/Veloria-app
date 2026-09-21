@@ -40,7 +40,7 @@ export default async function MyAttendancePage() {
       />
 
       {!data ? (
-        <div className="rounded-2xl border border-dashed bg-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<LogIn className="size-5" />}
             title="Please sign in"
@@ -48,7 +48,7 @@ export default async function MyAttendancePage() {
           />
         </div>
       ) : data.linked === false ? (
-        <div className="rounded-2xl border border-dashed bg-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<UserX className="size-5" />}
             title="No employee profile linked"

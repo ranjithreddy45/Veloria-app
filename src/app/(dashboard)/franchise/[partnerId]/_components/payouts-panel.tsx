@@ -155,7 +155,7 @@ export function PayoutsPanel({ partnerId, venues, payouts }: PayoutsPanelProps) 
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
+      <div className="flex flex-wrap items-end gap-3 surface-glass rounded-[22px] p-4">
         <div className="space-y-1.5">
           <Label htmlFor="period">Period</Label>
           <Input

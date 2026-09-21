@@ -369,6 +369,69 @@
   background-color: oklch(0.225 0.004 286 / 72%);
 }
 
+/* --------------------------------------------------------------
+ * Workspace v2 (2026-09) — the visionOS-style team shell.
+ *
+ * .workspace-ground is the tinted backdrop the glass sits on. It is a class on
+ * the dashboard layout, NOT on body, so the customer app, the public pages and
+ * sign-in keep their own grounds. Fixed attachment, so glass panels have
+ * something to refract as the page scrolls beneath them.
+ *
+ * surface-glass is the one card material. It stays 78% opaque on purpose:
+ * several hundred screens put dense tables inside a Card, and text over a
+ * see-through panel is not legible. Standard property AFTER -webkit- — the
+ * minifier keeps only the last of the pair (see css-silently-dropped).
+ * -------------------------------------------------------------- */
+.workspace-ground {
+  background:
+    radial-gradient(1100px 700px at 6% -8%, oklch(0.925 0.04 345), transparent 60%),
+    radial-gradient(900px 700px at 100% 0%, oklch(0.92 0.035 285), transparent 55%),
+    radial-gradient(800px 600px at 60% 110%, oklch(0.94 0.03 80), transparent 60%),
+    oklch(0.955 0.008 60);
+  background-attachment: fixed;
+}
+.dark .workspace-ground {
+  background:
+    radial-gradient(1100px 700px at 6% -8%, oklch(0.22 0.03 345), transparent 60%),
+    radial-gradient(900px 700px at 100% 0%, oklch(0.2 0.025 275), transparent 55%),
+    oklch(0.155 0.004 286);
+  background-attachment: fixed;
+}
+@utility surface-glass {
+  background-color: var(--glass-fill);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  backdrop-filter: blur(22px) saturate(170%);
+  /* The glass edge is an INSET RING in the shadow, not a `border`. This utility
+   * compiles after Tailwind's border-colour/width/style utilities, so a border
+   * shorthand here silently killed every Card's own border — 21 severity
+   * accents (border-l-4 border-red-…) and 4 dashed cards. The border property
+   * is left entirely to the caller. */
+  box-shadow: inset 0 0 0 1px var(--glass-edge), var(--glass-drop);
+}
+/* The material's colours are VARIABLES, not a `.dark .surface-glass` rule. The
+ * utility is also applied through variants (the floating sidebar uses
+ * `group-data-[variant=floating]:surface-glass`), which generate a different
+ * class name — so a `.dark .surface-glass` selector never matched there and
+ * the sidebar stayed white in dark mode. Variables follow the theme wherever
+ * the utility ends up. */
+:root {
+  --glass-fill: oklch(1 0 0 / 78%);
+  --glass-edge: oklch(1 0 0 / 70%);
+  --glass-drop: 0 1px 1px oklch(0.2 0.02 340 / 4%), 0 18px 44px -24px oklch(0.3 0.09 340 / 32%);
+}
+.dark {
+  --glass-fill: oklch(0.24 0.008 300 / 72%);
+  --glass-edge: oklch(1 0 0 / 9%);
+  --glass-drop: 0 1px 1px oklch(0 0 0 / 30%), 0 22px 50px -26px oklch(0 0 0 / 80%);
+}
+/* A card that IS a link or button lifts on hover with a slight spring. Cards
+ * holding tables must not move under the pointer, so this is opt-in. */
+@utility surface-lift {
+  transition: transform .35s cubic-bezier(.2, .9, .25, 1.15), box-shadow .35s ease;
+  &:hover { transform: translateY(-3px); }
+  @media (prefers-reduced-motion: reduce) { transition: none; &:hover { transform: none; } }
+}
+
 /* Thicker, more opaque material for the sidebar chrome. */
 @utility bg-material-sidebar {
   background-color: oklch(0.978 0.0015 286 / 80%);

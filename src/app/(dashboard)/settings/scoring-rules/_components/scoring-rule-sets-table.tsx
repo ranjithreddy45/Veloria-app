@@ -177,7 +177,7 @@ export function ScoringRuleSetsTable({ initialData }: Props) {
 
   if (loading && ruleSets.length === 0) {
     return (
-      <div className="rounded-2xl border bg-card p-4 shadow-card">
+      <div className="surface-glass rounded-[22px] p-4">
         <div className="space-y-3">
           <Skeleton className="h-4 w-44" />
           <Skeleton className="h-20 w-full rounded-xl" />
@@ -203,7 +203,7 @@ export function ScoringRuleSetsTable({ initialData }: Props) {
       </div>
 
       {ruleSets.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-card shadow-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<TargetIcon />}
             title="No scoring rule sets yet"
@@ -222,7 +222,7 @@ export function ScoringRuleSetsTable({ initialData }: Props) {
             <div
               key={set.id}
               className={cn(
-                "rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover",
+                "surface-glass rounded-[22px] transition-shadow hover:shadow-card-hover",
                 !set.isActive && "opacity-65"
               )}
             >

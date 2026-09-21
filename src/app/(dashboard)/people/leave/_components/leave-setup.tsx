@@ -20,7 +20,7 @@ export function LeaveSetup() {
   }
 
   return (
-    <div className="mx-auto max-w-lg rounded-2xl border border-dashed bg-card p-8 text-center shadow-card sm:p-10">
+    <div className="mx-auto max-w-lg rounded-[22px] border border-dashed bg-card/40 p-8 text-center sm:p-10">
       <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <CalendarCheck className="size-6" />
       </div>

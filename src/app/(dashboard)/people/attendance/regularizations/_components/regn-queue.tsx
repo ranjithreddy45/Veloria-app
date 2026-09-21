@@ -45,7 +45,7 @@ function Card({ row }: { row: Row }) {
   }
 
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="surface-glass rounded-[22px] p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link href={`/people/${row.employee.id}`} className="font-medium hover:underline">

@@ -407,7 +407,7 @@ export default async function BookingDetailPage({
             .sort((a, b) => a - b);
           const nextDue = dueDates.length ? new Date(dueDates[0]) : null;
           return (
-            <Card className="rounded-2xl shadow-card">
+            <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <IndianRupeeIcon className="size-4 text-success" /> Payment summary
@@ -629,7 +629,7 @@ export default async function BookingDetailPage({
         <TabsContent value="details" className="mt-6 space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             {/* Event Details Card */}
-            <Card className="rounded-2xl shadow-card">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base">Event Details</CardTitle>
               </CardHeader>
@@ -767,7 +767,7 @@ export default async function BookingDetailPage({
             </Card>
 
             {/* Venue Card */}
-            <Card className="rounded-2xl shadow-card">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base">Venue</CardTitle>
               </CardHeader>
@@ -827,7 +827,7 @@ export default async function BookingDetailPage({
             </Card>
 
             {/* Client Card */}
-            <Card className="rounded-2xl shadow-card">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center justify-between">
                   <span>Client</span>
@@ -873,7 +873,7 @@ export default async function BookingDetailPage({
             </Card>
 
             {/* Booking Info Card */}
-            <Card className="rounded-2xl shadow-card">
+            <Card>
               <CardHeader>
                 <CardTitle className="text-base">Booking Info</CardTitle>
               </CardHeader>
@@ -921,7 +921,7 @@ export default async function BookingDetailPage({
 
         {/* Invoices Tab */}
         <TabsContent value="invoices" className="mt-6">
-          <Card className="rounded-2xl shadow-card">
+          <Card>
             {/* "Generate Proforma Invoice" is ~215px wide; forced onto the
                 title's row at 375px it overflowed the card. Stack below `sm`. */}
             <CardHeader className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1013,7 +1013,7 @@ export default async function BookingDetailPage({
 
         {/* Tasks Tab */}
         <TabsContent value="tasks" className="mt-6">
-          <Card className="rounded-2xl shadow-card">
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">
                 <span className="flex items-center gap-2">
@@ -1071,7 +1071,7 @@ export default async function BookingDetailPage({
                           <StatusBadge
                             status={task.status}
                             colorMap={{
-                              TODO: "bg-slate-100 text-slate-800 border-slate-200",
+                              TODO: "bg-muted text-muted-foreground border-border",
                               IN_PROGRESS:
                                 "bg-blue-100 text-blue-800 border-blue-200",
                               IN_REVIEW:

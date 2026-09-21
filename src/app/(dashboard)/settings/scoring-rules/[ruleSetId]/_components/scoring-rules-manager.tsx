@@ -63,7 +63,7 @@ const CATEGORY_STYLES: Record<string, string> = {
   FIELD_BASED: "border-blue-200 bg-blue-50 text-blue-700",
   ACTIVITY_BASED: "border-amber-200 bg-amber-50 text-amber-700",
   PROFILE_COMPLETENESS: "border-purple-200 bg-purple-50 text-purple-700",
-  DECAY: "border-zinc-200 bg-zinc-50 text-zinc-600",
+  DECAY: "border-border bg-muted text-muted-foreground",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -445,7 +445,7 @@ export function ScoringRulesManager({ ruleSet: initialRuleSet }: Props) {
             <Card
               key={rule.id}
               className={cn(
-                "border-zinc-200/80 shadow-sm",
+                "",
                 !rule.isActive && "opacity-50"
               )}
             >

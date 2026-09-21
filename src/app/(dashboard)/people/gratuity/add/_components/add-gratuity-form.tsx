@@ -71,7 +71,7 @@ export function AddGratuityForm({ rows }: { rows: GratuityRow[] }) {
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-premium">
+      <div className="surface-glass rounded-[22px] p-5">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
             <Label className="text-detail">Employee</Label>
@@ -140,7 +140,7 @@ export function AddGratuityForm({ rows }: { rows: GratuityRow[] }) {
 
       <aside className="space-y-3">
         {selected && (
-          <div className="rounded-2xl border border-border/60 bg-card p-4 shadow-premium">
+          <div className="surface-glass rounded-[22px] p-4">
             <p className="text-detail font-semibold">{selected.name}</p>
             <dl className="mt-2 space-y-1.5 text-detail">
               <div className="flex justify-between gap-3">

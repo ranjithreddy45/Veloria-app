@@ -178,7 +178,7 @@ export default async function BookingsPage({
 
       <div className="animate-rise-in animate-stagger-2">
         {bookings.length === 0 ? (
-          <div className="rounded-xl border border-dashed bg-card shadow-premium">
+          <div className="rounded-[22px] border border-dashed bg-card/40">
             <EmptyState
               icon={<CalendarCheckIcon className="size-6" />}
               title="No bookings yet"

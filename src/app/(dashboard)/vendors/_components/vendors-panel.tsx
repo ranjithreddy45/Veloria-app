@@ -124,7 +124,7 @@ function VendorCard({ vendor, categories, venues }: VendorCardProps) {
   return (
     <div
       className={cn(
-        "group relative flex flex-col gap-4 rounded-2xl border bg-card p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover",
+        "group relative flex flex-col gap-4 surface-glass rounded-[22px] p-5 transition-shadow duration-200 hover:shadow-card-hover",
         vendor.isArchived && "opacity-60"
       )}
     >
@@ -380,7 +380,7 @@ export function VendorsPanelSkeleton() {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="space-y-3 rounded-2xl border bg-card p-5 shadow-card">
+        <div key={i} className="space-y-3 surface-glass rounded-[22px] p-5">
           <Skeleton className="h-5 w-3/4 rounded" />
           <Skeleton className="h-3.5 w-1/2 rounded" />
           <div className="flex gap-1.5">

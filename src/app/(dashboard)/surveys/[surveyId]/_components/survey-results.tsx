@@ -87,7 +87,7 @@ function StarRating({ value }: { value: number }) {
 export function SurveyResults({ questionResults }: SurveyResultsProps) {
   if (questionResults.length === 0) {
     return (
-      <Card className="border-zinc-200/80 shadow-sm">
+      <Card>
         <CardContent className="flex flex-col items-center justify-center py-12">
           <p className="text-sm text-muted-foreground">No question results to display</p>
         </CardContent>
@@ -98,7 +98,7 @@ export function SurveyResults({ questionResults }: SurveyResultsProps) {
   return (
     <div className="space-y-4">
       {questionResults.map((result, index) => (
-        <Card key={result.questionId} className="border-zinc-200/80 shadow-sm">
+        <Card key={result.questionId}>
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -201,7 +201,7 @@ export function SurveyResults({ questionResults }: SurveyResultsProps) {
                   result.recentAnswers.map((answer, i) => (
                     <div
                       key={i}
-                      className="rounded-md border border-zinc-100 bg-zinc-50 p-3"
+                      className="rounded-md border border-border bg-muted p-3"
                     >
                       <p className="text-sm text-foreground/80">{answer}</p>
                     </div>

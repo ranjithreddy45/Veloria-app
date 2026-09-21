@@ -61,7 +61,7 @@ export function OrgTree({
           No employees in this view.
         </div>
       ) : (
-        <div className="rounded-xl border bg-card p-2 sm:p-4">
+        <div className="surface-glass rounded-xl p-2 sm:p-4">
           {forest.map((root) => <Node key={root.id} node={root} depth={0} />)}
         </div>
       )}

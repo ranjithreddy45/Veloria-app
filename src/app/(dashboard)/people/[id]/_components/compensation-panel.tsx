@@ -24,7 +24,7 @@ export function CompensationPanel({
 }) {
   return (
     <div className="space-y-4">
-      <div className="rounded-2xl border bg-card p-5 shadow-card">
+      <div className="surface-glass rounded-[22px] p-5">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Wallet className="size-4 text-success" />
@@ -87,7 +87,7 @@ export function CompensationPanel({
       </div>
 
       {history.length > 0 && (
-        <div className="rounded-2xl border bg-card p-5 shadow-card">
+        <div className="surface-glass rounded-[22px] p-5">
           <div className="mb-4 flex items-center gap-2">
             <History className="size-4 text-muted-foreground" />
             <h3 className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">Revision history</h3>

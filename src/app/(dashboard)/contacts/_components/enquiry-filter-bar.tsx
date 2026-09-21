@@ -207,7 +207,7 @@ export function EnquiryFilterBar({
       </div>
 
       {/* Desktop: the original inline rail, unchanged. */}
-      <div className="hidden flex-wrap items-center gap-2 rounded-xl border bg-card p-2 shadow-card md:flex">
+      <div className="hidden flex-wrap items-center gap-2 surface-glass rounded-xl p-2 md:flex">
         {controls}
 
         {isFiltered && (

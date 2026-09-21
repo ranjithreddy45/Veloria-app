@@ -144,7 +144,7 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
     <div className="space-y-6">
       {/* Workflow Info */}
       <div className="grid gap-6 md:grid-cols-2">
-        <section className="rounded-2xl border bg-card shadow-card">
+        <section className="surface-glass rounded-[22px]">
           <div className="border-b px-5 py-4">
             <h3 className="text-copy font-semibold tracking-[-0.01em]">
               Configuration
@@ -203,7 +203,7 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
           </div>
         </section>
 
-        <section className="rounded-2xl border bg-card shadow-card">
+        <section className="surface-glass rounded-[22px]">
           <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
             <div className="min-w-0">
               <h3 className="text-copy font-semibold tracking-[-0.01em]">
@@ -281,7 +281,7 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
       </div>
 
       {/* Execution Logs */}
-      <section className="rounded-2xl border bg-card shadow-card">
+      <section className="overflow-clip surface-glass rounded-[22px]">
         <div className="border-b px-5 py-4">
           <h3 className="text-copy font-semibold tracking-[-0.01em]">
             Execution Log

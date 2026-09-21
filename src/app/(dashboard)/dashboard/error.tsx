@@ -18,7 +18,7 @@ export default function DashboardError({
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <Card className="max-w-md rounded-2xl border bg-card shadow-card">
+      <Card className="max-w-md">
         <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
           <div className="flex size-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
             <AlertTriangle className="size-6" />

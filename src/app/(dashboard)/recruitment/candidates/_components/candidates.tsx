@@ -97,7 +97,7 @@ const STAGE_LABEL: Record<Stage, string> = {
 
 // Funnel cell accents — bordered/tinted strip cells, per stage hue.
 const STAGE_CELL: Record<Stage, string> = {
-  NEW: "border-slate-200/80 bg-slate-50/60 text-slate-700",
+  NEW: "border-border bg-muted text-muted-foreground",
   IN_REVIEW: "border-blue-200/80 bg-blue-50/60 text-blue-700",
   AVAILABLE: "border-cyan-200/80 bg-cyan-50/60 text-cyan-700",
   ENGAGED: "border-violet-200/80 bg-violet-50/60 text-violet-700",
@@ -137,7 +137,7 @@ function tintFor(seed: string): string {
 
 function StageStrip({ counts }: { counts: Record<string, number> }) {
   return (
-    <Card className="overflow-hidden p-0 shadow-card">
+    <Card className="overflow-hidden p-0">
       <div className="grid grid-cols-2 divide-x divide-y divide-border/60 sm:grid-cols-4 lg:grid-cols-7 lg:divide-y-0">
         {REC_CANDIDATE_STAGES.map((stage) => (
           <div
@@ -525,7 +525,7 @@ export function Candidates({
           onChange={handleFacetChange}
         />
 
-        <Card className="min-w-0 flex-1 overflow-hidden p-0 shadow-card">
+        <Card className="min-w-0 flex-1 overflow-hidden p-0">
           {visible.length === 0 ? (
             <EmptyState
               icon={<Users className="size-5" />}

@@ -82,7 +82,7 @@ export function PfRegisterView({
       </p>
 
       {reg?.found && reg.rows.length > 0 ? (
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <div className="overflow-x-auto surface-glass rounded-[22px]">
           <Table>
             <TableHeader>
               <TableRow>

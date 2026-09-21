@@ -174,7 +174,7 @@ export function AnomalyCard({ anomaly, onUpdate }: AnomalyCardProps) {
   };
 
   return (
-    <Card className={`rounded-2xl border bg-card shadow-card transition-shadow hover:shadow-card-hover ${cardBorder}`}>
+    <Card className={`transition-shadow hover:shadow-card-hover ${cardBorder}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">

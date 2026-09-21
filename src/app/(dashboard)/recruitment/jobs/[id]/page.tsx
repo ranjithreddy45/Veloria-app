@@ -105,7 +105,7 @@ export default async function JobOpeningDetailPage({
       </div>
 
       {/* Meta strip */}
-      <Card className="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4 text-body text-muted-foreground shadow-card">
+      <Card className="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-4 text-body text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <StatusPill
             label={STATUS_LABEL[opening.status] ?? opening.status}
@@ -133,7 +133,7 @@ export default async function JobOpeningDetailPage({
       </Card>
 
       {/* Linked candidates */}
-      <Card className="overflow-hidden p-0 shadow-card">
+      <Card className="overflow-hidden p-0">
         <div className="border-b px-5 py-3.5">
           <h3 className="text-body font-medium text-foreground">
             Candidates{" "}

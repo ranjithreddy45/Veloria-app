@@ -60,7 +60,7 @@ export function Workqueue({ data, userName }: { data: WorkqueueData; userName: s
       </div>
 
       {/* Tasks */}
-      <Card className="border-0 shadow-card">
+      <Card className="border-0">
         <CardContent className="px-0">
           <div className="flex items-center justify-between px-4 pb-2">
             <h2 className="text-base font-semibold">My tasks</h2>

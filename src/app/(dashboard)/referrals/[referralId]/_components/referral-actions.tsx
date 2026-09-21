@@ -136,7 +136,7 @@ export function ReferralActions({
           disabled={loading !== null}
           variant="outline"
           size="sm"
-          className="border-zinc-200 text-zinc-600 hover:bg-zinc-50"
+          className="border-border text-muted-foreground hover:bg-muted"
         >
           {loading === "expire" ? (
             <Loader2Icon className="mr-2 size-4 animate-spin" />

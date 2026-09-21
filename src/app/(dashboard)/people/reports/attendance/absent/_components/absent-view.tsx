@@ -76,7 +76,7 @@ export function AbsentView({
         </div>
       )}
 
-      <div className="rounded-2xl border border-border/60 bg-card shadow-premium">
+      <div className="overflow-clip surface-glass rounded-[22px]">
         {rows.length === 0 ? (
           <EmptyState icon={<UserX />} title="No absences recorded" description="No ABSENT rows in this range. Widen the range to look further back." />
         ) : (

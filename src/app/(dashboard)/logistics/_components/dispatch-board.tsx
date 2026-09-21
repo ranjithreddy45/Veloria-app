@@ -133,7 +133,7 @@ export function DispatchBoard({
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border bg-card shadow-card">
+      <div className="overflow-hidden surface-glass rounded-[22px]">
         {dispatches.length === 0 ? (
           <EmptyState
             icon={<Truck className="size-5" />}

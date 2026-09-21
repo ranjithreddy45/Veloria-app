@@ -98,7 +98,7 @@ function getUtilizationColor(percent: number) {
 }
 
 // Shared chrome so every panel on this page reads as one system.
-const CARD = "rounded-2xl border bg-card shadow-card";
+const CARD = "surface-glass rounded-[22px]";
 const TH = "h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground";
 
 // ============================================================

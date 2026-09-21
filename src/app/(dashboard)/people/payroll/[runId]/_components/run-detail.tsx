@@ -159,7 +159,7 @@ export function RunDetail({ run }: { run: RunView }) {
         <StatTile label="Net payable" value={inr(run.totalNet)} accent="emerald" />
       </div>
 
-      <div className="rounded-xl border bg-card">
+      <div className="overflow-clip surface-glass rounded-[22px]">
         <div className="border-b px-5 py-3.5">
           <h3 className="text-copy font-semibold">Payslip register</h3>
           <p className="text-detail text-muted-foreground">

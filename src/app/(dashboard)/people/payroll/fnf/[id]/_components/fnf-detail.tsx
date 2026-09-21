@@ -54,7 +54,7 @@ export function FnfDetail({ fnf }: { fnf: Fnf }) {
   return (
     <div className="grid gap-5 lg:grid-cols-3">
       <div className="lg:col-span-2 space-y-4">
-        <div className="rounded-xl border bg-card p-5">
+        <div className="surface-glass rounded-[22px] p-5">
           <div className="mb-2 text-meta font-semibold uppercase tracking-wide text-muted-foreground">Settlement computation</div>
           <Row label="Gratuity" value={formatINR(fnf.gratuityAmt)}
             sub={b ? `${b.gratuityEligibleYears} completed yr(s) · last-drawn basic ${formatINR(b.lastDrawnBasic)}` : undefined} sign="+" />
@@ -72,14 +72,14 @@ export function FnfDetail({ fnf }: { fnf: Fnf }) {
         </div>
 
         {fnf.note && (
-          <div className="rounded-xl border bg-card p-4">
+          <div className="surface-glass rounded-[22px] p-4">
             <div className="mb-1 text-meta font-semibold uppercase tracking-wide text-muted-foreground">Note</div>
             <p className="text-body whitespace-pre-wrap">{fnf.note}</p>
           </div>
         )}
 
         {b?.notes && b.notes.length > 0 && (
-          <div className="rounded-xl border bg-card p-4">
+          <div className="surface-glass rounded-[22px] p-4">
             <div className="mb-2 text-meta font-semibold uppercase tracking-wide text-muted-foreground">How this was calculated</div>
             <ul className="space-y-1.5 text-detail text-muted-foreground">
               {b.notes.map((n, i) => <li key={i}>• {n}</li>)}
@@ -89,7 +89,7 @@ export function FnfDetail({ fnf }: { fnf: Fnf }) {
       </div>
 
       <div className="space-y-4">
-        <div className="rounded-xl border bg-card p-4">
+        <div className="surface-glass rounded-[22px] p-4">
           <div className="mb-2 text-meta font-semibold uppercase tracking-wide text-muted-foreground">Details</div>
           <dl className="space-y-2 text-body">
             <div className="flex justify-between"><dt className="text-muted-foreground">Employee</dt><dd className="font-medium">{fnf.name}</dd></div>
@@ -101,7 +101,7 @@ export function FnfDetail({ fnf }: { fnf: Fnf }) {
           </dl>
         </div>
 
-        <div className="rounded-xl border bg-card p-4 space-y-2">
+        <div className="surface-glass rounded-[22px] p-4 space-y-2">
           <div className="mb-1 text-meta font-semibold uppercase tracking-wide text-muted-foreground">Actions</div>
           {fnf.status === "DRAFT" && (
             <Button onClick={doApprove} disabled={busy} className="w-full gap-1.5">

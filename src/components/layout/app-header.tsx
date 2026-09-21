@@ -159,7 +159,7 @@ export function AppHeader() {
     // pushed the whole page into a sideways scroll. `min-w-0` + tighter mobile
     // gutters keep the bar inside the viewport; the cluster below decides what
     // actually survives at phone width.
-    <header className="topbar-glass sticky top-0 z-30 flex min-h-14 w-full min-w-0 shrink-0 items-center gap-2 border-b border-border/70 px-2 pt-[env(safe-area-inset-top)] sm:gap-3 sm:px-4">
+    <header className="surface-glass sticky top-0 z-30 flex min-h-14 w-full min-w-0 shrink-0 items-center gap-2 px-2 pt-[env(safe-area-inset-top)] sm:gap-3 sm:px-4 md:top-2 md:mx-2 md:mt-2 md:w-auto md:rounded-[20px]">
       {/* Mobile sidebar trigger — the only way into the ~80-item nav on a
           phone, so it stays first at every width.
           min-w-11: the coarse-pointer rule in globals.css guarantees a 44px

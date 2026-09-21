@@ -70,7 +70,7 @@ export function ShareWidget({
   }
 
   return (
-    <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+    <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center gap-2">
           <ShareIcon className="size-4 text-primary" />

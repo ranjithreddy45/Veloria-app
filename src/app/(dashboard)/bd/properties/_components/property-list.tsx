@@ -112,7 +112,7 @@ export function PropertyList({ properties }: PropertyListProps) {
             key={p.id}
             type="button"
             onClick={() => router.push(`/bd/properties/${p.id}`)}
-            className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card text-left shadow-premium transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="group flex flex-col overflow-hidden surface-glass rounded-[22px] text-left transition-[transform,box-shadow] duration-300 hover:-translate-y-1 hover:shadow-card-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {/* Cover — deal photo when one exists, else a soft gradient block */}
             {cover ? (

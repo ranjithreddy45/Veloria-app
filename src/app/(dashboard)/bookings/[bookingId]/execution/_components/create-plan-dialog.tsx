@@ -103,7 +103,7 @@ export function CreatePlanDialog({
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      <Card className="border-border shadow-sm">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PlusCircleIcon className="size-5 text-blue-600" />
@@ -184,7 +184,7 @@ export function CreatePlanDialog({
         </CardContent>
       </Card>
 
-      <Card className="border-border shadow-sm">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileTextIcon className="size-5 text-violet-600" />

@@ -107,7 +107,7 @@ export function ClientReports({ range }: ClientReportsProps) {
     <div className="space-y-6">
       {/* Card 1: VIP Clients Table */}
       {vipData && (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
@@ -183,7 +183,7 @@ export function ClientReports({ range }: ClientReportsProps) {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-zinc-200 text-left">
+                    <tr className="border-b border-border text-left">
                       <th className="pb-2 pr-4 font-medium text-muted-foreground">Client Name</th>
                       <th className="pb-2 pr-4 font-medium text-muted-foreground">Email</th>
                       <th className="pb-2 pr-4 font-medium text-muted-foreground">Tier</th>
@@ -194,7 +194,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                   </thead>
                   <tbody>
                     {vipData.clients.map((client) => (
-                      <tr key={client.contactId} className="border-b border-zinc-100">
+                      <tr key={client.contactId} className="border-b border-border">
                         <td className="py-2.5 pr-4 font-medium">{client.name}</td>
                         <td className="py-2.5 pr-4 text-muted-foreground">{client.email}</td>
                         <td className="py-2.5 pr-4">
@@ -226,7 +226,7 @@ export function ClientReports({ range }: ClientReportsProps) {
 
       {/* Card 2: Client Type Breakdown Pie Chart */}
       {typeData && (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Client Type Breakdown</CardTitle>
             <p className="text-xs text-muted-foreground">Individual vs Corporate clients</p>
@@ -318,7 +318,7 @@ export function ClientReports({ range }: ClientReportsProps) {
       )}
 
       {/* Card 3: Client Ledger Lookup */}
-      <Card className="border-zinc-200/80 shadow-sm">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Client Ledger Lookup</CardTitle>
           <p className="text-xs text-muted-foreground">Search and view a client&apos;s financial history</p>
@@ -377,7 +377,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                 </div>
                 <div className={cn(
                   "rounded-lg px-3 py-2",
-                  ledgerData.balance > 0 ? "bg-red-50" : "bg-zinc-50"
+                  ledgerData.balance > 0 ? "bg-red-50" : "bg-muted"
                 )}>
                   <p className={cn("text-xs", ledgerData.balance > 0 ? "text-red-600" : "text-muted-foreground")}>Balance</p>
                   <p className={cn("text-sm font-bold", ledgerData.balance > 0 ? "text-red-700" : "text-foreground/80")}>
@@ -493,7 +493,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-zinc-200 text-left">
+                        <tr className="border-b border-border text-left">
                           <th className="pb-2 pr-4 font-medium text-muted-foreground">Invoice #</th>
                           <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Amount</th>
                           <th className="pb-2 pr-4 font-medium text-muted-foreground">Status</th>
@@ -502,7 +502,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                       </thead>
                       <tbody>
                         {ledgerData.invoices.map((inv) => (
-                          <tr key={inv.id} className="border-b border-zinc-100">
+                          <tr key={inv.id} className="border-b border-border">
                             <td className="py-2 pr-4 font-mono text-xs">{inv.number}</td>
                             <td className="py-2 pr-4 text-right">{formatINR(inv.amount)}</td>
                             <td className="py-2 pr-4">
@@ -512,8 +512,8 @@ export function ClientReports({ range }: ClientReportsProps) {
                                   inv.status === "PAID" && "bg-green-100 text-green-700",
                                   inv.status === "SENT" && "bg-blue-100 text-blue-700",
                                   inv.status === "OVERDUE" && "bg-red-100 text-red-700",
-                                  inv.status === "DRAFT" && "bg-zinc-100 text-zinc-700",
-                                  inv.status === "CANCELLED" && "bg-zinc-100 text-zinc-400",
+                                  inv.status === "DRAFT" && "bg-muted text-muted-foreground",
+                                  inv.status === "CANCELLED" && "bg-muted text-zinc-400",
                                   inv.status === "PARTIALLY_PAID" && "bg-amber-100 text-amber-700"
                                 )}
                               >
@@ -538,7 +538,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-zinc-200 text-left">
+                        <tr className="border-b border-border text-left">
                           <th className="pb-2 pr-4 font-medium text-muted-foreground text-right">Amount</th>
                           <th className="pb-2 pr-4 font-medium text-muted-foreground">Method</th>
                           <th className="pb-2 font-medium text-muted-foreground">Date</th>
@@ -546,12 +546,12 @@ export function ClientReports({ range }: ClientReportsProps) {
                       </thead>
                       <tbody>
                         {ledgerData.payments.map((p) => (
-                          <tr key={p.id} className="border-b border-zinc-100">
+                          <tr key={p.id} className="border-b border-border">
                             <td className="py-2 pr-4 text-right font-medium text-green-700">
                               {formatINR(p.amount)}
                             </td>
                             <td className="py-2 pr-4">
-                              <span className="inline-flex items-center rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600">
+                              <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                                 {p.method.replace(/_/g, " ")}
                               </span>
                             </td>

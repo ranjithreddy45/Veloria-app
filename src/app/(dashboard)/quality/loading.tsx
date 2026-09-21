@@ -16,7 +16,7 @@ export default function QualityLoading() {
       {/* CTQ grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="space-y-3 rounded-2xl border border-border/70 bg-card p-5 shadow-card">
+          <div key={i} className="space-y-3 surface-glass rounded-[22px] p-5">
             <div className="flex items-center justify-between">
               <Skeleton className="h-4 w-28" />
               <Skeleton className="h-5 w-14 rounded-full" />

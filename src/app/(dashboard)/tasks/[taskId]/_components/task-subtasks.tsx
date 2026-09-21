@@ -41,7 +41,7 @@ interface TaskSubtasksProps {
 // ============================================================
 
 const STATUS_COLORS: Record<string, string> = {
-  TODO: "bg-zinc-100 text-zinc-700 border-zinc-200",
+  TODO: "bg-muted text-muted-foreground border-border",
   IN_PROGRESS: "bg-blue-100 text-blue-700 border-blue-200",
   IN_REVIEW: "bg-amber-100 text-amber-700 border-amber-200",
   DONE: "bg-green-100 text-green-700 border-green-200",

@@ -164,7 +164,7 @@ export function PackageDetail({ eventPackage }: PackageDetailProps) {
                 className={
                   isActive
                     ? "border-green-200 bg-green-100 text-green-800"
-                    : "border-zinc-200 bg-zinc-100 text-zinc-600"
+                    : "border-border bg-muted text-muted-foreground"
                 }
               >
                 {isActive ? "Active" : "Inactive"}

@@ -37,7 +37,7 @@ export function TicketDetail({
     <div className="grid gap-5 lg:grid-cols-[1fr_280px]">
       {/* Thread */}
       <div className="space-y-4">
-        <div className="rounded-xl border bg-card p-4">
+        <div className="surface-glass rounded-[22px] p-4">
           <div className="flex items-center gap-2 text-detail text-muted-foreground">#{ticket.number} · {ticket.category?.name ?? "Uncategorised"} · {formatDateTime(ticket.createdAt)}</div>
           <h2 className="mt-1 text-lg font-semibold">{ticket.subject}</h2>
           <p className="mt-2 whitespace-pre-wrap text-body text-muted-foreground">{ticket.description}</p>
@@ -57,7 +57,7 @@ export function TicketDetail({
 
         {/* Reply */}
         {ticket.status !== "CLOSED" && (
-          <div className="rounded-xl border bg-card p-3">
+          <div className="surface-glass rounded-xl p-3">
             <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write a reply…" className="h-20 w-full resize-y rounded-md border bg-background p-2.5 text-body outline-none focus:ring-2 focus:ring-ring" />
             {/* "Internal note (hidden from requester)" plus Send is wider than
               * the card on a phone — wrap so Send is never pushed off. */}
@@ -73,7 +73,7 @@ export function TicketDetail({
 
       {/* Sidebar */}
       <div className="space-y-3">
-        <div className="rounded-xl border bg-card p-4 space-y-3 text-body">
+        <div className="surface-glass rounded-[22px] p-4 space-y-3 text-body">
           <Row label="Status"><StatusPill label={HD_STATUS_LABEL[ticket.status]} hue={HD_STATUS_HUE[ticket.status]} size="xs" /></Row>
           <Row label="Priority"><StatusPill label={ticket.priority[0] + ticket.priority.slice(1).toLowerCase()} hue={HD_PRIO_HUE[ticket.priority]} size="xs" /></Row>
           <Row label="Requester"><span className="font-medium">{requester.name ?? "—"}</span></Row>
@@ -82,7 +82,7 @@ export function TicketDetail({
         </div>
 
         {isAgent && (
-          <div className="rounded-xl border bg-card p-4 space-y-2.5">
+          <div className="surface-glass rounded-[22px] p-4 space-y-2.5">
             <div className="text-detail font-semibold uppercase tracking-wide text-muted-foreground">Agent controls</div>
             <Button variant="outline" size="sm" className="w-full gap-1.5" disabled={busy} onClick={() => patch(() => assignTicket(ticket.id, myId))}><UserCheck className="size-3.5" /> Assign to me</Button>
             <Select value={ticket.status} onValueChange={(v) => patch(() => setTicketStatus(ticket.id, v))}>

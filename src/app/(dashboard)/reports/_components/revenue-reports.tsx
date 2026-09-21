@@ -92,7 +92,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
@@ -105,7 +105,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
@@ -118,7 +118,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
@@ -136,7 +136,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
       {/* Charts Row */}
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Revenue Trend */}
-        <Card className="border-zinc-200/80 shadow-sm lg:col-span-8">
+        <Card className="lg:col-span-8">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Revenue Trend</CardTitle>
             <p className="text-xs text-muted-foreground">Monthly revenue over time</p>
@@ -161,7 +161,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
         </Card>
 
         {/* Revenue by Event Type */}
-        <Card className="border-zinc-200/80 shadow-sm lg:col-span-4">
+        <Card className="lg:col-span-4">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Revenue by Event Type</CardTitle>
             <p className="text-xs text-muted-foreground">Distribution of revenue</p>
@@ -208,7 +208,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
 
       {/* Revenue by Venue */}
       {data.revenueByVenue.length > 0 && (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Revenue by Venue</CardTitle>
             <p className="text-xs text-muted-foreground">Revenue breakdown across venues</p>
@@ -229,7 +229,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
 
       {/* Payment Collection by Method */}
       {paymentMethodData && paymentMethodData.methods.length > 0 && (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Payment Collection by Method</CardTitle>
             <p className="text-xs text-muted-foreground">Breakdown of payments received by method</p>
@@ -271,7 +271,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
               {/* Legend + Details */}
               <div className="flex flex-col justify-center space-y-2">
                 {paymentMethodData.methods.map((item) => (
-                  <div key={item.method} className="flex items-center justify-between rounded-lg border border-zinc-100 px-3 py-2">
+                  <div key={item.method} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
                     <div className="flex items-center gap-2">
                       <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
                       <span className="text-sm text-foreground/80">{item.method.replace(/_/g, " ")}</span>

@@ -45,7 +45,7 @@ const SLA_STYLES: Record<SlaStatus, { label: string; className: string }> = {
   OnTrack: { label: "On track", className: "bg-emerald-100 text-emerald-800 border-emerald-200" },
   DueSoon: { label: "Due soon", className: "bg-amber-100 text-amber-800 border-amber-200" },
   Overdue: { label: "Overdue", className: "bg-red-100 text-red-800 border-red-200" },
-  Locked: { label: "Locked", className: "bg-slate-200 text-slate-700 border-slate-300" },
+  Locked: { label: "Locked", className: "bg-muted text-muted-foreground border-border" },
 };
 
 const DECOR_ADDONS = ["Stage backdrop", "Entrance arch", "Floral centrepieces", "Lighting / uplighters", "Welcome signage"];
@@ -157,7 +157,7 @@ export function ServiceConfirmationCard({ bookingId, data }: ServiceConfirmation
       </CardHeader>
       <CardContent className="space-y-6">
         {locked && (
-          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted p-3 text-sm text-muted-foreground">
             <LockIcon className="size-4 shrink-0" />
             Services are locked and read-only. Editing is closed.
           </div>

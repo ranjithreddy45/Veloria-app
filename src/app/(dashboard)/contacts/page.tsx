@@ -212,7 +212,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
       )}
 
       {contacts.length === 0 ? (
-        <div className="animate-rise-in animate-stagger-1 rounded-2xl border border-dashed bg-card shadow-card">
+        <div className="animate-rise-in animate-stagger-1 rounded-[22px] border border-dashed bg-card/40">
           {isFiltered ? (
             <EmptyState
               icon={<UsersIcon className="size-6" />}

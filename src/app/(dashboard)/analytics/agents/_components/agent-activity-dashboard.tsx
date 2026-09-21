@@ -83,7 +83,7 @@ export function AgentActivityDashboard({ initialData }: Props) {
       )}
 
       {/* Agent Ranking Table */}
-      <Card className="rounded-2xl border bg-card shadow-card">
+      <Card>
         <CardHeader>
           <CardTitle>Agent Rankings</CardTitle>
           <p className="text-body text-muted-foreground">

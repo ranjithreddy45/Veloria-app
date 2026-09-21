@@ -33,9 +33,9 @@ export default async function CalibrationPage({ params }: { params: Promise<{ cy
         description={`${formatDate(cycle.startDate)} – ${formatDate(cycle.endDate)}. Compare self vs manager ratings across the org to calibrate fairly.`}
       />
       {rows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No goals or reviews recorded for this cycle yet.</div>
+        <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">No goals or reviews recorded for this cycle yet.</div>
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="overflow-hidden surface-glass rounded-[22px]">
           <Table>
             <TableHeader>
               <TableRow>

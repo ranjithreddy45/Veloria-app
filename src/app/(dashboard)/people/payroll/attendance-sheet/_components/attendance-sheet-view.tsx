@@ -286,7 +286,7 @@ export function AttendanceSheetView({
           No attendance sheet for this month yet. Click <strong>Generate</strong> to build it from attendance, approved leave, weekends and holidays.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <div className="overflow-x-auto surface-glass rounded-[22px]">
           <Table>
             <TableHeader>
               <TableRow>

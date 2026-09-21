@@ -85,7 +85,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         canAdmin ? (
           <SeedFoundation />
         ) : (
-          <div className="rounded-2xl border border-dashed bg-card">
+          <div className="rounded-[22px] border border-dashed bg-card/40">
             <EmptyState
               icon={<Building2 className="size-5" />}
               title="The organisation isn’t set up yet"
@@ -113,7 +113,7 @@ export default async function PeoplePage({ searchParams }: PageProps) {
           />
 
           {list.rows.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-card">
+            <div className="rounded-[22px] border border-dashed bg-card/40">
               {sp.q || sp.entity || sp.vertical || sp.dept || sp.desig || sp.status ? (
                 <EmptyState
                   icon={<SearchX className="size-5" />}

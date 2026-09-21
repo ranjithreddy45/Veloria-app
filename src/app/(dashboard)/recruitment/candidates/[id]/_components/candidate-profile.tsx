@@ -102,7 +102,7 @@ export function CandidateProfile({
 
   return (
     <div className="space-y-5 lg:sticky lg:top-5 lg:self-start">
-      <Card className="overflow-hidden p-0 shadow-card">
+      <Card className="overflow-hidden p-0">
         <div className="flex flex-col items-center gap-3 px-5 pb-4 pt-6 text-center">
           <Avatar size="lg" className="size-16">
             <AvatarFallback
@@ -178,7 +178,7 @@ export function CandidateProfile({
         </div>
       </Card>
 
-      <Card className="space-y-3 p-5 shadow-card">
+      <Card className="space-y-3 p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-body font-medium text-foreground">Notes</h3>
           {canWrite && dirty && (

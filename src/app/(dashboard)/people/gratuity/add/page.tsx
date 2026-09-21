@@ -41,7 +41,7 @@ export default async function AddGratuityPage() {
 
       <AddGratuityForm rows={rows} />
 
-      <div className="rounded-2xl border border-border/60 bg-card shadow-premium">
+      <div className="overflow-clip surface-glass rounded-[22px]">
         <div className="border-b px-5 py-3.5">
           <h3 className="text-copy font-semibold">Recently recorded settlements</h3>
           <p className="text-detail text-muted-foreground">

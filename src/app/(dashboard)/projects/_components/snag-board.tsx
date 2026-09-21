@@ -258,7 +258,7 @@ function SnagRow({ snag, perms, busy, run }: { snag: Snag; perms: Perms; busy: s
   const after = snag.photos.filter((p) => p.kind === "AFTER");
 
   return (
-    <Card className={cn("border-l-4 transition-premium card-hover-tint shadow-card hover:shadow-card-hover", SEV_ACCENT[snag.severity] ?? "border-l-slate-300")}>
+    <Card className={cn("border-l-4 transition-premium card-hover-tint hover:shadow-card-hover", SEV_ACCENT[snag.severity] ?? "border-l-slate-300")}>
       <CardContent className="space-y-2 py-3">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">

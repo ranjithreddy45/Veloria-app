@@ -193,7 +193,7 @@ export function AnomalyDashboard({ anomalies, stats }: AnomalyDashboardProps) {
 
       {/* Alert List */}
       {filteredAnomalies.length === 0 ? (
-        <Card className="rounded-2xl border bg-card shadow-card">
+        <Card>
           <CardContent>
             <EmptyState
               icon={<ShieldCheckIcon />}

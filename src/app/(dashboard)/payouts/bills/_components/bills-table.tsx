@@ -339,7 +339,7 @@ export function BillsTable({ data }: { data: BillRow[] }) {
         </Select>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+      <div className="overflow-hidden surface-glass rounded-[22px]">
         {rows.length === 0 ? (
           <EmptyState
             icon={<ReceiptTextIcon className="size-5" />}

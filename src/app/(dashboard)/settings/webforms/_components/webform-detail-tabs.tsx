@@ -83,7 +83,7 @@ function Section({
 }) {
   return (
     <section
-      className={cn("rounded-2xl border bg-card shadow-card", className)}
+      className={cn("surface-glass rounded-[22px]", className)}
     >
       <div className="border-b px-5 py-4">
         <h3 className="flex items-center gap-2 text-copy font-semibold tracking-[-0.01em]">
@@ -230,7 +230,7 @@ export function WebformDetailTabs({
             </>
           )}
           {!embedData && (
-            <div className="rounded-2xl border border-dashed bg-card shadow-card">
+            <div className="rounded-[22px] border border-dashed bg-card/40">
               <EmptyState
                 icon={<CodeIcon />}
                 title="Embed code unavailable"

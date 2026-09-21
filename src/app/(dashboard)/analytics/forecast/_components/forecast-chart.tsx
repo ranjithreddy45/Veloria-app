@@ -68,7 +68,7 @@ export function ForecastChart({ predictions, actuals }: ForecastChartProps) {
 
   if (predictions.length === 0 && actuals.length === 0) {
     return (
-      <Card className="gap-0 rounded-2xl border bg-card py-0 shadow-card">
+      <Card className="gap-0 py-0">
         <CardContent className="px-5 py-5">
           <EmptyState
             icon={<SparklesIcon />}
@@ -82,7 +82,7 @@ export function ForecastChart({ predictions, actuals }: ForecastChartProps) {
   }
 
   return (
-    <Card className="gap-0 rounded-2xl border bg-card py-0 shadow-card">
+    <Card className="gap-0 py-0">
       <CardContent className="p-5">
         <div className="mb-4">
           <h2 className="text-body font-semibold tracking-[-0.01em] text-foreground">

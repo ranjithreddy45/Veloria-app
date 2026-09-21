@@ -85,7 +85,7 @@ export function OffersTable({ offers }: { offers: OfferRow[] }) {
         />
       </div>
 
-      <Card className="min-w-0 overflow-hidden p-0 shadow-card">
+      <Card className="min-w-0 overflow-hidden p-0">
         {visible.length === 0 ? (
           <EmptyState
             icon={<FileSignature className="size-5" />}

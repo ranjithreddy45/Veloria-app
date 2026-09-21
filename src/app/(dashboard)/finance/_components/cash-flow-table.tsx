@@ -27,7 +27,7 @@ export function CashFlowTable({
   const maxAbs = Math.max(1, ...rows.map((r) => Math.abs(r.runningBalance)), Math.abs(cashNow));
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-card">
+    <div className="overflow-hidden surface-glass rounded-[22px]">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
         <div>
           <h2 className="text-sm font-medium">Weekly forecast</h2>

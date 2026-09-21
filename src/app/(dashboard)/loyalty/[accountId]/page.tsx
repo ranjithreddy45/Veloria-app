@@ -73,7 +73,7 @@ function getTierProgress(tier: string, totalEarned: number) {
 const TRANSACTION_TYPE_COLORS: Record<string, string> = {
   EARNED: "bg-emerald-100 text-emerald-700 border-emerald-200",
   REDEEMED: "bg-purple-100 text-purple-700 border-purple-200",
-  EXPIRED: "bg-zinc-100 text-zinc-600 border-zinc-200",
+  EXPIRED: "bg-muted text-muted-foreground border-border",
   ADJUSTED: "bg-blue-100 text-blue-700 border-blue-200",
 };
 
@@ -181,7 +181,7 @@ export default async function LoyaltyAccountDetailPage({
         {/* ============================================================
             Tier progress
             ============================================================ */}
-        <section className="rounded-2xl border bg-card p-5 shadow-card">
+        <section className="surface-glass rounded-[22px] p-5">
           <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Tier progress
           </h2>
@@ -222,7 +222,7 @@ export default async function LoyaltyAccountDetailPage({
         {/* ============================================================
             Contact
             ============================================================ */}
-        <section className="rounded-2xl border bg-card p-5 shadow-card">
+        <section className="surface-glass rounded-[22px] p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-copy font-semibold tracking-[-0.01em]">
@@ -297,7 +297,7 @@ export default async function LoyaltyAccountDetailPage({
       {/* ============================================================
           Transaction history
           ============================================================ */}
-      <section className="overflow-hidden rounded-2xl border bg-card shadow-card">
+      <section className="overflow-hidden surface-glass rounded-[22px]">
         <div className="flex items-center justify-between gap-3 p-5">
           <div>
             <h2 className="text-copy font-semibold tracking-[-0.01em]">

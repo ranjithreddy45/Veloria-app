@@ -51,9 +51,9 @@ export function PerformanceHome({
       {/* MY APPRAISAL */}
       <TabsContent value="mine" className="space-y-4">
         {!cycle ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No active appraisal cycle right now.</div>
+          <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">No active appraisal cycle right now.</div>
         ) : !employeeId ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">Your account isn’t linked to an employee record.</div>
+          <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">Your account isn’t linked to an employee record.</div>
         ) : (
           <>
             <div className="flex items-center justify-between">
@@ -62,7 +62,7 @@ export function PerformanceHome({
               </div>
               <AddGoalDialog employeeId={employeeId} cycleId={cycle.id} />
             </div>
-            <div className="rounded-xl border bg-card">
+            <div className="surface-glass rounded-[22px]">
               <div className="border-b px-4 py-2.5 text-body font-semibold">Goals / KRAs</div>
               {goals.length === 0 ? (
                 <div className="p-8 text-center text-sm text-muted-foreground">No goals yet. Add your KRAs for this cycle.</div>
@@ -74,7 +74,7 @@ export function PerformanceHome({
             </div>
             <SelfReviewCard cycleId={cycle.id} employeeId={employeeId} ratingMax={ratingMax} existing={selfReview} />
             {mgrReview?.status === "SUBMITTED" && (
-              <div className="rounded-xl border bg-card p-4">
+              <div className="surface-glass rounded-[22px] p-4">
                 <h3 className="mb-2 flex items-center gap-1.5 text-body font-semibold"><Star className="size-4 text-[#C9A96E]" /> Manager review</h3>
                 <p className="text-body">Overall rating: <span className="font-semibold tabular-nums">{mgrReview.rating ?? "—"}/{ratingMax}</span></p>
                 {mgrReview.strengths && <p className="mt-1.5 text-body"><span className="text-muted-foreground">Strengths: </span>{mgrReview.strengths}</p>}
@@ -89,12 +89,12 @@ export function PerformanceHome({
       {/* TEAM REVIEWS (manager) */}
       <TabsContent value="team" className="space-y-3">
         {!reviewCycleId ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No active cycle.</div>
+          <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">No active cycle.</div>
         ) : reviewQueue.length === 0 ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">You have no direct reports to review.</div>
+          <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">You have no direct reports to review.</div>
         ) : (
           reviewQueue.map((r) => (
-            <div key={r.id} className="flex items-center justify-between rounded-xl border bg-card p-4">
+            <div key={r.id} className="flex items-center justify-between surface-glass rounded-[22px] p-4">
               <div>
                 <Link href={`/people/${r.id}`} className="font-medium hover:underline">{r.firstName} {r.lastName}</Link>
                 <span className="ml-2 text-detail text-muted-foreground">{r.empCode}</span>
@@ -112,7 +112,7 @@ export function PerformanceHome({
         <TabsContent value="cycles" className="space-y-3">
           <div className="flex justify-end"><CreateCycleDialog /></div>
           {cycles.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No appraisal cycles yet.</div>
+            <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">No appraisal cycles yet.</div>
           ) : (
             <div className="space-y-2.5">
               {cycles.map((c) => <CycleRow key={c.id} cycle={c} />)}
@@ -217,7 +217,7 @@ function SelfReviewCard({ cycleId, employeeId, ratingMax, existing }: { cycleId:
     setBusy(false); router.refresh();
   }
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="surface-glass rounded-[22px] p-4">
       <h3 className="mb-3 flex items-center gap-1.5 text-body font-semibold">
         <Star className="size-4 text-[#C9A96E]" /> Self review {submitted && <StatusPill label="Submitted" hue="emerald" size="xs" />}
       </h3>
@@ -323,7 +323,7 @@ function CycleRow({ cycle }: { cycle: Cycle }) {
   async function setStatus(s: "DRAFT" | "ACTIVE" | "CLOSED") { setBusy(true); await setCycleStatus(cycle.id, s); setBusy(false); router.refresh(); }
   const hue = cycle.status === "ACTIVE" ? "emerald" : cycle.status === "CLOSED" ? "slate" : "amber";
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4">
+    <div className="flex flex-wrap items-center justify-between gap-3 surface-glass rounded-[22px] p-4">
       <div>
         <Link href={`/people/performance/${cycle.id}`} className="font-medium hover:underline">{cycle.name}</Link>
         <div className="text-detail text-muted-foreground">{formatDate(cycle.startDate)} – {formatDate(cycle.endDate)}</div>

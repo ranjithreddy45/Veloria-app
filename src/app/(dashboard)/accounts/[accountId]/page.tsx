@@ -104,7 +104,7 @@ export default async function AccountDetailPage({
       </PageHeader>
 
       {/* Identity strip — primary contact + ownership at a glance */}
-      <div className="grid gap-5 rounded-2xl border bg-card p-5 shadow-card sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-5 surface-glass rounded-[22px] p-5 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <p className="text-meta uppercase tracking-wide text-muted-foreground">
             Primary contact
@@ -206,7 +206,7 @@ export default async function AccountDetailPage({
           commitmentEnd={account.commitmentEnd}
           canManage={canManage}
         />
-        <section className="rounded-2xl border bg-card p-5 shadow-card">
+        <section className="surface-glass rounded-[22px] p-5">
           <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Account notes
           </h2>

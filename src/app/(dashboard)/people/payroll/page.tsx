@@ -43,7 +43,7 @@ export default async function PayrollPage() {
         <StatTile label="Last paid net" value={inr(lastNet)} accent="emerald" icon={<BadgeIndianRupee />} sub={paidRuns[0]?.label ?? "—"} />
       </div>
 
-      <div className="rounded-xl border bg-card">
+      <div className="surface-glass rounded-[22px]">
         <div className="border-b px-5 py-3.5">
           <h3 className="text-copy font-semibold">Monthly runs</h3>
           <p className="text-detail text-muted-foreground">Latest first. Open a run to compute payslips and manage its lifecycle.</p>

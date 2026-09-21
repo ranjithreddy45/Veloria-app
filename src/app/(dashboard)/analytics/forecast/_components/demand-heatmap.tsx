@@ -84,7 +84,7 @@ const DEMAND_COLORS: Record<
 export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
   if (data.length === 0) {
     return (
-      <Card className="rounded-2xl border bg-card shadow-card">
+      <Card>
         <CardContent>
           <EmptyState
             icon={<FlameIcon />}
@@ -98,7 +98,7 @@ export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
   }
 
   return (
-    <Card className="rounded-2xl border bg-card shadow-card">
+    <Card>
       <CardHeader>
         <CardTitle>Venue Demand Heatmap</CardTitle>
         <CardDescription>

@@ -296,7 +296,7 @@ export function EventProfitabilityReport({ filters, venues, report, error }: Pro
       </div>
 
       {error && (
-        <Card className="border-destructive/40 py-0 shadow-card">
+        <Card className="border-destructive/40 py-0">
           <CardContent className="flex items-start gap-3 px-5 py-4">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-destructive" />
             <p className="text-body text-destructive">{error}</p>
@@ -371,7 +371,7 @@ export function EventProfitabilityReport({ filters, venues, report, error }: Pro
       )}
 
       {/* ---------------- Table ---------------- */}
-      <Card className="overflow-hidden py-0 shadow-card">
+      <Card className="overflow-hidden py-0">
         <CardContent className="p-0">
           {!report ? (
             <EmptyState tone="warning" icon={<AlertTriangle className="size-5" />} title="Report unavailable" description={error ?? "Try again."} />

@@ -197,7 +197,7 @@ export function PipelineStageSettings({
   return (
     <div className="space-y-4">
       {/* Stage List */}
-      <div className="rounded-xl border border-border bg-card">
+      <div className="surface-glass rounded-[22px]">
         {stages.map((stage, index) => (
           <div
             key={stage.id}

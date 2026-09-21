@@ -6,7 +6,7 @@ export function ComingSoon({ title, description, bullets }: { title: string; des
   return (
     <div className="space-y-6">
       <PageHeader title={title} eyebrow="People" icon={Sparkles} description={description} />
-      <div className="mx-auto max-w-lg rounded-2xl border border-dashed bg-card p-8 text-center shadow-card sm:p-10">
+      <div className="mx-auto max-w-lg rounded-[22px] border border-dashed bg-card/40 p-8 text-center sm:p-10">
         <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Sparkles className="size-6" />
         </div>

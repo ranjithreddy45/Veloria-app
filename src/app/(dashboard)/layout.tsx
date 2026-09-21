@@ -24,14 +24,14 @@ export default async function DashboardLayout({
   }
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="workspace-ground">
       <SessionRevalidator />
       {/* First focusable element — lets keyboard users jump past the nav (SC-03). */}
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="bg-transparent">
         <AppHeader />
         {/* Two-factor: bounces a Google/WhatsApp session that still owes a code
             to /two-factor, and shows the "required for your role" banner. */}
@@ -45,7 +45,7 @@ export default async function DashboardLayout({
             overflows scrolls inside this box instead of making the whole
             document slide sideways — and nothing is silently clipped out of
             reach. */}
-        <main id="main-content" className="flex-1 overflow-auto bg-background px-4 pt-4 pb-[calc(1rem+max(var(--sab),0px))] sm:px-6 sm:pt-6 sm:pb-[calc(1.5rem+max(var(--sab),0px))] lg:px-8 lg:pt-8 lg:pb-[calc(2rem+max(var(--sab),0px))]">
+        <main id="main-content" className="flex-1 overflow-auto px-4 pt-4 pb-[calc(1rem+max(var(--sab),0px))] sm:px-6 sm:pt-6 sm:pb-[calc(1.5rem+max(var(--sab),0px))] lg:px-8 lg:pt-8 lg:pb-[calc(2rem+max(var(--sab),0px))]">
           <div className="mx-auto min-w-0 max-w-[1400px] animate-fade-in-up">
             {children}
           </div>

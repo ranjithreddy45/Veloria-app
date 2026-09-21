@@ -155,7 +155,7 @@ export function RoutingBoard({
   return (
     <div className="space-y-6">
       {teamError && (
-        <div className="rounded-2xl border bg-card px-5 py-4 text-sm text-muted-foreground shadow-card">
+        <div className="surface-glass rounded-[22px] px-5 py-4 text-sm text-muted-foreground">
           {teamError === "Insufficient permissions"
             ? "You need the leads:assign permission to view the team availability board."
             : teamError}
@@ -163,7 +163,7 @@ export function RoutingBoard({
       )}
 
       {/* Team availability board */}
-      <section className="rounded-2xl border bg-card shadow-card">
+      <section className="surface-glass rounded-[22px]">
         <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
           <div className="min-w-0">
             <h3 className="flex items-center gap-2 text-copy font-semibold tracking-[-0.01em]">
@@ -326,7 +326,7 @@ export function RoutingBoard({
       </section>
 
       {/* Routing decision audit feed */}
-      <section className="rounded-2xl border bg-card shadow-card">
+      <section className="surface-glass rounded-[22px]">
         <div className="border-b px-5 py-4">
           <h3 className="flex items-center gap-2 text-copy font-semibold tracking-[-0.01em]">
             <History className="size-4 text-muted-foreground" />

@@ -77,7 +77,7 @@ export function CompOffHome({
       </div>
 
       {/* My comp-offs */}
-      <div className="rounded-xl border bg-card">
+      <div className="overflow-clip surface-glass rounded-[22px]">
         <div className="flex items-center gap-2 border-b px-4 py-3 text-body font-semibold">
           <CalendarCheck2 className="size-4 text-[#C9A96E]" /> My comp-offs
         </div>
@@ -120,7 +120,7 @@ export function CompOffHome({
 
       {/* HR grant history */}
       {canManage && admin && (
-        <div className="rounded-xl border bg-card">
+        <div className="overflow-clip surface-glass rounded-[22px]">
           <div className="flex items-center gap-2 border-b px-4 py-3 text-body font-semibold">
             <Gift className="size-4 text-[#C9A96E]" /> Grant history (all employees)
           </div>
@@ -169,7 +169,7 @@ function BalanceTile({ label, value, hue }: { label: string; value: number; hue:
     : hue === "red" ? "text-destructive"
     : "text-foreground";
   return (
-    <div className="rounded-xl border border-border/70 bg-card p-4 shadow-card">
+    <div className="surface-glass rounded-[22px] p-4">
       <div className={`text-2xl font-semibold leading-none tabular-nums ${tone}`}>{value}</div>
       <div className="mt-1.5 text-meta text-muted-foreground">{label}</div>
     </div>

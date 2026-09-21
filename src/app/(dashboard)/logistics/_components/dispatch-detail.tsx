@@ -170,7 +170,7 @@ export function DispatchDetail({
       </div>
 
       {/* Lifecycle timeline */}
-      <div className="grid grid-cols-2 gap-3 rounded-xl border bg-card p-4 text-sm shadow-card sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 surface-glass rounded-[22px] p-4 text-sm sm:grid-cols-4">
         <Stamp label="Dispatched" value={d.dispatchedAt} />
         <Stamp label="Delivered" value={d.deliveredAt} />
         <Stamp label="Returned" value={d.returnedAt} />
@@ -178,7 +178,7 @@ export function DispatchDetail({
       </div>
 
       {/* Items */}
-      <div className="overflow-hidden rounded-xl border bg-card shadow-card">
+      <div className="overflow-hidden surface-glass rounded-[22px]">
         <div className="border-b px-4 py-3">
           <h2 className="text-sm font-semibold">Items</h2>
         </div>
@@ -236,7 +236,7 @@ export function DispatchDetail({
         )}
 
       {d.notes && (
-        <div className="rounded-xl border bg-card p-4 shadow-card">
+        <div className="surface-glass rounded-[22px] p-4">
           <h2 className="text-sm font-semibold">Notes</h2>
           <p className="mt-1.5 whitespace-pre-wrap text-sm text-muted-foreground">{d.notes}</p>
         </div>
@@ -255,7 +255,7 @@ function GateCell({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4 shadow-card">
+    <div className="surface-glass rounded-[22px] p-4">
       <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
         {icon}
         {label}
@@ -319,7 +319,7 @@ function RecordReturns({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-card shadow-card">
+    <div className="overflow-hidden surface-glass rounded-[22px]">
       <div className="flex items-center gap-2 border-b px-4 py-3">
         <Undo2 className="size-4 text-amber-600" />
         <h2 className="text-sm font-semibold">Record returns</h2>

@@ -58,3 +58,6 @@ ds-bundle/
 .env.vps*
 
 id_rsa
+
+# visual-tour screenshots (uploaded as a CI artifact, never committed)
+tests/e2e/visual-tour-shots

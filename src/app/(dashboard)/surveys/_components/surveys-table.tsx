@@ -90,7 +90,7 @@ export function SurveysTable({ data }: SurveysTableProps) {
 
   if (data.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 py-12">
+      <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12">
         <p className="text-sm font-medium text-muted-foreground">No surveys yet</p>
         <p className="mt-1 text-xs text-muted-foreground">
           Create your first survey to start collecting feedback.
@@ -103,7 +103,7 @@ export function SurveysTable({ data }: SurveysTableProps) {
   }
 
   return (
-    <div className="rounded-lg border border-zinc-200/80 shadow-sm">
+    <div className="rounded-lg border border-border shadow-sm">
       <Table>
         <TableHeader>
           <TableRow>
@@ -147,7 +147,7 @@ export function SurveysTable({ data }: SurveysTableProps) {
                   className={
                     survey.isActive
                       ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-                      : "bg-zinc-100 text-zinc-600 border-zinc-200"
+                      : "bg-muted text-muted-foreground border-border"
                   }
                 >
                   {survey.isActive ? "Active" : "Inactive"}

@@ -227,7 +227,7 @@ export function BookingCalendar({
   return (
     <div className="space-y-4">
       {/* Toolbar: month nav + view toggle + venue filter */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card p-3 shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-3 surface-glass rounded-2xl p-3">
         <div className="flex items-center gap-2 sm:gap-3">
           <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")} disabled={isLoading}>
             <ChevronLeftIcon className="size-4" />
@@ -330,7 +330,7 @@ export function BookingCalendar({
       {/* Calendar Grid */}
       <div
         className={cn(
-          "overflow-hidden rounded-2xl border bg-card shadow-card",
+          "overflow-hidden surface-glass rounded-[22px]",
           isLoading && "pointer-events-none opacity-60"
         )}
       >

@@ -125,7 +125,7 @@ export default async function ReferralDetailPage({
         {/* ============================================================
             Referred person
             ============================================================ */}
-        <section className="rounded-2xl border bg-card p-5 shadow-card">
+        <section className="surface-glass rounded-[22px] p-5">
           <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Referred person
           </h2>
@@ -173,7 +173,7 @@ export default async function ReferralDetailPage({
         {/* ============================================================
             Referrer
             ============================================================ */}
-        <section className="rounded-2xl border bg-card p-5 shadow-card">
+        <section className="surface-glass rounded-[22px] p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-copy font-semibold tracking-[-0.01em]">
@@ -219,7 +219,7 @@ export default async function ReferralDetailPage({
         {/* ============================================================
             Progress
             ============================================================ */}
-        <section className="rounded-2xl border bg-card p-5 shadow-card">
+        <section className="surface-glass rounded-[22px] p-5">
           <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Progress
           </h2>
@@ -288,7 +288,7 @@ export default async function ReferralDetailPage({
         {/* ============================================================
             Record
             ============================================================ */}
-        <section className="rounded-2xl border bg-card p-5 shadow-card">
+        <section className="surface-glass rounded-[22px] p-5">
           <h2 className="text-copy font-semibold tracking-[-0.01em]">
             Record
           </h2>

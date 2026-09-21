@@ -93,7 +93,7 @@ export default async function ReferralRewardRulesPage() {
       </PageHeader>
 
       {rules.length === 0 ? (
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <SettingsIcon className="mb-4 size-12 text-muted-foreground/40" />
             <p className="text-lg font-medium text-muted-foreground">
@@ -128,7 +128,7 @@ export default async function ReferralRewardRulesPage() {
             return (
               <Card
                 key={rule.id}
-                className="border-border shadow-sm"
+               
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">

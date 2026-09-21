@@ -41,7 +41,7 @@ export interface QuotationListRow {
 export function QuotationsTable({ rows }: { rows: QuotationListRow[] }) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed bg-card shadow-card">
+      <div className="rounded-[22px] border border-dashed bg-card/40">
         <EmptyState
           icon={<FileTextIcon />}
           title="No quotations yet"
@@ -52,7 +52,7 @@ export function QuotationsTable({ rows }: { rows: QuotationListRow[] }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+    <div className="overflow-hidden surface-glass rounded-[22px]">
       {/* This screen does NOT use the shared DataTable (it renders a plain
           <Table>), so it does not inherit the shell's stacked-card treatment.
           Seven columns force a sideways drag at 375px and push the Grand Total

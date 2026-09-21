@@ -44,7 +44,7 @@ export function FnfHome({ settlements, employees, initialEmployeeId }: { settlem
         <div className="space-y-2.5">
           {settlements.map((s) => (
             <Link key={s.id} href={`/people/payroll/fnf/${s.id}`}
-              className="flex items-center gap-3 rounded-xl border bg-card p-4 hover:shadow-sm">
+              className="flex items-center gap-3 surface-glass rounded-[22px] p-4 hover:shadow-sm">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate font-medium">{s.name}</span>

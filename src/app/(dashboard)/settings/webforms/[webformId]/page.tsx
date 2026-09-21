@@ -100,7 +100,7 @@ export default async function WebformDetailPage({
 
       {/* Submission summary */}
       {stats && (
-        <div className="rounded-2xl border bg-card shadow-card">
+        <div className="surface-glass rounded-[22px]">
           <div className="grid grid-cols-2 divide-x divide-y sm:grid-cols-4 sm:divide-y-0">
             {[
               { label: "Total Submissions", value: stats.total, accent: false },

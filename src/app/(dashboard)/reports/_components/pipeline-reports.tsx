@@ -78,7 +78,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
@@ -89,7 +89,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Avg. Deal Value</p>
@@ -97,7 +97,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Pipeline Value</p>
@@ -105,7 +105,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Won vs Lost</p>
@@ -122,7 +122,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
       {/* Charts Row 1: Deals by Stage (Count) + Won vs Lost Pie */}
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Deals by Stage – Count */}
-        <Card className="border-zinc-200/80 shadow-sm lg:col-span-7">
+        <Card className="lg:col-span-7">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Deals by Pipeline Stage</CardTitle>
             <p className="text-xs text-muted-foreground">Number of deals at each stage</p>
@@ -149,7 +149,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
         </Card>
 
         {/* Won vs Lost Pie Chart */}
-        <Card className="border-zinc-200/80 shadow-sm lg:col-span-5">
+        <Card className="lg:col-span-5">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Won vs Lost Deals</CardTitle>
             <p className="text-xs text-muted-foreground">Conversion outcome distribution</p>
@@ -207,7 +207,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
       {/* Charts Row 2: Pipeline Value by Stage + Leads by Source */}
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Pipeline Value by Stage Bar Chart */}
-        <Card className="border-zinc-200/80 shadow-sm lg:col-span-7">
+        <Card className="lg:col-span-7">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Pipeline Value by Stage</CardTitle>
             <p className="text-xs text-muted-foreground">Revenue value at each pipeline stage</p>
@@ -234,7 +234,7 @@ export function PipelineReports({ range }: PipelineReportsProps) {
         </Card>
 
         {/* Leads by Source */}
-        <Card className="border-zinc-200/80 shadow-sm lg:col-span-5">
+        <Card className="lg:col-span-5">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Leads by Source</CardTitle>
             <p className="text-xs text-muted-foreground">Where your leads come from</p>

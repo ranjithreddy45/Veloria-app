@@ -301,7 +301,7 @@ export function PaymentsTable({ data, canCancel = false, isManager = false }: Pa
 
   if (data.length === 0) {
     return (
-      <div className="rounded-2xl border bg-card shadow-card">
+      <div className="surface-glass rounded-[22px]">
         <EmptyState
           icon={<ReceiptIcon className="size-5" />}
           title="No payments yet"

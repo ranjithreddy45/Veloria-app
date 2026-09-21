@@ -478,7 +478,7 @@ export function BgvWorkspace({
         {canWrite && <NewCheckDialog candidates={candidates} />}
       </div>
 
-      <Card className="min-w-0 overflow-hidden p-0 shadow-card">
+      <Card className="min-w-0 overflow-hidden p-0">
         {checks.length === 0 ? (
           <EmptyState
             icon={<ShieldQuestion className="size-5" />}

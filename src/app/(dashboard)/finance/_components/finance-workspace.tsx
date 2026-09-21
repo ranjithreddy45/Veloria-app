@@ -36,7 +36,7 @@ export function FinanceWorkspace({
 }) {
   if (!seeded) {
     return canAdmin ? <SetupPanel /> : (
-      <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">Finance hasn’t been set up yet. Ask an admin to initialise the chart of accounts.</div>
+      <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">Finance hasn’t been set up yet. Ask an admin to initialise the chart of accounts.</div>
     );
   }
 
@@ -59,7 +59,7 @@ export function FinanceWorkspace({
         </TabsList>
 
         <TabsContent value="tb">
-          <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+          <div className="overflow-hidden surface-glass rounded-[22px]">
             {/* Debit and Credit are why anyone opens a trial balance, so they
               * hold nowrap and the account name is the column allowed to wrap.
               * Left as-is, a nowrap name plus w-24 + w-40 + w-40 of fixed
@@ -102,12 +102,12 @@ export function FinanceWorkspace({
 
         <TabsContent value="journal" className="space-y-2.5">
           {entries.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No journal entries yet.</div>
+            <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">No journal entries yet.</div>
           ) : entries.map((e) => <EntryCard key={e.id} entry={e} />)}
         </TabsContent>
 
         <TabsContent value="coa">
-          <div className="overflow-hidden rounded-2xl border bg-card shadow-card">
+          <div className="overflow-hidden surface-glass rounded-[22px]">
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-meta [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
@@ -142,7 +142,7 @@ function EntryCard({ entry }: { entry: Entry }) {
     setBusy(true); await reverseEntry(entry.id, reason); setBusy(false); router.refresh();
   }
   return (
-    <div className="rounded-2xl border bg-card p-3.5 shadow-card transition-shadow hover:shadow-card-hover sm:p-5">
+    <div className="surface-glass rounded-[22px] p-3.5 transition-shadow hover:shadow-card-hover sm:p-5">
       {/* Entry no + narration + two status pills on one side and the date +
         * Reverse button on the other is well over 375px, so both groups wrap
         * rather than pushing the card past the viewport. */}

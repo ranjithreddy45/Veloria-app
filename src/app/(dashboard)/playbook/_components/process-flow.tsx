@@ -37,7 +37,7 @@ const ACCENT: Record<Accent, { soft: string; text: string; ring: string; dot: st
 // ---- Value chain band -------------------------------------------------
 export function ValueChain() {
   return (
-    <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-premium">
+    <div className="surface-glass rounded-[22px] p-5">
       <h2 className="text-sm font-semibold tracking-tight">How the company works, end to end</h2>
       <p className="mt-1 text-body text-muted-foreground">
         Six processes, connected. We acquire venues, ready them, sell events, deliver them, and record the money — and our people run all of it.
@@ -122,7 +122,7 @@ export function ProcessCard({ process }: { process: Process }) {
   const a = ACCENT[process.accent];
   const Icon = ICONS[process.icon] ?? CircleUserRound;
   return (
-    <section id={process.key} className="scroll-mt-24 overflow-hidden rounded-2xl border border-border/60 bg-card shadow-premium">
+    <section id={process.key} className="scroll-mt-24 overflow-hidden surface-glass rounded-[22px]">
       {/* header */}
       <div className={cn("flex items-start gap-3 border-b border-border/50 p-5", a.soft)}>
         <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", a.chipBg)}>

@@ -67,7 +67,7 @@ export default async function SeatingPage({ params }: SeatingPageProps) {
       {chart ? (
         <SeatingEditor bookingId={bookingId} chart={chart} />
       ) : (
-        <Card className="rounded-2xl shadow-card">
+        <Card>
           <CardContent className="p-0">
             <EmptyState
               icon={<LayoutGridIcon className="size-6" />}

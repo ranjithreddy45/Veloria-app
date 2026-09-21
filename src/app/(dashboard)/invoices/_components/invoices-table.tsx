@@ -349,7 +349,7 @@ export function InvoicesTable({ data }: InvoicesTableProps) {
 
   if (data.length === 0) {
     return (
-      <div className="rounded-2xl border bg-card shadow-card">
+      <div className="surface-glass rounded-[22px]">
         <EmptyState
           icon={<FileTextIcon className="size-5" />}
           title="No invoices found"

@@ -177,7 +177,7 @@ export function TransitionMap({ entityType, transitions }: TransitionMapProps) {
   // For DEAL entity type, we don't have predefined statuses
   if (statusNodes.length === 0) {
     return (
-      <section className="rounded-2xl border bg-card shadow-card">
+      <section className="surface-glass rounded-[22px]">
         <div className="border-b px-5 py-4">
           <h3 className="text-copy font-semibold tracking-[-0.01em]">
             Transition Map
@@ -215,7 +215,7 @@ export function TransitionMap({ entityType, transitions }: TransitionMapProps) {
   );
 
   return (
-    <section className="rounded-2xl border bg-card shadow-card">
+    <section className="surface-glass rounded-[22px]">
       <div className="border-b px-5 py-4">
         <h3 className="text-copy font-semibold tracking-[-0.01em]">
           Transition Map

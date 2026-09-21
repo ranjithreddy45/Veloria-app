@@ -88,7 +88,7 @@ export default async function ApprovalRequestPage({
           )}
 
           {/* Details */}
-          <section className="rounded-2xl border bg-card p-5 shadow-card">
+          <section className="surface-glass rounded-[22px] p-5">
             <h2 className="text-copy font-semibold tracking-[-0.01em]">
               Request details
             </h2>

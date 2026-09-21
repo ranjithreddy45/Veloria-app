@@ -88,7 +88,7 @@ export function Importer() {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border bg-card p-5">
+      <div className="surface-glass rounded-[22px] p-5">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-body font-semibold uppercase tracking-wide text-muted-foreground">
             <FileSpreadsheet className="size-4" /> Paste or upload CSV
@@ -122,7 +122,7 @@ export function Importer() {
       </div>
 
       {preview && (
-        <div className="rounded-xl border bg-card p-5">
+        <div className="overflow-clip surface-glass rounded-[22px] p-5">
           <div className="mb-3 flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-1.5 text-body font-medium text-success">
               <CheckCircle2 className="size-4" /> {preview.validCount} ready

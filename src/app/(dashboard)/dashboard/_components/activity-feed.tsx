@@ -51,7 +51,7 @@ export function ActivityFeed() {
     data && data.success ? (data.data.logs as unknown as Log[]) : [];
 
   return (
-    <Card className="rounded-2xl border bg-card shadow-card">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-copy">
           <span className="relative inline-flex size-1.5">

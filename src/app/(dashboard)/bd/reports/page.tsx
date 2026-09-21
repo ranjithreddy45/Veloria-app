@@ -247,7 +247,7 @@ export default async function BdReportsPage({
       />
 
       {/* Filter bar */}
-      <div className="sticky top-2 z-20 -mx-1 rounded-2xl border border-border/70 bg-card/80 px-3 py-2.5 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-card/70">
+      <div className="sticky top-2 z-20 -mx-1 surface-glass rounded-2xl px-3 py-2.5">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 shrink-0 text-muted-foreground" />
           <BdFilterBar employees={execs} />

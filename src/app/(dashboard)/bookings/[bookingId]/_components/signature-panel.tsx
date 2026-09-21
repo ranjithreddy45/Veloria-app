@@ -66,19 +66,19 @@ const STATUS_STYLES: Record<
   string,
   { label: string; className: string }
 > = {
-  DRAFT: { label: "Draft", className: "bg-zinc-100 text-zinc-700 border-zinc-200" },
+  DRAFT: { label: "Draft", className: "bg-muted text-muted-foreground border-border" },
   SENT: { label: "Sent", className: "bg-blue-50 text-blue-700 border-blue-200" },
   VIEWED: { label: "Viewed", className: "bg-amber-50 text-amber-700 border-amber-200" },
   SIGNED: { label: "Signed", className: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   DECLINED: { label: "Declined", className: "bg-rose-50 text-rose-700 border-rose-200" },
-  EXPIRED: { label: "Expired", className: "bg-zinc-100 text-zinc-500 border-zinc-200" },
-  VOIDED: { label: "Voided", className: "bg-zinc-100 text-zinc-500 border-zinc-200" },
+  EXPIRED: { label: "Expired", className: "bg-muted text-muted-foreground border-border" },
+  VOIDED: { label: "Voided", className: "bg-muted text-muted-foreground border-border" },
 };
 
 function StatusBadge({ status }: { status: string }) {
   const s = STATUS_STYLES[status] ?? {
     label: status,
-    className: "bg-zinc-100 text-zinc-700 border-zinc-200",
+    className: "bg-muted text-muted-foreground border-border",
   };
   return (
     <Badge variant="outline" className={s.className}>

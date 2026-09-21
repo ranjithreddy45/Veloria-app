@@ -78,7 +78,7 @@ export function WorkflowStepper({
   }
 
   return (
-    <Card className={cn("border-0 shadow-card", className)}>
+    <Card className={cn("border-0", className)}>
       {/* ≥640px: full horizontal track (scrolls between 640–1024). */}
       <div className="hidden px-4 py-4 sm:block">
         <ol

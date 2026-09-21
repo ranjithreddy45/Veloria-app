@@ -120,7 +120,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       </Link>
 
       {/* Identity header */}
-      <div className="flex flex-wrap items-start gap-5 rounded-2xl border bg-card p-5 shadow-card sm:p-6">
+      <div className="flex flex-wrap items-start gap-5 surface-glass rounded-[22px] p-5 sm:p-6">
         <Avatar size="lg" className="size-16 ring-1 ring-border/60 sm:size-20">
           <AvatarImage src={emp.photoUrl || undefined} alt={name} />
           <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">{initials || "?"}</AvatarFallback>
@@ -425,7 +425,7 @@ function InfoCard({
   plain?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border bg-card p-5 shadow-card">
+    <div className="surface-glass rounded-[22px] p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</h3>
         {action}

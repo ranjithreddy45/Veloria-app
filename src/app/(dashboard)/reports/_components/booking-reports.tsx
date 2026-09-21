@@ -76,7 +76,7 @@ export function BookingReports({ range }: BookingReportsProps) {
     <div className="space-y-6">
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
@@ -89,7 +89,7 @@ export function BookingReports({ range }: BookingReportsProps) {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div className="space-y-2">
@@ -107,7 +107,7 @@ export function BookingReports({ range }: BookingReportsProps) {
       {/* Charts Row */}
       <div className="grid gap-6 lg:grid-cols-12">
         {/* Bookings by Month */}
-        <Card className="border-zinc-200/80 shadow-sm lg:col-span-8">
+        <Card className="lg:col-span-8">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Bookings Over Time</CardTitle>
             <p className="text-xs text-muted-foreground">Monthly booking count</p>
@@ -132,7 +132,7 @@ export function BookingReports({ range }: BookingReportsProps) {
         </Card>
 
         {/* Bookings by Status */}
-        <Card className="border-zinc-200/80 shadow-sm lg:col-span-4">
+        <Card className="lg:col-span-4">
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Bookings by Status</CardTitle>
             <p className="text-xs text-muted-foreground">Current distribution</p>
@@ -180,7 +180,7 @@ export function BookingReports({ range }: BookingReportsProps) {
 
       {/* Bookings by Venue */}
       {data.bookingsByVenue.length > 0 && (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Bookings by Venue</CardTitle>
             <p className="text-xs text-muted-foreground">Distribution across venues</p>
@@ -201,7 +201,7 @@ export function BookingReports({ range }: BookingReportsProps) {
 
       {/* Bookings by Lead Source */}
       {sourceData && sourceData.sources.length > 0 && (
-        <Card className="border-zinc-200/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Bookings by Lead Source</CardTitle>
             <p className="text-xs text-muted-foreground">Where bookings originate from</p>
@@ -247,7 +247,7 @@ export function BookingReports({ range }: BookingReportsProps) {
             ? Math.round((cancelledCount / data.totalBookings) * 100)
             : 0;
         return (
-          <Card className="border-red-200/80 bg-red-50/40 shadow-sm">
+          <Card className="border-red-200/80 bg-red-50/40">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className="flex size-10 items-center justify-center rounded-lg bg-red-100">

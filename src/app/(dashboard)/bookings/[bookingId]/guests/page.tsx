@@ -75,7 +75,7 @@ export default async function GuestPage({ params }: GuestPageProps) {
           invitesBlockedReason={invitesBlockedReason}
         />
       ) : (
-        <Card className="rounded-2xl shadow-card">
+        <Card>
           <CardContent className="p-0">
             <EmptyState
               icon={<UsersIcon className="size-6" />}

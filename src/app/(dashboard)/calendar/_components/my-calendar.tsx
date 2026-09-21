@@ -297,7 +297,7 @@ export function MyCalendar({
   return (
     <div className="space-y-4">
       {/* Month toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-3 shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-3 surface-glass rounded-2xl p-3">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => go(prev.m, prev.y)} aria-label="Previous month">
             <ChevronLeft className="size-4" />

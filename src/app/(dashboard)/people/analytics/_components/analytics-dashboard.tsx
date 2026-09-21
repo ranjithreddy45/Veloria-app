@@ -170,7 +170,7 @@ export function AnalyticsDashboard({ data }: { data: Data }) {
 
 function Kpi({ icon, label, value, sub, accent }: { icon: React.ReactNode; label: string; value: number | string; sub?: string; accent?: boolean }) {
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="surface-glass rounded-[22px] p-4">
       <div className="flex items-center gap-2 text-muted-foreground">
         <span className={accent ? "text-primary" : ""}>{icon}</span>
         <span className="text-detail font-medium">{label}</span>
@@ -183,7 +183,7 @@ function Kpi({ icon, label, value, sub, accent }: { icon: React.ReactNode; label
 
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="surface-glass rounded-[22px] p-4">
       <h3 className="mb-3 text-body font-semibold">{title}</h3>
       {children}
     </div>

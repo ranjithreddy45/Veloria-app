@@ -471,7 +471,7 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
 
       {/* Channel list */}
       {channels.length === 0 && !editing && (
-        <div className="rounded-2xl border border-dashed bg-card shadow-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<Rss />}
             title="No OTA channels yet"
@@ -491,7 +491,7 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
         const feedUrl = c.feedToken ? `${baseUrl}/api/ota/feed/${c.feedToken}` : null;
         const inboundUrl = c.inboundToken ? `${baseUrl}/api/ota/inbound/${c.inboundToken}` : null;
         return (
-          <section key={c.id} className="rounded-2xl border bg-card shadow-card">
+          <section key={c.id} className="overflow-clip surface-glass rounded-[22px]">
             <div className="border-b px-5 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">

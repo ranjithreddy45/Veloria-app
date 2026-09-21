@@ -51,11 +51,11 @@ export function ShiftsHome({
       {/* MY SHIFTS */}
       <TabsContent value="mine" className="space-y-3">
         {myShifts.length === 0 ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No upcoming shifts assigned.</div>
+          <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">No upcoming shifts assigned.</div>
         ) : (
           <div className="space-y-2.5">
             {myShifts.map((s) => (
-              <div key={s.id} className="flex items-center justify-between rounded-xl border bg-card p-4">
+              <div key={s.id} className="flex items-center justify-between surface-glass rounded-[22px] p-4">
                 <div className="flex items-center gap-3">
                   <span className={cn("size-2.5 rounded-full", HUE_DOT[s.shift.color] ?? "bg-zinc-500")} />
                   <div>
@@ -78,7 +78,7 @@ export function ShiftsHome({
       {/* SWAPS */}
       <TabsContent value="swaps" className="space-y-3">
         {swaps.length === 0 ? (
-          <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No pending swap requests.</div>
+          <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">No pending swap requests.</div>
         ) : (
           swaps.map((s) => <SwapRowCard key={s.id} row={s} />)
         )}
@@ -89,11 +89,11 @@ export function ShiftsHome({
         <TabsContent value="types" className="space-y-3">
           <div className="flex justify-end"><ShiftTypeDialog /></div>
           {shifts.length === 0 ? (
-            <div className="rounded-2xl border border-dashed bg-card p-10 text-center text-body text-muted-foreground">No shift types yet. Add Morning, General, Night…</div>
+            <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">No shift types yet. Add Morning, General, Night…</div>
           ) : (
             <div className="space-y-2.5">
               {shifts.map((sh) => (
-                <div key={sh.id} className="flex items-center justify-between rounded-xl border bg-card p-4">
+                <div key={sh.id} className="flex items-center justify-between surface-glass rounded-[22px] p-4">
                   <div className="flex items-center gap-3">
                     <span className={cn("size-2.5 rounded-full", HUE_DOT[sh.color] ?? "bg-zinc-500")} />
                     <span className="font-medium">{sh.name}</span>
@@ -126,7 +126,7 @@ function RosterGrid({
   }
 
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="overflow-clip surface-glass rounded-[22px]">
       <div className="flex items-center justify-between border-b px-4 py-2.5">
         <span className="text-body font-semibold">Week of {formatDate(weekStart)}</span>
         <div className="flex gap-1.5">
@@ -260,7 +260,7 @@ function SwapRowCard({ row }: { row: SwapRow }) {
     router.refresh();
   }
   return (
-    <div className="rounded-xl border bg-card p-4">
+    <div className="surface-glass rounded-[22px] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="font-medium">{row.requester.firstName} {row.requester.lastName} <span className="text-detail font-normal text-muted-foreground">wants to swap</span></div>

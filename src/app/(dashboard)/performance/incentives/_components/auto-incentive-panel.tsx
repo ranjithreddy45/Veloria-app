@@ -74,7 +74,7 @@ export function AutoIncentivePanel() {
   const totalSelected = rows ? rows.filter((r) => selected.has(r.userId)).reduce((s, r) => s + r.bonus, 0) : 0;
 
   return (
-    <Card className="relative gap-0 overflow-hidden border-border/60 bg-card py-0">
+    <Card className="relative gap-0 overflow-hidden py-0">
       <CardContent className="relative space-y-4 px-5 py-5">
         <div className="flex items-center gap-2.5">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">

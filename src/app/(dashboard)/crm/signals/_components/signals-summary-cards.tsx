@@ -74,7 +74,7 @@ export function SignalsSummaryCards() {
   return (
     <div className="grid gap-4 md:grid-cols-4">
       {cards.map((c) => (
-        <Card key={c.label} className="border-border shadow-sm">
+        <Card key={c.label}>
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div

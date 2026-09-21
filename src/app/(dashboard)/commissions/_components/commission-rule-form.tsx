@@ -249,13 +249,13 @@ export function CommissionRuleForm({ initialRules }: CommissionRuleFormProps) {
   return (
     <div className="space-y-4">
       {/* Rule List */}
-      <div className="rounded-xl border border-border bg-card">
+      <div className="surface-glass rounded-[22px]">
         {rules.map((rule, index) => (
           <div
             key={rule.id}
             className={`flex items-center gap-3 px-4 py-3 ${
               index !== rules.length - 1
-                ? "border-b border-zinc-100"
+                ? "border-b border-border"
                 : ""
             }`}
           >

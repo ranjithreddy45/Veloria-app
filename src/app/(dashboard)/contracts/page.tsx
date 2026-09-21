@@ -79,7 +79,7 @@ export default async function ContractsPage() {
       </div>
 
       {contracts.length === 0 ? (
-        <div className="rounded-2xl border bg-card">
+        <div className="surface-glass rounded-[22px]">
           <EmptyState
             icon={<FileSignatureIcon className="size-5" />}
             title="No contracts yet"

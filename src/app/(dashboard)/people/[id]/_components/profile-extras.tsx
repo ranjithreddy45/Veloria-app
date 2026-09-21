@@ -27,7 +27,7 @@ export function CustomFieldsCard({
 }) {
   if (defs.length === 0) return null;
   return (
-    <div className="rounded-2xl border bg-card p-5 shadow-card">
+    <div className="surface-glass rounded-[22px] p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <h3 className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">Additional details</h3>
         {canWrite && <EditCustomFields employeeId={employeeId} defs={defs} values={values} />}

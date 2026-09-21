@@ -288,7 +288,7 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
           {q ? "No employees match your search." : "No active employees on the roster."}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <div className="overflow-x-auto surface-glass rounded-[22px]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -505,7 +505,7 @@ function MonthView({ initialFy, initialMonth, canEdit, canAdmin }: { initialFy: 
         <p className="text-detail text-muted-foreground sm:hidden">
           Swipe the register sideways to move through the month — the employee column stays put.
         </p>
-        <div className="overflow-x-auto rounded-xl border bg-card">
+        <div className="overflow-x-auto surface-glass rounded-[22px]">
           <Table>
             <TableHeader>
               <TableRow>

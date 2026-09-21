@@ -105,7 +105,7 @@ export default async function ReferralRewardsPage() {
       </PageHeader>
 
       {rewardsError && (
-        <Card className="border-red-300 bg-red-50 dark:border-red-800/60 dark:bg-red-950/30 shadow-sm">
+        <Card className="border-red-300 bg-red-50 dark:border-red-800/60 dark:bg-red-950/30">
           <CardContent className="py-4">
             <p className="text-sm font-medium text-red-700 dark:text-red-400">
               {rewardsError} Please refresh the page or try again later.
@@ -116,7 +116,7 @@ export default async function ReferralRewardsPage() {
 
       {/* Summary */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Rewards
@@ -126,7 +126,7 @@ export default async function ReferralRewardsPage() {
             <p className="text-2xl font-bold">{rewards.length}</p>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Pending/Eligible
@@ -136,7 +136,7 @@ export default async function ReferralRewardsPage() {
             <p className="text-2xl font-bold text-amber-600">{pendingCount}</p>
           </CardContent>
         </Card>
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Paid
@@ -153,7 +153,7 @@ export default async function ReferralRewardsPage() {
 
       {/* Reward Cards */}
       {rewards.length === 0 ? (
-        <Card className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm">
+        <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <GiftIcon className="mb-4 size-12 text-muted-foreground/40" />
             <p className="text-lg font-medium text-muted-foreground">
@@ -179,7 +179,7 @@ export default async function ReferralRewardsPage() {
             return (
               <Card
                 key={reward.id}
-                className="border-zinc-200/80 dark:border-zinc-700/80 shadow-sm"
+               
               >
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">

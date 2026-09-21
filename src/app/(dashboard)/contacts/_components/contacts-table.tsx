@@ -277,7 +277,7 @@ function TypeTabs({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-0.5 rounded-xl border border-border bg-card p-1 shadow-card">
+    <div className="flex flex-wrap items-center gap-0.5 surface-glass rounded-xl p-1">
       {TYPE_TABS.map((tab) => {
         const isActive = tab.id === active;
         return (

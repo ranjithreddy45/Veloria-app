@@ -28,7 +28,7 @@ export function CompensationTable({ rows }: { rows: CompensationOverviewRow[] })
   }, [rows, q]);
 
   return (
-    <div className="rounded-xl border bg-card">
+    <div className="overflow-clip surface-glass rounded-[22px]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
         <div>
           <h3 className="text-copy font-semibold">Salary structures</h3>

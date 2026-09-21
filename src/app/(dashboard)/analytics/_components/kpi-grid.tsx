@@ -37,7 +37,7 @@ export function KPIGrid({ items, columns = 4, className }: KPIGridProps) {
       {items.map((kpi) => (
         <div
           key={kpi.label}
-          className="rounded-2xl border bg-card p-5 shadow-card transition-shadow hover:shadow-card-hover"
+          className="surface-glass rounded-[22px] p-5 transition-shadow hover:shadow-card-hover"
         >
           <div className="flex items-center justify-between gap-3">
             <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">

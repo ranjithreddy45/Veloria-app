@@ -70,7 +70,7 @@ export function CampaignBoard({ data }: CampaignBoardProps) {
 
   if (data.length === 0) {
     return (
-      <div className="rounded-xl border border-border/70 bg-card shadow-card">
+      <div className="surface-glass rounded-[22px]">
         <EmptyState
           icon={<MegaphoneIcon className="size-5" />}
           title="No campaigns yet"

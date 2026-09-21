@@ -44,7 +44,7 @@ function getNpsLabel(score: number): string {
 export function NpsChart({ npsScore, breakdown, totalResponses }: NpsChartProps) {
   if (npsScore === null || totalResponses === 0) {
     return (
-      <Card className="border-zinc-200/80 shadow-sm">
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold text-foreground">
             Net Promoter Score
@@ -65,7 +65,7 @@ export function NpsChart({ npsScore, breakdown, totalResponses }: NpsChartProps)
   const detractorPct = total > 0 ? Math.round((breakdown.detractors / total) * 100) : 0;
 
   return (
-    <Card className="border-zinc-200/80 shadow-sm">
+    <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold text-foreground">
           Net Promoter Score

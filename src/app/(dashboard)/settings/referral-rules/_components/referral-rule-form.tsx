@@ -151,7 +151,7 @@ export function ReferralRuleForm({ initialData }: ReferralRuleFormProps) {
   }
 
   return (
-    <Card className="border-border shadow-sm">
+    <Card>
       <CardHeader>
         <CardTitle>
           {isEditing ? "Edit Rule" : "Create Rule"}

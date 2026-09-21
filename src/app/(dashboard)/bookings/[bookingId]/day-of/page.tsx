@@ -83,7 +83,7 @@ export default async function DayOfPage({ params }: DayOfPageProps) {
           staff={serialize(staff)}
         />
       ) : (
-        <div className="rounded-2xl border border-dashed bg-card shadow-card">
+        <div className="rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<CalendarClockIcon className="size-6" />}
             title="No run of show yet"

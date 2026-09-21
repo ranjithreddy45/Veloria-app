@@ -20,7 +20,7 @@ const STATUS_STYLE: Record<string, string> = {
   TENTATIVE: "bg-amber-50 text-amber-700 border-amber-200",
   CONFIRMED: "bg-rose-50 text-rose-700 border-rose-200",
   IN_PROGRESS: "bg-blue-50 text-blue-700 border-blue-200",
-  COMPLETED: "bg-slate-50 text-slate-600 border-slate-200",
+  COMPLETED: "bg-muted text-muted-foreground border-border",
   BLACKOUT: "bg-zinc-800 text-zinc-100 border-zinc-800",
 };
 

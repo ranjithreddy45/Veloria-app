@@ -260,7 +260,7 @@ export default async function PackageDetailPage({
                 }) => (
                   <div
                     key={section.id}
-                    className="space-y-3 rounded-2xl border bg-card p-4 shadow-card"
+                    className="space-y-3 surface-glass rounded-[22px] p-4"
                   >
                     <h3 className="text-copy font-semibold text-foreground">
                       {section.title}
@@ -340,7 +340,7 @@ export default async function PackageDetailPage({
         {/* ── Sidebar ── */}
         <div className="space-y-4">
           {/* Price card */}
-          <div className="space-y-1 rounded-2xl border bg-card p-5 shadow-card">
+          <div className="space-y-1 surface-glass rounded-[22px] p-5">
             <p className="text-meta font-semibold uppercase tracking-[0.1em] text-muted-foreground">
               Package price
             </p>
@@ -351,7 +351,7 @@ export default async function PackageDetailPage({
           </div>
 
           {/* Stats */}
-          <div className="rounded-2xl border bg-card p-4 shadow-card">
+          <div className="surface-glass rounded-[22px] p-4">
             <dl className="space-y-3 text-body">
               <div className="flex items-center justify-between">
                 <dt className="text-muted-foreground">Sections</dt>

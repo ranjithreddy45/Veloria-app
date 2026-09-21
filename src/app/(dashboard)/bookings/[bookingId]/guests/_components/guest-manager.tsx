@@ -120,8 +120,8 @@ const GUEST_CATEGORY_COLORS: Record<string, string> = {
   VIP: "bg-amber-100 text-amber-800 border-amber-200",
   FAMILY: "bg-purple-100 text-purple-800 border-purple-200",
   FRIEND: "bg-blue-100 text-blue-800 border-blue-200",
-  CORPORATE: "bg-slate-100 text-slate-800 border-slate-200",
-  OTHER: "bg-zinc-100 text-zinc-700 border-zinc-200",
+  CORPORATE: "bg-muted text-muted-foreground border-border",
+  OTHER: "bg-muted text-muted-foreground border-border",
 };
 
 // ============================================================

@@ -66,7 +66,7 @@ export function ControlDashboard({
 
   if (!dashboard) {
     return (
-      <Card className="border-border shadow-sm">
+      <Card>
         <CardContent className="py-16 text-center">
           <ListChecksIcon className="mx-auto size-12 text-muted-foreground/40 mb-3" />
           <h3 className="text-lg font-semibold mb-1">No Execution Plan Found</h3>
@@ -216,7 +216,7 @@ export function ControlDashboard({
 
       {/* Live Readiness Header */}
       {readiness && (
-        <Card className="border-border shadow-sm overflow-hidden">
+        <Card className="overflow-hidden">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
               <div className="relative shrink-0">
@@ -306,7 +306,7 @@ export function ControlDashboard({
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -318,7 +318,7 @@ export function ControlDashboard({
           </CardContent>
         </Card>
 
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -336,7 +336,7 @@ export function ControlDashboard({
           </CardContent>
         </Card>
 
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -350,7 +350,7 @@ export function ControlDashboard({
           </CardContent>
         </Card>
 
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
@@ -374,7 +374,7 @@ export function ControlDashboard({
 
       {/* Phase Progress */}
       {phaseProgress && phaseProgress.length > 0 && (
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Phase Progress</CardTitle>
           </CardHeader>
@@ -423,7 +423,7 @@ export function ControlDashboard({
       {/* Critical Items */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Overdue Tasks */}
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <AlertTriangleIcon className="size-4 text-destructive" />
@@ -478,7 +478,7 @@ export function ControlDashboard({
         </Card>
 
         {/* Upcoming Tasks */}
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <TimerIcon className="size-4 text-blue-500" />
@@ -543,7 +543,7 @@ export function ControlDashboard({
 
       {/* Proof Needed */}
       {Array.isArray(proofNeeded) && proofNeeded.length > 0 && (
-        <Card className="border-warning/20 shadow-sm">
+        <Card className="border-warning/20">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <CameraIcon className="size-4 text-warning" />
@@ -583,7 +583,7 @@ export function ControlDashboard({
 
       {/* Time-anchored Task Timeline */}
       {Array.isArray(phaseTimeline) && phaseTimeline.length > 0 && (
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <ListChecksIcon className="size-4 text-blue-500" />
@@ -711,7 +711,7 @@ export function ControlDashboard({
 
       {/* Active Escalations List */}
       {escalations.length > 0 && (
-        <Card className="border-border shadow-sm">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <SirenIcon className="size-4 text-destructive" />

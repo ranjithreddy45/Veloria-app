@@ -53,7 +53,7 @@ export function StatTile({ label, value, accent = "indigo", icon, sub, delta, de
     // "₹12,45,000" overflowed its own card; the mobile-first values below shrink
     // the padding and type just enough to fit, and `sm:` restores today's
     // desktop look exactly.
-    <div className={cn("group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-card transition-shadow duration-200 hover:shadow-card-hover sm:p-5", className)}>
+    <div className={cn("group relative overflow-hidden surface-glass rounded-[22px] p-4 transition-shadow duration-200 hover:shadow-card-hover sm:p-5", className)}>
       <div className="relative z-[1] flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
