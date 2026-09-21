@@ -106,6 +106,9 @@ import {
   type NavItem,
 } from "@/config/navigation";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { MAX_PINS, flattenPinnable, resolvePins } from "@/lib/workspace/pins";
+import { useWorkspacePins } from "@/lib/workspace/use-workspace-pins";
 import {
   Sidebar,
   SidebarContent,
@@ -115,6 +118,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -226,27 +230,24 @@ const iconMap: Record<string, LucideIcon> = {
   FileImage,
 };
 
-function getIcon(iconName: string): LucideIcon {
-  return iconMap[iconName] || LayoutDashboard;
+// Rendered through createElement rather than `const Icon = getIcon(name)` +
+// <Icon/>: a capitalised local picked at render time reads to React's compiler
+// lint as "component created during render" (react-hooks/static-components).
+// The map lookup returns a stable module-level component, so nothing remounts.
+function NavIcon({ name, ...props }: { name: string } & React.ComponentProps<LucideIcon>) {
+  return React.createElement(iconMap[name] || LayoutDashboard, props);
 }
 
 // ============================================================
 // Mobile drawer behaviour
 // ============================================================
 
-/**
- * Below `md` the sidebar is a Radix Sheet. Radix has no idea the Next router
- * moved, so without this the drawer stays open on top of the page you just
- * navigated to and you have to dismiss it by hand every single time — the
- * single most annoying thing about navigating this app on a phone.
- * No-ops on desktop, where the sidebar is always mounted.
- */
-function useCloseDrawerOnNavigate() {
-  const { isMobile, setOpenMobile } = useSidebar();
-  return useCallback(() => {
-    if (isMobile) setOpenMobile(false);
-  }, [isMobile, setOpenMobile]);
-}
+// Below `md` the sidebar is a Radix Sheet. Radix has no idea the Next router
+// moved, so without closing it by hand the drawer stays open on top of the page
+// you just navigated to — the single most annoying thing about navigating this
+// app on a phone. That close now lives in AppSidebar's `handleNavigate`, next
+// to the optimistic-active update, so every nav link gets both from one
+// callback. (Pin stars deliberately do NOT call it: pinning is not navigating.)
 
 // Touch-sized nav rows. The global `pointer: coarse` rule in globals.css lifts
 // buttons and [role=button] to 44px, but these rows render as plain <a> via
@@ -319,6 +320,71 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 // ============================================================
+// Pin toggle (personal workspace)
+// ============================================================
+
+/** What a row needs to know to draw its star. `reveal: "always"` keeps a
+ *  pinned row's filled star on screen in the main list, so you can see at a
+ *  glance what is already pinned; inside the pinned group every row is pinned,
+ *  so there the star goes back to hover-reveal to keep the group quiet. */
+type PinControl = {
+  pinned: boolean;
+  reveal: "hover" | "always";
+  onToggle: () => void;
+};
+
+/**
+ * The star is a SIBLING of the nav link, never a child: a <button> inside an
+ * <a> is invalid HTML, and in practice the click also navigates. Top-level rows
+ * use shadcn's SidebarMenuAction slot (which also makes the link reserve right
+ * padding). Sub-rows use a plain button on purpose — SidebarMenuAction's
+ * `data-sidebar=menu-action` marker would be seen by the PARENT group's
+ * `group-has-…:pr-8` rule and shove its chevron 24px to the left.
+ *
+ * Sizing is keyed on pointer type, not breakpoint: a fine pointer gets a 28px
+ * hover-revealed star; a coarse pointer (phones in the sheet, but also tablets
+ * wide enough to get the desktop sidebar) has no hover, so the star is always
+ * visible and a full 44px target.
+ */
+function PinToggle({
+  title,
+  control,
+  sub = false,
+}: {
+  title: string;
+  control: PinControl;
+  sub?: boolean;
+}) {
+  const { pinned, reveal, onToggle } = control;
+  const label = `${pinned ? "Unpin" : "Pin"} ${title}`;
+  const className = cn(
+    "top-1/2! right-0.5 aspect-auto size-7 -translate-y-1/2 rounded-lg transition-[opacity,color] duration-150 after:hidden [&>svg]:size-3.5",
+    "pointer-coarse:right-0 pointer-coarse:size-11!",
+    "hover:bg-transparent hover:text-sidebar-foreground focus-visible:opacity-100",
+    pinned ? "text-sidebar-foreground/60" : "text-sidebar-foreground/40",
+    reveal === "hover" &&
+      cn(
+        "opacity-0 pointer-coarse:opacity-100",
+        sub
+          ? "group-hover/menu-sub-item:opacity-100 group-focus-within/menu-sub-item:opacity-100"
+          : "group-hover/menu-item:opacity-100 group-focus-within/menu-item:opacity-100"
+      ),
+    sub &&
+      "absolute flex items-center justify-center p-0 outline-hidden ring-sidebar-ring focus-visible:ring-2 [&>svg]:shrink-0"
+  );
+  const props = {
+    type: "button" as const,
+    "aria-pressed": pinned,
+    "aria-label": label,
+    title: label,
+    onClick: onToggle,
+    className,
+  };
+  const star = <Star className={cn(pinned && "fill-current")} strokeWidth={2} />;
+  return sub ? <button {...props}>{star}</button> : <SidebarMenuAction {...props}>{star}</SidebarMenuAction>;
+}
+
+// ============================================================
 // Sidebar Nav Item (no children)
 // ============================================================
 
@@ -326,13 +392,13 @@ function SidebarNavItem({
   item,
   isActive,
   onNavigate,
+  pin,
 }: {
   item: NavItem;
   isActive: boolean;
   onNavigate: (href: string) => void;
+  pin?: PinControl;
 }) {
-  const Icon = getIcon(item.icon);
-
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -344,6 +410,9 @@ function SidebarNavItem({
           NAV_ROW_TOUCH,
           "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
           "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
+          // Keep the label clear of the 44px touch star (the slot's own pr-8
+          // only clears the 28px mouse-sized one).
+          pin && "pointer-coarse:pr-11!",
           isActive &&
             "data-[active=true]:bg-primary/[0.11] data-[active=true]:font-semibold data-[active=true]:text-primary shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.16)] data-[active=true]:hover:bg-primary/[0.14] data-[active=true]:hover:text-primary"
         )}
@@ -357,11 +426,12 @@ function SidebarNavItem({
                 : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-foreground"
             )}
           >
-            <Icon className="size-[18px]" strokeWidth={2} />
+            <NavIcon name={item.icon} className="size-[18px]" strokeWidth={2} />
           </span>
           <span className={cn(isActive && "tracking-[-0.01em]")}>{item.title}</span>
         </Link>
       </SidebarMenuButton>
+      {pin && <PinToggle title={item.title} control={pin} />}
     </SidebarMenuItem>
   );
 }
@@ -374,12 +444,13 @@ function SidebarCollapsibleItem({
   item,
   pathname,
   onNavigate,
+  pinFor,
 }: {
   item: NavItem;
   pathname: string;
   onNavigate: (href: string) => void;
+  pinFor: (item: NavItem) => PinControl;
 }) {
-  const Icon = getIcon(item.icon);
   const isGroupActive = pathname.startsWith(item.href);
 
   return (
@@ -398,7 +469,7 @@ function SidebarCollapsibleItem({
             )}
           >
             <span className={cn("flex size-6 shrink-0 items-center justify-center transition-colors duration-200", isGroupActive ? "text-primary" : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-foreground")}>
-              <Icon className="size-[18px]" strokeWidth={2} />
+              <NavIcon name={item.icon} className="size-[18px]" strokeWidth={2} />
             </span>
             <span className={cn(isGroupActive && "tracking-[-0.01em]")}>{item.title}</span>
             <ChevronRight className="ml-auto size-3.5 text-sidebar-foreground/40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -407,7 +478,6 @@ function SidebarCollapsibleItem({
         <CollapsibleContent>
           <SidebarMenuSub className="border-sidebar-border/40">
             {item.children?.map((child) => {
-              const ChildIcon = getIcon(child.icon);
               const isChildActive = pathname === child.href;
               return (
                 <SidebarMenuSubItem key={child.href}>
@@ -418,15 +488,17 @@ function SidebarCollapsibleItem({
                       "rounded-lg text-sidebar-foreground/70 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
                       NAV_SUBROW_TOUCH,
                       "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                      "pr-8 pointer-coarse:pr-11",
                       isChildActive &&
                         "data-[active=true]:bg-primary/[0.11] data-[active=true]:font-semibold data-[active=true]:text-primary shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.16)] data-[active=true]:hover:bg-primary/[0.14] data-[active=true]:hover:text-primary"
                     )}
                   >
                     <Link href={child.href} onClick={() => onNavigate(child.href)}>
-                      <ChildIcon className={cn("size-3.5", isChildActive ? "text-primary" : "text-sidebar-foreground/50")} />
+                      <NavIcon name={child.icon} className={cn("size-3.5", isChildActive ? "text-primary" : "text-sidebar-foreground/50")} />
                       <span>{child.title}</span>
                     </Link>
                   </SidebarMenuSubButton>
+                  <PinToggle title={child.title} control={pinFor(child)} sub />
                 </SidebarMenuSubItem>
               );
             })}
@@ -488,6 +560,39 @@ export function AppSidebar() {
     permissions
   );
 
+  // ---- Personal workspace: pins ------------------------------------------
+  // Pins are stored as bare hrefs and are NEVER rendered directly. They are
+  // resolved against `pinnable`, which is derived from the role-filtered nav
+  // above — so a pin for a module this role can no longer open has nothing to
+  // resolve to and silently drops out. The stored list is left alone, so the
+  // pin comes back by itself if access does.
+  const { pins, hydrated, toggle } = useWorkspacePins(user?.id);
+  const pinnable = flattenPinnable(filteredNavigation);
+  const allowedHrefs = new Set(pinnable.map((i) => i.href));
+  const pinnedItems = resolvePins(pins, pinnable);
+  const pinnedHrefs = new Set(pinnedItems.map((i) => i.href));
+
+  const handleTogglePin = (item: NavItem) => {
+    const res = toggle(item.href, allowedHrefs);
+    if (res.ok) return;
+    // Never fail silently: the star visibly did nothing, so say why.
+    if (res.reason === "limit") {
+      toast.info(`You can pin up to ${MAX_PINS} modules`, {
+        description: `Unpin one to make room for ${item.title}.`,
+      });
+    } else {
+      toast.error("Couldn't save your pin", {
+        description: "This browser is blocking storage (private window?), so pins can't be remembered here.",
+      });
+    }
+  };
+
+  const pinFor = (item: NavItem): PinControl => ({
+    pinned: pinnedHrefs.has(item.href),
+    reveal: pinnedHrefs.has(item.href) ? "always" : "hover",
+    onToggle: () => handleTogglePin(item),
+  });
+
   if (isLoading) {
     return (
       <Sidebar collapsible="icon" variant="floating" className="border-r-0">
@@ -539,24 +644,58 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
+              {/* Pinned by you. Rendered only once the client store has been
+                  read (`hydrated`): pins live in localStorage, which the server
+                  cannot see, so drawing anything earlier would either mismatch
+                  on hydration or flash the empty hint at people who have pins. */}
+              {hydrated && (
+                <>
+                  <SidebarGroupLabel className="mt-1 mb-1 px-2.5 text-meta font-semibold uppercase tracking-[0.06em] text-sidebar-foreground/45">
+                    Pinned by you
+                  </SidebarGroupLabel>
+                  {pinnedItems.length === 0 ? (
+                    // The feature is hover-revealed on desktop, so without this
+                    // line nobody would ever discover it.
+                    <li className="px-2.5 pb-1 text-meta leading-snug text-sidebar-foreground/45 group-data-[collapsible=icon]:hidden">
+                      Star any module to keep it here.
+                    </li>
+                  ) : (
+                    <>
+                      {pinnedItems.map((item) => (
+                        <SidebarNavItem
+                          key={`pin:${item.href}`}
+                          item={item}
+                          isActive={currentPath === item.href || currentPath.startsWith(item.href + "/")}
+                          onNavigate={handleNavigate}
+                          pin={{ pinned: true, reveal: "hover", onToggle: () => handleTogglePin(item) }}
+                        />
+                      ))}
+                      {/* Icon-only mode hides the labels, so a hairline is the
+                          only thing separating pins from the full module list. */}
+                      <li
+                        aria-hidden
+                        className="mx-2 my-1.5 hidden h-px bg-sidebar-border group-data-[collapsible=icon]:block"
+                      />
+                    </>
+                  )}
+                </>
+              )}
               {(() => {
-                let prevSection: string | undefined;
                 const seenSections = new Set<string>();
                 return filteredNavigation.map((item) => {
                   const section = SECTIONS[item.href];
                   const showHeader = !!section && !seenSections.has(section);
                   if (section) seenSections.add(section);
-                  const effectiveSection = section ?? prevSection;
-                  if (section) prevSection = section;
 
                   const node =
                     item.children && item.children.length > 0 ? (
-                      <SidebarCollapsibleItem item={item} pathname={currentPath} onNavigate={handleNavigate} />
+                      <SidebarCollapsibleItem item={item} pathname={currentPath} onNavigate={handleNavigate} pinFor={pinFor} />
                     ) : (
                       <SidebarNavItem
                         item={item}
                         isActive={currentPath === item.href || currentPath.startsWith(item.href + "/")}
                         onNavigate={handleNavigate}
+                        pin={pinFor(item)}
                       />
                     );
 
