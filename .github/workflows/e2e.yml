@@ -74,6 +74,19 @@ jobs:
         env:
           E2E_USE_WEBSERVER: "1"
 
+      # The visual tour saves a screenshot of a spread of team screens in light,
+      # dark and phone width. Uploaded on EVERY run, pass or fail: it is how a
+      # restyle gets looked at by a person, since nobody can run the app locally
+      # without a database.
+      - name: Upload visual tour screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-tour
+          path: tests/e2e/.shots
+          retention-days: 14
+          if-no-files-found: ignore
+
       - name: Upload Playwright report and traces
         if: failure()
         uses: actions/upload-artifact@v4
