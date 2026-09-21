@@ -132,6 +132,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -409,7 +417,7 @@ function SidebarNavItem({
           "group/nav relative overflow-hidden rounded-xl px-2 font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
           NAV_ROW_TOUCH,
           "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-          "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
+          "group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!p-0",
           // Keep the label clear of the 44px touch star (the slot's own pr-8
           // only clears the 28px mouse-sized one).
           pin && "pointer-coarse:pr-11!",
@@ -421,6 +429,7 @@ function SidebarNavItem({
           <span
             className={cn(
               "flex size-6 shrink-0 items-center justify-center transition-colors duration-200",
+              "group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:left-1/2 group-data-[collapsible=icon]:top-1/2 group-data-[collapsible=icon]:-translate-x-1/2 group-data-[collapsible=icon]:-translate-y-1/2",
               isActive
                 ? "text-primary"
                 : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-foreground"
@@ -428,7 +437,7 @@ function SidebarNavItem({
           >
             <NavIcon name={item.icon} className="size-[18px]" strokeWidth={2} />
           </span>
-          <span className={cn(isActive && "tracking-[-0.01em]")}>{item.title}</span>
+          <span className={cn("group-data-[collapsible=icon]:hidden", isActive && "tracking-[-0.01em]")}>{item.title}</span>
         </Link>
       </SidebarMenuButton>
       {pin && <PinToggle title={item.title} control={pin} />}
@@ -452,6 +461,52 @@ function SidebarCollapsibleItem({
   pinFor: (item: NavItem) => PinControl;
 }) {
   const isGroupActive = pathname.startsWith(item.href);
+  const { state } = useSidebar();
+
+  if (state === "collapsed") {
+    return (
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton
+              tooltip={item.title}
+              className={cn(
+                "group/nav rounded-xl px-2 font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+                NAV_ROW_TOUCH,
+                "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                "group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!p-0",
+                isGroupActive &&
+                  "bg-primary/[0.06] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.12)]"
+              )}
+            >
+              <span className={cn(
+                "flex size-6 shrink-0 items-center justify-center transition-colors duration-200",
+                "group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:left-1/2 group-data-[collapsible=icon]:top-1/2 group-data-[collapsible=icon]:-translate-x-1/2 group-data-[collapsible=icon]:-translate-y-1/2",
+                isGroupActive ? "text-primary" : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-foreground"
+              )}>
+                <NavIcon name={item.icon} className="size-[18px]" strokeWidth={2} />
+              </span>
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" sideOffset={12} className="w-48 rounded-xl border-sidebar-border/40 bg-sidebar text-sidebar-foreground">
+            <DropdownMenuLabel className="font-semibold">{item.title}</DropdownMenuLabel>
+            <DropdownMenuSeparator className="bg-sidebar-border/40" />
+            {item.children?.map((child) => {
+              const isChildActive = pathname === child.href;
+              return (
+                <DropdownMenuItem asChild key={child.href} className="cursor-pointer">
+                  <Link href={child.href} onClick={() => onNavigate(child.href)} className="flex items-center gap-2">
+                    <NavIcon name={child.icon} className={cn("size-4", isChildActive ? "text-primary" : "text-sidebar-foreground/50")} />
+                    <span className={isChildActive ? "font-medium text-sidebar-foreground" : ""}>{child.title}</span>
+                  </Link>
+                </DropdownMenuItem>
+              );
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    );
+  }
 
   return (
     <Collapsible defaultOpen={isGroupActive} className="group/collapsible">
@@ -463,16 +518,20 @@ function SidebarCollapsibleItem({
               "group/nav rounded-xl px-2 font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
               NAV_ROW_TOUCH,
               "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-              "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0!",
+              "group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!p-0",
               isGroupActive &&
                 "bg-primary/[0.06] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.12)]"
             )}
           >
-            <span className={cn("flex size-6 shrink-0 items-center justify-center transition-colors duration-200", isGroupActive ? "text-primary" : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-foreground")}>
+            <span className={cn(
+              "flex size-6 shrink-0 items-center justify-center transition-colors duration-200",
+              "group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:left-1/2 group-data-[collapsible=icon]:top-1/2 group-data-[collapsible=icon]:-translate-x-1/2 group-data-[collapsible=icon]:-translate-y-1/2",
+              isGroupActive ? "text-primary" : "text-sidebar-foreground/55 group-hover/nav:text-sidebar-foreground"
+            )}>
               <NavIcon name={item.icon} className="size-[18px]" strokeWidth={2} />
             </span>
-            <span className={cn(isGroupActive && "tracking-[-0.01em]")}>{item.title}</span>
-            <ChevronRight className="ml-auto size-3.5 text-sidebar-foreground/40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+            <span className={cn("group-data-[collapsible=icon]:hidden", isGroupActive && "tracking-[-0.01em]")}>{item.title}</span>
+            <ChevronRight className="ml-auto size-3.5 text-sidebar-foreground/40 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 group-data-[collapsible=icon]:hidden" />
           </SidebarMenuButton>
         </CollapsibleTrigger>
         <CollapsibleContent>
@@ -641,7 +700,7 @@ export function AppSidebar() {
 
       {/* Navigation. */}
       <SidebarContent className="overscroll-contain px-2">
-        <SidebarGroup>
+        <SidebarGroup className="px-0">
           <SidebarGroupContent>
             <SidebarMenu>
               {/* Pinned by you. Rendered only once the client store has been
@@ -650,7 +709,7 @@ export function AppSidebar() {
                   on hydration or flash the empty hint at people who have pins. */}
               {hydrated && (
                 <>
-                  <SidebarGroupLabel className="mt-1 mb-1 px-2.5 text-meta font-semibold uppercase tracking-[0.06em] text-sidebar-foreground/45">
+                  <SidebarGroupLabel className="mt-1 mb-1 px-2.5 text-meta font-semibold uppercase tracking-[0.06em] text-sidebar-foreground/45 group-data-[collapsible=icon]:hidden">
                     Pinned by you
                   </SidebarGroupLabel>
                   {pinnedItems.length === 0 ? (
@@ -702,7 +761,7 @@ export function AppSidebar() {
                   return (
                     <Fragment key={item.href}>
                       {showHeader && (
-                        <SidebarGroupLabel className="mt-5 mb-1 px-2.5 text-meta font-semibold uppercase tracking-[0.06em] text-sidebar-foreground/45">
+                        <SidebarGroupLabel className="mt-5 mb-1 px-2.5 text-meta font-semibold uppercase tracking-[0.06em] text-sidebar-foreground/45 group-data-[collapsible=icon]:hidden">
                           {section}
                         </SidebarGroupLabel>
                       )}

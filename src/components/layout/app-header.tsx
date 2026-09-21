@@ -172,8 +172,8 @@ export function AppHeader() {
       <Separator orientation="vertical" className="mr-1 hidden h-4 bg-border/60 md:block" />
 
       {/* Breadcrumbs */}
-      <Breadcrumb className="hidden md:flex">
-        <BreadcrumbList className="text-detail text-muted-foreground">
+      <Breadcrumb className="hidden min-w-0 md:flex">
+        <BreadcrumbList className="flex-nowrap whitespace-nowrap text-detail text-muted-foreground">
           {breadcrumbs.map((crumb, index) => (
             <React.Fragment key={crumb.href}>
               {index > 0 && <BreadcrumbSeparator />}
