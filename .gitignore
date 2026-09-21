@@ -60,4 +60,4 @@ ds-bundle/
 id_rsa
 
 # visual-tour screenshots (uploaded as a CI artifact, never committed)
-tests/e2e/.shots
+tests/e2e/visual-tour-shots

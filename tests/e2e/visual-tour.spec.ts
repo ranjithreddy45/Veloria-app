@@ -19,7 +19,7 @@ import { test, expect } from "@playwright/test";
 // Whether it looks GOOD is a human call — that is what the pictures are for.
 // ============================================================
 
-const SHOTS = path.join(__dirname, ".shots");
+const SHOTS = path.join(__dirname, "visual-tour-shots");
 
 /** One screen from each family of layout: home, list, board, calendar, detail-heavy, settings, ops, finance, HR. */
 const SCREENS: { name: string; path: string }[] = [

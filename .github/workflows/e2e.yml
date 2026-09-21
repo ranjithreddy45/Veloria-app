@@ -83,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: visual-tour
-          path: tests/e2e/.shots
+          path: tests/e2e/visual-tour-shots
           retention-days: 14
           if-no-files-found: ignore
 
