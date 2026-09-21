@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { recalcGuestListTotals as recalculateGuestListTotals } from "@/lib/guests/totals";
 import { revalidatePath } from "next/cache";
 import {
   guestSchema,
@@ -15,30 +16,6 @@ import {
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
-
-// ============================================================
-// Helper: Recalculate Guest List Totals
-// ============================================================
-
-async function recalculateGuestListTotals(guestListId: string) {
-  const guests = await prisma.guest.findMany({
-    where: { guestListId },
-    select: {
-      plusOnes: true,
-      rsvpStatus: true,
-      isCheckedIn: true,
-    },
-  });
-
-  const totalInvited = guests.reduce((sum, g) => sum + 1 + g.plusOnes, 0);
-  const totalRSVP = guests.filter((g) => g.rsvpStatus === "ACCEPTED").length;
-  const totalCheckedIn = guests.filter((g) => g.isCheckedIn).length;
-
-  await prisma.guestList.update({
-    where: { id: guestListId },
-    data: { totalInvited, totalRSVP, totalCheckedIn },
-  });
-}
 
 // ============================================================
 // Get Guest List (with all guests)
