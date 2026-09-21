@@ -490,14 +490,14 @@ export function AppSidebar() {
 
   if (isLoading) {
     return (
-      <Sidebar collapsible="icon" className="border-r-0">
+      <Sidebar collapsible="icon" variant="floating" className="border-r-0">
         <SidebarSkeleton />
       </Sidebar>
     );
   }
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-material-sidebar">
+    <Sidebar collapsible="icon" variant="floating">
       {/* Header with logo. */}
       <SidebarHeader className="px-3 pb-3.5 pt-[calc(0.875rem+max(var(--sat),0px))]">
         <Link
