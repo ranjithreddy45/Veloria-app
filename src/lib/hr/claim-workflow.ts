@@ -32,6 +32,8 @@ export interface ResolvedApprovers {
   level1: ApproverUser[];
   /** Second-level approver for this employee's department, or [] when none. */
   level2: ApproverUser[];
+  /** Third-level approver for Finance. */
+  level3: ApproverUser[];
   level1Configured: boolean;
   level2Configured: boolean;
 }
@@ -43,11 +45,18 @@ const userSelect = { id: true, name: true, email: true } as const;
  * rules win over the "ALL" fallback. With no level-1 rule configured, the
  * active SUPER_ADMINs stand in so a claim can never be orphaned.
  */
-export async function resolveClaimApprovers(employee: {
-  departmentId: string | null;
-}): Promise<ResolvedApprovers> {
+export async function resolveClaimApprovers(
+  employee: { departmentId: string | null },
+  category?: string
+): Promise<ResolvedApprovers> {
   const rules = await prisma.hrReimbursementApprover.findMany();
-  const l1Rule = rules.find((r) => r.level === 1 && r.scope === "ALL");
+  
+  let l1Rule = rules.find((r) => r.level === 1 && r.scope === "ALL");
+  if (category === "EVENT") {
+    const eventL1 = rules.find((r) => r.level === 1 && r.scope === "CATEGORY_EVENT");
+    if (eventL1) l1Rule = eventL1;
+  }
+  
   const l2Rule =
     (employee.departmentId && rules.find((r) => r.level === 2 && r.scope === employee.departmentId)) ||
     rules.find((r) => r.level === 2 && r.scope === "ALL") ||
@@ -67,8 +76,9 @@ export async function resolveClaimApprovers(employee: {
     });
   }
   const level2 = l2Rule && byId.get(l2Rule.userId) ? [byId.get(l2Rule.userId)!] : [];
+  const level3 = await financeRecipients();
 
-  return { level1, level2, level1Configured: !!l1Rule, level2Configured: !!l2Rule };
+  return { level1, level2, level3, level1Configured: !!l1Rule, level2Configured: !!l2Rule };
 }
 
 /** The users Finance-side notifications go to: FINANCE role, else hr:payroll holders. */

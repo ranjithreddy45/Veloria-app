@@ -54,7 +54,7 @@ export function ClaimDecisionDialog({
   const open = claim !== null && mode !== null;
   const approving = mode === "APPROVED";
   const sendingBack = mode === "NEEDS_INFO";
-  const levelWord = claim?.level === 2 ? "second-level" : claim?.level === 1 ? "first-level" : "";
+  const levelWord = claim?.level === 3 ? "Finance" : claim?.level === 2 ? "second-level" : claim?.level === 1 ? "first-level" : "";
 
   async function submit() {
     if (!claim || !mode) return;
@@ -71,7 +71,11 @@ export function ClaimDecisionDialog({
     if (sendingBack) toast.success("Sent back to the employee for more information.");
     else if (approving) {
       const next = "data" in res && res.data && "status" in res.data ? res.data.status : "";
-      toast.success(next === "PENDING_L2" ? "Approved — sent for second-level approval." : "Approved — sent to Finance for payment.");
+      toast.success(
+        next === "PENDING_L2" ? "Approved — sent for second-level approval." :
+        next === "PENDING_L3" ? "Approved — sent to Finance for final approval." :
+        "Approved — ready for payment scheduling."
+      );
     } else toast.success("Claim rejected.");
     onClose();
     router.refresh();
@@ -89,8 +93,10 @@ export function ClaimDecisionDialog({
               ? "The claim goes back to the employee with your note and returns to first-level approval once they update it."
               : approving
                 ? claim?.level === 1
-                  ? "After your approval the claim goes to the second-level approver for the employee&apos;s team (or straight to Finance if none is set)."
-                  : "After your approval the claim becomes visible to Finance for payment."
+                  ? "After your approval the claim goes to the second-level approver for the employee's team (or straight to Finance if none is set)."
+                  : claim?.level === 2
+                    ? "After your approval the claim goes to Finance for final approval."
+                    : "After your approval the claim is fully approved and can be scheduled for payment."
                 : "Rejecting closes this claim without payment. The employee can see your reason."}
           </DialogDescription>
         </DialogHeader>

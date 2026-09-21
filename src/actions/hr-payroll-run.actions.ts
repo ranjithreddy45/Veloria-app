@@ -337,9 +337,10 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
       const c = computePayslip({
         lines,
         lopDays: sheet?.lop ?? 0,
-        // Working days from the FINAL sheet are the payable base; no sheet → full pay.
-        payableDays: sheet && sheet.workingDays > 0 ? sheet.workingDays : undefined,
-        monthDays,
+        // FIXED 30-DAY PAYROLL STANDARD
+        // LOP is subtracted from 30, and the daily rate is Gross / 30.
+        payableDays: 30,
+        monthDays: 30,
         month: run.month,
         // Mid-year joiners are annualised over the months they actually work.
         taxMonthsInYear: taxMonthsInFy(emp.dateOfJoining, run.fy),

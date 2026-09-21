@@ -3,7 +3,7 @@
 import * as React from "react";
 import { toast } from "sonner";
 import {
-  RefreshCw, Loader2, Lock, Unlock, CalendarDays, Users, CircleSlash, Save, Info,
+  RefreshCw, Loader2, Lock, Unlock, CalendarDays, Users, CircleSlash, Save, Info, Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import {
   finalizeAttendanceSheet, reopenAttendanceSheet,
   type AttendanceSheet, type AttendanceSheetRow,
 } from "@/actions/hr-attendance-sheet.actions";
+import { toCSV, downloadCSV } from "@/lib/csv-export";
 
 const MONTHS = [
   { v: 1, label: "January" }, { v: 2, label: "February" }, { v: 3, label: "March" },
@@ -129,6 +130,26 @@ export function AttendanceSheetView({
     await reload(fy, Number(month));
   }
 
+  function onExport() {
+    if (!sheet || sheet.rows.length === 0) return;
+    const headers = ["Employee Name", "Code", "Working Days", "Present Days", "Paid Leave", "LOP", "Status", "Note"];
+    const csvRows = sheet.rows.map((r) => {
+      const d = drafts[r.id] ?? toDraft(r);
+      return [
+        r.name,
+        r.empCode,
+        r.workingDays,
+        d.present,
+        d.leave,
+        d.lop,
+        r.status,
+        d.note,
+      ];
+    });
+    const csv = toCSV(headers, csvRows);
+    downloadCSV(`Attendance_FY${fy}_Month${month}.csv`, csv);
+  }
+
   function editField(row: AttendanceSheetRow, field: "present" | "leave" | "lop" | "note", value: string) {
     setDrafts((prev) => {
       const cur = prev[row.id] ?? toDraft(row);
@@ -187,6 +208,12 @@ export function AttendanceSheetView({
         <div className="flex flex-1 flex-wrap items-center justify-end gap-2">
           {loading && <Loader2 className="size-4 animate-spin text-muted-foreground" />}
           {allFinal ? <StatusPill label="FINAL" hue="emerald" size="sm" /> : anyFinal ? <StatusPill label="PARTIAL" hue="amber" size="sm" /> : hasRows ? <StatusPill label="DRAFT" hue="slate" size="sm" /> : null}
+
+          {hasRows && (
+            <Button size="sm" variant="outline" className="gap-1.5" disabled={busy !== null || loading} onClick={onExport}>
+              <Download className="size-4" /> Export CSV
+            </Button>
+          )}
 
           <Button size="sm" variant="outline" className="gap-1.5" disabled={busy !== null || loading} onClick={() => onGenerate(false)}>
             {busy === "generate" ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}

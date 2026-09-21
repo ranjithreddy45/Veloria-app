@@ -37,9 +37,10 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Deployment Troubleshooting
 
-If you encounter `Permission denied` or `Operation not permitted` errors during `rsync` when running `./deploy.sh`, it means the server files are owned by `root`. 
+If you encounter `Permission denied` or `Operation not permitted` errors during `rsync` when running `./deploy.sh`, `./deploy-test.sh`, it means the server files are owned by `root`. 
 
 Run the following command from your local machine to fix the permissions on the server:
 ```bash
 ssh -t -i ./id_rsa theveloriagrand@43.225.53.88 "sudo chown -R theveloriagrand:theveloriagrand ~/veloria-app-prod"
+ssh -i ./id_rsa -N -L 5433:localhost:5432 theveloriagrand@43.225.53.88 #Testing DB locally
 ```

@@ -39,6 +39,7 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
   const [category, setCategory] = React.useState("");
   const [title, setTitle] = React.useState("");
   const [amount, setAmount] = React.useState("");
+  const [fuelLiters, setFuelLiters] = React.useState("");
   const [claimDate, setClaimDate] = React.useState(today());
   const [billUrl, setBillUrl] = React.useState<string | null>(null);
   // Multiple bills. A trip is a hotel bill AND a cab receipt AND a meal
@@ -81,6 +82,7 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
       setCategory("");
       setTitle("");
       setAmount("");
+      setFuelLiters("");
       setClaimDate(today());
       setBillUrl(null);
       setBillName(null);
@@ -97,11 +99,18 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
     if (!Number.isFinite(amt) || amt <= 0) { setError("Claim amount must be greater than zero."); return; }
     if (!claimDate) { setError("Pick the claim date."); return; }
 
+    let fl: number | undefined = undefined;
+    if (category === "FUEL") {
+      fl = Number(fuelLiters);
+      if (!Number.isFinite(fl) || fl <= 0) { setError("Liters are required for fuel claims."); return; }
+    }
+
     startTransition(async () => {
       const res = await submitReimbursement({
         category,
         title: title.trim(),
         amount: amt,
+        fuelLiters: fl,
         claimDate: new Date(claimDate).toISOString(),
         billUrl: billUrl || undefined,
         note: note.trim() || undefined,
@@ -187,6 +196,21 @@ export function NewReimbursementButton({ categories }: { categories: readonly st
               />
             </div>
           </div>
+
+          {category === "FUEL" && (
+            <div className="space-y-1.5">
+              <Label className="text-detail">Fuel (Liters)</Label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                value={fuelLiters}
+                onChange={(e) => setFuelLiters(e.target.value)}
+                placeholder="0.0"
+              />
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label className="text-detail">Receipts (optional)</Label>

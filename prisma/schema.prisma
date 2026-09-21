@@ -9379,6 +9379,7 @@ model HrReimbursementClaim {
   category     String // TRAVEL | MEDICAL | TELEPHONE | FUEL | BOOKS | OTHER
   title        String
   amount       Decimal   @db.Decimal(18, 2)
+  fuelLiters   Decimal?  @db.Decimal(10, 2) // Added for Fuel cap
   taxable      Boolean   @default(false)
   claimDate    DateTime  @db.Date
   billUrl      String?   @db.Text // receipt (base64/URL now; object storage later)
@@ -9397,6 +9398,10 @@ model HrReimbursementClaim {
   level2ById   String?
   level2At     DateTime?
   level2Note   String?
+  // Third-level approval (Finance)
+  level3ById   String?
+  level3At     DateTime?
+  level3Note   String?
   // Finance's payment reference when paid outside a payroll run.
   paymentRef   String?
   // The run that should PAY it (set on approval; mirrors HrArrear).

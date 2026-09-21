@@ -144,6 +144,7 @@ export interface SubmitReimbursementInput {
   category: string;
   title: string;
   amount: number;
+  fuelLiters?: number;
   claimDate: string; // ISO date
   billUrl?: string; // base64 data-URL or safe URL
   note?: string;
@@ -164,6 +165,34 @@ export async function submitReimbursement(input: SubmitReimbursementInput): Prom
   if (!Number.isFinite(amount) || amount <= 0) return { success: false, error: "Claim amount must be greater than zero." };
   const claim = new Date(input.claimDate);
   if (Number.isNaN(claim.getTime())) return { success: false, error: "Pick a valid claim date." };
+  
+  let fuelLiters: Prisma.Decimal | null = null;
+  if (category === "FUEL") {
+    if (!input.fuelLiters || input.fuelLiters <= 0) {
+      return { success: false, error: "Liters are required for fuel claims." };
+    }
+    
+    const startOfMonth = new Date(claim.getFullYear(), claim.getMonth(), 1);
+    const endOfMonth = new Date(claim.getFullYear(), claim.getMonth() + 1, 0, 23, 59, 59);
+    
+    const existingFuelClaims = await prisma.hrReimbursementClaim.aggregate({
+      _sum: { fuelLiters: true },
+      where: {
+        employeeId: me.id,
+        category: "FUEL",
+        claimDate: { gte: startOfMonth, lte: endOfMonth },
+        status: { notIn: ["REJECTED"] },
+      }
+    });
+    
+    const currentSum = Number(existingFuelClaims._sum.fuelLiters || 0);
+    const newLiters = Number(input.fuelLiters);
+    if (currentSum + newLiters > 50) {
+      return { success: false, error: `Monthly fuel limit of 50 liters exceeded. You have already claimed ${currentSum} liters this month.` };
+    }
+    fuelLiters = new Prisma.Decimal(newLiters.toFixed(2));
+  }
+
   if (input.billUrl && !isSafeReceiptUrl(input.billUrl)) return { success: false, error: "That receipt file isn't a supported image/PDF." };
   // Validated above. With object storage enabled the bill goes to the bucket
   // and the column holds the ref; otherwise the data-URL is stored inline as
@@ -179,6 +208,7 @@ export async function submitReimbursement(input: SubmitReimbursementInput): Prom
       category,
       title,
       amount: new Prisma.Decimal(amount.toFixed(2)),
+      fuelLiters,
       claimDate: claim,
       billUrl,
       note: input.note?.trim() || null,
@@ -297,17 +327,22 @@ export async function decideReimbursement(id: string, input: DecideReimbursement
 
   const claim = await prisma.hrReimbursementClaim.findUnique({
     where: { id },
-    select: { id: true, status: true, employeeId: true, title: true, amount: true },
+    select: { id: true, status: true, employeeId: true, title: true, amount: true, category: true },
   });
   if (!claim) return { success: false, error: "Claim not found." };
   const level = awaitingLevel(claim.status);
   if (!level) return { success: false, error: "This claim is not awaiting approval." };
 
   const emp = await employeeBrief(claim.employeeId);
-  const approvers = await resolveClaimApprovers({ departmentId: emp.departmentId });
-  const mine = (level === 1 ? approvers.level1 : approvers.level2).some((a) => a.id === u.id);
+  const approvers = await resolveClaimApprovers({ departmentId: emp.departmentId }, claim.category);
+  
+  let mine = false;
+  let who: any[] = [];
+  if (level === 1) { mine = approvers.level1.some((a) => a.id === u.id); who = approvers.level1; }
+  else if (level === 2) { mine = approvers.level2.some((a) => a.id === u.id); who = approvers.level2; }
+  else if (level === 3) { mine = approvers.level3.some((a) => a.id === u.id); who = approvers.level3; }
+
   if (!mine && !isSuperAdmin(u.role)) {
-    const who = level === 1 ? approvers.level1 : approvers.level2;
     return {
       success: false,
       error: `This claim is waiting for ${who.map((w) => w.name ?? w.email).join(" / ") || "its approver"} (level ${level}).`,
@@ -323,7 +358,9 @@ export async function decideReimbursement(id: string, input: DecideReimbursement
       where: { id, status: claim.status },
       data: {
         status: "REJECTED", decidedById: u.id, decidedAt: now, decisionNote: note,
-        ...(level === 1 ? { level1ById: u.id, level1At: now, level1Note: note } : { level2ById: u.id, level2At: now, level2Note: note }),
+        ...(level === 1 ? { level1ById: u.id, level1At: now, level1Note: note } :
+            level === 2 ? { level2ById: u.id, level2At: now, level2Note: note } :
+                          { level3ById: u.id, level3At: now, level3Note: note }),
       },
     });
     if (upd.count === 0) return { success: false, error: "This claim was already decided." };
@@ -345,40 +382,65 @@ export async function decideReimbursement(id: string, input: DecideReimbursement
   }
 
   // APPROVE at this level.
-  const goesToLevel2 = level === 1 && approvers.level2.length > 0;
-  const nextStatus = goesToLevel2 ? "PENDING_L2" : "APPROVED";
+  // APPROVE at this level.
+  let nextStatus: string;
+  let skippedL2 = false;
+
+  if (level === 1) {
+    if (approvers.level2.length > 0) {
+      nextStatus = "PENDING_L2";
+    } else {
+      nextStatus = "PENDING_L3";
+      skippedL2 = true;
+    }
+  } else if (level === 2) {
+    nextStatus = "PENDING_L3";
+  } else {
+    nextStatus = "APPROVED";
+  }
+
   const upd = await prisma.hrReimbursementClaim.updateMany({
     where: { id, status: claim.status },
     data: {
       status: nextStatus,
-      ...(level === 1 ? { level1ById: u.id, level1At: now, level1Note: note } : { level2ById: u.id, level2At: now, level2Note: note }),
+      ...(level === 1 ? { level1ById: u.id, level1At: now, level1Note: note } :
+          level === 2 ? { level2ById: u.id, level2At: now, level2Note: note } :
+                        { level3ById: u.id, level3At: now, level3Note: note }),
       ...(nextStatus === "APPROVED" ? { decidedById: u.id, decidedAt: now, decisionNote: note } : {}),
     },
   });
   if (upd.count === 0) return { success: false, error: "This claim was already decided." };
 
-  await recordClaimEvent(id, level === 1 ? "LEVEL1_APPROVED" : "LEVEL2_APPROVED", {
+  await recordClaimEvent(id, level === 1 ? "LEVEL1_APPROVED" : level === 2 ? "LEVEL2_APPROVED" : "LEVEL3_APPROVED", {
     from: claim.status, to: nextStatus, note, actorId: u.id, actorName: u.name ?? null,
   });
 
-  if (goesToLevel2) {
+  if (skippedL2) {
+    await recordClaimEvent(id, "LEVEL2_SKIPPED", {
+      from: "PENDING", to: "PENDING_L3", actorId: u.id, actorName: u.name ?? null,
+      note: "No second-level approver is configured for this employee's department.",
+    });
+  }
+
+  if (nextStatus === "PENDING_L2") {
     await notifyClaimStep(approvers.level2, {
       title: "Reimbursement claim awaiting your approval",
       body: `${summary} has first-level approval from ${u.name ?? "the first approver"} and now needs your second-level approval.`,
       actionUrl: "/me/approvals",
       claimId: id,
     });
-  } else {
-    if (level === 1) {
-      await recordClaimEvent(id, "LEVEL2_SKIPPED", {
-        from: "PENDING", to: "APPROVED", actorId: u.id, actorName: u.name ?? null,
-        note: "No second-level approver is configured for this employee's department.",
-      });
-    }
-    await recordClaimEvent(id, "APPROVED", { from: claim.status, to: "APPROVED", actorId: u.id, actorName: u.name ?? null });
+  } else if (nextStatus === "PENDING_L3") {
+    await notifyClaimStep(approvers.level3, {
+      title: "Reimbursement claim awaiting Finance approval",
+      body: `${summary} has completed its prior approvals and now needs your approval as Finance.`,
+      actionUrl: "/me/approvals",
+      claimId: id,
+    });
+  } else if (nextStatus === "APPROVED") {
     await prisma.activityLog.create({
       data: { action: "REIMBURSEMENT_APPROVED", entityType: "EMPLOYEE", entityId: claim.employeeId, userId: u.id, changes: { reimbursementId: id, level } },
     });
+    // Notice to finance that it's ready for payment scheduling
     await notifyClaimStep(await financeRecipients(), {
       title: "Reimbursement approved — ready for payment",
       body: `${summary} has completed all approvals and is ready for Finance to process.`,
@@ -400,12 +462,11 @@ export async function decideReimbursement(id: string, input: DecideReimbursement
   return { success: true, data: { id, status: nextStatus } };
 }
 
-/** Claims waiting on the signed-in user's decision (SUPER_ADMIN sees every awaiting claim). */
 export async function listMyApprovals() {
   const u = await requireUser();
   if (!u?.id) return [];
   const rows = await prisma.hrReimbursementClaim.findMany({
-    where: { entityId: ENTITY_ID, status: { in: ["PENDING", "PENDING_L2"] } },
+    where: { entityId: ENTITY_ID, status: { in: ["PENDING", "PENDING_L2", "PENDING_L3"] } },
     orderBy: { createdAt: "asc" },
     include: { _count: { select: { attachments: true } } },
   });
@@ -415,22 +476,25 @@ export async function listMyApprovals() {
     select: { id: true, firstName: true, lastName: true, empCode: true, departmentId: true, department: { select: { name: true } } },
   });
   const byId = new Map(emps.map((e) => [e.id, e]));
-  const rules = await prisma.hrReimbursementApprover.findMany();
-  const l1 = rules.find((r) => r.level === 1 && r.scope === "ALL");
   const superAdmin = isSuperAdmin(u.role);
-  const mineAtL1 = superAdmin || (l1 ? l1.userId === u.id : u.role === "SUPER_ADMIN");
+  
+  // To avoid N+1 queries, pre-fetch level 3 (finance users)
+  const l3Users = await financeRecipients();
+  const amIL3 = superAdmin || l3Users.some(f => f.id === u.id);
+
   const out = [];
   for (const r of rows) {
     const e = byId.get(r.employeeId);
     const level = awaitingLevel(r.status)!;
+    
+    // Dynamically resolve for each row since category matters for L1
+    const approvers = await resolveClaimApprovers({ departmentId: e?.departmentId ?? null }, r.category);
+    
     let mine = false;
-    if (level === 1) mine = mineAtL1;
-    else {
-      const l2 =
-        (e?.departmentId && rules.find((x) => x.level === 2 && x.scope === e.departmentId)) ||
-        rules.find((x) => x.level === 2 && x.scope === "ALL");
-      mine = superAdmin || l2?.userId === u.id;
-    }
+    if (level === 1) mine = superAdmin || approvers.level1.some(a => a.id === u.id);
+    else if (level === 2) mine = superAdmin || approvers.level2.some(a => a.id === u.id);
+    else if (level === 3) mine = amIL3;
+
     if (!mine) continue;
     out.push({
       ...serialize(r),
@@ -452,7 +516,7 @@ export async function requestClaimInfo(claimId: string, note: string): Promise<R
   const reason = (note ?? "").trim();
   if (!reason) return { success: false, error: "Say what is missing — the employee has to know what to add." };
 
-  const claim = await prisma.hrReimbursementClaim.findUnique({ where: { id: claimId }, select: { status: true, employeeId: true, title: true } });
+  const claim = await prisma.hrReimbursementClaim.findUnique({ where: { id: claimId }, select: { status: true, employeeId: true, title: true, category: true } });
   if (!claim) return { success: false, error: "Claim not found." };
   const level = awaitingLevel(claim.status);
   if (!level) return { success: false, error: `Only a claim awaiting approval can be sent back (this one is ${claim.status.toLowerCase()}).` };
@@ -460,8 +524,13 @@ export async function requestClaimInfo(claimId: string, note: string): Promise<R
   // HR, the current approver, or an admin may send it back.
   if (!can(u.role, "hr:payroll") && !isSuperAdmin(u.role)) {
     const emp = await employeeBrief(claim.employeeId);
-    const approvers = await resolveClaimApprovers({ departmentId: emp.departmentId });
-    const mine = (level === 1 ? approvers.level1 : approvers.level2).some((a) => a.id === u.id);
+    const approvers = await resolveClaimApprovers({ departmentId: emp.departmentId }, claim.category);
+    
+    let mine = false;
+    if (level === 1) mine = approvers.level1.some((a) => a.id === u.id);
+    else if (level === 2) mine = approvers.level2.some((a) => a.id === u.id);
+    else if (level === 3) mine = approvers.level3.some((a) => a.id === u.id);
+
     if (!mine) return { success: false, error: "Insufficient permissions" };
   }
 

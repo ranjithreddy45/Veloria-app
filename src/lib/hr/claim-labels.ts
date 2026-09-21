@@ -6,18 +6,20 @@
 export const CLAIM_STATUS_LABEL: Record<string, string> = {
   PENDING: "Awaiting 1st approval",
   PENDING_L2: "Awaiting 2nd approval",
+  PENDING_L3: "Awaiting 3rd approval",
   NEEDS_INFO: "Sent back",
-  APPROVED: "Approved · with Finance",
+  APPROVED: "Approved",
   REJECTED: "Rejected",
   PAID: "Paid",
 };
 
 export const CLAIM_STATUS_HUE: Record<
   string,
-  "amber" | "orange" | "indigo" | "rose" | "emerald" | "violet" | "slate"
+  "amber" | "orange" | "indigo" | "rose" | "emerald" | "violet" | "slate" | "fuchsia"
 > = {
   PENDING: "amber",
   PENDING_L2: "violet",
+  PENDING_L3: "fuchsia",
   NEEDS_INFO: "orange",
   APPROVED: "indigo",
   REJECTED: "rose",
@@ -32,8 +34,9 @@ export const CLAIM_EVENT_LABEL: Record<string, string> = {
   EDITED: "Attachments changed",
   LEVEL1_APPROVED: "1st-level approval",
   LEVEL2_APPROVED: "2nd-level approval",
+  LEVEL3_APPROVED: "3rd-level approval",
   LEVEL2_SKIPPED: "2nd-level approval not required",
-  APPROVED: "Approved — sent to Finance",
+  APPROVED: "Approved",
   REJECTED: "Rejected",
   PAY_RUN_SCHEDULED: "Scheduled on a pay run",
   PAID: "Paid",
@@ -41,13 +44,14 @@ export const CLAIM_EVENT_LABEL: Record<string, string> = {
 };
 
 /** Statuses where an approver's decision is still outstanding. */
-export const AWAITING_STATUSES = ["PENDING", "PENDING_L2"] as const;
+export const AWAITING_STATUSES = ["PENDING", "PENDING_L2", "PENDING_L3"] as const;
 /** Statuses the employee may still edit or withdraw. */
-export const EDITABLE_BY_EMPLOYEE = ["PENDING", "PENDING_L2", "NEEDS_INFO"] as const;
+export const EDITABLE_BY_EMPLOYEE = ["PENDING", "PENDING_L2", "PENDING_L3", "NEEDS_INFO"] as const;
 
 /** Which approval level is currently waiting on a decision. */
-export function awaitingLevel(status: string): 1 | 2 | null {
+export function awaitingLevel(status: string): 1 | 2 | 3 | null {
   if (status === "PENDING") return 1;
   if (status === "PENDING_L2") return 2;
+  if (status === "PENDING_L3") return 3;
   return null;
 }
