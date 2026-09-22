@@ -24,6 +24,7 @@ const SHOTS = path.join(__dirname, "visual-tour-shots");
 /** One screen from each family of layout: home, list, board, calendar, detail-heavy, settings, ops, finance, HR. */
 const SCREENS: { name: string; path: string }[] = [
   { name: "home", path: "/dashboard" },
+  { name: "sales-dashboard", path: "/sales/dashboard" },
   { name: "leads", path: "/leads" },
   { name: "pipeline", path: "/pipeline" },
   { name: "bookings", path: "/bookings" },
@@ -61,11 +62,15 @@ for (const mode of MODES) {
           }
         }, mode.scheme);
 
-        const response = await page.goto(screen.path, { waitUntil: "networkidle" });
+        // NOT "networkidle": screens with a live feed or polling (the sales
+        // dashboard) never go idle, and the navigation times out on a page that
+        // rendered perfectly. Wait for the document, then for the content.
+        const response = await page.goto(screen.path, { waitUntil: "domcontentloaded" });
         expect(response?.status(), `${screen.path} should load`).toBeLessThan(400);
+        await expect(page.locator("#main-content").getByRole("heading").first()).toBeVisible({ timeout: 30_000 });
 
-        // Entrance animations settle before the picture is taken.
-        await page.waitForTimeout(600);
+        // Charts and entrance animations settle before the picture is taken.
+        await page.waitForTimeout(1500);
 
         const main = page.locator("#main-content");
         await expect(main).toBeVisible();

@@ -4,7 +4,9 @@ import {
   Sparkles, TrendingUp, Trophy, Flame, Megaphone, Inbox,
   AlertTriangle, CalendarRange, Gauge, PieChart, ThumbsUp,
 } from "lucide-react";
+import { auth } from "@/../auth";
 import { getSalesAnalytics, getSalesExecutives } from "@/actions/sales-analytics.actions";
+import { TopPerformers } from "./_components/top-performers";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -80,11 +82,14 @@ export default async function SalesDashboardPage({
   // all-staff. Flag it on the tile when an employee filter is active.
   const empFiltered = !!employeeIds?.length;
 
-  const [execRes, aRes] = await Promise.all([
+  const [execRes, aRes, session] = await Promise.all([
     getSalesExecutives(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     getSalesAnalytics(params as any),
+    auth(),
   ]);
+  // So the board can mark the viewer's own card and tell them their real gap.
+  const viewerId = session?.user?.id ?? null;
   const execs = execRes.success ? (execRes.data as { id: string; name: string }[]) : [];
   const a = (aRes.success ? (aRes.data as Analytics) : null) as Analytics | null;
 
@@ -161,6 +166,10 @@ export default async function SalesDashboardPage({
         </Card>
       ) : (
         <>
+          {/* First thing on the page: who closed how many, for everyone to see.
+              Reads the same per-person rows as the table below — no recount. */}
+          <TopPerformers employees={a.employees} period={a.range.label} viewerId={viewerId} />
+
           {/* KPI row */}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {kpis.map((k) => (
