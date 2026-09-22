@@ -81,7 +81,9 @@ describe("convertDealToBooking and the shared slot rules", () => {
       status: { notIn: ["CANCELLED"] },
       timeSlot: { in: ["EVENING", "FULL_DAY"] },
     });
-    expect(h.tx.booking.create.mock.calls[0][0].data).toMatchObject({ date: DAY, timeSlot: "EVENING", status: "CONFIRMED" });
+    // HOLD, not CONFIRMED: a converted deal holds the slot and confirms itself
+    // once the 20% advance lands, like every other booking path.
+    expect(h.tx.booking.create.mock.calls[0][0].data).toMatchObject({ date: DAY, timeSlot: "EVENING", status: "HOLD" });
   });
 
   it("refuses a blackout stored on that day, before releasing or booking anything", async () => {

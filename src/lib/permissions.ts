@@ -45,6 +45,13 @@ export type Permission =
   // Payments
   | "payments:read"
   | "payments:create"
+  // Raise a payment REQUEST (link / gateway order) without being able to record
+  // money as received. Sales needs this: a slot only confirms once the 20%
+  // advance is in, so a rep who cannot ask for money cannot close. Recording a
+  // payment stays on payments:create, because recordPayment marks it COMPLETED
+  // and credits the invoice immediately — a rep holding that could certify
+  // their own advance and confirm their own booking.
+  | "payments:link"
   | "payments:update"
   | "payments:refund"
   | "payments:cancel" // manager/super-admin: approve payment cancellation
@@ -342,6 +349,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   "invoices:cancel",
   "payments:read",
   "payments:create",
+  "payments:link",
   "payments:update",
   "payments:refund",
   "payments:cancel",
@@ -562,6 +570,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   SUPER_ADMIN: [...ALL_PERMISSIONS],
 
   ADMIN: [
+    "payments:link",
     "owners:read",
     "owners:create",
     "owners:update",
@@ -791,6 +800,11 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 
   SALES_EXEC: [
+    // Raise and send the bill, and ask for the advance. Recording money
+    // received stays with finance (payments:create).
+    "invoices:create",
+    "invoices:send",
+    "payments:link",
     "performance:read", // own KRA scorecard + performance area
     "support:read", // view customer issues (ticket creation/replies owned by Support/Ops)
     "contacts:read",
@@ -853,6 +867,11 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   // Superset of SALES_EXEC plus manager-level sales capabilities
   // (lead reassignment/deletion, pipeline management, quote approval, team analytics & performance oversight).
   SALES_HEAD: [
+    // Raise and send the bill, and ask for the advance. Recording money
+    // received stays with finance (payments:create).
+    "invoices:create",
+    "invoices:send",
+    "payments:link",
     // --- everything SALES_EXEC has ---
     "performance:read", // own + team KRA scorecard / performance area
     "contacts:read",
@@ -995,6 +1014,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 
   FINANCE: [
+    "payments:link",
     "procurement:read", // view procurement + the PR→GL bridge; POs are raised by Operations
     "contacts:read",
     "bookings:read",
