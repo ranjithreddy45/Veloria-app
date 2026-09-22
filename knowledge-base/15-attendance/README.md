@@ -1,0 +1,60 @@
+# Chunk 15: Attendance Subsystem Documentation
+
+## Overview
+
+This directory contains the comprehensive technical documentation for the Veloria Grand Attendance subsystem, including geofencing, check-in/out workflows, regularization, monthly attendance sheets, and the 30-day fixed payroll standard.
+
+## Document Inventory (48 Topic Documents)
+
+1. [01 Attendance Subsystem Overview](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/01-attendance-overview.md)
+2. [02 Attendance Business Purpose & Objectives](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/02-attendance-business-purpose.md)
+3. [03 Attendance Route & Navigation Map](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/03-attendance-route-map.md)
+4. [04 Attendance Database Models & Schema](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/04-attendance-database-models.md)
+5. [05 Attendance Enums & Status Codes](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/05-attendance-enums.md)
+6. [06 Employee to Attendance Relationship](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/06-employee-attendance-link.md)
+7. [07 Attendance Site & Location Configuration](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/07-attendance-site.md)
+8. [08 Geofencing & Location Verification](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/08-geofencing.md)
+9. [09 Check-In Workflow & Server Action](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/09-check-in.md)
+10. [10 Check-Out Workflow & Duration Calculation](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/10-check-out.md)
+11. [11 Working Hours & Duration Calculations](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/11-working-hours.md)
+12. [12 Late Arrival Detection & Flagging](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/12-late-arrival.md)
+13. [13 Early Checkout Detection](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/13-early-checkout.md)
+14. [14 Half-Day Attendance Handling](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/14-half-day.md)
+15. [15 Absence Processing & Unexcused Absences](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/15-absence.md)
+16. [16 Leave System Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/16-leave-integration.md)
+17. [17 Holiday & Weekly-Off Management](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/17-holiday-weekly-off.md)
+18. [18 Shift & Roster Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/18-shift-integration.md)
+19. [19 Attendance Regularization Workflow](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/19-attendance-correction.md)
+20. [20 Attendance Approval & Manager Actions](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/20-attendance-approval.md)
+21. [21 Monthly Attendance Sheet Architecture](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/21-monthly-attendance-sheet.md)
+22. [22 Attendance Aggregation Algorithm](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/22-monthly-attendance-calculation.md)
+23. [23 Dedicated 30-Day Denominator & Payroll Audit](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/23-fixed-30-day-denominator-audit.md)
+24. [24 Attendance to Payroll Dependency](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/24-payroll-dependency.md)
+25. [25 Payroll Daily Rate Calculation Audit](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/25-payroll-daily-rate-audit.md)
+26. [26 Mid-Month Joining & Exit Impact](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/26-joining-exit-date-impact.md)
+27. [27 Attendance Sheet Finalization & Locking](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/27-attendance-finalization-locking.md)
+28. [28 Attendance Sheet Export Capabilities](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/28-attendance-export.md)
+29. [29 Attendance Reporting Suite](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/29-attendance-reporting.md)
+30. [30 Employee Self-Service Attendance Features](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/30-employee-self-service.md)
+31. [31 Manager & HR Access Boundaries](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/31-manager-hr-access.md)
+32. [32 Attendance RBAC & Permissions](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/32-attendance-rbac.md)
+33. [33 Attendance Validation Rules](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/33-attendance-validation.md)
+34. [34 Timezone & Date Boundary Management](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/34-attendance-timezone.md)
+35. [35 Mobile & Capacitor Attendance Capabilities](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/35-mobile-capacitor-attendance.md)
+36. [36 Biometric Hardware Integration Status](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/36-biometric-hardware.md)
+37. [37 Attendance Automation & Background Crons](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/37-attendance-crons.md)
+38. [38 Attendance Notifications & Alerts](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/38-attendance-notifications.md)
+39. [39 Attendance Audit Trail & Corrections](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/39-attendance-audit-trail.md)
+40. [40 Database Integrity & Indexing](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/40-attendance-database-integrity.md)
+41. [41 Attendance to Finance & GL Dependency](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/41-attendance-finance-dependency.md)
+42. [42 Complete Attendance to Payroll to GL Flow](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/42-attendance-payroll-gl-flow.md)
+43. [43 Project Brief vs Code Implementation Analysis](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/43-attendance-brief-vs-code.md)
+44. [44 Attendance Subsystem Gap Analysis](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/44-attendance-gaps.md)
+45. [45 Manual Verification Checklist](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/45-attendance-manual-verification.md)
+46. [46 End-to-End Attendance Journeys](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/46-attendance-end-to-end-journeys.md)
+47. [47 Attendance Dependency Map](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/47-attendance-dependency-map.md)
+48. [48 Complete Attendance Feature Index](file:///Users/fci/Documents/Veloria-app/knowledge-base/15-attendance/48-complete-attendance-feature-index.md)
+
+---
+
+CHUNK 15 STATUS: COMPLETE

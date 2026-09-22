@@ -1,0 +1,60 @@
+# Chunk 13: Finance & General Ledger Subsystem Documentation
+
+## Overview
+
+This directory contains the comprehensive, code-grounded technical documentation for the Veloria Grand Finance and General Ledger subsystem.
+
+## Document Inventory (48 Topic Documents)
+
+1. [01 Finance & General Ledger Overview](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/01-finance-gl-overview.md)
+2. [02 Finance Business Purpose & Objectives](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/02-finance-business-purpose.md)
+3. [03 Finance Route & Navigation Map](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/03-finance-route-navigation-map.md)
+4. [04 Chart of Accounts (COA) Implementation](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/04-chart-of-accounts.md)
+5. [05 Account Types & Classification Hierarchy](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/05-account-types-hierarchy.md)
+6. [06 Finance Database Models & Schema](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/06-finance-database-model.md)
+7. [07 Journal Entry Engine](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/07-journal-entry-engine.md)
+8. [08 Double-Entry Validation Engine](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/08-double-entry-validation.md)
+9. [09 Journal Posting Lifecycle](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/09-journal-posting-lifecycle.md)
+10. [10 Invoice to General Ledger Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/10-invoice-to-gl.md)
+11. [11 Payment to General Ledger Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/11-payment-to-gl.md)
+12. [12 Vendor Bill to General Ledger Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/12-vendor-bill-to-gl.md)
+13. [13 Procurement & Goods Receipt to GL Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/13-procurement-to-gl.md)
+14. [14 Vendor Advance Accounting](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/14-vendor-advance-accounting.md)
+15. [15 Employee Reimbursement to GL Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/15-reimbursement-to-gl.md)
+16. [16 Payroll to General Ledger Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/16-payroll-to-gl.md)
+17. [17 Customer Refund to GL Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/17-refund-to-gl.md)
+18. [18 Cancellation & Reversal Accounting](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/18-cancellation-reversal-accounting.md)
+19. [19 Accounts Receivable (AR) Subsystem](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/19-accounts-receivable.md)
+20. [20 Accounts Payable (AP) Subsystem](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/20-accounts-payable.md)
+21. [21 Bank & Cash Accounting](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/21-bank-and-cash-accounting.md)
+22. [22 Revenue Accounting & Recognition](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/22-revenue-accounting.md)
+23. [23 Expense Accounting](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/23-expense-accounting.md)
+24. [24 Inventory Accounting Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/24-inventory-accounting.md)
+25. [25 Statutory Tax & GST Accounting](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/25-tax-gst-accounting.md)
+26. [26 E-Invoicing & IRN Generation](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/26-e-invoicing.md)
+27. [27 Payroll Financial Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/27-payroll-financial-integration.md)
+28. [28 Reimbursement Financial Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/28-reimbursement-financial-integration.md)
+29. [29 Vendor Bill Financial Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/29-vendor-bill-financial-integration.md)
+30. [30 Procurement Financial Integration](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/30-procurement-financial-integration.md)
+31. [31 Accounting Periods & Fiscal Year Control](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/31-accounting-periods-fiscal-year.md)
+32. [32 Month-End & Period Closing Controls](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/32-period-close-locking.md)
+33. [33 Bank & Ledger Reconciliation](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/33-reconciliation.md)
+34. [34 Financial Reporting Suite](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/34-financial-reports.md)
+35. [35 Reporting Source of Truth](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/35-reporting-source-of-truth.md)
+36. [36 Reversal & Correction Mechanisms](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/36-reversal-mechanisms.md)
+37. [37 Financial Audit Trail & Compliance](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/37-financial-audit-trail.md)
+38. [38 Finance Permissions & RBAC](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/38-finance-permissions.md)
+39. [39 Finance Automation & Cron Jobs](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/39-finance-crons-automation.md)
+40. [40 External & Internal Finance Integrations](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/40-finance-integrations.md)
+41. [41 Finance Server Actions & API Inventory](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/41-finance-server-actions-api.md)
+42. [42 Financial Validation & Business Rules](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/42-finance-validation-business-rules.md)
+43. [43 Finance Security & Data Protection](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/43-finance-security.md)
+44. [44 End-to-End Financial Journeys](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/44-finance-end-to-end-journeys.md)
+45. [45 Finance Subsystem Dependency Map](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/45-finance-dependency-map.md)
+46. [46 Project Brief vs Code Implementation Analysis](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/46-finance-brief-vs-code.md)
+47. [47 Gaps & Manual Verification Items](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/47-finance-gaps-verification.md)
+48. [48 Complete Finance Feature Index](file:///Users/fci/Documents/Veloria-app/knowledge-base/13-finance-general-ledger/48-complete-finance-feature-index.md)
+
+---
+
+CHUNK 13 STATUS: COMPLETE
