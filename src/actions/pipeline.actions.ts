@@ -1166,7 +1166,12 @@ export async function convertDealToBooking(data: {
               contactId: deal.lead.contact!.id,
               dealId: deal.id,
               createdById: session.user!.id as string,
-              status: "CONFIRMED",
+              // HOLD, not CONFIRMED. This was the one door to a confirmed slot
+              // that asked for no money: a deal closed here locked the date
+              // outright. It now holds the slot exactly as createBooking does,
+              // and confirms itself the moment the 20% advance lands
+              // (maybeConfirmBookingOnPayment) — or by hand once it is in.
+              status: "HOLD",
             },
           });
 
