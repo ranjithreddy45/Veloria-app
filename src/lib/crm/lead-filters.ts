@@ -1,5 +1,6 @@
 import { hasPermission } from "@/lib/permissions";
 import { isEnquirySource } from "@/lib/enquiry-source";
+import { OCCASION_NONE } from "@/lib/crm/occasion";
 import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
 
 // ============================================================
@@ -64,6 +65,14 @@ export interface LeadListFilters {
    * silent-mismatch bug this codebase keeps producing.
    */
   due?: string;
+  /**
+   * Occasion — a canonical key from lib/crm/occasion.ts, or "NONE" for leads
+   * with none recorded. Lead.eventType is free text, so the key alone cannot be
+   * matched in SQL: the action resolves it to `occasionValues`, every raw
+   * spelling on record behind that key, and THIS builder stays pure.
+   */
+  occasion?: string;
+  occasionValues?: string[];
   /** Hall/Property (preferred venue). "UNASSIGNED" → leads with no venue. */
   venueId?: string;
   scope?: LeadScope;
@@ -198,6 +207,21 @@ export function buildLeadListWhere(
   // falls outside the window (Prisma treats NULL as non-matching for gte/lte).
   const eventRange = istRangeFilter(filters?.eventFrom, filters?.eventTo);
   if (eventRange) where.eventDate = eventRange;
+
+  // Occasion. An AND entry rather than a top-level key, so it can never
+  // overwrite (or be overwritten by) another filter's OR. When a key was asked
+  // for but no spelling on record matches it, `in: []` returns NO rows — an
+  // unknown occasion must show an empty list, never silently the full one.
+  const occasion = filters?.occasion?.trim();
+  if (occasion) {
+    const values = filters?.occasionValues ?? [];
+    const cond: Record<string, unknown> =
+      occasion === OCCASION_NONE
+        ? { OR: [{ eventType: null }, { eventType: { in: ["", ...values] } }] }
+        : { eventType: { in: values } };
+    const existing: unknown[] = where.AND == null ? [] : Array.isArray(where.AND) ? where.AND : [where.AND];
+    where.AND = [...existing, cond];
+  }
 
   // Lead-creation period.
   const createdRange = istRangeFilter(filters?.createdFrom, filters?.createdTo);

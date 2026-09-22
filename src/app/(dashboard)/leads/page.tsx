@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PlusIcon, UploadCloud as UploadCloudIcon, Sparkles as SparklesIcon, UserPlus as UserPlusIcon, FilterX as FilterXIcon } from "lucide-react";
 
-import { getLeads, getLeadStats, getTestLeadsCount, getUnassignedLeadsCount, type LeadListFilters } from "@/actions/lead.actions";
+import { getLeads, getLeadOccasionOptions, getLeadStats, getTestLeadsCount, getUnassignedLeadsCount, type LeadListFilters } from "@/actions/lead.actions";
 import { getVenues } from "@/actions/booking.actions";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
@@ -52,12 +52,13 @@ export default async function LeadsPage({
     // Marketing channel. Pair it with createdFrom/createdTo to reconcile a
     // month against what an ad platform reports (e.g. Google Ads' August count).
     enquirySource: first(sp.channel),
+    occasion: first(sp.occasion),
     due: first(sp.due),
   };
 
   // Ceiling lets the client-side table page through records without the
   // default-50 cutoff, while keeping the payload far lighter than 1000.
-  const [result, statsResult, orgStatsResult, testCountResult, unassignedResult, venuesResult, session] =
+  const [result, statsResult, orgStatsResult, testCountResult, unassignedResult, venuesResult, occasionsResult, session] =
     await Promise.all([
       // `?sort=cold` is the follow-up worklist: least-recently-touched first,
       // never-touched at the very top. Anything else falls through to the
@@ -77,6 +78,7 @@ export default async function LeadsPage({
       getTestLeadsCount(),
       getUnassignedLeadsCount(),
       getVenues({ activeOnly: true }),
+      getLeadOccasionOptions(filters),
       auth(),
     ]);
   const unassignedCount = unassignedResult.success ? unassignedResult.count : 0;
@@ -101,6 +103,7 @@ export default async function LeadsPage({
       filters.createdFrom ||
       filters.createdTo ||
       filters.enquirySource ||
+      filters.occasion ||
       filters.due
   );
 
@@ -208,7 +211,13 @@ export default async function LeadsPage({
           on the page they live on, rather than eleven pages away. */}
       <WorkStrip />
 
-      <LeadsFilterBar canViewAll={canViewAll} scope={scope} venues={venues} unassignedCount={unassignedCount} />
+      <LeadsFilterBar
+        canViewAll={canViewAll}
+        scope={scope}
+        venues={venues}
+        unassignedCount={unassignedCount}
+        occasions={occasionsResult.success ? occasionsResult.data : []}
+      />
 
         {leads.length === 0 ? (
           <div className="rounded-[22px] border border-dashed bg-card/40">

@@ -51,3 +51,33 @@ describe("buildLeadListWhere — shared by the leads list AND the CSV export", (
     expect(w.lastTouchedAt).toBeNull();
   });
 });
+
+describe("buildLeadListWhere — occasion", () => {
+  it("matches every raw spelling resolved for the key", () => {
+    const { where } = buildLeadListWhere(
+      { scope: "all", occasion: "birthday", occasionValues: ["Birthday", "Birthday Party"] },
+      MANAGER
+    );
+    expect(where.AND).toEqual([{ eventType: { in: ["Birthday", "Birthday Party"] } }]);
+  });
+
+  it("returns NO rows for an occasion nobody has, rather than dropping the filter", () => {
+    const { where } = buildLeadListWhere({ scope: "all", occasion: "sangeet", occasionValues: [] }, MANAGER);
+    expect(where.AND).toEqual([{ eventType: { in: [] } }]);
+  });
+
+  it("NONE means null, empty or whitespace-only — all three are 'not recorded'", () => {
+    const { where } = buildLeadListWhere({ scope: "all", occasion: "NONE", occasionValues: ["  "] }, MANAGER);
+    expect(where.AND).toEqual([{ OR: [{ eventType: null }, { eventType: { in: ["", "  "] } }] }]);
+  });
+
+  it("adds nothing when no occasion is asked for", () => {
+    expect(buildLeadListWhere({ scope: "all" }, MANAGER).where.AND).toBeUndefined();
+  });
+
+  it("is an AND entry, so it cannot clobber the rep's own-leads scope", () => {
+    const { where } = buildLeadListWhere({ occasion: "wedding", occasionValues: ["Wedding"] }, REP);
+    expect(where.AND).toHaveLength(1);
+    expect(Object.keys(where).length).toBeGreaterThan(2); // deletedAt + scope + AND
+  });
+});

@@ -60,6 +60,7 @@ import { ENQUIRY_SOURCE_OPTIONS } from "@/lib/enquiry-source";
 const ANY_STATUS = "ALL";
 // Hall/Property sentinels (same reason — no empty SelectItem value).
 const ANY_VENUE = "ALL";
+const ANY_OCCASION = "__any_occasion";
 const UNASSIGNED_VENUE = "UNASSIGNED";
 // Marketing-channel sentinels. "NONE" is a real, meaningful selection — contacts
 // whose channel was never recorded — not the absence of a filter.
@@ -87,6 +88,7 @@ const FILTER_KEYS = [
   "createdFrom",
   "createdTo",
   "channel",
+  "occasion",
   "sort",
 ] as const;
 
@@ -99,9 +101,14 @@ interface Props {
   venues: { id: string; name: string }[];
   /** Ownerless-lead count for the "Unassigned" inbox badge (managers only). */
   unassignedCount?: number;
+  /**
+   * Occasions actually on record, spellings merged, each with the number of
+   * rows picking it will show under the current scope and filters.
+   */
+  occasions?: { value: string; label: string; count: number }[];
 }
 
-export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 }: Props) {
+export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0, occasions = [] }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -113,6 +120,7 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 
   const eventTo = sp.get("eventTo") ?? "";
   const coldFirst = sp.get("sort") === "cold";
   const channel = sp.get("channel") ?? ANY_CHANNEL;
+  const occasion = sp.get("occasion") ?? ANY_OCCASION;
   const createdFrom = sp.get("createdFrom") ?? "";
   const createdTo = sp.get("createdTo") ?? "";
 
@@ -183,6 +191,33 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0 
               {v.name}
             </SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+
+      {/*
+        Occasion. Lead.eventType is free text, so the options are built from
+        what is actually on record with spellings merged ("Birthday Party" and
+        "Birthday" are one option) — see lib/crm/occasion.ts. If the URL names
+        an occasion no lead has, it is still listed so the select can show why
+        the list is empty instead of snapping back to "All".
+      */}
+      <Select
+        value={occasion}
+        onValueChange={(v) => push({ occasion: v === ANY_OCCASION ? null : v })}
+      >
+        <SelectTrigger className="h-9 w-full" aria-label="Filter by occasion">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ANY_OCCASION}>All occasions</SelectItem>
+          {occasions.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label} <span className="text-muted-foreground tabular-nums">· {o.count}</span>
+            </SelectItem>
+          ))}
+          {occasion !== ANY_OCCASION && !occasions.some((o) => o.value === occasion) && (
+            <SelectItem value={occasion}>{occasion} · 0</SelectItem>
+          )}
         </SelectContent>
       </Select>
 

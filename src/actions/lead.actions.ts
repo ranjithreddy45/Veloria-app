@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { OCCASION_NONE, buildOccasionOptions, occasionKey, rawValuesForOccasion } from "@/lib/crm/occasion";
 import { buildLeadListWhere, canSeeAllLeads, type LeadListFilters, type LeadScope } from "@/lib/crm/lead-filters";
 import { isEnquirySource } from "@/lib/enquiry-source";
 import { Prisma } from "@prisma/client";
@@ -129,6 +130,56 @@ const MAX_LEAD_PAGE_SIZE = 50_000;
 // Get Leads (Paginated + Filters)
 // ============================================================
 
+/**
+ * Lead.eventType is free text, so an occasion filter has to be resolved against
+ * the spellings actually on record before it can become SQL. One tiny DISTINCT
+ * query, and only when the filter is in use. For "NONE" it collects the
+ * whitespace-only values, which mean "not recorded" just as null does.
+ */
+async function withOccasionValues<T extends LeadListFilters | undefined>(params: T): Promise<T> {
+  const occasion = params?.occasion?.trim();
+  if (!params || !occasion) return params;
+  const rows = await prisma.lead.findMany({
+    where: { deletedAt: null, eventType: { not: null } },
+    distinct: ["eventType"],
+    select: { eventType: true },
+  });
+  const distinctRaw = rows.map((r) => r.eventType);
+  const occasionValues =
+    occasion === OCCASION_NONE
+      ? distinctRaw.filter((raw): raw is string => raw != null && occasionKey(raw) == null)
+      : rawValuesForOccasion(occasion, distinctRaw);
+  return { ...params, occasionValues };
+}
+
+/**
+ * The Occasion dropdown's options, with counts. Counted under the SAME scope
+ * and filters as the list — minus the occasion filter itself — so a number in
+ * the dropdown is the number of rows picking it will show.
+ */
+export async function getLeadOccasionOptions(params?: LeadListFilters) {
+  try {
+    const session = await auth();
+    if (!session?.user) return { success: false as const, error: "Unauthorized" };
+    if (!hasPermission(session.user.role as string, "leads:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+    const { where } = buildLeadListWhere(
+      { ...params, occasion: undefined, occasionValues: undefined },
+      { id: session.user.id as string, role: session.user.role }
+    );
+    const groups = await prisma.lead.groupBy({ by: ["eventType"], where, _count: { _all: true } });
+    return {
+      success: true as const,
+      data: buildOccasionOptions(groups.map((g) => ({ eventType: g.eventType, count: g._count._all }))),
+    };
+  } catch (error) {
+    console.error("[GET_LEAD_OCCASION_OPTIONS_ERROR]", error);
+    return { success: false as const, error: "Failed to load occasions" };
+  }
+}
+
+
 export async function getLeads(params?: LeadListFilters & {
   page?: number;
   limit?: number;
@@ -161,7 +212,7 @@ export async function getLeads(params?: LeadListFilters & {
     const limit = Math.min(Math.max(1, Math.floor(params?.limit ?? 50)), MAX_LEAD_PAGE_SIZE);
     const skip = (page - 1) * limit;
 
-    const { where, scope, canViewAll } = buildLeadListWhere(params, {
+    const { where, scope, canViewAll } = buildLeadListWhere(await withOccasionValues(params), {
       id: session.user.id as string,
       role: session.user.role,
     });
@@ -268,7 +319,7 @@ export async function getLeadStats(params?: LeadListFilters) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const { where } = buildLeadListWhere(params, {
+    const { where } = buildLeadListWhere(await withOccasionValues(params), {
       id: session.user.id as string,
       role: session.user.role,
     });
