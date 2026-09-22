@@ -653,7 +653,12 @@ export async function createRazorpayOrder(invoiceId: string, amount: number) {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role as string, "payments:create")) {
+    // Raising a payment REQUEST is enough here — the money is recorded by the
+    // gateway callback, not by this caller. recordPayment keeps payments:create.
+    const mayAsk =
+      hasPermission(session.user.role as string, "payments:create") ||
+      hasPermission(session.user.role as string, "payments:link");
+    if (!mayAsk) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -1099,7 +1104,12 @@ export async function generatePaymentLink(
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role as string, "payments:create")) {
+    // Raising a payment REQUEST is enough here — the money is recorded by the
+    // gateway callback, not by this caller. recordPayment keeps payments:create.
+    const mayAsk =
+      hasPermission(session.user.role as string, "payments:create") ||
+      hasPermission(session.user.role as string, "payments:link");
+    if (!mayAsk) {
       return { success: false as const, error: "Forbidden" };
     }
 

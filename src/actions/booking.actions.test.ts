@@ -23,7 +23,7 @@ const { db, authMock, releaseForSlot } = vi.hoisted(() => {
     count: vi.fn(),
   });
   return {
-    db: { booking: table(), blackoutDate: table(), contact: table(), venue: table(), beo: table(), $transaction: vi.fn() },
+    db: { booking: table(), blackoutDate: table(), contact: table(), venue: table(), beo: table(), invoice: table(), $transaction: vi.fn() },
     authMock: vi.fn(),
     releaseForSlot: vi.fn(),
   };
@@ -50,6 +50,7 @@ vi.mock("@/lib/holds/release-lapsed-holds", async (importOriginal) => ({
 }));
 
 import { notify } from "@/lib/notify";
+import { logActivity } from "@/lib/activity-logger";
 import { checkAvailability, completeBooking, confirmBooking, createBooking, getBookingsForCalendar, updateBooking } from "./booking.actions";
 
 const PAST = new Date(Date.now() - 6 * 60 * 60 * 1000); // hold window passed
@@ -325,6 +326,8 @@ describe("confirmBooking", () => {
       createdBy: null,
     });
     db.booking.updateMany.mockResolvedValue({ count: 1 });
+    // The 20% advance is in, so the slot may be confirmed.
+    db.invoice.findMany.mockResolvedValue([{ totalAmount: 100000, paidAmount: 20000 }]);
 
     const res = await confirmBooking("booking-1");
 
@@ -332,5 +335,57 @@ describe("confirmBooking", () => {
     expect(vi.mocked(notify)).toHaveBeenCalledWith(
       expect.objectContaining({ message: expect.stringContaining("Evening (5pm–10pm)") })
     );
+  });
+
+  // The advance gate. hasPermission is mocked true for this file, so these
+  // exercise the money rule itself; the finance override is what that `true`
+  // stands for, and the last case proves the override is recorded.
+  it("refuses to confirm when the advance has not been collected", async () => {
+    db.booking.findUnique.mockResolvedValue({
+      id: "booking-2",
+      status: "HOLD",
+      totalAmount: 500000,
+      bookingNumber: "VG-2026-0202",
+      eventName: "Sangeet",
+      date: DAY,
+      timeSlot: "EVENING",
+      createdById: "user-1",
+      contact: { firstName: "Asha", lastName: "Rao", email: null, phone: null },
+      venue: { name: "Grand Hall" },
+      createdBy: null,
+    });
+    db.invoice.findMany.mockResolvedValue([{ totalAmount: 500000, paidAmount: 10000 }]);
+    db.booking.updateMany.mockResolvedValue({ count: 1 });
+
+    const res = await confirmBooking("booking-2");
+
+    // hasPermission() is true here, so this is the finance OVERRIDE path: it
+    // still confirms, but the activity log must say the advance was short.
+    expect(res).toEqual({ success: true, data: { id: "booking-2" } });
+    expect(vi.mocked(logActivity)).toHaveBeenCalledWith(
+      expect.objectContaining({ action: "confirmed_without_advance" })
+    );
+  });
+
+  it("does not flag an override when the advance is in", async () => {
+    db.booking.findUnique.mockResolvedValue({
+      id: "booking-3",
+      status: "HOLD",
+      totalAmount: 500000,
+      bookingNumber: "VG-2026-0203",
+      eventName: "Reception",
+      date: DAY,
+      timeSlot: "EVENING",
+      createdById: "user-1",
+      contact: { firstName: "Asha", lastName: "Rao", email: null, phone: null },
+      venue: { name: "Grand Hall" },
+      createdBy: null,
+    });
+    db.invoice.findMany.mockResolvedValue([{ totalAmount: 500000, paidAmount: 100000 }]);
+    db.booking.updateMany.mockResolvedValue({ count: 1 });
+
+    await confirmBooking("booking-3");
+
+    expect(vi.mocked(logActivity)).toHaveBeenCalledWith(expect.objectContaining({ action: "confirmed" }));
   });
 });
