@@ -27,6 +27,7 @@ import { bookingSchema, type BookingInput } from "@/schemas/booking.schema";
 import type { BookingStatus, TimeSlot } from "@prisma/client";
 import { serialize, formatINR } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
+import { advanceRefusal, checkAdvance } from "@/lib/sales/advance-gate";
 import { notify } from "@/lib/notify";
 import { sendEmail } from "@/lib/email";
 import { sendSMSFireAndForget } from "@/lib/sms";
@@ -1004,6 +1005,7 @@ export async function confirmBooking(id: string) {
     const booking = await prisma.booking.findUnique({
       where: { id },
       select: {
+        totalAmount: true,
         id: true,
         status: true,
         bookingNumber: true,
@@ -1033,6 +1035,28 @@ export async function confirmBooking(id: string) {
       return { success: false as const, error: "Only a held or tentative booking can be confirmed" };
     }
 
+    // The advance must be in before a slot is confirmed — the same 20% rule
+    // the automatic confirm-on-payment path applies. Measured on issued
+    // invoices' paidAmount (which only verified payments raise) against the
+    // invoice total when one exists. Sales holds slots freely; confirming is
+    // what needs money. payments:update (finance / admin) may override, for an
+    // advance genuinely received outside the system — and that override is
+    // logged, so it is never silent.
+    const issued = await prisma.invoice.findMany({
+      where: { bookingId: id, status: { notIn: ["DRAFT", "CANCELLED"] } },
+      select: { totalAmount: true, paidAmount: true },
+    });
+    const advance = checkAdvance({
+      bookingTotal: Number(booking.totalAmount ?? 0),
+      invoiceTotal: issued.length ? issued.reduce((s, i) => s + Number(i.totalAmount), 0) : null,
+      paid: issued.reduce((s, i) => s + Number(i.paidAmount), 0),
+    });
+    const canOverride = hasPermission(session.user.role, "payments:update");
+    if (!advance.ok && !canOverride) {
+      return { success: false as const, error: advanceRefusal(advance) };
+    }
+    const overrode = !advance.ok && canOverride;
+
     // Atomic, once-only flip — mirrors maybeConfirmBookingOnPayment. A conditional
     // updateMany keyed on the pre-confirm statuses means exactly one caller wins;
     // if a concurrent payment-confirm (or another manual confirm) already flipped
@@ -1047,9 +1071,10 @@ export async function confirmBooking(id: string) {
 
     await logActivity({
       userId: session.user.id as string,
-      action: "confirmed",
+      action: overrode ? "confirmed_without_advance" : "confirmed",
       entityType: "Booking",
       entityId: id,
+      ...(overrode ? { changes: { advanceRequired: advance.required, advancePaid: advance.paid } } : {}),
     });
 
     // Post-sale SLA artifacts: 24h Sales→Ops handover meeting + task, 48h guest-
