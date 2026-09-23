@@ -51,9 +51,19 @@ export function MacroButton({ entityType, entityId }: MacroButtonProps) {
     setExecutingId(macro.id);
     const result = await executeMacro(macro.id, entityId);
     if (result.success) {
-      toast.success(
-        `"${macro.name}" executed — ${result.data.executedActions} action(s)`
-      );
+      // A macro can now partly run: a step that would set Qualified or Won on a
+      // lead without the evidence is skipped rather than failing the macro, so
+      // say which step did not happen instead of reporting a clean success.
+      if (result.data.skipped.length > 0) {
+        toast.warning(`"${macro.name}" ran — ${result.data.executedActions} action(s), 1 skipped`, {
+          description: result.data.skipped[0],
+          duration: 8000,
+        });
+      } else {
+        toast.success(
+          `"${macro.name}" executed — ${result.data.executedActions} action(s)`
+        );
+      }
       router.refresh();
     } else {
       toast.error(result.error);
