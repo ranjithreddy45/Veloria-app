@@ -4,6 +4,7 @@ import { captureLeadFromExternal } from "@/lib/lead-capture";
 import { parseAttributionFromRequest } from "@/lib/attribution";
 import { prisma } from "@/lib/prisma";
 import { firstUsable } from "@/lib/webhook-field";
+import { enqueueMetaLead } from "@/lib/meta/queue";
 
 export const runtime = "nodejs";
 
@@ -127,6 +128,20 @@ export async function POST(request: NextRequest) {
       for (const change of changes) {
         if (change.field === "leadgen") {
           const leadgenId = change.value?.leadgen_id;
+
+          // Record it for the new pipeline as well. Meta still delivers here
+          // until the callback URL is repointed, and this route has no retry:
+          // a fetch that fails now (a dead token, a slow Graph call) is a lead
+          // gone for good. Queued, it is retried and polled for instead. Both
+          // paths dedupe on the same external id, so nothing lands twice.
+          if (leadgenId) {
+            await enqueueMetaLead({
+              leadgenId: String(leadgenId),
+              formId: change.value?.form_id ? String(change.value.form_id) : null,
+              pageId: entry?.id ? String(entry.id) : null,
+              source: "webhook",
+            }).catch((e) => console.error("[FacebookLeads] could not queue", leadgenId, e));
+          }
 
           if (leadgenId) {
             const leadData = { name: "", email: "", phone: "" };
