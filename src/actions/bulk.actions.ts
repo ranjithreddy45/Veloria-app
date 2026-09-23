@@ -20,6 +20,8 @@ import {
 } from "@/schemas/bulk.schema";
 import { revalidatePath } from "next/cache";
 
+import { guardLeadStatusChangeMany } from "@/lib/crm/lead-status";
+
 // Roles a lead may be assigned to — mirrors ASSIGNABLE_ROLES in lead.actions.ts
 // so bulk-assign can't route leads to a deleted/disabled/non-sales user.
 const ASSIGNABLE_ROLES = ["SALES_EXEC", "SALES_HEAD", "EVENT_COORDINATOR", "ADMIN", "SUPER_ADMIN"];
@@ -165,14 +167,35 @@ export async function bulkUpdateLeads(
 
     const { ids, data } = parsed.data;
 
+    // When the payload carries a status, the same hard rule applies here as
+    // everywhere else — this action is exported, so it is a real way in even
+    // though no screen calls it today. Leads that cannot take the status keep
+    // their current one; the rest of the payload still applies to all of them.
+    let statusIds = ids;
+    let stampsById = new Map<string, { qualifiedAt?: Date; wonAt?: Date }>();
+    if (data.status !== undefined) {
+      const { allowed } = await guardLeadStatusChangeMany(prisma, ids, data.status);
+      statusIds = allowed.map((a) => a.id);
+      stampsById = new Map(allowed.map((a) => [a.id, a.stamps]));
+    }
+
     const result = await prisma.lead.updateMany({
       where: { id: { in: ids } },
       data: {
-        ...(data.status !== undefined && { status: data.status }),
         ...(data.assignedToId !== undefined && { assignedToId: data.assignedToId }),
         ...(data.source !== undefined && { source: data.source }),
       },
     });
+
+    // Status (and its once-only timestamps) go on per lead.
+    if (data.status !== undefined) {
+      for (const id of statusIds) {
+        await prisma.lead.update({
+          where: { id },
+          data: { status: data.status, ...(stampsById.get(id) ?? {}) },
+        });
+      }
+    }
 
     await Promise.all(
       ids.map((id) =>
@@ -394,7 +417,10 @@ export async function bulkEnrollInCadence(
 
 export async function bulkChangeLeadStatus(
   input: BulkChangeLeadStatusInput
-): Promise<{ success: true; data: { count: number } } | { success: false; error: string }> {
+): Promise<
+  | { success: true; data: { count: number; skipped: number; skippedReason?: string } }
+  | { success: false; error: string }
+> {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -426,17 +452,34 @@ export async function bulkChangeLeadStatus(
       }
     }
 
-    const result = await prisma.lead.updateMany({
-      where: { id: { in: ids } },
-      data: { status },
-    });
+    // Qualified and Won are hard statuses. A batch cannot fail as a whole —
+    // refusing forty leads because one lacks a guest count would just push
+    // people back to changing them one at a time — so the ineligible ones are
+    // left alone and counted, and the caller says how many were skipped.
+    const { allowed, blocked } = await guardLeadStatusChangeMany(prisma, ids, status);
+
+    if (allowed.length === 0) {
+      return {
+        success: false as const,
+        error: blocked[0]?.error ?? "None of the selected leads can take that status yet.",
+      };
+    }
+
+    // Written one at a time rather than with updateMany, because each lead
+    // carries its own first-qualified / first-won timestamp.
+    for (const lead of allowed) {
+      await prisma.lead.update({
+        where: { id: lead.id },
+        data: { status, ...lead.stamps },
+      });
+    }
 
     await Promise.all(
-      ids.map((id) =>
+      allowed.map((lead) =>
         logActivity({
           action: "BULK_STATUS_CHANGE",
           entityType: "lead",
-          entityId: id,
+          entityId: lead.id,
           changes: { status },
           userId: session.user.id,
         })
@@ -444,7 +487,14 @@ export async function bulkChangeLeadStatus(
     );
 
     revalidatePath("/leads");
-    return { success: true as const, data: { count: result.count } };
+    return {
+      success: true as const,
+      data: {
+        count: allowed.length,
+        skipped: blocked.length,
+        skippedReason: blocked[0]?.error,
+      },
+    };
   } catch (error) {
     console.error("bulkChangeLeadStatus error:", error);
     return { success: false as const, error: "Failed to change lead status" };

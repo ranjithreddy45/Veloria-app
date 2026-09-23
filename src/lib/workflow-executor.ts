@@ -20,6 +20,7 @@ import { sendEmail } from "@/lib/email";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { notify } from "@/lib/notify";
 import { processEmailForTracking } from "@/lib/email-tracking";
+import { guardLeadStatusChange } from "@/lib/crm/lead-status";
 
 // ============================================================
 // Types
@@ -392,10 +393,15 @@ async function handleUpdateStatus(
 
   // Pick the entity to update based on the context
   if (ctx.leadId) {
+    // An automation may not qualify or win a lead the rules would refuse a
+    // person. This runs unattended, so the refusal is returned as a step
+    // failure the workflow log records rather than thrown.
+    const guard = await guardLeadStatusChange(prisma, ctx.leadId, newStatus);
+    if (!guard.ok) return { ok: false, error: guard.error };
     await prisma.lead.update({
       where: { id: ctx.leadId },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data: { status: newStatus as any },
+      data: { status: newStatus as any, ...guard.stamps },
     });
     return { ok: true, details: `Lead ${ctx.leadId} → ${newStatus}` };
   }
