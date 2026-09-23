@@ -738,6 +738,7 @@ model Lead {
   utmMedium         String?
   utmCampaign       String?
   attribution       LeadAttribution?
+  metaCapture       MetaLeadCapture[] @relation("LeadMetaCapture")
   firstResponse     LeadFirstResponse?
   intent            String?
   intentAt          DateTime?
@@ -7803,6 +7804,81 @@ model MarketingCampaign {
 
   @@index([channel, isActive])
   @@index([utmCampaign])
+}
+
+/// A Meta lead we have been told about but not yet fetched.
+///
+/// Meta gives the webhook about 2 seconds and retries a non-200 for a while,
+/// then gives up for good. So the endpoint records the id and returns, and the
+/// Graph fetch happens here where it can be retried on our terms. Modelled on
+/// CallVibePushJob, which solved the same problem for call pushes.
+model MetaLeadJob {
+  id          String    @id @default(cuid())
+  /// Meta's leadgen_id. Unique, so a webhook retry and the backfill collapse.
+  leadgenId   String    @unique
+  formId      String?
+  pageId      String?
+  adId        String?
+  adgroupId   String?
+  /// When Meta says the lead was created, not when we heard about it.
+  createdTime DateTime?
+  /// webhook | backfill | admin
+  source      String    @default("webhook")
+  /// PENDING | RUNNING | RETRY | SUCCESS | FAILED | SKIPPED
+  status      String    @default("PENDING")
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(8)
+  nextRunAt   DateTime  @default(now())
+  /// A running attempt's lease; an expired lease means the worker died.
+  lockedUntil DateTime?
+  leaseId     String?
+  lastError   String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([status, nextRunAt])
+  @@index([createdAt])
+}
+
+/// What Meta told us about one lead, kept whole.
+///
+/// The mapped answers go onto the Lead like any other source, but the forms
+/// change whenever marketing edits a question, and a mapping that silently
+/// stops matching is invisible. So the entire field_data is kept here with the
+/// campaign/ad names, and `metaLeadId` is the unique key everything dedupes on
+/// — it is also the id Meta needs back when a lead's stage is reported.
+model MetaLeadCapture {
+  id         String   @id @default(cuid())
+  metaLeadId String   @unique
+  leadId     String?
+  lead       Lead?    @relation("LeadMetaCapture", fields: [leadId], references: [id], onDelete: SetNull)
+
+  formId     String?
+  formName   String?
+  campaignId String?
+  campaignName String?
+  adsetId    String?
+  adsetName  String?
+  adId       String?
+  adName     String?
+  platform   String? // fb | ig
+  /// Parsed out of the ad set name, e.g. "P | Bellandur | …" → Bellandur.
+  venueLabel String?
+  /// event | owner_partnership
+  pipeline   String   @default("event")
+  isTest     Boolean  @default(false)
+  isOrganic  Boolean  @default(false)
+  /// Meta's own created_time for the lead.
+  metaCreatedAt DateTime?
+  /// The answers exactly as Meta sent them.
+  rawFieldData  Json?
+  receivedAt DateTime @default(now())
+  processedAt DateTime?
+
+  @@index([pipeline, receivedAt])
+  @@index([formId])
+  @@index([leadId])
 }
 
 model LeadAttribution {
