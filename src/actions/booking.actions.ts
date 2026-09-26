@@ -1788,7 +1788,13 @@ export async function createBlackoutDate(data: {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:venues")) {
+    // Blocking a date is floor work, not venue configuration. settings:venues
+    // still passes (it always did), but bookings:blackout is the permission
+    // sales, coordinators and ops actually hold.
+    const mayBlock =
+      hasPermission(session.user.role, "bookings:blackout") ||
+      hasPermission(session.user.role, "settings:venues");
+    if (!mayBlock) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -1826,7 +1832,13 @@ export async function deleteBlackoutDate(id: string) {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "settings:venues")) {
+    // Blocking a date is floor work, not venue configuration. settings:venues
+    // still passes (it always did), but bookings:blackout is the permission
+    // sales, coordinators and ops actually hold.
+    const mayBlock =
+      hasPermission(session.user.role, "bookings:blackout") ||
+      hasPermission(session.user.role, "settings:venues");
+    if (!mayBlock) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 

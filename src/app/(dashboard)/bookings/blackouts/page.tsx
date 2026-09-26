@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { auth } from "@/../auth";
+import { hasPermission } from "@/lib/permissions";
 import { ArrowLeftIcon, BanIcon } from "lucide-react";
 
 import { getBlackoutDates, getVenues } from "@/actions/booking.actions";
@@ -18,6 +22,17 @@ export const metadata: Metadata = { title: "Blackout Dates" };
 // ============================================================
 
 export default async function BlackoutsPage() {
+  // The page had no guard at all: anyone signed in could open it and every
+  // button then failed in the action. Gate it on the same pair the actions
+  // accept, so the people who can block a date are exactly the people who can
+  // reach this screen.
+  const session = await auth();
+  const role = session?.user?.role ?? "";
+  if (!session?.user) redirect("/sign-in");
+  if (!hasPermission(role, "bookings:blackout") && !hasPermission(role, "settings:venues")) {
+    redirect("/not-authorized");
+  }
+
   const [blackoutsResult, venuesResult] = await Promise.all([
     getBlackoutDates(),
     getVenues(),
