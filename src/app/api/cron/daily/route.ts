@@ -16,6 +16,7 @@ export const maxDuration = 300; // allow up to 5 min for the full batch
 // frequent lane runs at its real cadence — either way this list is correct.
 
 const JOBS = [
+  "meta-health", // is the Meta lead connection still alive (token + page subscription)
   "guest-reminders",
   "performance-scores",
   "score-decay",
