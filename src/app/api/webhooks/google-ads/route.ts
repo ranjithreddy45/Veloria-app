@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
+import {
+  mapLeadFormAnswers,
+  unmappedNote,
+  type RawAnswer,
+} from "@/lib/marketing/lead-form-answers";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
 import { parseAttributionFromRequest } from "@/lib/attribution";
 import { prisma } from "@/lib/prisma";
@@ -104,6 +109,7 @@ export async function POST(request: NextRequest) {
     let lastName = "";
     let email = "";
     let phone = "";
+    const answers: RawAnswer[] = [];
 
     for (const col of Array.isArray(userColumnData) ? userColumnData : []) {
       const columnId = String(col.column_id ?? col.columnId ?? "").toUpperCase();
@@ -123,6 +129,11 @@ export async function POST(request: NextRequest) {
       else if (columnId === "LAST_NAME") lastName = value;
       else if (columnId.includes("EMAIL")) email = value;
       else if (columnId.includes("PHONE")) phone = value;
+      // Everything else is a custom question — the event date, guest count and
+      // event type this business runs on. These used to fall off the end of
+      // this if/else and vanish, which is why 959 of 961 paid leads had no
+      // event date and no lead could be judged on the data it arrived with.
+      else answers.push({ key: String(col.column_id ?? col.columnId ?? ""), value });
     }
 
     if (!name) name = [firstName, lastName].filter(Boolean).join(" ").trim();
@@ -149,16 +160,32 @@ export async function POST(request: NextRequest) {
 
     const attribution = await parseAttributionFromRequest(request, body);
 
+    // Sort the custom answers into the fields the CRM actually judges a lead on.
+    const mapped = mapLeadFormAnswers(answers);
+    if (mapped.unmapped.length) {
+      // Loud on purpose: an unrecognised column id means the form gained a
+      // question nobody taught the CRM about, and the answer is only surviving
+      // because it gets appended to the lead's notes below.
+      console.warn(
+        "[GoogleAdsWebhook] unrecognised lead-form columns:",
+        mapped.unmapped.map((a) => a.key).join(", ")
+      );
+    }
+    const extraNote = unmappedNote(mapped.unmapped);
+
     const capture = await captureLeadFromExternal({
       name,
       email: email || undefined,
       phone: phone || undefined,
+      eventDate: mapped.eventDate ? mapped.eventDate.toISOString() : undefined,
+      guestCount: mapped.guestCount ?? undefined,
+      eventType: mapped.eventType ?? undefined,
       source: "google_ads",
       message: isTest
         ? `Google Ads TEST lead (Send test data) — safe to delete.${body.form_id ? ` Form ${String(body.form_id)}.` : ""}`
         : `Google Ads lead form${body.form_id ? ` (form ${String(body.form_id)})` : ""}${
             leadId ? ` · lead ${leadId}` : ""
-          }`,
+          }${extraNote ? ` · ${extraNote}` : ""}`,
       // Idempotency: Google retries on any non-2xx, so the same lead_id must
       // never create a second Lead row. Test pings share a fixed id, so
       // repeated "Send test data" clicks all collapse onto ONE test lead.

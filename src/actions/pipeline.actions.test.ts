@@ -16,7 +16,7 @@ const h = vi.hoisted(() => ({
   },
   tx: {
     booking: { findMany: vi.fn(), count: vi.fn(), create: vi.fn() },
-    lead: { update: vi.fn() },
+    lead: { update: vi.fn(), findUnique: vi.fn() },
     pipelineStage: { findFirst: vi.fn() },
     deal: { update: vi.fn() },
   },
@@ -62,6 +62,10 @@ beforeEach(() => {
   h.tx.booking.count.mockResolvedValue(10);
   h.tx.booking.create.mockResolvedValue({ id: "bk-1", bookingNumber: "BK-2026-0011" });
   h.tx.lead.update.mockResolvedValue({});
+  // convertDealToBooking now reads the lead first: the booking it is creating
+  // supplies the booking value that Won requires, and the once-only Won/
+  // Qualified timestamps reported to Google Ads.
+  h.tx.lead.findUnique.mockResolvedValue({ bookingValue: null, qualifiedAt: null, wonAt: null });
   h.tx.pipelineStage.findFirst.mockResolvedValue({ id: "stage-won" });
   h.tx.deal.update.mockResolvedValue({});
   h.releaseForSlot.mockResolvedValue(0);

@@ -6,6 +6,10 @@ import { hasPermission } from "@/lib/permissions";
 import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
 import { revalidatePath } from "next/cache";
 import {
+  stampsForStatus,
+  validateLeadStatusChange,
+} from "@/lib/marketing/lead-status-rules";
+import {
   type RawLeadRow,
   mapLeadStatus,
   normalizePhone,
@@ -21,6 +25,9 @@ export interface ImportSummary {
   contactsCreated: number;
   contactsReused: number;
   replaced: number; // existing leads soft-deleted
+  /// Rows whose sheet status said Qualified or Booked but which lacked the
+  /// evidence those statuses now require, so they landed as Contacted.
+  statusDowngraded?: number;
   skipped: { row: number; reason: string }[];
 }
 
@@ -112,6 +119,7 @@ export async function importSalesLeads(
       contactsCreated: 0,
       contactsReused: 0,
       replaced: 0,
+      statusDowngraded: 0,
       skipped: [],
     };
 
@@ -188,6 +196,27 @@ export async function importSalesLeads(
           const eventType = mapEventType(r.eventDetails);
           const title = eventType ? `${name || "Lead"} — ${eventType}` : name || "Imported lead";
 
+          // A spreadsheet can say "Booked" or "Positive", but Qualified and Won
+          // are what Google Ads is taught from, so an imported row only keeps
+          // them if it carries the evidence. Otherwise it lands as Contacted
+          // and is counted, rather than importing a claim nobody checked.
+          const importedEventDate = parseFlexibleDate(r.eventDate);
+          const importedGuests = toNumber(r.attendees) ?? null;
+          const importedValue = toNumber(r.quoteValue) ?? null;
+          const mapped = mapLeadStatus(r.status) as string;
+          const importFacts = {
+            eventDate: importedEventDate,
+            guestCount: importedGuests,
+            eventType: eventType ?? null,
+            // A sheet cannot confirm the location with the customer.
+            locationConfirmed: false,
+            bookingValue: mapped === "WON" ? importedValue : null,
+          };
+          const allowed = validateLeadStatusChange(mapped, importFacts).ok;
+          if (!allowed) summary.statusDowngraded = (summary.statusDowngraded ?? 0) + 1;
+          const status = allowed ? mapped : "CONTACTED";
+          const stamps = stampsForStatus(status, {}, enquiry ?? new Date());
+
           await tx.lead.create({
             data: {
               title,
@@ -195,7 +224,9 @@ export async function importSalesLeads(
               createdById: userId,
               assignedToId: resolveOwner(r.owner),
               preferredVenueId: resolveVenue(r.hall),
-              status: mapLeadStatus(r.status) as never,
+              status: status as never,
+              ...stamps,
+              ...(status === "WON" && importedValue ? { bookingValue: importedValue } : {}),
               source: "WALK_IN" as never,
               eventType: eventType ?? null,
               eventDate: parseFlexibleDate(r.eventDate),

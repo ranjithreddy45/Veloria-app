@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { macroSchema, type MacroInput, type MacroAction } from "@/schemas/macro.schema";
+import { guardLeadStatusChange } from "@/lib/crm/lead-status";
 
 // Allowlist of fields that macros can modify — prevents privilege escalation
 const ALLOWED_LEAD_FIELDS = new Set(["status", "source", "priority", "score", "estimatedValue", "eventType", "eventDate", "guestCount", "description", "tags"]);
@@ -216,7 +217,7 @@ export async function executeMacro(
   macroId: string,
   entityId: string
 ): Promise<
-  | { success: true; data: { executedActions: number } }
+  | { success: true; data: { executedActions: number; skipped: string[] } }
   | { success: false; error: string }
 > {
   try {
@@ -236,6 +237,9 @@ export async function executeMacro(
 
     const actions = macro.actions as unknown as MacroAction[];
     let executedCount = 0;
+    // Steps the status rules refused. The macro still runs its other actions;
+    // the caller shows these so nobody is left wondering why nothing moved.
+    const skipped: string[] = [];
 
     for (const action of actions) {
       try {
@@ -243,9 +247,20 @@ export async function executeMacro(
           case "UPDATE_STATUS": {
             const status = action.config.status as string;
             if (macro.entityType === "LEAD") {
+              // A macro is just another way to set a status, so the same rule
+              // applies. A refused step is skipped and reported rather than
+              // failing the whole macro, which may have other useful actions.
+              const guard = await guardLeadStatusChange(prisma, entityId, status);
+              if (!guard.ok) {
+                skipped.push(guard.error);
+                break;
+              }
               await prisma.lead.update({
                 where: { id: entityId },
-                data: { status: status as "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST" },
+                data: {
+                  status: status as "NEW" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST",
+                  ...guard.stamps,
+                },
               });
             }
             executedCount++;
@@ -258,6 +273,21 @@ export async function executeMacro(
             if (macro.entityType === "LEAD") {
               if (!ALLOWED_LEAD_FIELDS.has(field)) {
                 console.warn(`[MACRO] Blocked update to disallowed lead field: ${field}`);
+                break;
+              }
+              // "status" is in the allowlist, so this generic setter is a
+              // second door to the same change — it has to pass the same rule.
+              if (field === "status") {
+                const guard = await guardLeadStatusChange(prisma, entityId, String(value));
+                if (!guard.ok) {
+                  skipped.push(guard.error);
+                  break;
+                }
+                await prisma.lead.update({
+                  where: { id: entityId },
+                  data: { status: String(value) as never, ...guard.stamps },
+                });
+                executedCount++;
                 break;
               }
               await prisma.lead.update({
@@ -351,7 +381,10 @@ export async function executeMacro(
       userId: session.user.id,
     }).catch((e) => console.error("[LOG_ACTIVITY_ERROR]", e));
 
-    return { success: true as const, data: { executedActions: executedCount } };
+    return {
+      success: true as const,
+      data: { executedActions: executedCount, skipped },
+    };
   } catch (error) {
     console.error("executeMacro error:", error);
     return { success: false as const, error: "Failed to execute macro" };
