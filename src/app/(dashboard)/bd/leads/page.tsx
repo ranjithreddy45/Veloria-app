@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { ACQ_LEAD_STATUS, ACQ_PROPERTY_TYPE } from "@/lib/acq/constants";
 import { BD_PIPELINE_KEYS } from "@/lib/bd/pipeline";
-import { LeadInbox, type AcqLead, type BdUser } from "./_components/lead-inbox";
+import { LeadInbox, NewLeadButton, type AcqLead, type BdUser } from "./_components/lead-inbox";
 import { BdWorkStrip } from "./_components/bd-work-strip";
 
 export const metadata: Metadata = { title: "Leads" };
@@ -30,6 +30,7 @@ export default async function BdLeadsPage({
     ptype?: string;
     parking?: string;
     exec?: string;
+    sort?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -71,7 +72,7 @@ export default async function BdLeadsPage({
   const bdExecutiveId = sp.exec?.trim() || undefined;
 
   const [leadsResult, countsResult, pipelineCountsResult, bdUsers, session] = await Promise.all([
-    getAcqLeads({ status, dueFollowup, due, pipelineStage, bdExecutiveId, ...particulars }),
+    getAcqLeads({ status, dueFollowup, due, pipelineStage, bdExecutiveId, sort: sp.sort, ...particulars }),
     getAcqLeadStatusCounts(),
     getBdPipelineCounts(),
     getBdUsers(),
@@ -101,7 +102,9 @@ export default async function BdLeadsPage({
             ? `Showing the ${leads.length} newest of ${leadsTotal} leads. Narrow the filters to see the rest.`
             : "Owner enquiries — SLA-tracked and de-duplicated. Tap a lead to view, call, message and qualify."
         }
-      />
+      >
+        <NewLeadButton bdUsers={bdUsers as BdUser[]} />
+      </PageHeader>
       <BdWorkStrip />
       <LeadInbox
         leads={leads}
