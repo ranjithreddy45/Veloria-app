@@ -5,6 +5,7 @@ import { getNotifications } from "@/actions/notification.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageHelp } from "@/lib/page-help";
 import { NotificationList } from "./_components/notification-list";
+import { getUnreadCount } from "@/actions/notification.actions";
 
 export const metadata: Metadata = { title: "Notifications" };
 
@@ -19,9 +20,10 @@ export default async function NotificationsPage() {
     redirect("/sign-in");
   }
 
-  const { notifications, total } = await getNotifications(session.user.id, {
-    limit: 50,
-  });
+  const [{ notifications, total }, unreadCount] = await Promise.all([
+    getNotifications(session.user.id, { limit: 15 }),
+    getUnreadCount(session.user.id),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -34,6 +36,7 @@ export default async function NotificationsPage() {
         initialNotifications={notifications}
         userId={session.user.id}
         total={total}
+        totalUnread={unreadCount}
       />
     </div>
   );

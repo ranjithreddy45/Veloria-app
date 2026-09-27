@@ -355,9 +355,9 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               {lead.description && (
                 <>
                   <Separator className="my-4" />
-                  <div>
+                  <div className="min-w-0">
                     <p className="mb-2 text-meta uppercase tracking-wide text-muted-foreground">Description</p>
-                    <p className="whitespace-pre-wrap text-body leading-relaxed text-muted-foreground">
+                    <p className="whitespace-pre-wrap text-body leading-relaxed text-muted-foreground break-words break-all">
                       {lead.description}
                     </p>
                   </div>

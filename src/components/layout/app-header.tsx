@@ -171,25 +171,24 @@ export function AppHeader() {
       {/* Decorative only — drop it on phones to buy back horizontal room. */}
       <Separator orientation="vertical" className="mr-1 hidden h-4 bg-border/60 md:block" />
 
-      {/* Breadcrumbs */}
-      <Breadcrumb className="hidden min-w-0 md:flex">
-        <BreadcrumbList className="flex-nowrap whitespace-nowrap text-detail text-muted-foreground">
-          {breadcrumbs.map((crumb, index) => (
-            <React.Fragment key={crumb.href}>
-              {index > 0 && <BreadcrumbSeparator />}
-              <BreadcrumbItem>
-                {crumb.isLast ? (
-                  <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink asChild>
-                    <Link href={crumb.href}>{crumb.label}</Link>
-                  </BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
-            </React.Fragment>
-          ))}
-        </BreadcrumbList>
-      </Breadcrumb>
+      {/* Page Title & Breadcrumbs */}
+      <div className="hidden min-w-0 flex-col justify-center md:flex">
+        {breadcrumbs.length > 1 && (
+          <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground/80">
+            {breadcrumbs.slice(0, -1).map((crumb, index) => (
+              <React.Fragment key={crumb.href}>
+                {index > 0 && <span>/</span>}
+                <Link href={crumb.href} className="hover:text-foreground transition-colors">
+                  {crumb.label}
+                </Link>
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+        <div className="text-sm font-semibold text-foreground leading-tight">
+          {breadcrumbs[breadcrumbs.length - 1]?.label}
+        </div>
+      </div>
 
       {/* Spacer */}
       <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
@@ -362,8 +361,9 @@ export function AppHeader() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
+              size="icon"
               className={cn(
-                "relative h-9 shrink-0 gap-2 rounded-full px-1.5 pr-1.5 transition-all duration-200 active:scale-[0.97] sm:pr-3",
+                "relative size-9 shrink-0 rounded-full transition-all duration-200 active:scale-[0.97]",
                 "hover:bg-accent"
               )}
             >
@@ -381,9 +381,6 @@ export function AppHeader() {
                     .slice(0, 2) || "VG"}
                 </AvatarFallback>
               </Avatar>
-              <span className="hidden text-sm font-medium text-foreground sm:inline-block">
-                {user?.name?.split(" ")[0] || "User"}
-              </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" sideOffset={8}>
