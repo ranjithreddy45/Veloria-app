@@ -48,7 +48,7 @@ function periodSuffix(rangeKey: string, from: string, to: string): string {
 
 // ── Shared pill button style ─────────────────────────────────────────────────
 const PILL =
-  "inline-flex items-center gap-2 rounded-lg bg-white/[0.05] px-3 py-1.5 text-[13px] font-medium text-white/80 transition-all hover:bg-white/[0.09] cursor-pointer select-none outline-none ring-0 focus:outline-none focus:ring-0 border-0";
+  "inline-flex items-center gap-2 rounded-lg bg-muted px-3 py-1.5 text-[13px] font-medium text-foreground/80 transition-all hover:bg-muted/80 cursor-pointer select-none outline-none ring-0 focus:outline-none focus:ring-0 border-0";
 
 // ── Props ────────────────────────────────────────────────────────────────────
 interface Props {
@@ -109,14 +109,14 @@ export function BdFilterBar({ employees }: Props) {
       <Popover open={rangeOpen} onOpenChange={setRangeOpen}>
         <PopoverTrigger asChild>
           <button type="button" className={PILL}>
-            <CalendarDays className="size-3.5 text-white/50 shrink-0" />
-            <span>{rangeLabel}{suffix && <span className="text-white/50"> {suffix}</span>}</span>
-            <ChevronDown className="size-3.5 text-white/40 shrink-0 ml-0.5" />
+            <CalendarDays className="size-3.5 text-muted-foreground/80 shrink-0" />
+            <span>{rangeLabel}{suffix && <span className="text-muted-foreground/80"> {suffix}</span>}</span>
+            <ChevronDown className="size-3.5 text-muted-foreground/60 shrink-0 ml-0.5" />
           </button>
         </PopoverTrigger>
         <PopoverContent
           align="start"
-          className="w-48 p-1.5 rounded-xl border border-white/10 bg-[#1a1a2e] shadow-2xl"
+          className="w-48 p-1.5 rounded-xl border border-border bg-card shadow-2xl"
         >
           {RANGE_OPTIONS.map((o) => (
             <button
@@ -127,8 +127,8 @@ export function BdFilterBar({ employees }: Props) {
                 setRangeOpen(false);
               }}
               className={cn(
-                "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-white/[0.07]",
-                range === o.value ? "text-white font-semibold" : "text-white/60",
+                "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted/70",
+                range === o.value ? "text-foreground font-semibold" : "text-muted-foreground",
               )}
             >
               {o.label}
@@ -138,17 +138,17 @@ export function BdFilterBar({ employees }: Props) {
 
           {/* Custom date inputs */}
           {range === "custom" && (
-            <div className="mt-2 space-y-1.5 border-t border-white/10 pt-2">
+            <div className="mt-2 space-y-1.5 border-t border-border pt-2">
               <Input
                 type="date"
                 value={from}
-                className="h-8 text-xs bg-white/5 border-white/10 text-white"
+                className="h-8 text-xs bg-muted/50 border-border text-foreground"
                 onChange={(e) => push({ from: e.target.value })}
               />
               <Input
                 type="date"
                 value={to}
-                className="h-8 text-xs bg-white/5 border-white/10 text-white"
+                className="h-8 text-xs bg-muted/50 border-border text-foreground"
                 onChange={(e) => push({ to: e.target.value })}
               />
             </div>
@@ -160,43 +160,43 @@ export function BdFilterBar({ employees }: Props) {
       <Popover open={empOpen} onOpenChange={setEmpOpen}>
         <PopoverTrigger asChild>
           <button type="button" className={PILL}>
-            <Users className="size-3.5 text-white/50 shrink-0" />
+            <Users className="size-3.5 text-muted-foreground/80 shrink-0" />
             <span className="max-w-[160px] truncate">{empLabel}</span>
             {selectedEmp.size > 0 && (
-              <span className="inline-flex size-4 items-center justify-center rounded-full bg-indigo-500 text-[9px] font-bold text-white">
+              <span className="inline-flex size-4 items-center justify-center rounded-full bg-indigo-500 text-[9px] font-bold text-foreground">
                 {selectedEmp.size}
               </span>
             )}
-            <ChevronDown className="size-3.5 text-white/40 shrink-0 ml-0.5" />
+            <ChevronDown className="size-3.5 text-muted-foreground/60 shrink-0 ml-0.5" />
           </button>
         </PopoverTrigger>
         <PopoverContent
           align="start"
-          className="w-60 p-1.5 rounded-xl border border-white/10 bg-[#1a1a2e] shadow-2xl"
+          className="w-60 p-1.5 rounded-xl border border-border bg-card shadow-2xl"
         >
           {/* All employees */}
           <button
             type="button"
             onClick={() => { push({ emp: null }); setEmpOpen(false); }}
             className={cn(
-              "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-white/[0.07]",
-              selectedEmp.size === 0 ? "text-white font-semibold" : "text-white/60",
+              "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted/70",
+              selectedEmp.size === 0 ? "text-foreground font-semibold" : "text-muted-foreground",
             )}
           >
             All employees
             {selectedEmp.size === 0 && <Check className="size-3.5 text-indigo-400" />}
           </button>
-          <div className="my-1 h-px bg-white/[0.07]" />
+          <div className="my-1 h-px bg-muted/70" />
           <div className="max-h-64 overflow-y-auto">
             {employees.length === 0 && (
-              <p className="px-3 py-3 text-center text-xs text-white/40">No BD executives yet</p>
+              <p className="px-3 py-3 text-center text-xs text-muted-foreground/60">No BD executives yet</p>
             )}
             {employees.map((e) => (
               <button
                 key={e.id}
                 type="button"
                 onClick={() => toggleEmp(e.id)}
-                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-white/70 transition-colors hover:bg-white/[0.07]"
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-foreground/70 transition-colors hover:bg-muted/70"
               >
                 <span className="truncate">{e.name}</span>
                 {selectedEmp.has(e.id) && <Check className="size-3.5 text-indigo-400 shrink-0" />}
@@ -213,14 +213,14 @@ export function BdFilterBar({ employees }: Props) {
         <button
           type="button"
           onClick={() => push({ range: null, from: null, to: null, emp: null })}
-          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-white/50 transition-colors hover:text-white/80 hover:bg-white/[0.05]"
+          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium text-muted-foreground/80 transition-colors hover:text-foreground/80 hover:bg-muted"
         >
           <RotateCcw className="size-3.5" />
           Reset
         </button>
       )}
 
-      {pending && <Loader2 className="size-3.5 animate-spin text-white/40" />}
+      {pending && <Loader2 className="size-3.5 animate-spin text-muted-foreground/60" />}
     </div>
   );
 }

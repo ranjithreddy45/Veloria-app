@@ -188,13 +188,13 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
       {/* ============================================================ */}
       <header className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between overflow-x-auto pb-1">
         <div className="flex flex-col gap-0.5 shrink-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             {data.todayFormatted}
           </p>
-          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl whitespace-nowrap">
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl whitespace-nowrap">
             Good afternoon, {data.user.name.split(" ")[0]}.
           </h1>
-          <p className="text-xs text-slate-400 whitespace-nowrap">
+          <p className="text-xs text-muted-foreground whitespace-nowrap">
             Here&apos;s what&apos;s happening across your venues today.
           </p>
         </div>
@@ -204,70 +204,70 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
           {/* New Lead */}
           <Link
             href="/leads/new"
-            className="group flex shrink-0 items-center gap-2 rounded-xl border border-white/10 bg-material-sidebar px-3 py-1.5 text-xs transition-all hover:border-emerald-500/40 hover:brightness-110 active:scale-95"
+            className="group flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs transition-all hover:border-emerald-500/40 hover:brightness-110 active:scale-95"
           >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-white font-bold shadow-md shadow-emerald-500/20">
               <Plus className="size-4" strokeWidth={2.5} />
             </div>
             <div className="flex flex-col text-left">
-              <span className="leading-tight font-semibold text-white">New Lead</span>
-              <span className="text-[10px] font-normal text-slate-400">Add a new inquiry</span>
+              <span className="leading-tight font-semibold text-foreground">New Lead</span>
+              <span className="text-[10px] font-normal text-muted-foreground">Add a new inquiry</span>
             </div>
           </Link>
 
           {/* Create Quotation */}
           <Link
             href="/quotations/new"
-            className="group flex shrink-0 items-center gap-2 rounded-xl border border-white/10 bg-material-sidebar px-3 py-1.5 text-xs transition-all hover:border-indigo-500/40 hover:brightness-110 active:scale-95"
+            className="group flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs transition-all hover:border-indigo-500/40 hover:brightness-110 active:scale-95"
           >
             <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-white font-bold shadow-md shadow-indigo-500/20">
               <FileText className="size-4" strokeWidth={2} />
             </div>
             <div className="flex flex-col text-left">
-              <span className="leading-tight font-semibold text-white">Create Quotation</span>
-              <span className="text-[10px] font-normal text-slate-400">Generate proposal</span>
+              <span className="leading-tight font-semibold text-foreground">Create Quotation</span>
+              <span className="text-[10px] font-normal text-muted-foreground">Generate proposal</span>
             </div>
           </Link>
 
           {/* Record Payment */}
           <Link
             href="/payments"
-            className="group flex shrink-0 items-center gap-2 rounded-xl border border-white/10 bg-material-sidebar px-3 py-1.5 text-xs transition-all hover:border-cyan-500/40 hover:brightness-110 active:scale-95"
+            className="group flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs transition-all hover:border-cyan-500/40 hover:brightness-110 active:scale-95"
           >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-cyan-500 text-white font-bold shadow-md shadow-cyan-500/20">
               <CreditCard className="size-4" strokeWidth={2} />
             </div>
             <div className="flex flex-col text-left">
-              <span className="leading-tight font-semibold text-white">Record Payment</span>
-              <span className="text-[10px] font-normal text-slate-400">Add client payment</span>
+              <span className="leading-tight font-semibold text-foreground">Record Payment</span>
+              <span className="text-[10px] font-normal text-muted-foreground">Add client payment</span>
             </div>
           </Link>
 
           {/* Schedule Visit */}
           <Link
             href="/site-visits"
-            className="group flex shrink-0 items-center gap-2 rounded-xl border border-white/10 bg-material-sidebar px-3 py-1.5 text-xs transition-all hover:border-amber-500/40 hover:brightness-110 active:scale-95"
+            className="group flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs transition-all hover:border-amber-500/40 hover:brightness-110 active:scale-95"
           >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-white font-bold shadow-md shadow-amber-500/20">
               <Calendar className="size-4" strokeWidth={2} />
             </div>
             <div className="flex flex-col text-left">
-              <span className="leading-tight font-semibold text-white">Schedule Visit</span>
-              <span className="text-[10px] font-normal text-slate-400">Site visit / tasting</span>
+              <span className="leading-tight font-semibold text-foreground">Schedule Visit</span>
+              <span className="text-[10px] font-normal text-muted-foreground">Site visit / tasting</span>
             </div>
           </Link>
 
           {/* New Booking Hold */}
           <Link
             href="/availability"
-            className="group flex shrink-0 items-center gap-2 rounded-xl border border-white/10 bg-material-sidebar px-3 py-1.5 text-xs transition-all hover:border-pink-500/40 hover:brightness-110 active:scale-95"
+            className="group flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs transition-all hover:border-pink-500/40 hover:brightness-110 active:scale-95"
           >
             <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-pink-500 text-white font-bold shadow-md shadow-pink-500/20">
               <BookmarkCheck className="size-4" strokeWidth={2} />
             </div>
             <div className="flex flex-col text-left">
-              <span className="leading-tight font-semibold text-white">New Booking Hold</span>
-              <span className="text-[10px] font-normal text-slate-400">Block a venue slot</span>
+              <span className="leading-tight font-semibold text-foreground">New Booking Hold</span>
+              <span className="text-[10px] font-normal text-muted-foreground">Block a venue slot</span>
             </div>
           </Link>
         </div>
@@ -278,9 +278,9 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
       {/* ============================================================ */}
       <section className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
         {/* Card 1: Cash Collected */}
-        <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-material-sidebar p-4 transition-all hover:border-emerald-500/30 hover:brightness-110">
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all hover:border-emerald-500/30 hover:brightness-110">
           <div className="flex items-start justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 truncate">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
               Cash Collected · September
             </span>
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
@@ -288,7 +288,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
             </div>
           </div>
           <div className="mt-2.5 flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-white sm:text-2xl truncate">
+            <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl truncate">
               {formattedKpiCurrency(data.kpis.cashCollected.amount)}
             </span>
             <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-emerald-400">
@@ -299,9 +299,9 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
         </div>
 
         {/* Card 2: Booked Value */}
-        <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-material-sidebar p-4 transition-all hover:border-purple-500/30 hover:brightness-110">
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all hover:border-purple-500/30 hover:brightness-110">
           <div className="flex items-start justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 truncate">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
               Booked Value · This Month
             </span>
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-purple-500/15 text-purple-400 border border-purple-500/30">
@@ -309,7 +309,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
             </div>
           </div>
           <div className="mt-2.5 flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-white sm:text-2xl truncate">
+            <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl truncate">
               {formattedKpiCurrency(data.kpis.bookedValue.amount)}
             </span>
             <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-purple-400">
@@ -320,9 +320,9 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
         </div>
 
         {/* Card 3: Overdue */}
-        <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-material-sidebar p-4 transition-all hover:border-rose-500/30 hover:brightness-110">
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all hover:border-rose-500/30 hover:brightness-110">
           <div className="flex items-start justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 truncate">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
               Overdue
             </span>
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/30">
@@ -330,7 +330,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
             </div>
           </div>
           <div className="mt-2.5 flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-white sm:text-2xl truncate">
+            <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl truncate">
               {formattedKpiCurrency(data.kpis.overdue.amount)}
             </span>
             <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-rose-400">
@@ -341,9 +341,9 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
         </div>
 
         {/* Card 4: Open Leads */}
-        <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-material-sidebar p-4 transition-all hover:border-blue-500/30 hover:brightness-110">
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all hover:border-blue-500/30 hover:brightness-110">
           <div className="flex items-start justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 truncate">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
               Open Leads
             </span>
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/30">
@@ -351,12 +351,12 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
             </div>
           </div>
           <div className="mt-2.5 flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-white sm:text-2xl truncate">
+            <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl truncate">
               {data.kpis.openLeads.count}
             </span>
             <Link
               href="/leads"
-              className="mt-1 flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-blue-400 transition-colors truncate"
+              className="mt-1 flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-blue-400 transition-colors truncate"
             >
               <span>
                 {data.kpis.openLeads.breachedCount === 0
@@ -369,9 +369,9 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
         </div>
 
         {/* Card 5: Events This Week */}
-        <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-material-sidebar p-4 transition-all hover:border-indigo-500/30 hover:brightness-110">
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all hover:border-indigo-500/30 hover:brightness-110">
           <div className="flex items-start justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 truncate">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
               Events This Week
             </span>
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
@@ -379,10 +379,10 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
             </div>
           </div>
           <div className="mt-2.5 flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-white sm:text-2xl truncate">
+            <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl truncate">
               {data.kpis.eventsThisWeek.total}
             </span>
-            <span className="mt-1 text-[11px] font-medium text-slate-400 truncate">
+            <span className="mt-1 text-[11px] font-medium text-muted-foreground truncate">
               {data.kpis.eventsThisWeek.todayCount} today · {data.kpis.eventsThisWeek.upcomingCount} upcoming
             </span>
           </div>
@@ -394,21 +394,21 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
       {/* ============================================================ */}
       <section className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Card 1: Revenue Trend (5 cols) */}
-        <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-material-sidebar p-5 lg:col-span-5">
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 lg:col-span-5">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">Revenue Trend</h2>
+            <h2 className="text-sm sm:text-base font-bold text-foreground tracking-tight">Revenue Trend</h2>
 
             <div className="relative shrink-0">
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
-                className="no-ring appearance-none rounded-xl border border-white/10 bg-slate-900/80 pl-2 pr-6 py-1 text-[11px] font-medium text-slate-200 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 cursor-pointer shadow-sm hover:bg-slate-800/90 transition-colors whitespace-nowrap"
+                className="no-ring appearance-none rounded-xl border border-border bg-background/80 pl-2 pr-6 py-1 text-[11px] font-medium text-foreground outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 cursor-pointer shadow-sm hover:bg-muted/90 transition-colors whitespace-nowrap"
               >
-                <option value="Last 12 Months" className="bg-slate-900 text-white">Last 12 Months</option>
-                <option value="This Year" className="bg-slate-900 text-white">This Year</option>
-                <option value="Last 6 Months" className="bg-slate-900 text-white">Last 6 Months</option>
+                <option value="Last 12 Months" className="bg-background text-foreground">Last 12 Months</option>
+                <option value="This Year" className="bg-background text-foreground">This Year</option>
+                <option value="Last 6 Months" className="bg-background text-foreground">Last 6 Months</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 size-3 text-slate-400" />
+              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
             </div>
           </div>
 
@@ -442,23 +442,23 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                       const y = item.monthKey ? item.monthKey.split("-")[0] : new Date().getFullYear().toString();
                       const formattedMonthYear = `${item.month} ${y}`;
                       return (
-                        <div className="rounded-xl border border-white/10 bg-[#0d131f]/95 p-3.5 text-xs text-white shadow-2xl backdrop-blur-md min-w-[170px]">
-                          <p className="font-semibold text-slate-300 mb-2 border-b border-white/10 pb-1.5">{formattedMonthYear}</p>
+                        <div className="rounded-xl border border-border bg-card/95 p-3.5 text-xs text-foreground shadow-2xl backdrop-blur-md min-w-[170px]">
+                          <p className="font-semibold text-muted-foreground mb-2 border-b border-border pb-1.5">{formattedMonthYear}</p>
                           <div className="flex items-center justify-between gap-5 py-1">
-                            <span className="flex items-center gap-2 text-slate-300 font-medium">
+                            <span className="flex items-center gap-2 text-muted-foreground font-medium">
                               <span className="size-2.5 rounded-full bg-[#10b981] shadow-sm shadow-emerald-500/50" />
                               Booked
                             </span>
-                            <span className="font-bold text-white font-mono">
+                            <span className="font-bold text-foreground font-mono">
                               {formattedKpiCurrency(item.booked)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between gap-5 py-1">
-                            <span className="flex items-center gap-2 text-slate-300 font-medium">
+                            <span className="flex items-center gap-2 text-muted-foreground font-medium">
                               <span className="size-2.5 rounded-full bg-[#a855f7] shadow-sm shadow-purple-500/50" />
                               Collected
                             </span>
-                            <span className="font-bold text-white font-mono">
+                            <span className="font-bold text-foreground font-mono">
                               {formattedKpiCurrency(item.collected)}
                             </span>
                           </div>
@@ -495,12 +495,12 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
           </div>
 
           {/* Bottom Legend */}
-          <div className="mt-1 flex items-center justify-center gap-5 text-[11px] font-medium pt-1 border-t border-white/5">
-            <span className="flex items-center gap-1.5 text-slate-300">
+          <div className="mt-1 flex items-center justify-center gap-5 text-[11px] font-medium pt-1 border-t border-border/50">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
               <span className="size-2 rounded-full bg-[#10b981] shadow-sm shadow-emerald-500/50 shrink-0" />
               Booked Value
             </span>
-            <span className="flex items-center gap-1.5 text-slate-300">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
               <span className="size-2 rounded-full bg-[#a855f7] shadow-sm shadow-purple-500/50 shrink-0" />
               Cash Collected
             </span>
@@ -508,21 +508,21 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
         </div>
 
         {/* Card 2: Lead Pipeline (4 cols) */}
-        <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-material-sidebar p-5 lg:col-span-4">
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 lg:col-span-4">
           <div className="flex items-center justify-between gap-2 mb-3">
-            <h2 className="text-base font-bold text-white">Lead Pipeline</h2>
+            <h2 className="text-base font-bold text-foreground">Lead Pipeline</h2>
             <div className="relative">
               <select
                 value={pipelinePeriod}
                 onChange={(e) => setPipelinePeriod(e.target.value as any)}
-                className="no-ring appearance-none rounded-xl border border-white/10 bg-slate-900/80 pl-3 pr-7 py-1 text-xs font-medium text-slate-200 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 cursor-pointer shadow-sm hover:bg-slate-800/90 transition-colors"
+                className="no-ring appearance-none rounded-xl border border-border bg-background/80 pl-3 pr-7 py-1 text-xs font-medium text-foreground outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 cursor-pointer shadow-sm hover:bg-muted/90 transition-colors"
               >
-                <option value="This Month" className="bg-slate-900 text-white">This Month</option>
-                <option value="This Quarter" className="bg-slate-900 text-white">This Quarter</option>
-                <option value="This Year" className="bg-slate-900 text-white">This Year</option>
-                <option value="All Time" className="bg-slate-900 text-white">All Time</option>
+                <option value="This Month" className="bg-background text-foreground">This Month</option>
+                <option value="This Quarter" className="bg-background text-foreground">This Quarter</option>
+                <option value="This Year" className="bg-background text-foreground">This Year</option>
+                <option value="All Time" className="bg-background text-foreground">All Time</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
             </div>
           </div>
 
@@ -557,14 +557,14 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
             <div className="flex flex-col justify-between h-[230px] w-full min-w-0 pl-2">
               {activeLeadPipeline.stages.map((stg) => (
                 <div key={stg.stage} className="flex items-center justify-between gap-2 text-xs py-1">
-                  <span className="flex-1 min-w-0 font-medium text-slate-300 text-xs sm:text-sm truncate">
+                  <span className="flex-1 min-w-0 font-medium text-muted-foreground text-xs sm:text-sm truncate">
                     {stg.label}
                   </span>
                   <div className="flex items-center gap-2.5 shrink-0">
-                    <span className="font-bold text-white text-xs sm:text-sm text-right font-mono min-w-[28px]">
+                    <span className="font-bold text-foreground text-xs sm:text-sm text-right font-mono min-w-[28px]">
                       {stg.count}
                     </span>
-                    <span className="font-medium text-slate-400 text-xs text-right font-mono min-w-[36px]">
+                    <span className="font-medium text-muted-foreground text-xs text-right font-mono min-w-[36px]">
                       {stg.percentage}%
                     </span>
                   </div>
@@ -575,21 +575,21 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
         </div>
 
         {/* Card 3: Bookings by Event Type (3 cols) */}
-        <div className="flex flex-col justify-between rounded-2xl border border-white/10 bg-material-sidebar p-5 lg:col-span-3">
+        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 lg:col-span-3">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <h2 className="text-base font-bold text-white">Bookings by Event Type</h2>
+            <h2 className="text-base font-bold text-foreground">Bookings by Event Type</h2>
             <div className="relative">
               <select
                 value={eventTypePeriod}
                 onChange={(e) => setEventTypePeriod(e.target.value as any)}
-                className="no-ring appearance-none rounded-xl border border-white/10 bg-slate-900/80 pl-3 pr-7 py-1 text-xs font-medium text-slate-300 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 cursor-pointer"
+                className="no-ring appearance-none rounded-xl border border-border bg-background/80 pl-3 pr-7 py-1 text-xs font-medium text-muted-foreground outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 cursor-pointer"
               >
-                <option value="This Month" className="bg-slate-900 text-white">This Month</option>
-                <option value="This Quarter" className="bg-slate-900 text-white">This Quarter</option>
-                <option value="This Year" className="bg-slate-900 text-white">This Year</option>
-                <option value="All Time" className="bg-slate-900 text-white">All Time</option>
+                <option value="This Month" className="bg-background text-foreground">This Month</option>
+                <option value="This Quarter" className="bg-background text-foreground">This Quarter</option>
+                <option value="This Year" className="bg-background text-foreground">This Year</option>
+                <option value="All Time" className="bg-background text-foreground">All Time</option>
               </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 size-3 text-slate-400" />
+              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
             </div>
           </div>
 
@@ -615,21 +615,21 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-                <span className="text-xl font-bold text-white font-mono">{activeBookingsByType.total}</span>
-                <span className="text-[10px] text-slate-400 font-medium">Total Bookings</span>
+                <span className="text-xl font-bold text-foreground font-mono">{activeBookingsByType.total}</span>
+                <span className="text-[10px] text-muted-foreground font-medium">Total Bookings</span>
               </div>
             </div>
 
             {/* Legend List Below Chart */}
             <div className="flex flex-col gap-1 w-full mt-2 max-h-48 overflow-y-auto pr-1">
               {activeBookingsByType.types.map((t) => (
-                <div key={t.type} className="flex items-center justify-between text-xs py-1 border-b border-white/5 last:border-0">
-                  <span className="flex items-center gap-2 text-slate-300 font-medium text-xs truncate min-w-0">
+                <div key={t.type} className="flex items-center justify-between text-xs py-1 border-b border-border/50 last:border-0">
+                  <span className="flex items-center gap-2 text-muted-foreground font-medium text-xs truncate min-w-0">
                     <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: t.fill }} />
                     {t.type}
                   </span>
-                  <span className="font-semibold text-white text-xs whitespace-nowrap shrink-0 font-mono ml-2">
-                    {t.count} <span className="text-[10px] text-slate-400 font-normal">({t.percentage}%)</span>
+                  <span className="font-semibold text-foreground text-xs whitespace-nowrap shrink-0 font-mono ml-2">
+                    {t.count} <span className="text-[10px] text-muted-foreground font-normal">({t.percentage}%)</span>
                   </span>
                 </div>
               ))}
@@ -643,10 +643,10 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
       {/* ============================================================ */}
       <section className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Needs You Now (4 cols) */}
-        <div className="flex flex-col rounded-2xl border border-white/10 bg-material-sidebar p-5 h-[380px] lg:col-span-4">
+        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 h-[380px] lg:col-span-4">
           <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-white">Needs You Now</h2>
+              <h2 className="text-base font-bold text-foreground">Needs You Now</h2>
               <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full ring-1 ring-emerald-500/20">
                 <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Live
@@ -662,12 +662,12 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
 
           <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-3 flex flex-col gap-2.5 mt-1">
             {data.attentionItems.length === 0 ? (
-              <p className="text-xs text-slate-400 py-6 text-center">No urgent attention items right now 🎉</p>
+              <p className="text-xs text-muted-foreground py-6 text-center">No urgent attention items right now 🎉</p>
             ) : (
               data.attentionItems.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between gap-2.5 rounded-xl border border-white/5 bg-slate-800/40 p-2.5 transition-all hover:bg-slate-800/70 shrink-0 w-full"
+                  className="flex items-center justify-between gap-2.5 rounded-xl border border-border/50 bg-muted/40 dark:bg-muted/30 p-2.5 transition-all hover:bg-muted/60 dark:hover:bg-muted/50 shrink-0 w-full"
                 >
                   <div className="flex-1 min-w-0 flex flex-col gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
@@ -679,9 +679,9 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                       >
                         {item.badge}
                       </span>
-                      <span className="text-xs font-medium text-white truncate min-w-0 flex-1">{item.title}</span>
+                      <span className="text-xs font-medium text-foreground truncate min-w-0 flex-1">{item.title}</span>
                     </div>
-                    <span className="text-[11px] text-slate-400 truncate min-w-0">{item.subtitle}</span>
+                    <span className="text-[11px] text-muted-foreground truncate min-w-0">{item.subtitle}</span>
                   </div>
 
                   <Link
@@ -697,21 +697,21 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
         </div>
 
         {/* Today's Events (4 cols) */}
-        <div className="flex flex-col rounded-2xl border border-white/10 bg-material-sidebar p-5 h-[380px] lg:col-span-4">
+        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 h-[380px] lg:col-span-4">
           <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
-            <h2 className="text-base font-bold text-white shrink-0">Events</h2>
+            <h2 className="text-base font-bold text-foreground shrink-0">Events</h2>
             <div className="flex items-center gap-2 shrink-0">
-              <div className="relative flex items-center gap-1.5 text-xs font-medium text-slate-200 bg-slate-800/80 px-2.5 py-1 rounded-full border border-white/10 hover:border-purple-500/40 transition-colors shadow-sm shrink-0 whitespace-nowrap">
+              <div className="relative flex items-center gap-1.5 text-xs font-medium text-foreground bg-muted/80 px-2.5 py-1 rounded-full border border-border hover:border-purple-500/40 transition-colors shadow-sm shrink-0 whitespace-nowrap">
                 <button
                   type="button"
                   onClick={handlePrevEventsDate}
-                  className="no-ring outline-none hover:text-white p-0.5 rounded-full hover:bg-white/10 text-slate-300 transition-colors z-10 cursor-pointer"
+                  className="no-ring outline-none hover:text-foreground p-0.5 rounded-full hover:bg-accent text-muted-foreground transition-colors z-10 cursor-pointer"
                   title="Previous day"
                 >
                   <ChevronLeft className="size-3.5" />
                 </button>
 
-                <div className="relative flex items-center px-1 font-semibold text-slate-200 whitespace-nowrap">
+                <div className="relative flex items-center px-1 font-semibold text-foreground whitespace-nowrap">
                   <span className="whitespace-nowrap">{formatDateLabel(eventsDate)}</span>
                   <input
                     type="date"
@@ -725,7 +725,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                 <button
                   type="button"
                   onClick={handleNextEventsDate}
-                  className="no-ring outline-none hover:text-white p-0.5 rounded-full hover:bg-white/10 text-slate-300 transition-colors z-10 cursor-pointer"
+                  className="no-ring outline-none hover:text-foreground p-0.5 rounded-full hover:bg-accent text-muted-foreground transition-colors z-10 cursor-pointer"
                   title="Next day"
                 >
                   <ChevronRight className="size-3.5" />
@@ -743,15 +743,15 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
 
           <div className={`custom-scrollbar flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-3 flex flex-col gap-2.5 mt-1 ${isEventsLoading ? "opacity-40 transition-opacity" : ""}`}>
             {eventsList.length === 0 ? (
-              <p className="text-xs text-slate-400 py-6 text-center">No events scheduled for {formatDateLabel(eventsDate)}</p>
+              <p className="text-xs text-muted-foreground py-6 text-center">No events scheduled for {formatDateLabel(eventsDate)}</p>
             ) : (
               eventsList.map((evt) => (
-                <div key={evt.id} className="flex items-center justify-between gap-2.5 rounded-xl border border-white/5 bg-slate-800/40 p-2.5 shrink-0 w-full hover:bg-slate-800/70 transition-colors">
+                <div key={evt.id} className="flex items-center justify-between gap-2.5 rounded-xl border border-border/50 bg-muted/40 dark:bg-muted/30 p-2.5 shrink-0 w-full hover:bg-muted/60 dark:hover:bg-muted/50 transition-colors">
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
                     <span className="text-xs font-bold text-emerald-400 shrink-0">{evt.formattedTime}</span>
                     <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-xs font-bold text-white truncate min-w-0">{evt.eventName}</span>
-                      <span className="text-[11px] text-slate-400 truncate min-w-0">{evt.hall}</span>
+                      <span className="text-xs font-bold text-foreground truncate min-w-0">{evt.eventName}</span>
+                      <span className="text-[11px] text-muted-foreground truncate min-w-0">{evt.hall}</span>
                     </div>
                   </div>
 
@@ -772,20 +772,20 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
         </div>
 
         {/* Hall Occupancy (4 cols) */}
-        <div className="flex flex-col rounded-2xl border border-white/10 bg-material-sidebar p-5 h-[380px] lg:col-span-4">
+        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 h-[380px] lg:col-span-4">
           <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
-            <h2 className="text-base font-bold text-white shrink-0">Hall Occupancy</h2>
-            <div className="relative flex items-center gap-1.5 text-xs font-medium text-slate-200 bg-slate-800/80 px-2.5 py-1 rounded-full border border-white/10 hover:border-purple-500/40 transition-colors shadow-sm shrink-0 whitespace-nowrap">
+            <h2 className="text-base font-bold text-foreground shrink-0">Hall Occupancy</h2>
+            <div className="relative flex items-center gap-1.5 text-xs font-medium text-foreground bg-muted/80 px-2.5 py-1 rounded-full border border-border hover:border-purple-500/40 transition-colors shadow-sm shrink-0 whitespace-nowrap">
               <button
                 type="button"
                 onClick={handlePrevOccupancyDate}
-                className="no-ring outline-none hover:text-white p-0.5 rounded-full hover:bg-white/10 text-slate-300 transition-colors z-10 cursor-pointer"
+                className="no-ring outline-none hover:text-foreground p-0.5 rounded-full hover:bg-accent text-muted-foreground transition-colors z-10 cursor-pointer"
                 title="Previous day"
               >
                 <ChevronLeft className="size-3.5" />
               </button>
 
-              <div className="relative flex items-center px-1 font-semibold text-slate-200 whitespace-nowrap">
+              <div className="relative flex items-center px-1 font-semibold text-foreground whitespace-nowrap">
                 <span className="whitespace-nowrap">{formatDateLabel(occupancyDate)}</span>
                 <input
                   type="date"
@@ -799,7 +799,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
               <button
                 type="button"
                 onClick={handleNextOccupancyDate}
-                className="no-ring outline-none hover:text-white p-0.5 rounded-full hover:bg-white/10 text-slate-300 transition-colors z-10 cursor-pointer"
+                className="no-ring outline-none hover:text-foreground p-0.5 rounded-full hover:bg-accent text-muted-foreground transition-colors z-10 cursor-pointer"
                 title="Next day"
               >
                 <ChevronRight className="size-3.5" />
@@ -808,9 +808,9 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
           </div>
 
           <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-2 w-full mt-1">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="sticky top-0 bg-slate-900 z-10">
-                <tr className="border-b border-white/10 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            <table className="w-full text-left text-xs text-muted-foreground">
+              <thead className="sticky top-0 bg-card z-10">
+                <tr className="border-b border-border text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   <th className="py-2 pr-2">Hall</th>
                   <th className="py-2 px-1">Morning</th>
                   <th className="py-2 px-1">Evening</th>
@@ -820,18 +820,18 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
               <tbody className={`divide-y divide-white/5 ${isOccupancyLoading ? "opacity-40 transition-opacity" : ""}`}>
                 {occupancyList.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-4 text-center text-slate-400">
+                    <td colSpan={4} className="py-4 text-center text-muted-foreground">
                       No active venues found
                     </td>
                   </tr>
                 ) : (
                   occupancyList.map((h) => (
-                    <tr key={h.venueId} className="hover:bg-slate-800/30">
-                      <td className="py-2.5 pr-2 font-medium text-white truncate max-w-[100px]">{h.venueName}</td>
+                    <tr key={h.venueId} className="hover:bg-muted/30">
+                      <td className="py-2.5 pr-2 font-medium text-foreground truncate max-w-[100px]">{h.venueName}</td>
                       <td className="py-2.5 px-1">
                         <span
                           className={`inline-block px-2 py-1 rounded-lg text-[10px] font-medium border ${h.morning.status === "FREE"
-                            ? "bg-slate-800/50 text-slate-400 border-white/5"
+                            ? "bg-muted/50 text-muted-foreground border-border/50"
                             : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-semibold shadow-sm"
                             }`}
                           title={h.morning.label || undefined}
@@ -842,7 +842,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                       <td className="py-2.5 px-1">
                         <span
                           className={`inline-block px-2 py-1 rounded-lg text-[10px] font-medium border ${h.evening.status === "FREE"
-                            ? "bg-slate-800/50 text-slate-400 border-white/5"
+                            ? "bg-muted/50 text-muted-foreground border-border/50"
                             : "bg-purple-500/20 text-purple-300 border-purple-500/30 font-semibold shadow-sm"
                             }`}
                           title={h.evening.label || undefined}
@@ -853,7 +853,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                       <td className="py-2.5 pl-1">
                         <span
                           className={`inline-block px-2 py-1 rounded-lg text-[10px] font-medium border ${h.fullDay.status === "FREE"
-                            ? "bg-slate-800/50 text-slate-400 border-white/5"
+                            ? "bg-muted/50 text-muted-foreground border-border/50"
                             : "bg-amber-500/20 text-amber-300 border-amber-500/30 font-semibold shadow-sm"
                             }`}
                           title={h.fullDay.label || undefined}
@@ -876,9 +876,9 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
       {/* ============================================================ */}
       <section className="grid grid-cols-1 gap-5 lg:grid-cols-12">
         {/* Card 1: Team Performance Velos (5 cols) */}
-        <div className="flex flex-col rounded-2xl border border-white/10 bg-material-sidebar p-5 h-[200px] lg:col-span-5">
+        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 h-[200px] lg:col-span-5">
           <div className="flex items-center justify-between gap-2 mb-4 shrink-0">
-            <h2 className="text-base font-bold text-white">Team Performance (Velos)</h2>
+            <h2 className="text-base font-bold text-foreground">Team Performance (Velos)</h2>
             <Link
               href="/performance/velos"
               className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors shrink-0"
@@ -889,7 +889,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
 
           <div className="flex-1 min-h-0 flex items-center w-full overflow-hidden">
             {data.velosLeaderboard.length === 0 ? (
-              <p className="text-xs text-slate-400 mx-auto">No leaderboard activity yet</p>
+              <p className="text-xs text-muted-foreground mx-auto">No leaderboard activity yet</p>
             ) : (
               (() => {
                 const winner = data.velosLeaderboard[0];
@@ -905,7 +905,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                             {winner.image ? (
                               <img src={winner.image} alt={winner.name} className="size-full rounded-full object-cover" />
                             ) : (
-                              <div className="size-full rounded-full bg-slate-900 flex items-center justify-center text-sm font-black text-amber-300 uppercase">
+                              <div className="size-full rounded-full bg-background flex items-center justify-center text-sm font-black text-amber-300 uppercase">
                                 {winner.name.substring(0, 2)}
                               </div>
                             )}
@@ -914,7 +914,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                         {/* Info */}
                         <div className="flex flex-col gap-0.5">
                           <span className="text-[11px] font-extrabold text-amber-400 tracking-wider leading-none">#1</span>
-                          <span className="text-sm font-bold text-white leading-tight whitespace-nowrap">{winner.name}</span>
+                          <span className="text-sm font-bold text-foreground leading-tight whitespace-nowrap">{winner.name}</span>
                           <span className="text-sm font-extrabold text-emerald-400 flex items-center gap-1 font-mono whitespace-nowrap">
                             {winner.points.toLocaleString("en-IN")} pts
                             <TrendingUp className="size-3.5 text-emerald-400 shrink-0" />
@@ -924,7 +924,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                     )}
 
                     {/* Divider */}
-                    <div className="h-14 w-px bg-white/10 shrink-0" />
+                    <div className="h-14 w-px bg-border shrink-0" />
 
                     {/* Right Side: Ranks #2 to #5 — equal flex columns */}
                     <div className="flex flex-1 items-center justify-around gap-2 min-w-0">
@@ -934,17 +934,17 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                             ? "bg-blue-600 text-white"
                             : user.rank === 3
                               ? "bg-amber-700 text-amber-100"
-                              : "bg-slate-700 text-slate-300";
+                              : "bg-slate-700 text-white";
 
                         return (
                           <div key={user.userId} className="flex flex-col items-center text-center gap-1 flex-1 min-w-0">
                             {/* Avatar */}
                             <div className="relative shrink-0">
-                              <div className="size-11 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center overflow-hidden shadow-md">
+                              <div className="size-11 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shadow-md">
                                 {user.image ? (
                                   <img src={user.image} alt={user.name} className="size-full object-cover" />
                                 ) : (
-                                  <span className="text-xs font-bold text-slate-200 uppercase">
+                                  <span className="text-xs font-bold text-foreground uppercase">
                                     {user.name.substring(0, 2)}
                                   </span>
                                 )}
@@ -955,11 +955,11 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                               </span>
                             </div>
                             {/* Name */}
-                            <span className="text-[11px] font-semibold text-slate-100 whitespace-nowrap">
+                            <span className="text-[11px] font-semibold text-foreground whitespace-nowrap">
                               {user.name.split(" ")[0]}
                             </span>
                             {/* Points */}
-                            <span className="text-[11px] font-bold text-slate-400 font-mono whitespace-nowrap">
+                            <span className="text-[11px] font-bold text-muted-foreground font-mono whitespace-nowrap">
                               {user.points.toLocaleString("en-IN")} pts
                             </span>
                           </div>
@@ -974,9 +974,9 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
         </div>
 
         {/* Card 2: Receivables & Overdue Invoices (4 cols) */}
-        <div className="flex flex-col rounded-2xl border border-white/10 bg-material-sidebar p-5 h-[200px] lg:col-span-4">
+        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 h-[200px] lg:col-span-4">
           <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
-            <h2 className="text-base font-bold text-white">Receivables & Overdue Invoices</h2>
+            <h2 className="text-base font-bold text-foreground">Receivables & Overdue Invoices</h2>
             <Link
               href="/invoices"
               className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors"
@@ -987,16 +987,16 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
 
           <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-3 flex flex-col gap-2 mt-1">
             {data.overdueInvoices.length === 0 ? (
-              <p className="text-xs text-slate-400 py-4 text-center">No overdue invoices 👍</p>
+              <p className="text-xs text-muted-foreground py-4 text-center">No overdue invoices 👍</p>
             ) : (
               data.overdueInvoices.map((inv) => (
-                <div key={inv.id} className="flex items-center justify-between gap-2 text-xs py-1.5 border-b border-white/5 last:border-0 shrink-0 w-full">
+                <div key={inv.id} className="flex items-center justify-between gap-2 text-xs py-1.5 border-b border-border/50 last:border-0 shrink-0 w-full">
                   <div className="flex-1 min-w-0 flex items-center gap-2">
-                    <span className="font-bold text-white shrink-0">{formatCurrency(inv.balanceDue)}</span>
-                    <span className="text-slate-400 truncate min-w-0 flex-1">{inv.clientName}</span>
+                    <span className="font-bold text-foreground shrink-0">{formatCurrency(inv.balanceDue)}</span>
+                    <span className="text-muted-foreground truncate min-w-0 flex-1">{inv.clientName}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[11px] text-slate-400 whitespace-nowrap">Due {inv.dueDateFormatted}</span>
+                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">Due {inv.dueDateFormatted}</span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30 whitespace-nowrap">
                       Overdue
                     </span>
@@ -1008,9 +1008,9 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
         </div>
 
         {/* Card 3: Pending Payment Proofs (4 cols) */}
-        <div className="flex flex-col rounded-2xl border border-white/10 bg-material-sidebar p-5 h-[200px] lg:col-span-3">
+        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 h-[200px] lg:col-span-3">
           <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
-            <h2 className="text-base font-bold text-white">Pending Payment Proofs</h2>
+            <h2 className="text-base font-bold text-foreground">Pending Payment Proofs</h2>
             <Link
               href="/payments"
               className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors"
@@ -1021,13 +1021,13 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
 
           <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-3 flex flex-col gap-2 mt-1">
             {data.pendingPaymentProofs.length === 0 ? (
-              <p className="text-xs text-slate-400 py-4 text-center">All payment proofs verified 👍</p>
+              <p className="text-xs text-muted-foreground py-4 text-center">All payment proofs verified 👍</p>
             ) : (
               data.pendingPaymentProofs.map((proof) => (
-                <div key={proof.id} className="flex items-center justify-between gap-2 text-xs py-1.5 border-b border-white/5 last:border-0 shrink-0 w-full">
+                <div key={proof.id} className="flex items-center justify-between gap-2 text-xs py-1.5 border-b border-border/50 last:border-0 shrink-0 w-full">
                   <div className="flex-1 min-w-0 flex flex-col">
-                    <span className="font-bold text-white truncate min-w-0">{proof.clientName}</span>
-                    <span className="text-[11px] text-slate-400 truncate min-w-0">{proof.uploadedAgo}</span>
+                    <span className="font-bold text-foreground truncate min-w-0">{proof.clientName}</span>
+                    <span className="text-[11px] text-muted-foreground truncate min-w-0">{proof.uploadedAgo}</span>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">

@@ -307,12 +307,12 @@ function LeadStagePipeline({
   total: number;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.07] bg-material-sidebar p-5 flex flex-col gap-6">
+    <div className="rounded-2xl border border-border bg-material-sidebar p-5 flex flex-col gap-6">
       <div className="flex items-center gap-2">
         <div className="flex size-7 items-center justify-center rounded-md bg-blue-500/10 text-blue-500">
           <BarChart3 className="size-4" />
         </div>
-        <span className="text-sm font-bold text-white">Acquisition Funnel</span>
+        <span className="text-sm font-bold text-foreground">Acquisition Funnel</span>
       </div>
 
       <div className="flex w-full gap-2">
@@ -321,7 +321,7 @@ function LeadStagePipeline({
           if (c === 0 && s.key !== "ALL") return null;
           
           const colorClass = s.key === "ALL" 
-            ? "bg-white" 
+            ? "bg-slate-300 dark:bg-white" 
             : STAGE_HUE_BG[s.hue as keyof typeof STAGE_HUE_BG] || "bg-slate-500";
 
           return (
@@ -456,7 +456,7 @@ export function LeadInbox({
                   "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[13px] font-semibold transition-colors",
                   dueFollowup
                     ? "bg-violet-600 text-white shadow-sm"
-                    : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 )}
               >
                 Needs Follow-up
@@ -476,7 +476,7 @@ export function LeadInbox({
                       "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[13px] font-semibold transition-colors",
                       active
                         ? "bg-violet-600 text-white shadow-sm"
-                        : "text-muted-foreground hover:bg-white/5 hover:text-white"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                     )}
                   >
                     {stage.label}
@@ -488,14 +488,14 @@ export function LeadInbox({
         </div>
 
         {/* Search and Filters Row */}
-        <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-[#0F0F12] p-1.5 flex-wrap sm:flex-nowrap overflow-x-auto [&::-webkit-scrollbar]:hidden">
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 flex-wrap sm:flex-nowrap overflow-x-auto [&::-webkit-scrollbar]:hidden">
           <div className="relative shrink-0 w-full sm:w-[260px]">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search owner, property, city…"
-              className="h-9 w-full rounded-lg bg-white/5 pl-9 text-body border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0 placeholder:text-muted-foreground/50 transition-colors hover:bg-white/10"
+              className="h-9 w-full rounded-lg bg-muted/50 pl-9 text-body border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0 placeholder:text-muted-foreground/50 transition-colors hover:bg-accent"
             />
           </div>
           
@@ -505,7 +505,7 @@ export function LeadInbox({
             else params.delete("stage");
             router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
           }}>
-            <SelectTrigger className="h-9 rounded-lg bg-white/5 px-3 text-body text-muted-foreground hover:bg-white/10 hover:text-white w-[120px] shrink-0 border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0">
+            <SelectTrigger className="h-9 rounded-lg bg-muted/50 px-3 text-body text-muted-foreground hover:bg-accent hover:text-foreground w-[120px] shrink-0 border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0">
               <SelectValue placeholder="Stage" />
             </SelectTrigger>
             <SelectContent>
@@ -522,7 +522,7 @@ export function LeadInbox({
             else params.delete("exec");
             router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
           }}>
-            <SelectTrigger className="h-9 rounded-lg bg-white/5 px-3 text-body text-muted-foreground hover:bg-white/10 hover:text-white w-[120px] shrink-0 border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0">
+            <SelectTrigger className="h-9 rounded-lg bg-muted/50 px-3 text-body text-muted-foreground hover:bg-accent hover:text-foreground w-[120px] shrink-0 border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0">
               <SelectValue placeholder="Owner" />
             </SelectTrigger>
             <SelectContent>
@@ -539,7 +539,7 @@ export function LeadInbox({
             else params.delete("city");
             router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
           }}>
-            <SelectTrigger className="h-9 rounded-lg bg-white/5 px-3 text-body text-muted-foreground hover:bg-white/10 hover:text-white w-[100px] shrink-0 border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0">
+            <SelectTrigger className="h-9 rounded-lg bg-muted/50 px-3 text-body text-muted-foreground hover:bg-accent hover:text-foreground w-[100px] shrink-0 border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0">
               <SelectValue placeholder="City" />
             </SelectTrigger>
             <SelectContent>
@@ -564,7 +564,7 @@ export function LeadInbox({
               else params.delete("sort");
               router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
             }}>
-              <SelectTrigger className="h-9 rounded-lg bg-white/5 px-3 text-body text-muted-foreground hover:bg-white/10 hover:text-white gap-2 w-[160px] shrink-0 border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0">
+              <SelectTrigger className="h-9 rounded-lg bg-muted/50 px-3 text-body text-muted-foreground hover:bg-accent hover:text-foreground gap-2 w-[160px] shrink-0 border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0">
                 <div className="flex w-full items-center gap-2 pointer-events-none truncate">
                   <ArrowUpDown className="size-3.5 opacity-50 shrink-0" />
                   <SelectValue placeholder="Sort: Newest" />
@@ -585,8 +585,7 @@ export function LeadInbox({
       <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden">
         <table className="w-full min-w-[860px] border-collapse">
           <thead>
-            <tr className="border-b border-white/5 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
-              <th className="w-10 px-3 py-3 text-center"><Checkbox disabled className="rounded border-white/20 data-[state=checked]:bg-white/20 data-[state=checked]:text-white" /></th>
+            <tr className="border-b border-border/50 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
               <th className="px-3 py-3">Lead / Property</th>
               <th className="px-3 py-3">Location</th>
               <th className="px-3 py-3">Stage</th>
@@ -635,7 +634,7 @@ export function LeadInbox({
                 size="icon"
                 disabled={page === 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
-                className="size-8 bg-transparent border-white/5 rounded text-white hover:bg-white/10"
+                className="size-8 bg-transparent border-border/50 rounded text-foreground hover:bg-accent"
               >
                 <ChevronLeft className="size-4" />
               </Button>
@@ -648,7 +647,7 @@ export function LeadInbox({
                     variant={isActive ? "outline" : "ghost"}
                     size="icon"
                     onClick={() => setPage(pageNum)}
-                    className={cn("size-8 rounded font-medium text-[13px]", isActive ? "bg-violet-600 border-violet-600 text-white hover:bg-violet-600/90 hover:text-white" : "text-muted-foreground hover:text-white hover:bg-white/5")}
+                    className={cn("size-8 rounded font-medium text-[13px]", isActive ? "bg-violet-600 border-violet-600 text-white hover:bg-violet-600/90 hover:text-white" : "text-muted-foreground hover:text-foreground hover:bg-muted/50")}
                   >
                     {pageNum}
                   </Button>
@@ -662,13 +661,13 @@ export function LeadInbox({
                 size="icon"
                 disabled={page >= Math.ceil(filtered.length / perPage)}
                 onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / perPage), p + 1))}
-                className="size-8 bg-transparent border-white/5 rounded text-white hover:bg-white/10"
+                className="size-8 bg-transparent border-border/50 rounded text-foreground hover:bg-accent"
               >
                 <ChevronRight className="size-4" />
               </Button>
             </div>
             <Select value={String(perPage)} onValueChange={(v) => { setPerPage(Number(v)); setPage(1); }}>
-              <SelectTrigger className="h-8 bg-transparent border-white/5 rounded text-[13px] text-white hover:bg-white/10 focus:ring-0 focus:ring-offset-0 min-w-[100px]">
+              <SelectTrigger className="h-8 bg-transparent border-border/50 rounded text-[13px] text-foreground hover:bg-accent focus:ring-0 focus:ring-offset-0 min-w-[100px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -841,7 +840,7 @@ function LeadFiltersPopover({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="h-9 rounded-lg border-white/5 bg-white/5 px-3 text-body text-muted-foreground hover:bg-white/10 hover:text-white gap-2 shrink-0">
+        <Button variant="outline" className="h-9 rounded-lg border-border/50 bg-muted/50 px-3 text-body text-muted-foreground hover:bg-accent hover:text-foreground gap-2 shrink-0">
           <SlidersHorizontal className="size-3.5 opacity-50" />
           More Filters
           {activeCount > 0 && (
@@ -954,7 +953,7 @@ function LeadRow({
   const ownerName = lead.bdExecutive?.name || "Unassigned";
 
   // Next action card styling
-  let nextCardClasses = "bg-white/5 border-white/10 text-muted-foreground";
+  let nextCardClasses = "bg-muted/50 border-border text-muted-foreground";
   let nextIconColor = "text-muted-foreground opacity-50";
   let NextIcon = CalendarDays; // Fallback
   if (next.tone === "urgent") {
@@ -976,15 +975,13 @@ function LeadRow({
   }
 
   return (
-    <tr className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors">
-      <td className="px-3 py-3 w-10 text-center">
-        <Checkbox disabled className="rounded border-white/20 data-[state=checked]:bg-white/20 data-[state=checked]:text-white" />
-      </td>
+    <tr className="border-b border-border/50 last:border-0 hover:bg-accent/50 transition-colors">
+
       <td className="px-3 py-3">
         <div className="flex flex-col">
           <Link
             href={`/bd/leads/${lead.id}`}
-            className="font-medium text-[13px] text-white hover:underline"
+            className="font-medium text-[13px] text-foreground hover:underline"
           >
             {lead.propertyName}
           </Link>
@@ -1007,7 +1004,7 @@ function LeadRow({
       </td>
       <td className="px-3 py-3">
         <div className="flex flex-col">
-          <span className="text-[13px] text-white/90">{lead.city}</span>
+          <span className="text-[13px] text-foreground/90">{lead.city}</span>
           <span className="text-[11px] text-muted-foreground mt-0.5">{lead.locality}</span>
         </div>
       </td>
@@ -1040,7 +1037,7 @@ function LeadRow({
             <div className={cn("flex size-7 items-center justify-center rounded-full text-[10px] font-bold", getAvatarColor(ownerName))}>
               {getInitials(ownerName)}
             </div>
-            <span className="text-[13px] text-white/90">{ownerName}</span>
+            <span className="text-[13px] text-foreground/90">{ownerName}</span>
           </div>
         )}
       </td>
@@ -1066,7 +1063,7 @@ function LeadRow({
       <td className="px-3 py-3">
         {ago ? (
           <div className="flex flex-col">
-            <span className="text-[13px] text-white/90 tabular-nums">{ago}</span>
+            <span className="text-[13px] text-foreground/90 tabular-nums">{ago}</span>
             {lead.contactAttempts > 0 ? (
               <span className="text-[11px] text-muted-foreground mt-0.5">
                 {lead.contactAttempts} attempt{lead.contactAttempts === 1 ? "" : "s"}
@@ -1075,7 +1072,7 @@ function LeadRow({
           </div>
         ) : (
           <div className="flex flex-col">
-            <span className={cn("text-[13px]", lead.status === "NEW" ? "text-amber-500" : "text-white/90")}>
+            <span className={cn("text-[13px]", lead.status === "NEW" ? "text-amber-500" : "text-foreground/90")}>
               No activity yet
             </span>
           </div>
@@ -1093,7 +1090,7 @@ function LeadRow({
               </Button>
             </>
           )}
-          <Button variant="outline" size="sm" asChild className="h-8 bg-white/5 border-white/5 text-xs text-white hover:bg-white/10">
+          <Button variant="outline" size="sm" asChild className="h-8 bg-muted/50 border-border/50 text-xs text-foreground hover:bg-accent">
             <Link href={`/bd/leads/${lead.id}`}>View</Link>
           </Button>
         </div>

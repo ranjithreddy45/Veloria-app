@@ -51,21 +51,21 @@ export default async function BdDashboardPage({
     <div className="flex flex-col min-h-full">
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-4 border-b border-white/[0.07]">
+      <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-4 border-b border-border">
         <div>
-          <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-slate-500 mb-0.5">
+          <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mb-0.5">
             Business Development · Acquisition
           </p>
-          <h1 className="text-[1.75rem] font-black text-white tracking-tight leading-tight">
+          <h1 className="text-[1.75rem] font-black text-foreground tracking-tight leading-tight">
             BD Dashboard
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Employee-wise acquisition funnel, activity and leaderboard.
           </p>
         </div>
         <Link
           href="/bd/reports"
-          className="flex items-center gap-2 shrink-0 mt-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-white hover:bg-white/10 hover:border-white/20 transition-all"
+          className="flex items-center gap-2 shrink-0 mt-1 rounded-xl border border-border bg-muted px-4 py-2 text-xs font-semibold text-foreground hover:bg-border hover:border-white/20 transition-all"
         >
           <BarChart3Icon className="size-4" />
           Full reports
@@ -73,19 +73,19 @@ export default async function BdDashboardPage({
       </div>
 
       {/* ── Filter bar ─────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-2.5 border-b border-white/[0.07]">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-2.5 border-b border-border">
         <BdFilterBar employees={execs} />
         {a && (
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-muted-foreground">
             Showing:{" "}
-            <span className="font-bold text-white">{a.range.label}</span>
+            <span className="font-bold text-foreground">{a.range.label}</span>
           </span>
         )}
       </div>
 
       {/* ── Body ───────────────────────────────────────────────── */}
       {!a ? (
-        <div className="flex flex-1 items-center justify-center py-20 text-slate-400 text-sm">
+        <div className="flex flex-1 items-center justify-center py-20 text-muted-foreground text-sm">
           Couldn&apos;t load analytics. Try refreshing.
         </div>
       ) : (

@@ -30,8 +30,8 @@ function Stat({
   const isUrgent = tone === "urgent";
   const isGood = tone === "good";
   
-  const toneBg = isUrgent ? "bg-red-500/10" : isGood ? "bg-amber-500/10" : "bg-white/5";
-  const toneBorder = isUrgent ? "border-red-500/20" : isGood ? "border-amber-500/20" : "border-white/10";
+  const toneBg = isUrgent ? "bg-red-500/10" : isGood ? "bg-amber-500/10" : "bg-muted/50";
+  const toneBorder = isUrgent ? "border-red-500/20" : isGood ? "border-amber-500/20" : "border-border";
   const toneText = isUrgent ? "text-red-500" : isGood ? "text-amber-500" : "text-blue-400";
   const toneHoverText = isUrgent ? "hover:text-red-400" : isGood ? "hover:text-amber-400" : "hover:text-blue-300";
 

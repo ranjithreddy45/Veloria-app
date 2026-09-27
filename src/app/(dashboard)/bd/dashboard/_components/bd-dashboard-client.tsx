@@ -123,7 +123,7 @@ interface KpiCardProps {
 
 function KpiCard({ label, value, sub1, sub2, icon: Icon, iconBg, iconColor, sparkColor, sparkData, trend, trendColor }: KpiCardProps) {
   return (
-    <div className="relative flex justify-between rounded-2xl border border-white/[0.07] bg-material-sidebar p-4 overflow-hidden min-w-0">
+    <div className="relative flex justify-between rounded-2xl border border-border bg-card p-4 overflow-hidden min-w-0">
       
       {/* Sparkline — middle right */}
       <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-90 pointer-events-none">
@@ -136,24 +136,24 @@ function KpiCard({ label, value, sub1, sub2, icon: Icon, iconBg, iconColor, spar
           <div className={`rounded-full p-1.5 ${iconBg}`}>
             <Icon className={`size-3.5 ${iconColor}`} />
           </div>
-          <span className="text-[11px] font-semibold text-slate-300 tracking-wide">{label}</span>
+          <span className="text-[11px] font-semibold text-muted-foreground tracking-wide">{label}</span>
         </div>
 
         {/* Big number */}
-        <div className="text-3xl font-bold text-white leading-none tabular-nums tracking-tight mt-1.5">
+        <div className="text-3xl font-bold text-foreground leading-none tabular-nums tracking-tight mt-1.5">
           {typeof value === "number" ? value.toLocaleString("en-IN") : value}
         </div>
 
         {/* Sub-text rows */}
         <div className="mt-1 flex flex-col gap-1">
           {sub1 && (
-            <div className={`flex items-center gap-1 text-[11px] font-semibold ${trendColor || "text-slate-400"} truncate`}>
+            <div className={`flex items-center gap-1 text-[11px] font-semibold ${trendColor || "text-muted-foreground"} truncate`}>
               {trend === "up" && <ArrowUpRight className="size-3.5 shrink-0" strokeWidth={3} />}
               {trend === "down" && <ArrowUpRight className="size-3.5 shrink-0 rotate-90" strokeWidth={3} />}
               <span className="truncate">{sub1}</span>
             </div>
           )}
-          {sub2 && <div className="text-[10px] text-slate-500">{sub2}</div>}
+          {sub2 && <div className="text-[10px] text-muted-foreground">{sub2}</div>}
         </div>
       </div>
 
@@ -184,10 +184,10 @@ function FunnelRow({ label, count, maxCount, convPct, index }: { label: string; 
 
   return (
     <div className="flex items-center gap-3 h-[32px]">
-      <div className="w-[120px] shrink-0 text-[12px] font-medium text-slate-300 text-right pr-2 truncate">{label}</div>
+      <div className="w-[120px] shrink-0 text-[12px] font-medium text-muted-foreground text-right pr-2 truncate">{label}</div>
       <div className="flex-1 flex justify-center h-full">
         <div 
-          className="relative h-full rounded-md bg-white/[0.04]" 
+          className="relative h-full rounded-md bg-muted" 
           style={{ width: `${bgWidth}%` }}
         >
           {/* Fill */}
@@ -199,8 +199,8 @@ function FunnelRow({ label, count, maxCount, convPct, index }: { label: string; 
           )}
         </div>
       </div>
-      <div className="w-8 shrink-0 text-right text-[12px] font-bold text-white tabular-nums">{count}</div>
-      <div className="w-10 shrink-0 text-right text-[12px] text-slate-400 tabular-nums">{convPct}</div>
+      <div className="w-8 shrink-0 text-right text-[12px] font-bold text-foreground tabular-nums">{count}</div>
+      <div className="w-10 shrink-0 text-right text-[12px] text-muted-foreground tabular-nums">{convPct}</div>
     </div>
   );
 }
@@ -257,14 +257,14 @@ function EmployeePerformance({ employees }: { employees: EmployeeRow[] }) {
       {/* Bars + names + numbers */}
       <div className="space-y-1 flex-1 overflow-hidden">
         {sorted.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-400">No data for this period.</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">No data for this period.</p>
         ) : (
           sorted.map((row) => {
             const w = maxVal > 0 ? Math.round((row.value / maxVal) * 100) : 0;
             return (
               <div key={row.userId} className="flex items-center gap-2 h-6">
-                <div className="w-28 shrink-0 text-[11px] text-slate-300 truncate">{row.name}</div>
-                <div className="flex-1 relative h-4 rounded overflow-hidden bg-white/5">
+                <div className="w-28 shrink-0 text-[11px] text-muted-foreground truncate">{row.name}</div>
+                <div className="flex-1 relative h-4 rounded overflow-hidden bg-muted">
                   {row.value > 0 && (
                     <div
                       className="h-full rounded transition-all duration-500"
@@ -272,7 +272,7 @@ function EmployeePerformance({ employees }: { employees: EmployeeRow[] }) {
                     />
                   )}
                 </div>
-                <div className="w-8 shrink-0 text-right text-[11px] font-bold text-white tabular-nums">{row.value}</div>
+                <div className="w-8 shrink-0 text-right text-[11px] font-bold text-foreground tabular-nums">{row.value}</div>
               </div>
             );
           })
@@ -290,13 +290,13 @@ function TrendTooltip({ active, payload, label }: { active?: boolean; payload?: 
   let lbl = label ?? "";
   try { lbl = format(parseISO(lbl), "d MMM"); } catch {}
   return (
-    <div className="rounded-xl border border-white/10 bg-[#0d0d20]/95 p-2.5 shadow-xl text-xs backdrop-blur">
-      <p className="text-slate-400 font-semibold mb-1.5 text-[11px]">{lbl}</p>
+    <div className="rounded-xl border border-border bg-card/95 p-2.5 shadow-xl text-xs backdrop-blur">
+      <p className="text-muted-foreground font-semibold mb-1.5 text-[11px]">{lbl}</p>
       {payload.map((p) => (
         <div key={p.name} className="flex items-center gap-2 py-0.5">
           <span className="size-1.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-          <span className="text-slate-300 capitalize text-[11px]">{p.name}</span>
-          <span className="ml-auto font-bold text-white tabular-nums">{p.value}</span>
+          <span className="text-muted-foreground capitalize text-[11px]">{p.name}</span>
+          <span className="ml-auto font-bold text-foreground tabular-nums">{p.value}</span>
         </div>
       ))}
     </div>
@@ -388,7 +388,7 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
           sub2={a.range.label}
           icon={Phone} iconBg="bg-amber-500/20" iconColor="text-amber-400"
           sparkColor="#f59e0b" sparkData={trend.map(() => 0)}
-          trend="none" trendColor="text-slate-400"
+          trend="none" trendColor="text-muted-foreground"
         />
         <KpiCard
           label="Notes / Follow-ups" value={t.notesFollowups}
@@ -396,7 +396,7 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
           sub2={a.range.label}
           icon={StickyNote} iconBg="bg-teal-500/20" iconColor="text-teal-400"
           sparkColor="#14b8a6" sparkData={trend.map(() => 0)}
-          trend={t.notesFollowups > 0 ? "up" : "none"} trendColor={t.notesFollowups > 0 ? "text-emerald-400" : "text-slate-400"}
+          trend={t.notesFollowups > 0 ? "up" : "none"} trendColor={t.notesFollowups > 0 ? "text-emerald-400" : "text-muted-foreground"}
         />
         <KpiCard
           label="Site Visits" value={t.siteVisitsDone}
@@ -404,14 +404,14 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
           sub2={a.range.label}
           icon={MapPin} iconBg="bg-pink-500/20" iconColor="text-pink-400"
           sparkColor="#ec4899" sparkData={trend.map(() => 0)}
-          trend="none" trendColor="text-slate-400"
+          trend="none" trendColor="text-muted-foreground"
         />
         <KpiCard
           label="Task Score" value={t.taskScore}
           sub1={`Total points · ${a.range.label}`}
           icon={Sparkles} iconBg="bg-violet-500/20" iconColor="text-violet-400"
           sparkColor="#a855f7" sparkData={trend.map(() => 0)}
-          trend="none" trendColor="text-slate-400"
+          trend="none" trendColor="text-muted-foreground"
         />
       </div>
 
@@ -421,17 +421,17 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
         {/* Acquisition Funnel */}
-        <div className="rounded-2xl border border-white/[0.07] bg-material-sidebar p-5 flex flex-col">
+        <div className="rounded-2xl border border-border bg-card p-5 flex flex-col">
           <div className="flex items-start justify-between gap-2 mb-4">
-            <h2 className="flex items-center gap-1.5 text-sm font-bold text-white">
+            <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
               Acquisition Funnel
-              <Info className="size-3.5 text-slate-500" />
+              <Info className="size-3.5 text-muted-foreground" />
             </h2>
-            <div className="text-[11px] text-slate-400 text-right leading-relaxed">
+            <div className="text-[11px] text-muted-foreground text-right leading-relaxed">
               Conversion rate: Lead → Qualified{" "}
-              <span className="text-white font-semibold">{pct(a.conversion.leadToQualified)}</span>
+              <span className="text-foreground font-semibold">{pct(a.conversion.leadToQualified)}</span>
               {" "}| Qualified → Won{" "}
-              <span className="text-white font-semibold">{pct(a.conversion.qualifiedToWon)}</span>
+              <span className="text-foreground font-semibold">{pct(a.conversion.qualifiedToWon)}</span>
             </div>
           </div>
           <div className="flex flex-col justify-center flex-1 space-y-3 mt-4 mb-2">
@@ -453,8 +453,8 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
         </div>
 
         {/* Employee Performance */}
-        <div className="rounded-2xl border border-white/[0.07] bg-material-sidebar p-5">
-          <h2 className="text-sm font-bold text-white mb-4">Employee performance</h2>
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h2 className="text-sm font-bold text-foreground mb-4">Employee performance</h2>
           <EmployeePerformance employees={a.employees} />
         </div>
       </div>
@@ -465,11 +465,11 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
 
         {/* Pipeline Trend — 3/5 width */}
-        <div className="rounded-2xl border border-white/[0.07] bg-material-sidebar p-5 lg:col-span-3">
+        <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-3">
           <div className="flex items-center gap-2 mb-4 flex-wrap">
-            <h2 className="flex items-center gap-1.5 text-sm font-bold text-white">
+            <h2 className="flex items-center gap-1.5 text-sm font-bold text-foreground">
               Pipeline trend
-              <Info className="size-3.5 text-slate-500" />
+              <Info className="size-3.5 text-muted-foreground" />
             </h2>
             {/* Legend */}
             <div className="ml-auto flex items-center gap-4">
@@ -480,7 +480,7 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
                 { key: "won", color: "#10b981", label: "Won" },
                 { key: "lost", color: "#ef4444", label: "Lost" },
               ].map((l) => (
-                <span key={l.key} className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                <span key={l.key} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <span className="size-2 rounded-full" style={{ backgroundColor: l.color }} />
                   {l.label}
                 </span>
@@ -488,7 +488,7 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
             </div>
           </div>
           {trendChart.every((d) => d.leads === 0) ? (
-            <div className="flex h-44 items-center justify-center text-slate-400 text-sm">
+            <div className="flex h-44 items-center justify-center text-muted-foreground text-sm">
               No trend data for this period.
             </div>
           ) : (
@@ -509,10 +509,10 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
         </div>
 
         {/* Leads by Source — 2/5 width */}
-        <div className="rounded-2xl border border-white/[0.07] bg-material-sidebar p-5 lg:col-span-2">
-          <h2 className="text-sm font-bold text-white mb-4">Leads by source</h2>
+        <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2">
+          <h2 className="text-sm font-bold text-foreground mb-4">Leads by source</h2>
           {a.leadSources.length === 0 ? (
-            <p className="text-sm text-slate-400 py-4 text-center">No data yet.</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">No data yet.</p>
           ) : (
             <div className="flex items-center gap-4">
               {/* Donut with center number */}
@@ -532,8 +532,8 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
                 </PieChart>
                 {/* Center text */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-lg font-black text-white tabular-nums">{t.leadsTotal}</span>
-                  <span className="text-[9px] text-slate-400 leading-tight text-center">Total Leads</span>
+                  <span className="text-lg font-black text-foreground tabular-nums">{t.leadsTotal}</span>
+                  <span className="text-[9px] text-muted-foreground leading-tight text-center">Total Leads</span>
                 </div>
               </div>
 
@@ -544,9 +544,9 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
                   return (
                     <div key={s.source} className="flex items-center gap-2">
                       <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: SOURCE_COLORS[s.source] ?? "#6366f1" }} />
-                      <span className="text-xs text-slate-300 flex-1 truncate">{s.label}</span>
-                      <span className="text-xs font-bold text-white tabular-nums w-6 text-right">{s.count}</span>
-                      <span className="text-xs text-slate-400 tabular-nums w-8 text-right">{p}%</span>
+                      <span className="text-xs text-muted-foreground flex-1 truncate">{s.label}</span>
+                      <span className="text-xs font-bold text-foreground tabular-nums w-6 text-right">{s.count}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">{p}%</span>
                     </div>
                   );
                 })}
@@ -562,16 +562,16 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 h-[400px]">
 
         {/* By Employee table — 3/5 */}
-        <div className="rounded-2xl border border-white/[0.07] bg-material-sidebar p-5 lg:col-span-3 flex flex-col h-full overflow-hidden">
-          <h2 className="text-sm font-bold text-white mb-4 shrink-0">By employee</h2>
+        <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-3 flex flex-col h-full overflow-hidden">
+          <h2 className="text-sm font-bold text-foreground mb-4 shrink-0">By employee</h2>
           <div className="overflow-auto flex-1 pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <table className="w-full text-[11px] border-collapse">
               <thead>
-                <tr className="border-b border-white/[0.07]">
+                <tr className="border-b border-border">
                   {["Employee","Leads","Deals","Won","Lost","Calls","Notes","Visits","Score"].map((h, idx) => (
                     <th
                       key={h}
-                      className={`py-1.5 sticky top-0 bg-material-sidebar z-10 text-[10px] font-semibold uppercase tracking-widest text-slate-500 ${idx === 0 ? "text-left pr-3 w-32" : "text-right px-1.5"}`}
+                      className={`py-1.5 sticky top-0 bg-card z-10 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground ${idx === 0 ? "text-left pr-3 w-32" : "text-right px-1.5"}`}
                     >
                       {h}
                     </th>
@@ -581,22 +581,22 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
               <tbody>
                 {a.employees.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="py-8 text-center text-slate-400 text-xs">
+                    <td colSpan={9} className="py-8 text-center text-muted-foreground text-xs">
                       No activity in this period.
                     </td>
                   </tr>
                 ) : (
                   a.employees.map((e) => (
-                    <tr key={e.userId} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.02] transition-colors">
-                      <td className="py-1.5 pr-3 font-semibold text-white max-w-[120px] truncate">{e.name}</td>
-                      <td className="px-1.5 py-1.5 text-right tabular-nums text-slate-300">{e.leadsTotal}</td>
-                      <td className="px-1.5 py-1.5 text-right tabular-nums text-slate-300">{e.dealsCreated}</td>
+                    <tr key={e.userId} className="border-b border-border last:border-0 hover:bg-accent transition-colors">
+                      <td className="py-1.5 pr-3 font-semibold text-foreground max-w-[120px] truncate">{e.name}</td>
+                      <td className="px-1.5 py-1.5 text-right tabular-nums text-muted-foreground">{e.leadsTotal}</td>
+                      <td className="px-1.5 py-1.5 text-right tabular-nums text-muted-foreground">{e.dealsCreated}</td>
                       <td className="px-1.5 py-1.5 text-right tabular-nums text-emerald-400 font-semibold">{e.dealsWon}</td>
                       <td className="px-1.5 py-1.5 text-right tabular-nums text-rose-400 font-semibold">{e.dealsLost}</td>
-                      <td className="px-1.5 py-1.5 text-right tabular-nums text-slate-300">{e.callsMade}</td>
-                      <td className="px-1.5 py-1.5 text-right tabular-nums text-slate-300">{e.notesFollowups}</td>
-                      <td className="px-1.5 py-1.5 text-right tabular-nums text-slate-300">{e.siteVisitsDone}</td>
-                      <td className="pl-1.5 py-1.5 text-right font-black tabular-nums text-white">{e.taskScore}</td>
+                      <td className="px-1.5 py-1.5 text-right tabular-nums text-muted-foreground">{e.callsMade}</td>
+                      <td className="px-1.5 py-1.5 text-right tabular-nums text-muted-foreground">{e.notesFollowups}</td>
+                      <td className="px-1.5 py-1.5 text-right tabular-nums text-muted-foreground">{e.siteVisitsDone}</td>
+                      <td className="pl-1.5 py-1.5 text-right font-black tabular-nums text-foreground">{e.taskScore}</td>
                     </tr>
                   ))
                 )}
@@ -606,9 +606,9 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
         </div>
 
         {/* Leaderboard — 2/5 */}
-        <div className="rounded-2xl border border-white/[0.07] bg-material-sidebar p-5 lg:col-span-2 flex flex-col h-full overflow-hidden">
+        <div className="rounded-2xl border border-border bg-card p-5 lg:col-span-2 flex flex-col h-full overflow-hidden">
           <div className="flex items-center justify-between mb-4 shrink-0">
-            <h2 className="flex items-center gap-2 text-sm font-bold text-white">
+            <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
               <Trophy className="size-4 text-amber-400" />
               Leaderboard · Task score
             </h2>
@@ -619,7 +619,7 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
 
           <div className="flex-1 overflow-y-auto pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {a.leaderboard.filter((l) => l.taskScore > 0).length === 0 ? (
-              <p className="text-sm text-slate-400 py-4 text-center">No points awarded yet in this period.</p>
+              <p className="text-sm text-muted-foreground py-4 text-center">No points awarded yet in this period.</p>
             ) : (
               <ol className="space-y-1.5">
                 {a.leaderboard.slice(0, 10).map((l, i) => {
@@ -627,28 +627,28 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
                   const avatarColor = LEADERBOARD_AVATAR_COLORS[i % LEADERBOARD_AVATAR_COLORS.length];
                   const initial = l.name.trim().charAt(0).toUpperCase();
                   return (
-                    <li key={l.userId} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-white/[0.03] transition-colors">
+                    <li key={l.userId} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-accent transition-colors">
                       {/* Rank */}
                       <div className="w-5 shrink-0 text-center">
                         {medal
                           ? <span className="text-sm">{medal}</span>
-                          : <span className="text-xs font-bold text-slate-500 tabular-nums">{i + 1}</span>
+                          : <span className="text-xs font-bold text-muted-foreground tabular-nums">{i + 1}</span>
                         }
                       </div>
 
                       {/* Avatar */}
                       <div
-                        className="size-7 rounded-full flex items-center justify-center text-[11px] font-black text-white shrink-0 ring-2 ring-black/40"
+                        className="size-7 rounded-full flex items-center justify-center text-[11px] font-black text-foreground shrink-0 ring-2 ring-black/40"
                         style={{ backgroundColor: avatarColor }}
                       >
                         {initial}
                       </div>
 
                       {/* Name */}
-                      <span className="flex-1 text-xs font-semibold text-slate-200 truncate">{l.name}</span>
+                      <span className="flex-1 text-xs font-semibold text-foreground truncate">{l.name}</span>
 
                       {/* Score */}
-                      <span className="text-sm font-black text-white tabular-nums">
+                      <span className="text-sm font-black text-foreground tabular-nums">
                         {l.taskScore.toLocaleString("en-IN")}
                       </span>
                     </li>
@@ -666,20 +666,20 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 
         {/* Loss Reasons */}
-        <div className="rounded-2xl border border-white/[0.07] bg-[#14141f] p-5">
-          <h2 className="flex items-center gap-2 text-sm font-bold text-white mb-4">
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-foreground mb-4">
             <XCircle className="size-4 text-rose-400" />
             Loss reasons
           </h2>
           {a.lossReasons.length === 0 ? (
-            <p className="text-sm text-slate-400">No lost deals in this period. 🎉</p>
+            <p className="text-sm text-muted-foreground">No lost deals in this period. 🎉</p>
           ) : (
             <div className="space-y-2">
               {a.lossReasons.map((r) => (
                 <div key={r.reason} className="flex items-center justify-between gap-3 border-b border-white/[0.05] last:border-0 pb-2 last:pb-0">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="size-2 rounded-full bg-rose-400 shrink-0" />
-                    <span className="text-xs text-slate-300 truncate">{r.label}</span>
+                    <span className="text-xs text-muted-foreground truncate">{r.label}</span>
                   </div>
                   <span className="text-xs font-bold text-rose-300 tabular-nums shrink-0">
                     {r.count} · {inr(r.value)}
@@ -691,9 +691,9 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
         </div>
 
         {/* Recent Activity */}
-        <div className="rounded-2xl border border-white/[0.07] bg-[#14141f] p-5">
+        <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="flex items-center gap-2 text-sm font-bold text-white">
+            <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
               <TrendingUp className="size-4 text-indigo-400" />
               Recent activity
             </h2>
@@ -701,7 +701,7 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
               View all <ArrowUpRight className="size-3" />
             </a>
           </div>
-          <p className="text-xs text-slate-400">No recent activity available for the selected period.</p>
+          <p className="text-xs text-muted-foreground">No recent activity available for the selected period.</p>
         </div>
       </div>
 

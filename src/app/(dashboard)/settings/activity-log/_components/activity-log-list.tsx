@@ -144,7 +144,7 @@ export function ActivityLogList({
   }, [entityFilter, userFilter]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-24">
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <Filter className="size-4 text-muted-foreground" />

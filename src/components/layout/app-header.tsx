@@ -149,7 +149,7 @@ export function AppHeader() {
   const { user } = useCurrentUser();
   const breadcrumbs = generateBreadcrumbs(pathname);
   const [commandOpen, setCommandOpen] = React.useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => setMounted(true), []);
@@ -282,10 +282,10 @@ export function AppHeader() {
               variant="ghost"
               size="icon"
               className="size-9 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94]"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              title={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             >
-              {theme === "dark" ? (
+              {resolvedTheme === "dark" ? (
                 <Sun className="size-4" />
               ) : (
                 <Moon className="size-4" />
@@ -429,15 +429,15 @@ export function AppHeader() {
                   onSelect={(e) => {
                     // Keep the menu open so the theme flip is visible in place.
                     e.preventDefault();
-                    setTheme(theme === "dark" ? "light" : "dark");
+                    setTheme(resolvedTheme === "dark" ? "light" : "dark");
                   }}
                 >
-                  {theme === "dark" ? (
+                  {resolvedTheme === "dark" ? (
                     <Sun className="mr-2 size-4" />
                   ) : (
                     <Moon className="mr-2 size-4" />
                   )}
-                  {theme === "dark" ? "Light mode" : "Dark mode"}
+                  {resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem asChild>
