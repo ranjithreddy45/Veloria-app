@@ -26,7 +26,7 @@
 set -euo pipefail
 
 HOST=theveloriagrand@43.225.53.88
-DEST=~/veloria-app-prod
+DEST="~/veloria-app-prod"
 
 branch=$(git rev-parse --abbrev-ref HEAD)
 if [ "$branch" != "main" ]; then
