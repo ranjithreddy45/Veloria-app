@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { bookingAdvanceMet } from "@/lib/sales/quotation-calc";
 import { getSalesQuotation } from "@/actions/sales-quotation.actions";
 import { getQuoteShareLink } from "@/actions/quote-share.actions";
 import type { QuotationInput } from "@/lib/sales/quotation-calc";
@@ -73,7 +74,8 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
     clientEmail: l.contact?.email ?? null,
   }));
 
-  // Proforma-first flow: slot booking is gated until the 20% advance is paid
+  // Proforma-first flow: slot booking is gated until the booking advance is
+  // paid (PAYMENT_TERMS-derived), unless the viewer may override that gate.
   // on the quotation's invoice.
   const quoteInvoiceId = (res.data as { invoiceId?: string | null }).invoiceId;
   let advancePaid = false;
@@ -82,7 +84,7 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
       where: { id: quoteInvoiceId },
       select: { paidAmount: true, totalAmount: true },
     });
-    if (inv) advancePaid = Number(inv.paidAmount) >= Number(inv.totalAmount) * 0.2 - 1;
+    if (inv) advancePaid = bookingAdvanceMet(Number(inv.paidAmount), Number(inv.totalAmount));
   }
 
   // Quote radar: existing share-link signals (best-effort — never block render).
@@ -99,7 +101,7 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-6">
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <QuotationDetail quote={res.data as any} perms={perms} leads={leads} venues={venues} advancePaid={advancePaid} isSuperAdmin={role === "SUPER_ADMIN"} />
+      <QuotationDetail quote={res.data as any} perms={perms} leads={leads} venues={venues} advancePaid={advancePaid} canOverrideAdvance={hasPermission(role, "bookings:block-without-advance")} />
       <QuoteRadarPanel quotationId={id} initial={radarSignals} canShare={canShare} />
       {baseInput && typeof baseInput === "object" && (
         <TierBuilder

@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+import { BOOKING_ADVANCE_PCT } from "@/lib/sales/quotation-calc";
   Select,
   SelectContent,
   SelectItem,
@@ -32,13 +33,14 @@ interface Props {
   defaultPlannerSlot?: string | null;
   blocked: { bookingId: string; at: string | null } | null;
   invoiceId?: string | null;
-  /** True once the 20% booking advance has been paid on the quotation's invoice. */
+  /** True once the booking advance has been paid on the quotation's invoice. */
   advancePaid?: boolean;
-  /** Super Admins may block the slot before the 20% advance is received. */
-  isSuperAdmin?: boolean;
+  /** Holders of bookings:block-without-advance (Finance, Super Admin) may block
+   *  before the advance is received. Sales deliberately cannot. */
+  canOverrideAdvance?: boolean;
 }
 
-export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDateISO, defaultPlannerSlot, blocked, invoiceId, advancePaid, isSuperAdmin }: Props) {
+export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDateISO, defaultPlannerSlot, blocked, invoiceId, advancePaid, canOverrideAdvance }: Props) {
   const router = useRouter();
   const [venueId, setVenueId] = useState(defaultVenueId ?? "");
   const [date, setDate] = useState(defaultDateISO ? defaultDateISO.slice(0, 10) : "");
@@ -80,11 +82,11 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
           ) : (
             <Button size="sm" className="w-full" onClick={genInvoice} disabled={invoicing}>
               {invoicing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              Generate booking invoice (20% to confirm)
+              Generate booking invoice ({BOOKING_ADVANCE_PCT}% to confirm)
             </Button>
           )}
           <p className="text-xs text-muted-foreground">
-            Collect the 20% advance on the invoice — once paid, the slot auto-confirms and the customer is notified.
+            Collect the {BOOKING_ADVANCE_PCT}% advance on the invoice — once paid, the slot auto-confirms and the customer is notified.
           </p>
         </CardContent>
       </Card>
@@ -103,15 +105,15 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
     }
   }
 
-  // Super Admins may block before the advance is collected; everyone else is
-  // gated on the 20% advance (the server enforces this too).
-  const canBlock = advancePaid || isSuperAdmin;
-  const overriding = !advancePaid && !!isSuperAdmin;
+  // Finance (and Super Admin) may block before the advance is collected;
+  // everyone else is gated on the advance (the server enforces this too).
+  const canBlock = advancePaid || canOverrideAdvance;
+  const overriding = !advancePaid && !!canOverrideAdvance;
 
   async function block() {
     if (!venueId || !date) return toast.error("Pick a venue and date first.");
     if (overriding && !window.confirm(
-      "The 20% advance has NOT been received. Block this slot anyway? (Super Admin override — the booking stays on HOLD until the advance clears.)"
+      `The ${BOOKING_ADVANCE_PCT}% booking advance has NOT been received. Block this slot anyway? This holds the venue on an unpaid booking — it stays on HOLD until the advance clears.`
     )) return;
     setBlocking(true);
     try {
@@ -135,13 +137,14 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Step 1 — proforma invoice + advance. The slot is ONLY blocked after
-            the 20% advance is paid (blocking then auto-confirms the booking). */}
+            the booking advance is paid (blocking then auto-confirms the booking),
+            unless Finance overrides. The percentage is PAYMENT_TERMS-derived. */}
         <div className="space-y-2 rounded-xl border bg-muted/30 p-3.5">
-          <p className="text-sm font-medium">Step 1 — Collect the 20% advance</p>
+          <p className="text-sm font-medium">Step 1 — Collect the {BOOKING_ADVANCE_PCT}% advance</p>
           {!invoiceId ? (
             <Button size="sm" className="w-full" onClick={genInvoice} disabled={invoicing}>
               {invoicing ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              Generate proforma invoice (20% advance)
+              Generate proforma invoice ({BOOKING_ADVANCE_PCT}% advance)
             </Button>
           ) : advancePaid ? (
             <p className="text-success flex items-center gap-1.5 text-sm">
@@ -150,7 +153,7 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
           ) : (
             <div className="space-y-1.5">
               <p className="text-warning text-xs">
-                Advance pending. Record the 20% advance to unlock slot booking.
+                Advance pending. Record the {BOOKING_ADVANCE_PCT}% advance to unlock slot booking.
               </p>
               <Button asChild variant="outline" size="sm" className="w-full">
                 <a href={`/invoices/${invoiceId}`}>
@@ -222,14 +225,14 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
 
         <Button className="w-full" onClick={block} disabled={blocking || !canBlock || (selectedAvail ? !selectedAvail.available : false)}>
           {blocking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-          {advancePaid ? "Block this slot" : overriding ? "Block slot (Super Admin override)" : "Block slot (after advance)"}
+          {advancePaid ? "Block this slot" : overriding ? "Block slot without advance" : "Block slot (after advance)"}
         </Button>
         <p className="text-xs text-muted-foreground">
           {advancePaid
             ? "Advance received — blocking the slot confirms the booking and hands it to operations."
             : overriding
-            ? "Super Admin override: you can block before the 20% advance is received. The booking stays on HOLD until the advance clears. Others must collect the advance first."
-            : "Slot booking unlocks once the 20% advance is paid in Step 1. Only a Super Admin can block before then."}
+            ? `You can block before the ${BOOKING_ADVANCE_PCT}% booking advance is received. The booking stays on HOLD until the advance clears — Sales cannot do this.`
+            : `Slot booking unlocks once the ${BOOKING_ADVANCE_PCT}% advance is paid in Step 1. If the advance cannot be collected yet, ask Finance to block the slot.`}
         </p>
       </CardContent>
     </Card>

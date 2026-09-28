@@ -4,7 +4,8 @@
 // QuoteRadarPanel — mint a public /q/<token> share link for a quotation and
 // watch the "radar": did the customer open it, how many times, on what device,
 // and has it gone silent (opened but no view in 24h, unpaid) so the rep can
-// nudge. The link IS the one-tap "Pay 20% to block your date" page.
+// nudge. The link IS the one-tap "pay the booking advance to block your date"
+// page; the amount is the PAYMENT_TERMS first installment, not a literal 20%.
 // ------------------------------------------------------------
 // Additive surface mounted on the quotation detail page. All actions are
 // server actions (RBAC-gated there); this component only renders + refreshes.
@@ -47,6 +48,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { BOOKING_ADVANCE_PCT } from "@/lib/sales/quotation-calc";
 
 interface Props {
   quotationId: string;
@@ -209,7 +211,7 @@ export function QuoteRadarPanel({ quotationId, initial, canShare }: Props) {
             <p className="text-sm text-muted-foreground">
               {signals?.status === "REVOKED"
                 ? "The previous share link was revoked. Create a fresh one to share this quote again."
-                : "Share a one-tap “Pay 20% to block your date” link. You'll see when the customer opens it, how often, and if it goes quiet."}
+                : `Share a one-tap “Pay ${BOOKING_ADVANCE_PCT}% to block your date” link. You'll see when the customer opens it, how often, and if it goes quiet.`}
             </p>
             {canShare ? (
               <Button onClick={handleCreate} disabled={pending} className="gap-2">

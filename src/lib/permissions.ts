@@ -28,6 +28,12 @@ export type Permission =
   | "bookings:create"
   | "bookings:update"
   | "bookings:delete"
+  // Block a venue slot when the booking advance has NOT been received.
+  // Its own permission, deliberately narrow: collecting the advance is Sales's
+  // job, so Sales must never commit inventory without it. Finance sees the
+  // money actually land and carries the exception (cheque in hand, corporate
+  // PO), so Finance holds this and Sales does not.
+  | "bookings:block-without-advance"
   // Block a date or slot on the calendar (BlackoutDate). Its own permission on
   // purpose: blocking is day-to-day floor work that sales and coordinators do,
   // while settings:venues — which used to be the only way in — also unlocks
@@ -341,6 +347,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   "bookings:create",
   "bookings:update",
   "bookings:delete",
+  "bookings:block-without-advance",
   "bookings:blackout",
   "bookings:cancel",
   "tasks:read",
@@ -1029,6 +1036,11 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "procurement:read", // view procurement + the PR→GL bridge; POs are raised by Operations
     "contacts:read",
     "bookings:read",
+    // Finance may block a slot before the booking advance lands (cheque in
+    // hand, corporate PO). Deliberately NOT paired with bookings:create —
+    // this is an exception power over the calendar, not general booking
+    // creation, and Sales must not inherit it.
+    "bookings:block-without-advance",
     "invoices:read",
     "invoices:create",
     "invoices:update",

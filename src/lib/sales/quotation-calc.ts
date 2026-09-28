@@ -273,6 +273,28 @@ export const PAYMENT_TERMS = [
 export const PAYMENT_TERMS_LABEL = PAYMENT_TERMS.map((t) => t.pct).join(" / ");
 
 /**
+ * The booking-advance percentage — the money that blocks a slot. Derived from
+ * PAYMENT_TERMS so it can never contradict the terms printed on the quote and
+ * the installment plan raised against it.
+ *
+ * This used to be a hardcoded 0.2 in four places while the terms said 30%, so a
+ * customer who paid 20% held a slot the document said needed 30%.
+ */
+export const BOOKING_ADVANCE_PCT = PAYMENT_TERMS[0].pct;
+
+/**
+ * Has the booking advance been received on an invoice?
+ *
+ * Anchored on the INVOICE total (the number the first installment was computed
+ * from), not the booking total — the two can differ by a rupee of GST rounding.
+ * The ₹1 tolerance guarantees an exact first-installment payment always clears
+ * the bar rather than missing it by rounding.
+ */
+export function bookingAdvanceMet(paidAmount: number, invoiceTotal: number): boolean {
+  return paidAmount >= invoiceTotal * (BOOKING_ADVANCE_PCT / 100) - 1;
+}
+
+/**
  * The customer-facing terms sentence printed on invoices and quotes. Derived from
  * PAYMENT_TERMS so the wording on the document can never contradict the
  * installment plan actually raised against it.
