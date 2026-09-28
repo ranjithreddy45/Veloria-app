@@ -581,10 +581,11 @@ export const ALL_PERMISSIONS: Permission[] = [
 // Role -> Permission Mapping
 // ============================================================
 
-export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
-  SUPER_ADMIN: [...ALL_PERMISSIONS],
-
-  ADMIN: [
+/**
+ * Everything the ADMIN role carries. Lifted out of ROLE_PERMISSIONS so FINANCE
+ * can be built from the same list instead of a copy that silently drifts.
+ */
+const ADMIN_PERMISSIONS: Permission[] = [
     "bookings:blackout",
     "payments:link",
     "owners:read",
@@ -813,6 +814,13 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "franchise:payout:approve",
     "ai:use",
     "ai:admin",
+];
+
+export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
+  SUPER_ADMIN: [...ALL_PERMISSIONS],
+
+  ADMIN: [
+    ...ADMIN_PERMISSIONS,
   ],
 
   SALES_EXEC: [
@@ -1033,62 +1041,18 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 
   FINANCE: [
-    "payments:link",
-    "procurement:read", // view procurement + the PR→GL bridge; POs are raised by Operations
-    "contacts:read",
-    "bookings:read",
-    // Finance may block a slot on the reduced advance rather than the full
-    // one. Deliberately NOT paired with bookings:create on the role itself —
-    // this is a calendar exception power, and Sales must not inherit it.
+    // 2026-09-28 — Ranjith asked for Finance to have admin access, confirmed
+    // after being shown exactly what it adds: users:manage-roles (Finance can
+    // promote any account, including their own, to SUPER_ADMIN), users:create,
+    // settings:update, hr:payroll + staff:payroll (every salary in the
+    // company), and ~25 delete permissions. His call, recorded here so the
+    // reason is not lost. Revert by restoring the finance-scoped list from git
+    // history (the commit that introduced this line).
+    ...ADMIN_PERMISSIONS,
+    // Kept because ADMIN does NOT carry these two — a plain admin list would
+    // silently take the 10% slot-blocking power away from Finance.
     "bookings:block-reduced-advance",
-    "invoices:read",
-    "invoices:create",
-    "invoices:update",
-    "invoices:delete",
-    "invoices:send",
-    "invoices:cancel",
-    "payments:read",
-    "payments:create",
-    "payments:update",
-    "payments:refund",
-    "payments:cancel",
-    "finance:read",
-    "pricing:read",
-    "quotes:read",
-    "contracts:read",
-    "vendors:read",
-    "payouts:read",
-    "payouts:create",
-    "payouts:approve",
-    "commissions:read",
-    "commissions:create",
-    "commissions:approve",
-    "forecast:read",
-    "forecast:create",
-    "budget:read",
-    "budget:create",
-    "budget:update",
-    "accounting:read",
-    "accounting:sync",
-    "insurance:read",
-    "insurance:create",
-    "insurance:update",
-    "insurance:delete",
-    "dashboard:read",
-    "dashboard:analytics",
-    "settings:read",
-    "analytics:read",
-    "analytics:advanced",
-    "performance:read",
-    "quality:read",
-    "documents:read",
-    "currency:read",
-    "referrals:rewards",
-    "marketing:read",
-    "franchise:read",
-    "franchise:revshare",
-    "franchise:payout:approve",
-    "ai:use",
+    "procurement:read",
   ],
 
   STAFF: [

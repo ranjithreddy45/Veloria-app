@@ -6,8 +6,10 @@ import { hasPermission } from "./permissions";
 // permission also unlocks venue public info, customer content, business contact
 // details and GST rates. bookings:blackout separates the two.
 describe("who can block a date on the calendar", () => {
-  const CAN = ["SUPER_ADMIN", "ADMIN", "EVENT_COORDINATOR", "SALES_EXEC", "SALES_HEAD", "OPERATIONS", "OPERATIONS_HEAD", "PROPERTY_MANAGER"];
-  const CANNOT = ["STAFF", "CLIENT", "FINANCE", "BD_EXECUTIVE"];
+  const CAN = ["SUPER_ADMIN", "ADMIN", "FINANCE", "EVENT_COORDINATOR", "SALES_EXEC", "SALES_HEAD", "OPERATIONS", "OPERATIONS_HEAD", "PROPERTY_MANAGER"];
+  // FINANCE moved into CAN on 2026-09-28: the role was granted the full admin
+  // permission set at the owner's request, which includes bookings:blackout.
+  const CANNOT = ["STAFF", "CLIENT", "BD_EXECUTIVE"];
 
   for (const role of CAN) {
     it(`${role} can block a date`, () => {

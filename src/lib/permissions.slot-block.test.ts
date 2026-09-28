@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { hasPermission, routePermission } from "./permissions";
+
+/** Mirrors the canBlockSlot expression in quotations/[id]/page.tsx. */
+const canBlockSlot = (role: string) =>
+  role === "SUPER_ADMIN" ||
+  role === "ADMIN" ||
+  hasPermission(role, "bookings:create") ||
+  hasPermission(role, "bookings:block-reduced-advance");
 import {
   BOOKING_ADVANCE_PCT,
   REDUCED_ADVANCE_PCT,
@@ -44,8 +51,15 @@ describe("who can block a venue slot on the reduced advance", () => {
     expect(hasPermission("FINANCE", "quotes:read")).toBe(true);
   });
 
-  it("does not put bookings:create on the Finance role itself", () => {
-    expect(hasPermission("FINANCE", "bookings:create")).toBe(false);
+  it("now carries bookings:create too, via the 2026-09-28 admin grant", () => {
+    // Originally Finance was given ONLY the override, so it could block a slot
+    // without gaining general booking creation. That narrowing was undone when
+    // the owner asked for Finance to hold the full admin permission set. The
+    // override still matters: it is what allows the 10% bar, which plain ADMIN
+    // does not have.
+    expect(hasPermission("FINANCE", "bookings:create")).toBe(true);
+    expect(hasPermission("FINANCE", "bookings:block-reduced-advance")).toBe(true);
+    expect(hasPermission("ADMIN", "bookings:block-reduced-advance")).toBe(false);
   });
 
   it("but DOES let Finance through createBooking, because that is the same act", () => {
@@ -127,13 +141,6 @@ describe("the reduced advance Finance may block on", () => {
 // (quotes:send) — which Finance does not hold. Server-side rights are useless
 // if the UI never draws the control.
 describe("Finance can actually SEE the Block-the-slot card", () => {
-  // Mirrors the canBlockSlot expression in quotations/[id]/page.tsx.
-  const canBlockSlot = (role: string) =>
-    role === "SUPER_ADMIN" ||
-    role === "ADMIN" ||
-    hasPermission(role, "bookings:create") ||
-    hasPermission(role, "bookings:block-reduced-advance");
-
   it("renders for Finance", () => {
     expect(canBlockSlot("FINANCE")).toBe(true);
   });
@@ -148,8 +155,15 @@ describe("Finance can actually SEE the Block-the-slot card", () => {
     expect(canBlockSlot("CLIENT")).toBe(false);
   });
 
-  it("documents why the old gate failed: Finance has no quotes:send", () => {
-    expect(hasPermission("FINANCE", "quotes:send")).toBe(false);
-    expect(hasPermission("FINANCE", "quotes:read")).toBe(true); // but can open the page
+  it("keeps the gate on blocking rights, not on quotes:send", () => {
+    // The original bug: the card was behind quotes:send, which Finance lacked.
+    // Finance now holds quotes:send through the admin grant, so that specific
+    // symptom is gone — but the gate stays on canBlockSlot deliberately. If the
+    // admin grant is ever reverted, the card must not disappear again.
+    expect(canBlockSlot("FINANCE")).toBe(true);
+    // Proof the gate does not depend on quotes:send: a role with booking rights
+    // and no send rights still renders the card.
+    expect(hasPermission("EVENT_COORDINATOR", "quotes:send")).toBe(false);
+    expect(canBlockSlot("EVENT_COORDINATOR")).toBe(hasPermission("EVENT_COORDINATOR", "bookings:create"));
   });
 });
