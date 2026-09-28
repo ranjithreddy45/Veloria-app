@@ -121,3 +121,35 @@ describe("the reduced advance Finance may block on", () => {
     expect(bookingAdvanceMet(reduced, total)).toBe(false);
   });
 });
+
+// The permission was live and correct for a week and still did nothing, because
+// the card that carries the button was rendered behind perms.canSend
+// (quotes:send) — which Finance does not hold. Server-side rights are useless
+// if the UI never draws the control.
+describe("Finance can actually SEE the Block-the-slot card", () => {
+  // Mirrors the canBlockSlot expression in quotations/[id]/page.tsx.
+  const canBlockSlot = (role: string) =>
+    role === "SUPER_ADMIN" ||
+    role === "ADMIN" ||
+    hasPermission(role, "bookings:create") ||
+    hasPermission(role, "bookings:block-reduced-advance");
+
+  it("renders for Finance", () => {
+    expect(canBlockSlot("FINANCE")).toBe(true);
+  });
+
+  it("still renders for the sales roles that always had it", () => {
+    expect(canBlockSlot("SALES_EXEC")).toBe(true);
+    expect(canBlockSlot("SALES_HEAD")).toBe(true);
+  });
+
+  it("does not render for roles with no booking rights", () => {
+    expect(canBlockSlot("STAFF")).toBe(false);
+    expect(canBlockSlot("CLIENT")).toBe(false);
+  });
+
+  it("documents why the old gate failed: Finance has no quotes:send", () => {
+    expect(hasPermission("FINANCE", "quotes:send")).toBe(false);
+    expect(hasPermission("FINANCE", "quotes:read")).toBe(true); // but can open the page
+  });
+});

@@ -112,7 +112,7 @@ interface QuoteRow {
 
 interface Props {
   quote: QuoteRow;
-  perms: { canApprove: boolean; canSend: boolean; canCreate: boolean; canEdit: boolean };
+  perms: { canApprove: boolean; canSend: boolean; canCreate: boolean; canEdit: boolean; canBlockSlot: boolean };
   leads: LeadOpt[];
   venues: VenueOpt[];
   advancePaid?: boolean;
@@ -339,7 +339,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, redu
 
         {/* Totals + schedule + timeline */}
         <div className="space-y-4">
-          {(quote.status === "APPROVED" || quote.status === "SENT") && perms.canSend && (
+          {(quote.status === "APPROVED" || quote.status === "SENT") && perms.canBlockSlot && (
             <SlotBlockCard
               quotationId={quote.id}
               venues={venues}

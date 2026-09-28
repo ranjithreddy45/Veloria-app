@@ -25,6 +25,14 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
     canSend: isAdmin || hasPermission(role, "quotes:send"),
     canCreate: isAdmin || hasPermission(role, "quotes:create"),
     canEdit: isAdmin || hasPermission(role, "quotes:update"),
+    // The Block-the-slot card used to be gated on canSend (quotes:send), which
+    // FINANCE does not hold — so Finance could never see the card at all, and
+    // bookings:block-reduced-advance was unreachable through the UI. Gate it on
+    // actually being able to block instead.
+    canBlockSlot:
+      isAdmin ||
+      hasPermission(role, "bookings:create") ||
+      hasPermission(role, "bookings:block-reduced-advance"),
   };
 
   const [leadsRaw, venues] = await Promise.all([
