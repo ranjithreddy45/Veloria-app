@@ -450,7 +450,15 @@ export async function createBooking(data: BookingInput) {
       return { success: false as const, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role, "bookings:create")) {
+    // bookings:block-without-advance is accepted here too. Blocking a slot IS
+    // creating a HOLD booking — blockSlotFromQuotation delegates to this very
+    // function — so without it Finance passes the slot gate and then dies on
+    // this check with "Insufficient permissions". Role comes from the session,
+    // never from the caller's arguments, so this cannot be forged client-side.
+    if (
+      !hasPermission(session.user.role, "bookings:create") &&
+      !hasPermission(session.user.role, "bookings:block-without-advance")
+    ) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 

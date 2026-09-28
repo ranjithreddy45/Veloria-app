@@ -217,7 +217,7 @@ const CORPORATE_SALES: KraTemplate = {
             { value: "BELOW", label: "Below 10", points: 0 },
           ] },
           note: "Auto-fills booking count + avg ticket; manager confirms the band." },
-        { ref: "A3", name: "Payment Collection — 3-Stage", metric: "20% booking + 60% T-15d + 20% T-2h.", target: "100% before every event", maxPoints: 5, source: "MANUAL",
+        { ref: "A3", name: "Payment Collection — 3-Stage", metric: "30% booking + 50% T-15d + 20% T-2h.", target: "100% before every event", maxPoints: 5, source: "MANUAL",
           score: { kind: "manualBands", bands: [
             { value: "ALL_ON_TIME", label: "All 3 stages on time", points: 5 },
             { value: "ONE_RECOVERED", label: "1 delay, recovered", points: 3 },

@@ -38,10 +38,21 @@ describe("who can block a venue slot without the booking advance", () => {
     expect(hasPermission("FINANCE", "quotes:read")).toBe(true);
   });
 
-  it("does NOT hand Finance general booking creation with it", () => {
-    // Finance reaches blockSlotFromQuotation through the override alone. Giving
-    // them bookings:create would open every other booking-creation surface.
+  it("does not put bookings:create on the Finance role itself", () => {
     expect(hasPermission("FINANCE", "bookings:create")).toBe(false);
+  });
+
+  it("but DOES let Finance through createBooking, because that is the same act", () => {
+    // Honest about the consequence: blockSlotFromQuotation delegates to
+    // createBooking, which accepts bookings:create OR the override. So Finance
+    // can also reach the Bookings form. That is coherent — holding a date for
+    // an unpaid customer is the capability we just granted — but it is a real
+    // widening, not a no-op, and it is asserted here rather than left implied.
+    const mayCreateBooking = (role: string) =>
+      hasPermission(role, "bookings:create") || hasPermission(role, "bookings:block-without-advance");
+    expect(mayCreateBooking("FINANCE")).toBe(true);
+    expect(mayCreateBooking("STAFF")).toBe(false);
+    expect(mayCreateBooking("CLIENT")).toBe(false);
   });
 });
 
