@@ -241,15 +241,13 @@ export function ActiveAlertsPopup() {
           <AlertTriangle className="size-4" />
           <Badge
             className={cn(
-              "absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center border-0 p-0 text-meta",
-              // Red is reserved for genuinely late work, so that when it does
-              // appear it still means something.
+              "absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-0 px-1 text-[10px] leading-none font-medium text-white shadow-sm",
               overdueCount > 0
-                ? "bg-destructive text-white"
-                : "bg-primary text-primary-foreground"
+                ? "bg-destructive"
+                : "bg-primary"
             )}
           >
-            {data.total}
+            {data.total > 99 ? "99+" : data.total}
           </Badge>
         </Button>
       </PopoverTrigger>

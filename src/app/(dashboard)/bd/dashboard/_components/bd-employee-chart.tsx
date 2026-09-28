@@ -59,7 +59,7 @@ export function BdEmployeeChart({ employees }: { employees: BdEmployeeRow[] }) {
             className={cn(
               "rounded-full border px-2.5 py-1 text-detail font-medium transition",
               metricKey === m.key
-                ? "border-transparent text-white"
+                ? "border-transparent text-foreground"
                 : "border-border bg-muted/30 text-muted-foreground hover:bg-muted"
             )}
             style={metricKey === m.key ? { backgroundColor: m.color } : undefined}

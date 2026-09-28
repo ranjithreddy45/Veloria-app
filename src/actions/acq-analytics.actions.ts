@@ -173,7 +173,7 @@ export async function getBdAnalytics(params: BdRangeParams): Promise<Result<unkn
       // Deals created in range
       prisma.acqDeal.findMany({
         where: { deletedAt: null, createdAt: inRange, ...(empFilter ? { bdExecutiveId: empFilter } : {}) },
-        select: { id: true, bdExecutiveId: true, projectedFeeValue: true, taFees: true },
+        select: { id: true, bdExecutiveId: true, projectedFeeValue: true, taFees: true, createdAt: true },
       }),
       // Deals won in range (by wonAt)
       prisma.acqDeal.findMany({
@@ -333,6 +333,39 @@ export async function getBdAnalytics(params: BdRangeParams): Promise<Result<unkn
   const closedDeals = totals.dealsWon + totals.dealsLost;
   const winRate = closedDeals ? totals.dealsWon / closedDeals : 0;
 
+  // ---- Pipeline trend (daily buckets within range) ----------
+  // Build a Map<dateKey, {...}> for every calendar day in [range.start, range.end].
+  const dayMs = 24 * 60 * 60 * 1000;
+  const trendMap = new Map<string, { date: string; leads: number; dealsCreated: number; qualified: number; won: number; lost: number }>();
+  const rangeStart = new Date(range.start);
+  const rangeEnd   = new Date(range.end);
+  // Cap at 90 days to avoid huge maps
+  const totalDays = Math.min(90, Math.ceil((rangeEnd.getTime() - rangeStart.getTime()) / dayMs) + 1);
+  for (let i = 0; i < totalDays; i++) {
+    const d = new Date(rangeStart.getTime() + i * dayMs);
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    trendMap.set(key, { date: key, leads: 0, dealsCreated: 0, qualified: 0, won: 0, lost: 0 });
+  }
+  const toKey = (d: Date) =>
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  for (const l of leads) {
+    if (l.createdAt) {
+      const k = toKey(new Date(l.createdAt)); const b = trendMap.get(k);
+      if (b) {
+        b.leads++;
+        if (QUALIFIED_OR_BEYOND.has(l.status)) b.qualified++;
+      }
+    }
+  }
+  for (const d of dealsCreated) {
+    const k = toKey(new Date(d.createdAt)); const b = trendMap.get(k); if (b) b.dealsCreated++;
+  }
+  for (const d of dealsWon) {
+    if (d.wonAt) { const k = toKey(new Date(d.wonAt)); const b = trendMap.get(k); if (b) b.won++; }
+  }
+  const pipelineTrend = [...trendMap.values()];
+
+
   return {
     success: true,
     data: {
@@ -344,6 +377,7 @@ export async function getBdAnalytics(params: BdRangeParams): Promise<Result<unkn
       funnel,
       lossReasons,
       conversion: { leadToQualified, qualifiedToWon, winRate },
+      pipelineTrend,
     },
   };
 }

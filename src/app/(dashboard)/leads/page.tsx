@@ -363,7 +363,7 @@ export default async function LeadsPage({
               does, the screen says so instead of quietly lying.
             */}
             {leads.length < totalLeads && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground/80">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-white/80">
                 Showing{" "}
                 <span className="font-semibold numeric">{leads.length}</span> of{" "}
                 <span className="font-semibold numeric">{totalLeads}</span> leads

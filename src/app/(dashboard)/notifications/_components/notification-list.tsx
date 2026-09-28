@@ -19,6 +19,8 @@ import {
   Eye,
   EyeOff,
   Filter,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,7 @@ import {
   markAsRead,
   markAllAsRead,
   deleteNotification,
+  getNotifications,
   type NotificationItem,
 } from "@/actions/notification.actions";
 import type { NotificationType } from "@prisma/client";
@@ -188,6 +191,7 @@ interface NotificationListProps {
   initialNotifications: NotificationItem[];
   userId: string;
   total: number;
+  totalUnread: number;
 }
 
 type FilterTab = "all" | "unread";
@@ -200,17 +204,22 @@ export function NotificationList({
   initialNotifications,
   userId,
   total,
+  totalUnread,
 }: NotificationListProps) {
   const [notifications, setNotifications] = useState(initialNotifications);
+  const [globalTotal, setGlobalTotal] = useState(total);
+  const [globalUnread, setGlobalUnread] = useState(totalUnread);
   const [filter, setFilter] = useState<FilterTab>("all");
   const [isPending, startTransition] = useTransition();
+  const [isLoading, setIsLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const perPage = 15;
+  const totalPages = Math.max(1, Math.ceil(globalTotal / perPage));
 
   const filteredNotifications =
     filter === "unread"
       ? notifications.filter((n) => !n.isRead)
       : notifications;
-
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   // Mark single as read/unread toggle
   const handleToggleRead = useCallback(
@@ -218,16 +227,20 @@ export function NotificationList({
       startTransition(async () => {
         // Snapshot for rollback, then apply optimistic update.
         const snapshot = notifications;
+        const snapshotUnread = globalUnread;
         setNotifications((prev) =>
           prev.map((n) =>
             n.id === notificationId ? { ...n, isRead: true } : n
           )
         );
+        setGlobalUnread((prev) => Math.max(0, prev - 1));
+        
         try {
           await markAsRead(notificationId);
         } catch (err) {
           // Server rejected (e.g. Unauthorized / Not found) — revert UI.
           setNotifications(snapshot);
+          setGlobalUnread(snapshotUnread);
           toast.error(
             err instanceof Error
               ? err.message
@@ -236,18 +249,21 @@ export function NotificationList({
         }
       });
     },
-    [notifications]
+    [notifications, globalUnread]
   );
 
   // Mark all as read
   const handleMarkAllAsRead = useCallback(() => {
     startTransition(async () => {
       const snapshot = notifications;
+      const snapshotUnread = globalUnread;
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setGlobalUnread(0);
       try {
         await markAllAsRead(userId);
       } catch (err) {
         setNotifications(snapshot);
+        setGlobalUnread(snapshotUnread);
         toast.error(
           err instanceof Error
             ? err.message
@@ -255,20 +271,33 @@ export function NotificationList({
         );
       }
     });
-  }, [userId, notifications]);
+  }, [userId, notifications, globalUnread]);
 
   // Delete notification
   const handleDelete = useCallback(
     (notificationId: string) => {
       startTransition(async () => {
         const snapshot = notifications;
+        const snapshotTotal = globalTotal;
+        const snapshotUnread = globalUnread;
+        
+        const target = notifications.find((n) => n.id === notificationId);
+        const isTargetUnread = target ? !target.isRead : false;
+
         setNotifications((prev) =>
           prev.filter((n) => n.id !== notificationId)
         );
+        setGlobalTotal((prev) => Math.max(0, prev - 1));
+        if (isTargetUnread) {
+          setGlobalUnread((prev) => Math.max(0, prev - 1));
+        }
+
         try {
           await deleteNotification(notificationId);
         } catch (err) {
           setNotifications(snapshot);
+          setGlobalTotal(snapshotTotal);
+          setGlobalUnread(snapshotUnread);
           toast.error(
             err instanceof Error
               ? err.message
@@ -277,8 +306,53 @@ export function NotificationList({
         }
       });
     },
-    [notifications]
+    [notifications, globalTotal, globalUnread]
   );
+
+  const loadPage = useCallback(async (targetPage: number) => {
+    if (targetPage === page || targetPage < 1 || targetPage > totalPages) return;
+    setIsLoading(true);
+    try {
+      const res = await getNotifications(userId, {
+        limit: perPage,
+        offset: (targetPage - 1) * perPage,
+        unreadOnly: filter === "unread"
+      });
+      setNotifications(res.notifications);
+      if (filter === "all") {
+        setGlobalTotal(res.total);
+      } else {
+        setGlobalUnread(res.total);
+      }
+      setPage(targetPage);
+    } catch (err) {
+      toast.error("Failed to load notifications");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [page, totalPages, userId, filter]);
+
+  // When filter changes, reset to page 1 and reload
+  const handleFilterChange = (newFilter: FilterTab) => {
+    if (newFilter === filter) return;
+    setFilter(newFilter);
+    setPage(1);
+    startTransition(async () => {
+      setIsLoading(true);
+      try {
+        const res = await getNotifications(userId, {
+          limit: perPage,
+          offset: 0,
+          unreadOnly: newFilter === "unread"
+        });
+        setNotifications(res.notifications);
+      } catch (err) {
+        toast.error("Failed to apply filter");
+      } finally {
+        setIsLoading(false);
+      }
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -286,7 +360,7 @@ export function NotificationList({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
           <button
-            onClick={() => setFilter("all")}
+            onClick={() => handleFilterChange("all")}
             className={cn(
               "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
               filter === "all"
@@ -294,10 +368,10 @@ export function NotificationList({
                 : "text-muted-foreground hover:text-foreground/80"
             )}
           >
-            All ({notifications.length})
+            All ({globalTotal})
           </button>
           <button
-            onClick={() => setFilter("unread")}
+            onClick={() => handleFilterChange("unread")}
             className={cn(
               "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
               filter === "unread"
@@ -305,11 +379,11 @@ export function NotificationList({
                 : "text-muted-foreground hover:text-foreground/80"
             )}
           >
-            Unread ({unreadCount})
+            Unread ({globalUnread})
           </button>
         </div>
 
-        {unreadCount > 0 && (
+        {globalUnread > 0 && (
           <Button
             variant="outline"
             size="sm"
@@ -341,7 +415,7 @@ export function NotificationList({
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           {filteredNotifications.map((notification) => {
             const iconConfig =
               NOTIFICATION_ICONS[notification.type] ||
@@ -349,47 +423,47 @@ export function NotificationList({
             const Icon = iconConfig.icon;
 
             return (
-              <Card
+              <div
                 key={notification.id}
                 className={cn(
-                  "transition-all duration-200",
-                  !notification.isRead && "border-l-2 border-l-indigo-500 bg-indigo-50/30"
+                  "group relative flex items-start gap-4 rounded-xl p-4 transition-colors border",
+                  notification.isRead
+                    ? "bg-transparent border-transparent hover:bg-muted/40"
+                    : "bg-primary/5 border-primary/10 hover:bg-primary/10"
                 )}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    {/* Icon */}
-                    <div
-                      className={cn(
-                        "flex size-10 shrink-0 items-center justify-center rounded-full",
-                        iconConfig.bg
-                      )}
-                    >
-                      <Icon className={cn("size-4", iconConfig.color)} />
-                    </div>
+                {/* Icon */}
+                <div
+                  className={cn(
+                    "flex size-10 shrink-0 items-center justify-center rounded-full mt-0.5",
+                    iconConfig.bg
+                  )}
+                >
+                  <Icon className={cn("size-4", iconConfig.color)} />
+                </div>
 
-                    {/* Content */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p
-                            className={cn(
-                              "text-sm",
-                              notification.isRead
-                                ? "text-foreground/80"
-                                : "font-semibold text-foreground"
-                            )}
-                          >
-                            {safeText(notification.title, 200)}
-                          </p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {safeText(notification.message, 500)}
-                          </p>
-                        </div>
-                        {!notification.isRead && (
-                          <div className="mt-1 size-2.5 shrink-0 rounded-full bg-indigo-600" />
+                {/* Content */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p
+                        className={cn(
+                          "text-sm font-medium",
+                          notification.isRead
+                            ? "text-foreground/80"
+                            : "text-foreground"
                         )}
-                      </div>
+                      >
+                        {safeText(notification.title, 200)}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground/90 leading-relaxed">
+                        {safeText(notification.message, 500)}
+                      </p>
+                    </div>
+                    {!notification.isRead && (
+                      <div className="mt-1.5 size-2 shrink-0 rounded-full bg-primary shadow-sm" />
+                    )}
+                  </div>
 
                       <div className="mt-2 flex items-center gap-3">
                         <span className="text-xs text-muted-foreground">
@@ -407,49 +481,110 @@ export function NotificationList({
                         </span>
                       </div>
 
-                      {/* Action buttons */}
-                      <div className="mt-3 flex items-center gap-2">
-                        {notification.actionUrl && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs"
-                            asChild
-                          >
-                            <Link href={notification.actionUrl}>
-                              View details
-                            </Link>
-                          </Button>
-                        )}
-                        {!notification.isRead && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs text-muted-foreground"
-                            onClick={() => handleToggleRead(notification.id)}
-                            disabled={isPending}
-                          >
-                            <Eye className="mr-1 size-3" />
-                            Mark as read
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs text-red-500 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDelete(notification.id)}
-                          disabled={isPending}
-                        >
-                          <Trash2 className="mr-1 size-3" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
+                  {/* Action buttons */}
+                  <div className="mt-3 flex items-center gap-1.5 opacity-80 transition-opacity group-hover:opacity-100">
+                    {notification.actionUrl && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="h-7 px-3 text-[11px] font-medium"
+                        asChild
+                      >
+                        <Link href={notification.actionUrl}>
+                          View details
+                        </Link>
+                      </Button>
+                    )}
+                    {!notification.isRead && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-3 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+                        onClick={() => handleToggleRead(notification.id)}
+                        disabled={isPending}
+                      >
+                        <Eye className="mr-1.5 size-3" />
+                        Mark as read
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-3 text-[11px] font-medium text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
+                      onClick={() => handleDelete(notification.id)}
+                      disabled={isPending}
+                    >
+                      <Trash2 className="mr-1.5 size-3" />
+                      Delete
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             );
           })}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between pt-4 pb-20 gap-4 pr-12">
+              <div className="text-[13px] text-muted-foreground">
+                Showing {Math.min((page - 1) * perPage + 1, filter === "unread" ? globalUnread : globalTotal)}-{Math.min(page * perPage, filter === "unread" ? globalUnread : globalTotal)} of {filter === "unread" ? globalUnread : globalTotal} notifications
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={page === 1 || isLoading}
+                  onClick={() => loadPage(page - 1)}
+                  className="size-8 rounded text-muted-foreground"
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                
+                {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
+                  // Logic to show a sliding window of pages around current page
+                  let pageNum = i + 1;
+                  if (totalPages > 5) {
+                    if (page > 3 && page < totalPages - 1) {
+                      pageNum = page - 2 + i;
+                    } else if (page >= totalPages - 1) {
+                      pageNum = totalPages - 4 + i;
+                    }
+                  }
+                  
+                  const isActive = pageNum === page;
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={isActive ? "default" : "ghost"}
+                      size="icon"
+                      onClick={() => loadPage(pageNum)}
+                      disabled={isLoading}
+                      className={cn(
+                        "size-8 rounded font-medium text-[13px]",
+                        !isActive && "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      )}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+
+                {totalPages > 5 && page < totalPages - 2 && (
+                  <span className="text-muted-foreground mx-1 text-sm tracking-widest">...</span>
+                )}
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  disabled={page === totalPages || isLoading}
+                  onClick={() => loadPage(page + 1)}
+                  className="size-8 rounded text-muted-foreground"
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

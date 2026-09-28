@@ -28,6 +28,12 @@ export type Permission =
   | "bookings:create"
   | "bookings:update"
   | "bookings:delete"
+  // Block a date or slot on the calendar (BlackoutDate). Its own permission on
+  // purpose: blocking is day-to-day floor work that sales and coordinators do,
+  // while settings:venues — which used to be the only way in — also unlocks
+  // venue public info, customer-facing content, business contact details and
+  // GST rates. Only SUPER_ADMIN held that, so nobody else could block a date.
+  | "bookings:blackout"
   | "bookings:cancel"
   // Tasks
   | "tasks:read"
@@ -335,6 +341,7 @@ export const ALL_PERMISSIONS: Permission[] = [
   "bookings:create",
   "bookings:update",
   "bookings:delete",
+  "bookings:blackout",
   "bookings:cancel",
   "tasks:read",
   "tasks:create",
@@ -570,6 +577,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   SUPER_ADMIN: [...ALL_PERMISSIONS],
 
   ADMIN: [
+    "bookings:blackout",
     "payments:link",
     "owners:read",
     "owners:create",
@@ -800,6 +808,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 
   SALES_EXEC: [
+    "bookings:blackout",
     // Raise and send the bill, and ask for the advance. Recording money
     // received stays with finance (payments:create).
     "invoices:create",
@@ -867,6 +876,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   // Superset of SALES_EXEC plus manager-level sales capabilities
   // (lead reassignment/deletion, pipeline management, quote approval, team analytics & performance oversight).
   SALES_HEAD: [
+    "bookings:blackout",
     // Raise and send the bill, and ask for the advance. Recording money
     // received stays with finance (payments:create).
     "invoices:create",
@@ -948,6 +958,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 
   EVENT_COORDINATOR: [
+    "bookings:blackout",
     "beo:read", "beo:write", "kitchen:read", "kitchen:write",
     "support:read", "support:write", "logistics:read",
     "contacts:read",
@@ -1117,6 +1128,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "franchise:onboard",
   ],
   OPERATIONS: [
+    "bookings:blackout",
     "beo:read", "beo:write", "kitchen:read", "kitchen:write",
     "procurement:read", "procurement:write", "support:read", "support:write",
     "logistics:read", "logistics:write",
@@ -1136,6 +1148,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
   // Operations Head — full operations oversight across all events + vendor mgmt.
   OPERATIONS_HEAD: [
+    "bookings:blackout",
     "beo:read", "beo:write", "kitchen:read", "kitchen:write",
     "procurement:read", "procurement:write", "support:read", "support:write",
     "logistics:read", "logistics:write",
@@ -1153,6 +1166,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
   // Property Manager — property readiness + event-day execution for their venue.
   PROPERTY_MANAGER: [
+    "bookings:blackout",
     "dashboard:read",
     "bookings:read",
     "beo:read", "kitchen:read", "logistics:read",

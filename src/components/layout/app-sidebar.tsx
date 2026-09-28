@@ -460,7 +460,12 @@ function SidebarCollapsibleItem({
   onNavigate: (href: string) => void;
   pinFor: (item: NavItem) => PinControl;
 }) {
-  const isGroupActive = pathname.startsWith(item.href);
+  const isGroupActive =
+    pathname === item.href ||
+    pathname.startsWith(item.href + "/") ||
+    !!item.children?.some(
+      (child) => pathname === child.href || pathname.startsWith(child.href + "/")
+    );
   const { state } = useSidebar();
 
   if (state === "collapsed") {

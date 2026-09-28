@@ -18,6 +18,10 @@ import {
   resolveFileValues,
   storeIncomingFile,
 } from "@/lib/storage/data-url";
+import {
+  stampsForStatus,
+  validateLeadStatusChange,
+} from "@/lib/marketing/lead-status-rules";
 import { calculateLeadScore } from "@/lib/lead-scoring";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -386,6 +390,11 @@ export async function getLead(id: string) {
             term: true,
             content: true,
             gclid: true,
+            // The iOS click ids count too: a lead that arrived through an app
+            // or an iOS web click carries one of these instead of a gclid, and
+            // the detail page used to call that "no click at all".
+            gbraid: true,
+            wbraid: true,
             campaignRef: { select: { id: true, name: true } },
           },
         },
@@ -1096,6 +1105,43 @@ export async function getSalesFollowupQueue(): Promise<
   return { success: true, data: serialize({ overdue, today, upcoming }) as { overdue: unknown[]; today: unknown[]; upcoming: unknown[] } };
 }
 
+/**
+ * Record that the customer confirmed the Hosa Road location works for them.
+ *
+ * Its own action rather than part of the lead edit form because it is evidence
+ * for a rule, not a detail: it is one of the four things that let a lead be
+ * called Qualified, and it gets ticked in the middle of a phone call.
+ */
+export async function setLeadLocationConfirmed(id: string, confirmed: boolean) {
+  try {
+    const session = await auth();
+    if (!session?.user) return { success: false as const, error: "Unauthorized" };
+    if (!hasPermission(session.user.role, "leads:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+
+    const lead = await prisma.lead.findFirst({
+      where: { id, deletedAt: null },
+      select: { id: true },
+    });
+    if (!lead) return { success: false as const, error: "Lead not found" };
+
+    await prisma.lead.update({ where: { id }, data: { locationConfirmed: confirmed } });
+    await logActivity({
+      action: confirmed ? "location_confirmed" : "location_confirmation_removed",
+      entityType: "Lead",
+      entityId: id,
+      userId: session.user.id as string,
+    });
+
+    revalidatePath(`/leads/${id}`);
+    return { success: true as const };
+  } catch (error) {
+    console.error("[SET_LOCATION_CONFIRMED_ERROR]", error);
+    return { success: false as const, error: "Failed to save" };
+  }
+}
+
 export async function updateLeadStatus(id: string, status: LeadStatus) {
   try {
     const session = await auth();
@@ -1134,6 +1180,20 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
       };
     }
 
+    // Qualified and Won are hard statuses now: Qualified needs the four facts
+    // that make the signal worth sending to Google, Won needs the booking value
+    // it is worth. Same rule object every other write path uses.
+    const ruled = validateLeadStatusChange(status, {
+      eventDate: existing.eventDate,
+      guestCount: existing.guestCount,
+      eventType: existing.eventType,
+      locationConfirmed: existing.locationConfirmed,
+      bookingValue: existing.bookingValue,
+    });
+    if (!ruled.ok) {
+      return { success: false as const, error: ruled.error };
+    }
+
     // Recalculate score with new status
     const score = calculateLeadScore({
       estimatedValue: existing.estimatedValue
@@ -1150,7 +1210,19 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
     // Keep active leads visible in the Follow-ups queue: if a lead moves to an
     // open/working status and still has no follow-up scheduled, default one to
     // the next business day so it never silently drops out (S-11).
-    const statusData: { status: LeadStatus; score: number; followUpDate?: Date } = { status, score };
+    // Conversion timestamps, written once and never moved — Google reads a new
+    // time as a new conversion, so a re-Won lead must not be counted twice.
+    const stamps = stampsForStatus(status, {
+      qualifiedAt: existing.qualifiedAt,
+      wonAt: existing.wonAt,
+    });
+    const statusData: {
+      status: LeadStatus;
+      score: number;
+      followUpDate?: Date;
+      qualifiedAt?: Date;
+      wonAt?: Date;
+    } = { status, score, ...stamps };
     const OPEN_FOR_FOLLOWUP: LeadStatus[] = ["NOT_CONNECTED", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION"];
     if (OPEN_FOR_FOLLOWUP.includes(status) && !existing.followUpDate) {
       statusData.followUpDate = nextBusinessDay();
@@ -1249,10 +1321,22 @@ export async function convertLeadToDeal(leadId: string) {
 
     // A Deal exists only for QUALIFIED-or-later leads; promote NEW/CONTACTED so the
     // pipeline sync will actually create the deal. WON keeps its status.
+    // …but only if the lead actually meets the qualification rules. Converting
+    // to a deal is not evidence of qualification, and Qualified is the signal
+    // Google Ads learns from. A lead short of the facts keeps its status; the
+    // deal is still created, it simply enters the pipeline unqualified.
     const PROMOTE_FROM: LeadStatus[] = ["NEW", "CONTACTED"];
-    const targetStatus: LeadStatus = PROMOTE_FROM.includes(existing.status as LeadStatus)
-      ? "QUALIFIED"
-      : (existing.status as LeadStatus);
+    const mayQualify = validateLeadStatusChange("QUALIFIED", {
+      eventDate: existing.eventDate,
+      guestCount: existing.guestCount,
+      eventType: existing.eventType,
+      locationConfirmed: existing.locationConfirmed,
+      bookingValue: existing.bookingValue,
+    }).ok;
+    const targetStatus: LeadStatus =
+      PROMOTE_FROM.includes(existing.status as LeadStatus) && mayQualify
+        ? "QUALIFIED"
+        : (existing.status as LeadStatus);
 
     const dealId = await prisma.$transaction(async (tx) => {
       if (targetStatus !== existing.status) {
@@ -1265,7 +1349,17 @@ export async function convertLeadToDeal(leadId: string) {
           status: targetStatus,
           createdAt: existing.createdAt,
         });
-        await tx.lead.update({ where: { id: leadId }, data: { status: targetStatus, score } });
+        await tx.lead.update({
+          where: { id: leadId },
+          data: {
+            status: targetStatus,
+            score,
+            ...stampsForStatus(targetStatus, {
+              qualifiedAt: existing.qualifiedAt,
+              wonAt: existing.wonAt,
+            }),
+          },
+        });
       }
       await syncPipelineDealForLead(tx, leadId, targetStatus, existing);
       const deal = await tx.deal.findUnique({ where: { leadId }, select: { id: true } });

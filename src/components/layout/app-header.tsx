@@ -149,7 +149,7 @@ export function AppHeader() {
   const { user } = useCurrentUser();
   const breadcrumbs = generateBreadcrumbs(pathname);
   const [commandOpen, setCommandOpen] = React.useState(false);
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => setMounted(true), []);
@@ -171,25 +171,24 @@ export function AppHeader() {
       {/* Decorative only — drop it on phones to buy back horizontal room. */}
       <Separator orientation="vertical" className="mr-1 hidden h-4 bg-border/60 md:block" />
 
-      {/* Breadcrumbs */}
-      <Breadcrumb className="hidden min-w-0 md:flex">
-        <BreadcrumbList className="flex-nowrap whitespace-nowrap text-detail text-muted-foreground">
-          {breadcrumbs.map((crumb, index) => (
-            <React.Fragment key={crumb.href}>
-              {index > 0 && <BreadcrumbSeparator />}
-              <BreadcrumbItem>
-                {crumb.isLast ? (
-                  <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink asChild>
-                    <Link href={crumb.href}>{crumb.label}</Link>
-                  </BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
-            </React.Fragment>
-          ))}
-        </BreadcrumbList>
-      </Breadcrumb>
+      {/* Page Title & Breadcrumbs */}
+      <div className="hidden min-w-0 flex-col justify-center md:flex">
+        {breadcrumbs.length > 1 && (
+          <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground/80">
+            {breadcrumbs.slice(0, -1).map((crumb, index) => (
+              <React.Fragment key={crumb.href}>
+                {index > 0 && <span>/</span>}
+                <Link href={crumb.href} className="hover:text-foreground transition-colors">
+                  {crumb.label}
+                </Link>
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+        <div className="text-sm font-semibold text-foreground leading-tight">
+          {breadcrumbs[breadcrumbs.length - 1]?.label}
+        </div>
+      </div>
 
       {/* Spacer */}
       <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
@@ -283,10 +282,10 @@ export function AppHeader() {
               variant="ghost"
               size="icon"
               className="size-9 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94]"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+              title={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             >
-              {theme === "dark" ? (
+              {resolvedTheme === "dark" ? (
                 <Sun className="size-4" />
               ) : (
                 <Moon className="size-4" />
@@ -362,8 +361,9 @@ export function AppHeader() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
+              size="icon"
               className={cn(
-                "relative h-9 shrink-0 gap-2 rounded-full px-1.5 pr-1.5 transition-all duration-200 active:scale-[0.97] sm:pr-3",
+                "relative size-9 shrink-0 rounded-full transition-all duration-200 active:scale-[0.97]",
                 "hover:bg-accent"
               )}
             >
@@ -381,9 +381,6 @@ export function AppHeader() {
                     .slice(0, 2) || "VG"}
                 </AvatarFallback>
               </Avatar>
-              <span className="hidden text-sm font-medium text-foreground sm:inline-block">
-                {user?.name?.split(" ")[0] || "User"}
-              </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" sideOffset={8}>
@@ -432,15 +429,15 @@ export function AppHeader() {
                   onSelect={(e) => {
                     // Keep the menu open so the theme flip is visible in place.
                     e.preventDefault();
-                    setTheme(theme === "dark" ? "light" : "dark");
+                    setTheme(resolvedTheme === "dark" ? "light" : "dark");
                   }}
                 >
-                  {theme === "dark" ? (
+                  {resolvedTheme === "dark" ? (
                     <Sun className="mr-2 size-4" />
                   ) : (
                     <Moon className="mr-2 size-4" />
                   )}
-                  {theme === "dark" ? "Light mode" : "Dark mode"}
+                  {resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem asChild>

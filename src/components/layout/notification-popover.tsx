@@ -238,8 +238,8 @@ export function NotificationPopover() {
         >
           <Bell className="size-4" />
           {unreadCount > 0 && (
-            <Badge className="absolute -right-0.5 -top-0.5 flex size-4 items-center justify-center p-0 text-meta bg-primary text-primary-foreground border-0">
-              {unreadCount > 9 ? "9+" : unreadCount}
+            <Badge className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-0 px-1 text-[10px] leading-none font-medium text-white shadow-sm bg-primary">
+              {unreadCount > 99 ? "99+" : unreadCount}
             </Badge>
           )}
         </Button>

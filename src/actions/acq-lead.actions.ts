@@ -153,6 +153,7 @@ export async function getAcqLeads(filters?: {
   status?: string;
   city?: string;
   bdExecutiveId?: string;
+  sort?: string;
   /**
    * The follow-up worklist, as a VIEW of this list rather than a separate page.
    *
@@ -257,7 +258,9 @@ export async function getAcqLeads(filters?: {
           take: 1,
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: filters?.sort === "next_action" 
+        ? [{ nextFollowupAt: "asc" }, { createdAt: "desc" }] 
+        : { createdAt: "desc" },
     },
     500
   );

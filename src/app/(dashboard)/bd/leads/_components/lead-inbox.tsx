@@ -14,7 +14,11 @@ import {
   Loader2,
   Phone,
   SlidersHorizontal,
-} from "lucide-react";
+  BarChart3,
+  ArrowUpDown,
+  Columns3,
+  ChevronDown,
+CalendarDays, MessageCircle, MoreHorizontal , ChevronLeft, ChevronRight } from "lucide-react";
 
 import {
   createAcqLead,
@@ -260,6 +264,87 @@ function agoCopy(iso?: string | null): string | null {
 // Lead Inbox
 // ============================================================
 
+const STAGE_HUE_BG: Record<string, string> = {
+  slate: "bg-slate-500",
+  blue: "bg-blue-500",
+  cyan: "bg-cyan-500",
+  violet: "bg-violet-500",
+  indigo: "bg-indigo-500",
+  amber: "bg-amber-500",
+  teal: "bg-teal-500",
+  emerald: "bg-emerald-500",
+  orange: "bg-orange-500",
+  red: "bg-red-500",
+};
+
+export function NewLeadButton({ bdUsers }: { bdUsers: BdUser[] }) {
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const searchParams = useSearchParams();
+
+  React.useEffect(() => {
+    if (searchParams.get("new") === "1") setCreateOpen(true);
+  }, [searchParams]);
+
+  return (
+    <>
+      <Button
+        className="gap-1.5 bg-gradient-to-r from-violet-600 to-indigo-600 text-white hover:from-violet-500 hover:to-indigo-500 shadow-sm"
+        onClick={() => setCreateOpen(true)}
+      >
+        <Plus className="size-4" />
+        New Lead
+      </Button>
+      <CreateLeadDialog open={createOpen} onOpenChange={setCreateOpen} bdUsers={bdUsers} />
+    </>
+  );
+}
+
+function LeadStagePipeline({
+  counts,
+  total,
+}: {
+  counts: Record<string, number>;
+  total: number;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-material-sidebar p-5 flex flex-col gap-6">
+      <div className="flex items-center gap-2">
+        <div className="flex size-7 items-center justify-center rounded-md bg-blue-500/10 text-blue-500">
+          <BarChart3 className="size-4" />
+        </div>
+        <span className="text-sm font-bold text-foreground">Acquisition Funnel</span>
+      </div>
+
+      <div className="flex w-full gap-2">
+        {[{ key: "ALL", label: "All", hue: "slate" }, ...BD_PIPELINE_STAGES].map((s) => {
+          const c = s.key === "ALL" ? total : counts[s.key] || 0;
+          if (c === 0 && s.key !== "ALL") return null;
+          
+          const colorClass = s.key === "ALL" 
+            ? "bg-slate-300 dark:bg-white" 
+            : STAGE_HUE_BG[s.hue as keyof typeof STAGE_HUE_BG] || "bg-slate-500";
+
+          return (
+            <div
+              key={s.key}
+              className="flex flex-col gap-2 flex-1 min-w-0"
+            >
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
+                  {s.label} <span className="text-foreground">({c})</span>
+                </span>
+              </div>
+              <div
+                className={cn("h-1.5 w-full rounded-full opacity-80", colorClass)}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function LeadInbox({
   leads,
   bdUsers,
@@ -273,16 +358,11 @@ export function LeadInbox({
   dueFollowup = false,
 }: LeadInboxProps) {
   const [query, setQuery] = React.useState("");
-  const [createOpen, setCreateOpen] = React.useState(false);
   // Inline owner changes in the table — manager-only (server re-checks too).
   const canReassign = acqCan(userRole, "lead:reassign");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  // Auto-open the capture form when arriving via "New deal" on the board.
-  React.useEffect(() => {
-    if (searchParams.get("new") === "1") setCreateOpen(true);
-  }, [searchParams]);
 
   // The status filter lives in the URL (?status=), the same way the BD filter bar
   // works — the server page validates it and queries with it, so the filter also
@@ -337,141 +417,182 @@ export function LeadInbox({
     [leads, matchesQuery]
   );
 
+  
+  const [page, setPage] = React.useState(1);
+  const [perPage, setPerPage] = React.useState(15);
+  React.useEffect(() => {
+    setPage(1);
+  }, [filtered.length]);
+  const paginatedLeads = filtered.slice((page - 1) * perPage, page * perPage);
+
   return (
     <div className="flex flex-col gap-4 text-body">
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Six status chips, each 44px tall on touch, would wrap into three
-          * stacked rows on a 375px screen and push the lead table below the
-          * fold. On a phone the chips become a single snapping horizontal
-          * scroller instead; from sm: up they wrap exactly as before.
-          * No negative margin here on purpose — bleeding the scroller past the
-          * parent is exactly the kind of thing that ends up scrolling the page
-          * sideways, which is the failure this whole pass exists to remove. */}
-        <div className="flex snap-x items-center gap-1.5 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-x-visible sm:pb-0">
-          {/*
-            The former /bd/followups page. It queried the same acqLead table
-            with the same condition on its own screen — so a lead lived in two
-            places with different columns and different actions. As a chip it is
-            the same information, one fewer page to learn, and it inherits the
-            search and row actions this list already has.
-          */}
-          <button
-            type="button"
-            onClick={() => {
-              const params = new URLSearchParams(searchParams.toString());
-              if (dueFollowup) {
-                params.delete("view");
-                params.delete("due");
-              } else {
-                params.set("view", "followup");
-                params.delete("status");
-              }
-              const qs = params.toString();
-              router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-            }}
-            className={cn(
-              "inline-flex shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1 font-medium transition-colors",
-              dueFollowup
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-background text-muted-foreground hover:bg-muted/50"
-            )}
-          >
-            Needs follow-up
-            <span
-              className={cn(
-                "rounded-md px-1 text-meta tabular-nums",
-                dueFollowup ? "bg-white/20" : "bg-muted"
-              )}
-            >
-              {statusCounts?.FOLLOWUP ?? 0}
-            </span>
-          </button>
+      <LeadStagePipeline 
+        counts={pipelineCounts || {}} 
+        total={statusCounts?.ALL ?? leads.length} 
+      />
 
-          {[{ key: "ALL", label: "All" }, ...BD_PIPELINE_STAGES].map((stage) => {
-            const active =
-              !dueFollowup &&
-              activeTab === "ALL" &&
-              (stage.key === "ALL" ? !activeStage : activeStage === stage.key);
-            return (
+      {/* Toolbar */}
+      <div className="flex flex-col gap-4">
+        {/* Chips Row */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-4 overflow-x-auto pb-1 sm:pb-0 [&::-webkit-scrollbar]:hidden">
+            <div className="flex items-center gap-2">
               <button
-                key={stage.key}
                 type="button"
-                onClick={() => setActiveStage(stage.key === "ALL" ? null : stage.key)}
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (dueFollowup) {
+                    params.delete("view");
+                    params.delete("due");
+                  } else {
+                    params.set("view", "followup");
+                    params.delete("status");
+                  }
+                  const qs = params.toString();
+                  router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+                }}
                 className={cn(
-                  "inline-flex shrink-0 snap-start items-center gap-1.5 whitespace-nowrap rounded-lg border px-2.5 py-1 font-medium transition-colors",
-                  active
-                    ? "border-foreground/15 bg-muted text-foreground"
-                    : "border-border bg-background text-muted-foreground hover:bg-muted/50"
+                  "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[13px] font-semibold transition-colors",
+                  dueFollowup
+                    ? "bg-violet-600 text-white shadow-sm"
+                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 )}
               >
-                {stage.label}
-                <span
-                  className={cn(
-                    "rounded-md px-1 text-meta tabular-nums",
-                    active
-                      ? "bg-foreground/10 text-foreground"
-                      : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {pipelineCounts?.[stage.key] ?? 0}
-                </span>
+                Needs Follow-up
               </button>
-            );
-          })}
+
+              {[{ key: "ALL", label: "All Leads" }, ...BD_PIPELINE_STAGES].map((stage) => {
+                const active =
+                  !dueFollowup &&
+                  activeTab === "ALL" &&
+                  (stage.key === "ALL" ? !activeStage : activeStage === stage.key);
+                return (
+                  <button
+                    key={stage.key}
+                    type="button"
+                    onClick={() => setActiveStage(stage.key === "ALL" ? null : stage.key)}
+                    className={cn(
+                      "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-[13px] font-semibold transition-colors",
+                      active
+                        ? "bg-violet-600 text-white shadow-sm"
+                        : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    )}
+                  >
+                    {stage.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 sm:flex-none">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        {/* Search and Filters Row */}
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-card p-1.5 flex-wrap sm:flex-nowrap overflow-x-auto [&::-webkit-scrollbar]:hidden">
+          <div className="relative shrink-0 w-full sm:w-[260px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search owner, property, city…"
-              className="h-8 w-full pl-9 text-body sm:w-[230px]"
+              className="h-9 w-full rounded-lg bg-muted/50 pl-9 text-body border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0 placeholder:text-muted-foreground/50 transition-colors hover:bg-accent"
             />
           </div>
+          
+          <Select value={activeStage ?? "ANY"} onValueChange={(v) => {
+            const params = new URLSearchParams(searchParams.toString());
+            if (v !== "ANY") params.set("stage", v);
+            else params.delete("stage");
+            router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
+          }}>
+            <SelectTrigger className="h-9 rounded-lg bg-muted/50 px-3 text-body text-muted-foreground hover:bg-accent hover:text-foreground w-[120px] shrink-0 border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0">
+              <SelectValue placeholder="Stage" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ANY">Stage</SelectItem>
+              {BD_PIPELINE_STAGES.map((s) => (
+                <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={activeExec ?? "ANY"} onValueChange={(v) => {
+            const params = new URLSearchParams(searchParams.toString());
+            if (v !== "ANY") params.set("exec", v);
+            else params.delete("exec");
+            router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
+          }}>
+            <SelectTrigger className="h-9 rounded-lg bg-muted/50 px-3 text-body text-muted-foreground hover:bg-accent hover:text-foreground w-[120px] shrink-0 border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0">
+              <SelectValue placeholder="Owner" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ANY">Owner</SelectItem>
+              {bdUsers.map((u) => (
+                <SelectItem key={u.id} value={u.id}>{u.name ?? "Unnamed"}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={searchParams.get("city") ?? "ANY"} onValueChange={(v) => {
+            const params = new URLSearchParams(searchParams.toString());
+            if (v !== "ANY") params.set("city", v);
+            else params.delete("city");
+            router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
+          }}>
+            <SelectTrigger className="h-9 rounded-lg bg-muted/50 px-3 text-body text-muted-foreground hover:bg-accent hover:text-foreground w-[100px] shrink-0 border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0">
+              <SelectValue placeholder="City" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ANY">City</SelectItem>
+              {Array.from(new Set(leads.map(l => l.city).filter(Boolean))).map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <LeadFiltersPopover
             particulars={particulars}
             bdUsers={bdUsers}
             activeExec={activeExec}
             activeStatus={activeStatus}
           />
-          <Button
-            size="sm"
-            onClick={() => setCreateOpen(true)}
-            className="gap-1.5"
-          >
-            <Plus className="size-3.5" />
-            New Lead
-          </Button>
+          
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            <Select value={searchParams.get("sort") ?? "newest"} onValueChange={(v) => {
+              const params = new URLSearchParams(searchParams.toString());
+              if (v !== "newest") params.set("sort", v);
+              else params.delete("sort");
+              router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname, { scroll: false });
+            }}>
+              <SelectTrigger className="h-9 rounded-lg bg-muted/50 px-3 text-body text-muted-foreground hover:bg-accent hover:text-foreground gap-2 w-[160px] shrink-0 border-none shadow-none focus:ring-0 focus-visible:ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-offset-0 ring-0">
+                <div className="flex w-full items-center gap-2 pointer-events-none truncate">
+                  <ArrowUpDown className="size-3.5 opacity-50 shrink-0" />
+                  <SelectValue placeholder="Sort: Newest" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Sort: Newest</SelectItem>
+                <SelectItem value="next_action">Sort: Next action</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      {query.trim() && (
-        <p className="text-detail text-muted-foreground">
-          Showing {filtered.length} of {leads.length} loaded lead
-          {leads.length === 1 ? "" : "s"}
-          {activeStage
-            ? ` in ${bdStageMeta(activeStage).label}`
-            : activeTab !== "ALL"
-              ? ` in ${STATUS_LABEL[activeTab]}`
-              : ""}.
-        </p>
-      )}
+      
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden">
         <table className="w-full min-w-[860px] border-collapse">
           <thead>
-            <tr className="border-b border-border bg-muted/40 text-left text-meta font-medium uppercase tracking-wide text-muted-foreground">
-              <th className="px-3 py-2 font-medium">Owner / Property</th>
-              <th className="px-3 py-2 font-medium">City · Locality</th>
-              <th className="px-3 py-2 font-medium">Stage</th>
-              <th className="px-3 py-2 font-medium">BD Exec</th>
-              <th className="px-3 py-2 font-medium">Next step</th>
-              <th className="px-3 py-2 font-medium">Last activity</th>
-              <th className="px-3 py-2 font-medium text-right">Actions</th>
+            <tr className="border-b border-border/50 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-3 py-3">Lead / Property</th>
+              <th className="px-3 py-3">Location</th>
+              <th className="px-3 py-3">Stage</th>
+              <th className="px-3 py-3">Owner / BD Exec</th>
+              <th className="px-3 py-3">Next Action</th>
+              <th className="px-3 py-3">Last Activity</th>
+              <th className="px-3 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -485,7 +606,7 @@ export function LeadInbox({
                 </td>
               </tr>
             ) : (
-              filtered.map((lead) => (
+              paginatedLeads.map((lead) => (
                 <LeadRow
                   key={lead.id}
                   lead={lead}
@@ -500,11 +621,66 @@ export function LeadInbox({
         </table>
       </div>
 
-      <CreateLeadDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        bdUsers={bdUsers}
-      />
+      {/* Pagination */}
+      {filtered.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between py-4 gap-4">
+          <div className="text-[13px] text-muted-foreground">
+            Showing {Math.min((page - 1) * perPage + 1, filtered.length)}-{Math.min(page * perPage, filtered.length)} of {filtered.length} leads
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={page === 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                className="size-8 bg-transparent border-border/50 rounded text-foreground hover:bg-accent"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              {Array.from({ length: Math.min(7, Math.ceil(filtered.length / perPage)) }).map((_, i) => {
+                const pageNum = i + 1;
+                const isActive = pageNum === page;
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={isActive ? "outline" : "ghost"}
+                    size="icon"
+                    onClick={() => setPage(pageNum)}
+                    className={cn("size-8 rounded font-medium text-[13px]", isActive ? "bg-violet-600 border-violet-600 text-white hover:bg-violet-600/90 hover:text-white" : "text-muted-foreground hover:text-foreground hover:bg-muted/50")}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+              {Math.ceil(filtered.length / perPage) > 7 && (
+                <span className="text-muted-foreground mx-1 text-sm tracking-widest">...</span>
+              )}
+              <Button
+                variant="outline"
+                size="icon"
+                disabled={page >= Math.ceil(filtered.length / perPage)}
+                onClick={() => setPage(p => Math.min(Math.ceil(filtered.length / perPage), p + 1))}
+                className="size-8 bg-transparent border-border/50 rounded text-foreground hover:bg-accent"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+            <Select value={String(perPage)} onValueChange={(v) => { setPerPage(Number(v)); setPage(1); }}>
+              <SelectTrigger className="h-8 bg-transparent border-border/50 rounded text-[13px] text-foreground hover:bg-accent focus:ring-0 focus:ring-offset-0 min-w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="15">15 / page</SelectItem>
+                <SelectItem value="30">30 / page</SelectItem>
+                <SelectItem value="50">50 / page</SelectItem>
+                <SelectItem value="100">100 / page</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
 
       <QualifyLeadDialog
         lead={qualifyLead}
@@ -664,11 +840,11 @@ function LeadFiltersPopover({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="shrink-0 gap-1.5">
-          <SlidersHorizontal className="size-3.5" />
-          Filters
+        <Button variant="outline" className="h-9 rounded-lg border-border/50 bg-muted/50 px-3 text-body text-muted-foreground hover:bg-accent hover:text-foreground gap-2 shrink-0">
+          <SlidersHorizontal className="size-3.5 opacity-50" />
+          More Filters
           {activeCount > 0 && (
-            <span className="rounded-md bg-primary/10 px-1 text-meta tabular-nums text-primary">
+            <span className="rounded-md bg-violet-600/20 px-1.5 text-[10px] tabular-nums text-violet-400 font-bold ml-1">
               {activeCount}
             </span>
           )}
@@ -676,22 +852,7 @@ function LeadFiltersPopover({
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-4">
         <div className="flex flex-col gap-3.5">
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-detail text-muted-foreground">Lead owner</Label>
-            <Select value={exec} onValueChange={setExec}>
-              <SelectTrigger className="h-8 text-body">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ANY">All owners</SelectItem>
-                {bdUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name ?? "Unnamed"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+
           <div className="flex flex-col gap-1.5">
             <Label className="text-detail text-muted-foreground">Lead status</Label>
             <Select value={status} onValueChange={setStatus}>
@@ -747,6 +908,27 @@ function LeadFiltersPopover({
   );
 }
 
+function getInitials(name: string) {
+  if (!name) return "?";
+  return name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function getAvatarColor(name: string) {
+  const colors = [
+    "bg-blue-500/20 text-blue-400",
+    "bg-purple-500/20 text-purple-400",
+    "bg-pink-500/20 text-pink-400",
+    "bg-indigo-500/20 text-indigo-400",
+    "bg-emerald-500/20 text-emerald-400",
+    "bg-rose-500/20 text-rose-400",
+    "bg-cyan-500/20 text-cyan-400",
+  ];
+  if (!name) return colors[0];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
 function LeadRow({
   lead,
   canReassign,
@@ -768,56 +950,82 @@ function LeadRow({
     lead.status === "NEW" || lead.status === "CONTACTED";
   const next = nextStepCopy(lead);
   const ago = agoCopy(lead.lastActivityAt);
+  const ownerName = lead.bdExecutive?.name || "Unassigned";
+
+  // Next action card styling
+  let nextCardClasses = "bg-muted/50 border-border text-muted-foreground";
+  let nextIconColor = "text-muted-foreground opacity-50";
+  let NextIcon = CalendarDays; // Fallback
+  if (next.tone === "urgent") {
+    nextCardClasses = "bg-red-500/10 border-red-500/20";
+    nextIconColor = "text-red-500";
+    NextIcon = Phone;
+  } else if (next.tone === "warn") {
+    nextCardClasses = "bg-amber-500/10 border-amber-500/20";
+    nextIconColor = "text-amber-500";
+    NextIcon = Clock;
+  } else if (next.text.toLowerCase().includes("proposal") || next.text.toLowerCase().includes("visit")) {
+    nextCardClasses = "bg-purple-500/10 border-purple-500/20";
+    nextIconColor = "text-purple-500";
+    NextIcon = CalendarDays; // or appropriate icon
+  } else if (next.tone === "plain") {
+    nextCardClasses = "bg-blue-500/10 border-blue-500/20";
+    nextIconColor = "text-blue-500";
+    NextIcon = CalendarDays;
+  }
 
   return (
-    <tr className="border-b border-border last:border-0 hover:bg-muted/30">
-      <td className="px-3 py-2.5">
-        <Link
-          href={`/bd/leads/${lead.id}`}
-          className="font-medium text-foreground hover:underline"
-        >
-          {lead.propertyName}
-        </Link>
-        <div className="text-detail text-muted-foreground">
-          {lead.ownerName} · {propertyTypeLabel(lead.propertyType)}
-          {/* Source folded in (label map, so legacy WALK_IN reads "Incoming lead"). */}
-          {" · "}
-          {ACQ_LEAD_SOURCE_LABEL[lead.leadSource] ?? humanizeEnum(lead.leadSource)}
-          {lead.seatingTheatre || lead.seatingFloating ? (
-            <span className="tabular-nums">
-              {" · "}
+    <tr className="border-b border-border/50 last:border-0 hover:bg-accent/50 transition-colors">
+
+      <td className="px-3 py-3">
+        <div className="flex flex-col">
+          <Link
+            href={`/bd/leads/${lead.id}`}
+            className="font-medium text-[13px] text-foreground hover:underline"
+          >
+            {lead.propertyName}
+          </Link>
+          <div className="text-[11px] text-muted-foreground mt-0.5">
+            {lead.ownerName} · {propertyTypeLabel(lead.propertyType)}
+            {" · "}
+            {ACQ_LEAD_SOURCE_LABEL[lead.leadSource] ?? humanizeEnum(lead.leadSource)}
+          </div>
+          {(lead.seatingTheatre || lead.seatingFloating) ? (
+            <div className="text-[11px] text-muted-foreground mt-0.5 tabular-nums">
               {[
                 lead.seatingTheatre ? `${lead.seatingTheatre} theatre` : null,
                 lead.seatingFloating ? `${lead.seatingFloating} floating` : null,
               ]
                 .filter(Boolean)
                 .join(" / ")}
-            </span>
+            </div>
           ) : null}
         </div>
       </td>
-      <td className="px-3 py-2.5 text-muted-foreground">
-        <span className="text-foreground">{lead.city}</span>
-        <span className="text-muted-foreground"> · {lead.locality}</span>
+      <td className="px-3 py-3">
+        <div className="flex flex-col">
+          <span className="text-[13px] text-foreground/90">{lead.city}</span>
+          <span className="text-[11px] text-muted-foreground mt-0.5">{lead.locality}</span>
+        </div>
       </td>
-      <td className="px-3 py-2.5">
-        {/* The unified funnel stage (lead + deal), not the raw lead status —
-          * a DEAL_CREATED lead whose deal is in Negotiation reads "Negotiation". */}
+      <td className="px-3 py-3">
         {lead.pipelineStage ? (
           <StatusPill
             label={bdStageMeta(lead.pipelineStage).label}
             hue={bdStageMeta(lead.pipelineStage).hue}
             size="xs"
+            className="border-none ring-0"
           />
         ) : (
           <StatusPill
             label={STATUS_LABEL[lead.status]}
             hue={STATUS_HUE[lead.status]}
             size="xs"
+            className="border-none ring-0"
           />
         )}
       </td>
-      <td className="px-3 py-2.5 text-muted-foreground">
+      <td className="px-3 py-3">
         {canReassign ? (
           <ReassignOwnerPopover
             leadId={lead.id}
@@ -825,64 +1033,73 @@ function LeadRow({
             bdUsers={bdUsers}
           />
         ) : (
-          (lead.bdExecutive?.name ?? "—")
+          <div className="flex items-center gap-2">
+            <div className={cn("flex size-7 items-center justify-center rounded-full text-[10px] font-bold", getAvatarColor(ownerName))}>
+              {getInitials(ownerName)}
+            </div>
+            <span className="text-[13px] text-foreground/90">{ownerName}</span>
+          </div>
         )}
       </td>
-      <td className="px-3 py-2.5">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 whitespace-nowrap tabular-nums",
-            next.tone === "urgent"
-              ? "font-medium text-red-600 dark:text-red-400"
-              : next.tone === "warn"
-                ? "font-medium text-amber-600 dark:text-amber-400"
-                : "text-muted-foreground"
-          )}
-        >
-          {next.tone === "urgent" && <Clock className="size-3" />}
-          {next.text}
-        </span>
-      </td>
-      <td className="px-3 py-2.5 text-muted-foreground">
-        {ago ? (
-          <span className="whitespace-nowrap tabular-nums">
-            {ago}
-            {lead.contactAttempts > 0 ? (
-              <span className="text-meta"> · {lead.contactAttempts} attempt{lead.contactAttempts === 1 ? "" : "s"}</span>
-            ) : null}
-          </span>
+      <td className="px-3 py-3">
+        {next.text !== "—" ? (
+          <div className={cn("flex items-center gap-2.5 rounded-lg border px-2.5 py-1.5 w-max", nextCardClasses)}>
+            <NextIcon className={cn("size-3.5 shrink-0", nextIconColor)} />
+            <div className="flex flex-col">
+              <span className={cn("text-[12px] font-medium leading-none mb-1", nextIconColor)}>{next.text}</span>
+              {lead.nextFollowupAt && (
+                <span className="text-[10px] text-muted-foreground leading-none">
+                  {new Date(lead.nextFollowupAt).toLocaleDateString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                </span>
+              )}
+            </div>
+          </div>
         ) : (
-          // No activity ever logged — said plainly, because an untouched lead
-          // hiding behind a dash is how leads go cold unnoticed.
-          <span className={cn(lead.status === "NEW" ? "text-amber-600 dark:text-amber-400" : "")}>
-            No activity yet
-          </span>
+          <div className="flex flex-col text-muted-foreground">
+            <span className="text-[13px]">No action planned</span>
+          </div>
         )}
       </td>
-      <td className="px-3 py-2.5 text-right">
-        <div className="inline-flex items-center gap-1.5">
-          <Button variant="ghost" size="xs" asChild>
+      <td className="px-3 py-3">
+        {ago ? (
+          <div className="flex flex-col">
+            <span className="text-[13px] text-foreground/90 tabular-nums">{ago}</span>
+            {lead.contactAttempts > 0 ? (
+              <span className="text-[11px] text-muted-foreground mt-0.5">
+                {lead.contactAttempts} attempt{lead.contactAttempts === 1 ? "" : "s"}
+              </span>
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            <span className={cn("text-[13px]", lead.status === "NEW" ? "text-amber-500" : "text-foreground/90")}>
+              No activity yet
+            </span>
+          </div>
+        )}
+      </td>
+      <td className="px-3 py-3 text-right align-middle">
+        <div className="inline-flex items-center gap-1.5 justify-end">
+          {canLogContact && (
+            <>
+              <Button variant="ghost" size="icon" onClick={onLogContact} className="size-8 rounded-full bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 hover:text-blue-400">
+                <Phone className="size-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onLogContact} className="size-8 rounded-full bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-400">
+                <MessageCircle className="size-4" />
+              </Button>
+            </>
+          )}
+          <Button variant="outline" size="sm" asChild className="h-8 bg-muted/50 border-border/50 text-xs text-foreground hover:bg-accent">
             <Link href={`/bd/leads/${lead.id}`}>View</Link>
           </Button>
-          {canLogContact && (
-            <Button variant="ghost" size="xs" onClick={onLogContact}>
-              <Phone className="size-3.5" />
-              Log contact
-            </Button>
-          )}
-          {!isTerminal && (
-            <Button variant="outline" size="xs" onClick={onQualify}>
-              Qualify
-            </Button>
-          )}
         </div>
       </td>
     </tr>
   );
 }
 
-// ============================================================
-// Create dialog
+// ============================================================// Create dialog
 // ============================================================
 
 interface CreateFormState {
