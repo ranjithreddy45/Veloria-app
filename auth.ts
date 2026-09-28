@@ -22,6 +22,7 @@ import {
   verifyLoginOtp,
 } from "@/lib/otp";
 import { getEffectivePermissions } from "@/lib/rbac";
+import { ROLE_PERMISSIONS } from "@/lib/permissions";
 import {
   consumeVerifiedChallenge,
   isTwoFactorEnabled,
@@ -55,16 +56,34 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
     ...authConfig.callbacks,
     async jwt({ token, user, account, trigger }) {
       const tfaToken = token as TwoFactorToken;
+      // Bake only the DELTA from the role's static defaults, never the whole
+      // list. The full list used to go into the token, which is the session
+      // cookie: when FINANCE was granted the admin set (230 permissions) that
+      // cookie blew past Apache's LimitRequestFieldSize (8190 bytes) and every
+      // request from that user came back 431 Request Header Fields Too Large —
+      // they could not load any page, including /sign-in, to recover.
+      // Middleware already knows the role, so it can rebuild the defaults
+      // itself; only RolePermission overrides need carrying, and those are
+      // normally empty.
       const bakePerms = async (role?: string) => {
+        const t = token as { perms?: string[]; permsAdd?: string[]; permsDel?: string[] };
+        delete t.perms; // drop any legacy full list rather than refreshing it
         try {
-          (token as { perms?: string[] }).perms =
-            role === "SUPER_ADMIN" || role === "ADMIN"
-              ? ["*"]
-              : role
-                ? await getEffectivePermissions(role)
-                : [];
+          if (!role || role === "SUPER_ADMIN" || role === "ADMIN") {
+            delete t.permsAdd;
+            delete t.permsDel;
+            return;
+          }
+          const effective = new Set(await getEffectivePermissions(role));
+          const defaults = new Set<string>(ROLE_PERMISSIONS[role] ?? []);
+          const add = [...effective].filter((x) => !defaults.has(x));
+          const del = [...defaults].filter((x) => !effective.has(x));
+          if (add.length) t.permsAdd = add; else delete t.permsAdd;
+          if (del.length) t.permsDel = del; else delete t.permsDel;
         } catch {
-          (token as { perms?: string[] }).perms = undefined; // fall back to defaults
+          // Never break auth on a DB hiccup — fall back to the role defaults.
+          delete t.permsAdd;
+          delete t.permsDel;
         }
       };
       // Re-read the user's 2FA enrolment; clear a pending challenge once the
@@ -126,7 +145,9 @@ export const { handlers, auth, signIn, signOut, unstable_update } = NextAuth({
             // Force sign-out: strip identity so server checks treat as logged out.
             delete (token as { id?: string }).id;
             (token as { role?: unknown }).role = undefined;
-            (token as { perms?: string[] }).perms = [];
+            delete (token as { perms?: string[] }).perms;
+            delete (token as { permsAdd?: string[] }).permsAdd;
+            delete (token as { permsDel?: string[] }).permsDel;
             return token;
           }
           (token as { role?: unknown }).role = dbUser.role;
