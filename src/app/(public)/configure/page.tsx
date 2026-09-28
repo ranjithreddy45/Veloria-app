@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Plan your event & get an instant quote — Veloria Grand",
     description:
-      "Build your event package, see a transparent live price, and block your date with a 20% advance.",
+      "Build your event package, see a transparent live price, and block your date with the booking advance.",
   },
 };
 

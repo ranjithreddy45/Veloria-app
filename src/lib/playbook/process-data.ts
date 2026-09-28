@@ -91,7 +91,7 @@ export const PROCESSES: Process[] = [
       {
         title: "Block the slot & raise proforma",
         who: "Sales executive",
-        what: "The date/time slot is locked for the customer and a proforma invoice is raised (20% advance / 60% / 20% final).",
+        what: "The date/time slot is locked for the customer and a proforma invoice is raised (30% advance / 50% / 20% final).",
         auto: ["The slot is uniquely locked so it can never be double-booked"],
         status: "Booking · Hold",
       },
@@ -99,7 +99,7 @@ export const PROCESSES: Process[] = [
         title: "Collect payment",
         who: "Sales / Finance",
         what: "The customer pays the advance. Each payment updates the balance and the installment plan.",
-        gate: "A 20%+ advance automatically confirms the booking.",
+        gate: "The booking advance automatically confirms the booking once it clears.",
         auto: ["Booking is confirmed", "The event order (BEO) is created for Operations", "Receipt + GL entry posted"],
         status: "Booking · Confirmed",
       },
