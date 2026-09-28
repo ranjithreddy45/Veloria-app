@@ -11,6 +11,8 @@ import { runSlaWarRoomEscalation } from "@/lib/sla/war-room-escalation";
 import { sendEventDayTaskReminders } from "@/lib/ops/event-reminders";
 import { releaseLapsedHolds } from "@/lib/holds/release-lapsed-holds";
 import { processDueCallVibePushJobs } from "@/lib/integrations/callvibe/push";
+import { drainMetaLeadJobs } from "@/lib/meta/queue";
+import { maybeRunMetaBackfill } from "@/lib/meta/schedule";
 
 export const maxDuration = 120;
 
@@ -44,6 +46,21 @@ export async function GET(request: Request) {
 
   const results: Record<string, unknown> = {};
 
+  try {
+    // Meta leads: drain whatever the webhook queued but could not fetch (a slow
+    // Graph call, a token replaced mid-flight). Cheap when the queue is empty,
+    // and it is what stops a failed fetch becoming a lost lead.
+    results.metaLeadQueue = await drainMetaLeadJobs(50);
+  } catch (e) {
+    results.metaLeadQueue = `error: ${e instanceof Error ? e.message : "unknown"}`;
+  }
+  try {
+    // The safety-net poll, paced to roughly every 15 minutes inside this
+    // 5-minute lane. Catches anything Meta never delivered at all.
+    results.metaBackfill = await maybeRunMetaBackfill();
+  } catch (e) {
+    results.metaBackfill = `error: ${e instanceof Error ? e.message : "unknown"}`;
+  }
   try {
     results.cadenceSteps = await processDueCadenceSteps();
   } catch (e) {
