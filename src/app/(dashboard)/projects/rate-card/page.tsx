@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
+import { PROJECTS_MODULE_ENABLED } from "@/config/feature-flags";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -9,6 +10,8 @@ import { RateCardManager } from "./_components/rate-card-manager";
 export const metadata: Metadata = { title: "CapEx Rate Card" };
 
 export default async function RateCardPage() {
+  if (!PROJECTS_MODULE_ENABLED) notFound();
+
   const session = await auth();
   const role = session?.user?.role ?? "";
   if (!hasPermission(role, "projects:read")) redirect("/projects");

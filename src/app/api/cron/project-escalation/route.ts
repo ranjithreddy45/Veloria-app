@@ -3,6 +3,7 @@ import { timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { computePortfolio } from "@/lib/projects/portfolio";
 import { notifyAwait } from "@/lib/notify";
+import { PROJECTS_MODULE_ENABLED } from "@/config/feature-flags";
 
 // Daily: escalate at-risk venue projects (open critical snags / over budget /
 // overdue) to the project leadership. Cron-secret protected, best-effort notify.
@@ -12,6 +13,13 @@ export async function GET(request: Request) {
     const expected = `Bearer ${process.env.CRON_SECRET}`;
     if (!authHeader || !process.env.CRON_SECRET || authHeader.length !== expected.length || !timingSafeEqual(Buffer.from(authHeader), Buffer.from(expected))) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Projects is hidden (PROJECTS_MODULE_ENABLED): stay registered in the
+    // daily lane, but do no work and notify nobody — every alert links to
+    // /projects, which now 404s. Flipping the flag resumes it unchanged.
+    if (!PROJECTS_MODULE_ENABLED) {
+      return NextResponse.json({ ok: true, skipped: "projects module hidden", atRisk: 0, notified: 0 });
     }
 
     const portfolio = await computePortfolio();
