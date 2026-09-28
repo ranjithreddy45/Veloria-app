@@ -4,6 +4,9 @@ import { auth } from "@/../auth";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+
+import { guardLeadStatusChange } from "@/lib/crm/lead-status";
+import { stampsForStatus } from "@/lib/marketing/lead-status-rules";
 import { serialize } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
 import { requestApprovalIfNeeded } from "@/lib/approval-engine";
@@ -299,13 +302,20 @@ export async function createDeal(data: CreateDealInput) {
     // lead is already further along (PROPOSAL_SENT / NEGOTIATION / WON), don't
     // clobber it backward to QUALIFIED. Recompute the score on any change.
     if (statusRank(lead.status) < statusRank("QUALIFIED")) {
-      await prisma.$transaction(async (tx) => {
-        await tx.lead.update({
-          where: { id: data.leadId },
-          data: { status: "QUALIFIED" },
+      // Creating a deal no longer qualifies a lead by itself. Qualified is a
+      // claim we send to Google Ads, so it needs the four facts behind it; a
+      // lead without them keeps its current status and the deal is still
+      // created — refusing the deal would punish the user for a different rule.
+      const guard = await guardLeadStatusChange(prisma, data.leadId, "QUALIFIED");
+      if (guard.ok) {
+        await prisma.$transaction(async (tx) => {
+          await tx.lead.update({
+            where: { id: data.leadId },
+            data: { status: "QUALIFIED", ...guard.stamps },
+          });
+          await recomputeLeadScore(tx, data.leadId, "QUALIFIED");
         });
-        await recomputeLeadScore(tx, data.leadId, "QUALIFIED");
-      });
+      }
     }
 
     revalidatePath("/pipeline");
@@ -549,9 +559,17 @@ export async function moveDeal(
       }
 
       if (nextStatus) {
+        // Dragging a card is a status change like any other. Won without a
+        // booking value, or Qualified without the four facts, is refused here
+        // rather than written quietly — the message names what is missing.
+        const guard = await guardLeadStatusChange(tx, deal.leadId, nextStatus);
+        if (!guard.ok) throw new Error(`LEAD_STATUS_BLOCKED:${guard.error}`);
         await tx.lead.update({
           where: { id: deal.leadId },
-          data: { status: nextStatus as Prisma.LeadUpdateInput["status"] },
+          data: {
+            status: nextStatus as Prisma.LeadUpdateInput["status"],
+            ...guard.stamps,
+          },
         });
         await recomputeLeadScore(tx, deal.leadId, nextStatus);
       }
@@ -598,6 +616,15 @@ export async function moveDeal(
       },
     };
   } catch (error) {
+    // A refused status change is a message for the user, not a server fault:
+    // it names the field that is missing so the card can be dragged again once
+    // it is filled in.
+    if (error instanceof Error && error.message.startsWith("LEAD_STATUS_BLOCKED:")) {
+      return {
+        success: false as const,
+        error: error.message.slice("LEAD_STATUS_BLOCKED:".length),
+      };
+    }
     console.error("[MOVE_DEAL_ERROR]", error);
     return { success: false as const, error: "Failed to move deal" };
   }
@@ -1175,10 +1202,25 @@ export async function convertDealToBooking(data: {
             },
           });
 
-          // Update lead status
+          // Update lead status. The booking created here IS the proof and the
+          // amount, so the lead's booking value is taken from it rather than
+          // demanded up front — that number is reported to Google Ads as the
+          // value of the conversion.
+          const leadNow = await tx.lead.findUnique({
+            where: { id: deal.leadId },
+            select: { bookingValue: true, qualifiedAt: true, wonAt: true },
+          });
           await tx.lead.update({
             where: { id: deal.leadId },
-            data: { status: "WON" },
+            data: {
+              status: "WON",
+              bookingValue: leadNow?.bookingValue ?? data.totalAmount,
+              ...(leadNow?.bookingValue ? {} : { bookedAt: new Date() }),
+              ...stampsForStatus("WON", {
+                qualifiedAt: leadNow?.qualifiedAt,
+                wonAt: leadNow?.wonAt,
+              }),
+            },
           });
 
           // Move the deal card to the Won stage too, so the pipeline view and

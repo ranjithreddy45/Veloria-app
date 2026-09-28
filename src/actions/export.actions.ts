@@ -340,6 +340,10 @@ export async function exportLeads(filters?: LeadListFilters) {
       "Lead Quality",
       "Campaign",
       "Click ID",
+      // The value itself, not just whether there is one. Without this column an
+      // export cannot be reconciled against a Google Ads conversion report,
+      // which is the one job it has when a conversion is queried.
+      "Google Click ID (raw)",
       "Event Type",
       // The date the customer is asking about. It was simply never in the file:
       // "Event Type" was, "Event Date" was not, so every export lost the one
@@ -382,6 +386,7 @@ export async function exportLeads(filters?: LeadListFilters) {
           l.attribution?.campaign ||
           "",
         l.attribution?.gclid || l.attribution?.gbraid || l.attribution?.wbraid ? "Yes" : "No",
+        l.attribution?.gclid || l.attribution?.gbraid || l.attribution?.wbraid || "",
         l.eventType || "",
         // ISO yyyy-mm-dd: unambiguous in a spreadsheet, and sorts correctly as
         // text. A localised "12/08/2026" is read as December by half of Excel.

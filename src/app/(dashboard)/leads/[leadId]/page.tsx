@@ -42,6 +42,7 @@ import { cn } from "@/lib/utils";
 import { MacroButton } from "@/components/shared/macro-button";
 import { LeadStatusSelect } from "./_components/lead-status-select";
 import { LeadQualitySelect } from "./_components/lead-quality-select";
+import { LocationConfirmedToggle } from "./_components/location-confirmed-toggle";
 import { LeadDeleteButton } from "./_components/lead-delete-button";
 import { LeadQuickActions } from "./_components/lead-quick-actions";
 import { auth } from "@/../auth";
@@ -116,7 +117,17 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
       attr?.source || attr?.utmSource,
       attr?.medium || attr?.utmMedium,
       attr?.term,
-      attr?.gclid ? "Google click" : null,
+      // The click id itself, not the word "Google click". When a conversion is
+      // disputed, this is the value that has to be read off the screen and
+      // matched against the Google Ads report; gbraid/wbraid count too, which
+      // this line used to ignore even though the list and the CSV did not.
+      attr?.gclid
+        ? `gclid ${attr.gclid}`
+        : attr?.gbraid
+          ? `gbraid ${attr.gbraid}`
+          : attr?.wbraid
+            ? `wbraid ${attr.wbraid}`
+            : null,
     ]
       .filter(Boolean)
       .join(" · ") || null;
@@ -211,6 +222,10 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
           </Button>
           <LeadStatusSelect leadId={lead.id} currentStatus={lead.status} />
           <LeadQualitySelect leadId={lead.id} currentQuality={lead.leadQuality} />
+          <LocationConfirmedToggle
+            leadId={lead.id}
+            confirmed={lead.locationConfirmed}
+          />
           <LeadDeleteButton leadId={lead.id} leadTitle={lead.title} />
         </div>
       </PageHeader>

@@ -921,6 +921,35 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
     [selectedRows]
   );
 
+  // Bulk status changes can now partly succeed: Qualified and Won need evidence
+  // on each lead, and the ones without it are left alone. Reporting only the
+  // successes would leave someone staring at "Updated 12 leads" after selecting
+  // forty, with nothing saying why.
+  const reportBulkStatus = React.useCallback(
+    (
+      result:
+        | { success: true; data: { count: number; skipped: number; skippedReason?: string } }
+        | { success: false; error: string },
+      verb: string
+    ) => {
+      if (!result.success) {
+        toast.error(result.error);
+        return;
+      }
+      const { count, skipped, skippedReason } = result.data;
+      if (skipped > 0) {
+        toast.warning(`${verb} ${count} lead${count === 1 ? "" : "s"}. ${skipped} skipped.`, {
+          description: skippedReason,
+          duration: 8000,
+        });
+      } else {
+        toast.success(`${verb} ${count} lead${count === 1 ? "" : "s"}`);
+      }
+      router.refresh();
+    },
+    [router]
+  );
+
   const bulkActions = React.useMemo(
     () => [
       {
@@ -929,10 +958,7 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
         icon: BulkTagIcon,
         onClick: async (ids: string[]) => {
           const result = await bulkChangeLeadStatus({ ids, status: "CONTACTED" });
-          if (result.success) {
-            toast.success(`Updated ${result.data.count} leads`);
-            router.refresh();
-          } else toast.error(result.error);
+          reportBulkStatus(result, "Updated");
         },
       },
       {
@@ -941,10 +967,7 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
         icon: BulkTagIcon,
         onClick: async (ids: string[]) => {
           const result = await bulkChangeLeadStatus({ ids, status: "QUALIFIED" });
-          if (result.success) {
-            toast.success(`Updated ${result.data.count} leads`);
-            router.refresh();
-          } else toast.error(result.error);
+          reportBulkStatus(result, "Qualified");
         },
       },
       {
@@ -953,10 +976,7 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
         icon: BulkTagIcon,
         onClick: async (ids: string[]) => {
           const result = await bulkChangeLeadStatus({ ids, status: "WON" });
-          if (result.success) {
-            toast.success(`Marked ${result.data.count} leads as won`);
-            router.refresh();
-          } else toast.error(result.error);
+          reportBulkStatus(result, "Won");
         },
       },
       {
@@ -965,10 +985,7 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
         icon: BulkTagIcon,
         onClick: async (ids: string[]) => {
           const result = await bulkChangeLeadStatus({ ids, status: "LOST" });
-          if (result.success) {
-            toast.success(`Marked ${result.data.count} leads as lost`);
-            router.refresh();
-          } else toast.error(result.error);
+          reportBulkStatus(result, "Lost");
         },
       },
       {
@@ -988,7 +1005,7 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
         },
       },
     ],
-    [router, selectedRows.length]
+    [router, selectedRows.length, reportBulkStatus]
   );
 
   // Saved-view integration: expose the current filter to the selector

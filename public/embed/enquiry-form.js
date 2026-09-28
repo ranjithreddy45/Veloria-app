@@ -290,9 +290,52 @@
   });
 
   /** Read a query param off the HOST page so paid traffic keeps attribution. */
-  function q(name) {
+  // ---- click-id capture -------------------------------------------------
+  // A click id only appears in the URL of the page the ad landed on. Someone
+  // who lands on /banquet-halls?gclid=… , reads two more pages and then fills
+  // the form was arriving with no click id at all, and that lead could never be
+  // reported back to Google as a conversion. So the first sighting is written
+  // to a first-party cookie and read back for 90 days — Google's own
+  // attribution window — with the live URL always winning if both exist.
+  var CLICK_PARAMS = ["gclid", "gbraid", "wbraid", "fbclid"];
+  var COOKIE_DAYS = 90;
+
+  function readCookie(name) {
+    try {
+      var match = document.cookie.match(new RegExp("(^|;\\s*)" + name + "=([^;]*)"));
+      return match ? decodeURIComponent(match[2]) : undefined;
+    } catch (_) { return undefined; }
+  }
+
+  function writeCookie(name, value) {
+    try {
+      var expires = new Date(Date.now() + COOKIE_DAYS * 864e5).toUTCString();
+      // Lax so it survives the click through from Google; not Secure-only, so
+      // it still works on a plain-HTTP staging page.
+      document.cookie =
+        name + "=" + encodeURIComponent(value) + "; expires=" + expires + "; path=/; SameSite=Lax";
+    } catch (_) { /* private mode — the URL still works for this page */ }
+  }
+
+  function param(name) {
     try { return new URLSearchParams(window.location.search).get(name) || undefined; }
     catch (_) { return undefined; }
+  }
+
+  // Remember any click id in the current URL, once per page load.
+  try {
+    for (var ci = 0; ci < CLICK_PARAMS.length; ci++) {
+      var live = param(CLICK_PARAMS[ci]);
+      if (live) writeCookie("vg_" + CLICK_PARAMS[ci], live);
+    }
+  } catch (_) { /* never let attribution break the form */ }
+
+  function q(name) {
+    var live = param(name);
+    if (live) return live;
+    // Click ids (and only click ids) fall back to what we stored on arrival.
+    if (CLICK_PARAMS.indexOf(name) !== -1) return readCookie("vg_" + name);
+    return undefined;
   }
 
   form.addEventListener("submit", function (ev) {

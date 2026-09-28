@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import {
+  mapLeadFormAnswers,
+  unmappedNote,
+  type RawAnswer,
+} from "@/lib/marketing/lead-form-answers";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
 import { parseAttributionFromRequest } from "@/lib/attribution";
 import { prisma } from "@/lib/prisma";
@@ -130,6 +135,7 @@ export async function POST(request: NextRequest) {
 
           if (leadgenId) {
             const leadData = { name: "", email: "", phone: "" };
+            const answers: RawAnswer[] = [];
 
             if (pageAccessToken) {
               try {
@@ -154,6 +160,12 @@ export async function POST(request: NextRequest) {
                       leadData.email = value;
                     } else if (fieldName.includes("phone")) {
                       leadData.phone = value;
+                    } else {
+                      // The custom questions — event date, guest count, event
+                      // type. These were not mapped and not even written into
+                      // the note, so a Meta lead arrived as a bare name and
+                      // number and nobody could tell what it was for.
+                      answers.push({ key: String(field?.name ?? ""), value });
                     }
                   }
                 } else {
@@ -180,12 +192,24 @@ export async function POST(request: NextRequest) {
               continue;
             }
 
+            const mapped = mapLeadFormAnswers(answers);
+            if (mapped.unmapped.length) {
+              console.warn(
+                "[FacebookLeads] unrecognised lead-form fields:",
+                mapped.unmapped.map((a) => a.key).join(", ")
+              );
+            }
+            const extraNote = unmappedNote(mapped.unmapped);
+
             await captureLeadFromExternal({
               name: leadData.name || "Facebook Lead",
               email: leadData.email || undefined,
               phone: leadData.phone || undefined,
+              eventDate: mapped.eventDate ? mapped.eventDate.toISOString() : undefined,
+              guestCount: mapped.guestCount ?? undefined,
+              eventType: mapped.eventType ?? undefined,
               source: "facebook_ads",
-              message: `Facebook Lead Ad (ID: ${leadgenId})`,
+              message: `Facebook Lead Ad (ID: ${leadgenId})${extraNote ? ` · ${extraNote}` : ""}`,
               externalId: leadgenId ? `fb:${leadgenId}` : undefined,
               attribution: await parseAttributionFromRequest(request, body),
             });

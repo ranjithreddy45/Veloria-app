@@ -738,6 +738,7 @@ model Lead {
   utmMedium         String?
   utmCampaign       String?
   attribution       LeadAttribution?
+  conversionExports ConversionExportLog[] @relation("LeadConversionExports")
   firstResponse     LeadFirstResponse?
   intent            String?
   intentAt          DateTime?
@@ -747,6 +748,16 @@ model Lead {
   // Ad attribution (gclid/gbraid/wbraid/utm/campaign) lives on the related
   // LeadAttribution row; these are the human review + booking outcome + the
   // upload state for the two Google offline conversions.
+  // Hard-qualification evidence. "Qualified" used to be whatever a rep felt,
+  // which is why Google Ads was being taught on noise: 0 of 346 Google leads
+  // ever reached Won. A lead may only be set to QUALIFIED with an event date,
+  // a guest count of at least 50, an event type, and this box ticked.
+  locationConfirmed   Boolean      @default(false) // customer confirmed Hosa Road works
+  // First time the lead reached WON. Never overwritten, because it is the
+  // conversion time reported to Google and must not move if the status is
+  // toggled later. qualifiedAt (below) is the same idea for QUALIFIED and is
+  // reused rather than duplicated — it already means "first qualified at".
+  wonAt               DateTime?
   leadQuality         LeadQuality  @default(UNREVIEWED)
   qualityReason       String?
   qualifiedAt         DateTime?
@@ -7803,6 +7814,32 @@ model MarketingCampaign {
 
   @@index([channel, isActive])
   @@index([utmCampaign])
+}
+
+/// One row per (lead, conversion) pair the moment it first appears in the
+/// Google Ads feed at /api/exports/gads-conversions.csv.
+///
+/// The feed deliberately re-lists the last 30 days on every fetch — Google
+/// skips exact duplicates — so the feed itself cannot answer "when did we first
+/// tell Google about this?". This table can, which is what makes a disputed
+/// conversion auditable months later.
+model ConversionExportLog {
+  id              String   @id @default(cuid())
+  leadId          String
+  lead            Lead     @relation("LeadConversionExports", fields: [leadId], references: [id], onDelete: Cascade)
+  /// Exactly as sent to Google, e.g. "CRM - Qualified lead".
+  conversionName  String
+  /// The conversion time sent, in IST, as it appeared in the feed.
+  conversionTime  DateTime
+  value           Decimal  @db.Decimal(12, 2)
+  currency        String   @default("INR")
+  /// The click id the row was sent against, kept for dispute resolution.
+  clickId         String?
+  firstExportedAt DateTime @default(now())
+
+  /// One row per lead per conversion — a later fetch must not log it again.
+  @@unique([leadId, conversionName])
+  @@index([firstExportedAt])
 }
 
 model LeadAttribution {
