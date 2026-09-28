@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
-import { bookingAdvanceMet } from "@/lib/sales/quotation-calc";
+import { bookingAdvanceMet, reducedAdvanceMet } from "@/lib/sales/quotation-calc";
 import { getSalesQuotation } from "@/actions/sales-quotation.actions";
 import { getQuoteShareLink } from "@/actions/quote-share.actions";
 import type { QuotationInput } from "@/lib/sales/quotation-calc";
@@ -79,12 +79,16 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
   // on the quotation's invoice.
   const quoteInvoiceId = (res.data as { invoiceId?: string | null }).invoiceId;
   let advancePaid = false;
+  let reducedAdvancePaid = false;
   if (quoteInvoiceId && quoteInvoiceId !== "__pending__") {
     const inv = await prisma.invoice.findUnique({
       where: { id: quoteInvoiceId },
       select: { paidAmount: true, totalAmount: true },
     });
-    if (inv) advancePaid = bookingAdvanceMet(Number(inv.paidAmount), Number(inv.totalAmount));
+    if (inv) {
+      advancePaid = bookingAdvanceMet(Number(inv.paidAmount), Number(inv.totalAmount));
+      reducedAdvancePaid = reducedAdvanceMet(Number(inv.paidAmount), Number(inv.totalAmount));
+    }
   }
 
   // Quote radar: existing share-link signals (best-effort — never block render).
@@ -101,7 +105,7 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-6">
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <QuotationDetail quote={res.data as any} perms={perms} leads={leads} venues={venues} advancePaid={advancePaid} canOverrideAdvance={hasPermission(role, "bookings:block-without-advance")} />
+      <QuotationDetail quote={res.data as any} perms={perms} leads={leads} venues={venues} advancePaid={advancePaid} reducedAdvancePaid={reducedAdvancePaid} mayUseReducedAdvance={hasPermission(role, "bookings:block-reduced-advance")} />
       <QuoteRadarPanel quotationId={id} initial={radarSignals} canShare={canShare} />
       {baseInput && typeof baseInput === "object" && (
         <TierBuilder

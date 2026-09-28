@@ -116,10 +116,11 @@ interface Props {
   leads: LeadOpt[];
   venues: VenueOpt[];
   advancePaid?: boolean;
-  canOverrideAdvance?: boolean;
+  reducedAdvancePaid?: boolean;
+  mayUseReducedAdvance?: boolean;
 }
 
-export function QuotationDetail({ quote, perms, leads, venues, advancePaid, canOverrideAdvance }: Props) {
+export function QuotationDetail({ quote, perms, leads, venues, advancePaid, reducedAdvancePaid, mayUseReducedAdvance }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -348,7 +349,8 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, canO
               blocked={quote.bookingId ? { bookingId: quote.bookingId, at: quote.slotBlockedAt } : null}
               invoiceId={quote.invoiceId}
               advancePaid={advancePaid}
-              canOverrideAdvance={canOverrideAdvance}
+              reducedAdvancePaid={reducedAdvancePaid}
+              mayUseReducedAdvance={mayUseReducedAdvance}
             />
           )}
           <Card>

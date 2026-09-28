@@ -1,25 +1,31 @@
 import { describe, expect, it } from "vitest";
 import { hasPermission, routePermission } from "./permissions";
-import { BOOKING_ADVANCE_PCT, bookingAdvanceMet, PAYMENT_TERMS } from "./sales/quotation-calc";
+import {
+  BOOKING_ADVANCE_PCT,
+  REDUCED_ADVANCE_PCT,
+  bookingAdvanceMet,
+  reducedAdvanceMet,
+  PAYMENT_TERMS,
+} from "./sales/quotation-calc";
 
 // Blocking a venue slot commits inventory. Collecting the booking advance is
 // Sales's job, so Sales must never be able to block without it — the override
 // belongs to Finance, who sees the money actually land (cheque in hand, a
 // corporate PO). Before this, the override was hardcoded to SUPER_ADMIN and
 // Finance could not block a slot at all.
-describe("who can block a venue slot without the booking advance", () => {
+describe("who can block a venue slot on the reduced advance", () => {
   const CAN = ["SUPER_ADMIN", "FINANCE"];
   const CANNOT = ["SALES_EXEC", "SALES_HEAD", "ADMIN", "EVENT_COORDINATOR", "OPERATIONS", "STAFF", "CLIENT", "BD_EXECUTIVE"];
 
   for (const role of CAN) {
-    it(`${role} may block before the advance is received`, () => {
-      expect(hasPermission(role, "bookings:block-without-advance")).toBe(true);
+    it(`${role} may block on the reduced advance`, () => {
+      expect(hasPermission(role, "bookings:block-reduced-advance")).toBe(true);
     });
   }
 
   for (const role of CANNOT) {
-    it(`${role} may NOT block before the advance is received`, () => {
-      expect(hasPermission(role, "bookings:block-without-advance")).toBe(false);
+    it(`${role} may NOT block on the reduced advance`, () => {
+      expect(hasPermission(role, "bookings:block-reduced-advance")).toBe(false);
     });
   }
 
@@ -49,7 +55,7 @@ describe("who can block a venue slot without the booking advance", () => {
     // an unpaid customer is the capability we just granted — but it is a real
     // widening, not a no-op, and it is asserted here rather than left implied.
     const mayCreateBooking = (role: string) =>
-      hasPermission(role, "bookings:create") || hasPermission(role, "bookings:block-without-advance");
+      hasPermission(role, "bookings:create") || hasPermission(role, "bookings:block-reduced-advance");
     expect(mayCreateBooking("FINANCE")).toBe(true);
     expect(mayCreateBooking("STAFF")).toBe(false);
     expect(mayCreateBooking("CLIENT")).toBe(false);
@@ -82,5 +88,36 @@ describe("the booking-advance threshold", () => {
 
   it("treats an over-payment as met", () => {
     expect(bookingAdvanceMet(100000, 100000)).toBe(true);
+  });
+});
+
+describe("the reduced advance Finance may block on", () => {
+  it("is lower than the full booking advance, but not zero", () => {
+    expect(REDUCED_ADVANCE_PCT).toBe(10);
+    expect(REDUCED_ADVANCE_PCT).toBeLessThan(BOOKING_ADVANCE_PCT);
+    expect(REDUCED_ADVANCE_PCT).toBeGreaterThan(0);
+  });
+
+  it("clears at exactly the reduced percentage", () => {
+    const total = 200000;
+    expect(reducedAdvanceMet(total * (REDUCED_ADVANCE_PCT / 100), total)).toBe(true);
+  });
+
+  it("refuses a slot with nothing paid — a lower bar is still a bar", () => {
+    // The point of the revision: Finance blocks on a part payment, never on air.
+    expect(reducedAdvanceMet(0, 200000)).toBe(false);
+  });
+
+  it("refuses just under the reduced bar", () => {
+    const total = 200000;
+    expect(reducedAdvanceMet(total * (REDUCED_ADVANCE_PCT / 100) - 1000, total)).toBe(false);
+  });
+
+  it("does not let the reduced bar satisfy the full advance", () => {
+    // Sales is still held to the full amount; 10% must not confirm a booking.
+    const total = 200000;
+    const reduced = total * (REDUCED_ADVANCE_PCT / 100);
+    expect(reducedAdvanceMet(reduced, total)).toBe(true);
+    expect(bookingAdvanceMet(reduced, total)).toBe(false);
   });
 });

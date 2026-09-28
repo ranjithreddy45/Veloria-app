@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BOOKING_ADVANCE_PCT } from "@/lib/sales/quotation-calc";
+import { BOOKING_ADVANCE_PCT, REDUCED_ADVANCE_PCT } from "@/lib/sales/quotation-calc";
 import {
   Select,
   SelectContent,
@@ -35,12 +35,14 @@ interface Props {
   invoiceId?: string | null;
   /** True once the booking advance has been paid on the quotation's invoice. */
   advancePaid?: boolean;
-  /** Holders of bookings:block-without-advance (Finance, Super Admin) may block
-   *  before the advance is received. Sales deliberately cannot. */
-  canOverrideAdvance?: boolean;
+  /** True once the REDUCED advance (Finance-only bar) has been paid. */
+  reducedAdvancePaid?: boolean;
+  /** Holders of bookings:block-reduced-advance (Finance, Super Admin) may block
+   *  on the reduced advance. Sales deliberately cannot. */
+  mayUseReducedAdvance?: boolean;
 }
 
-export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDateISO, defaultPlannerSlot, blocked, invoiceId, advancePaid, canOverrideAdvance }: Props) {
+export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDateISO, defaultPlannerSlot, blocked, invoiceId, advancePaid, reducedAdvancePaid, mayUseReducedAdvance }: Props) {
   const router = useRouter();
   const [venueId, setVenueId] = useState(defaultVenueId ?? "");
   const [date, setDate] = useState(defaultDateISO ? defaultDateISO.slice(0, 10) : "");
@@ -105,15 +107,16 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
     }
   }
 
-  // Finance (and Super Admin) may block before the advance is collected;
-  // everyone else is gated on the advance (the server enforces this too).
-  const canBlock = advancePaid || canOverrideAdvance;
-  const overriding = !advancePaid && !!canOverrideAdvance;
+  // Two tiers, mirrored from the server: Sales needs the full advance, Finance
+  // may commit the slot from the reduced one — but nobody blocks on nothing.
+  const onReduced = !advancePaid && !!mayUseReducedAdvance && !!reducedAdvancePaid;
+  const canBlock = advancePaid || onReduced;
+  const overriding = onReduced;
 
   async function block() {
     if (!venueId || !date) return toast.error("Pick a venue and date first.");
     if (overriding && !window.confirm(
-      `The ${BOOKING_ADVANCE_PCT}% booking advance has NOT been received. Block this slot anyway? This holds the venue on an unpaid booking — it stays on HOLD until the advance clears.`
+      `Only the reduced ${REDUCED_ADVANCE_PCT}% advance is in, not the full ${BOOKING_ADVANCE_PCT}%. Block this slot anyway? It stays on HOLD until the full advance clears.`
     )) return;
     setBlocking(true);
     try {
@@ -225,14 +228,16 @@ export function SlotBlockCard({ quotationId, venues, defaultVenueId, defaultDate
 
         <Button className="w-full" onClick={block} disabled={blocking || !canBlock || (selectedAvail ? !selectedAvail.available : false)}>
           {blocking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
-          {advancePaid ? "Block this slot" : overriding ? "Block slot without advance" : "Block slot (after advance)"}
+          {advancePaid ? "Block this slot" : overriding ? `Block slot on ${REDUCED_ADVANCE_PCT}% advance` : "Block slot (after advance)"}
         </Button>
         <p className="text-xs text-muted-foreground">
           {advancePaid
             ? "Advance received — blocking the slot confirms the booking and hands it to operations."
             : overriding
-            ? `You can block before the ${BOOKING_ADVANCE_PCT}% booking advance is received. The booking stays on HOLD until the advance clears — Sales cannot do this.`
-            : `Slot booking unlocks once the ${BOOKING_ADVANCE_PCT}% advance is paid in Step 1. If the advance cannot be collected yet, ask Finance to block the slot.`}
+            ? `The reduced ${REDUCED_ADVANCE_PCT}% advance is in. You can block the slot now; it stays on HOLD until the full ${BOOKING_ADVANCE_PCT}% clears — Sales cannot do this.`
+            : mayUseReducedAdvance
+            ? `You can block this slot once at least ${REDUCED_ADVANCE_PCT}% is received. Nothing has reached that bar yet.`
+            : `Slot booking unlocks once the ${BOOKING_ADVANCE_PCT}% advance is paid in Step 1. Finance can block it from ${REDUCED_ADVANCE_PCT}% if the full advance cannot be collected yet.`}
         </p>
       </CardContent>
     </Card>

@@ -291,7 +291,27 @@ export const BOOKING_ADVANCE_PCT = PAYMENT_TERMS[0].pct;
  * the bar rather than missing it by rounding.
  */
 export function bookingAdvanceMet(paidAmount: number, invoiceTotal: number): boolean {
-  return paidAmount >= invoiceTotal * (BOOKING_ADVANCE_PCT / 100) - 1;
+  return advanceMetAt(paidAmount, invoiceTotal, BOOKING_ADVANCE_PCT);
+}
+
+/**
+ * The reduced advance Finance may commit a slot on.
+ *
+ * Sales must collect the full BOOKING_ADVANCE_PCT before the calendar moves.
+ * Finance sees the money land and carries the judgement call, so they may hold
+ * a date on a smaller part payment — but NOT on nothing at all. There has to be
+ * real money against the booking.
+ */
+export const REDUCED_ADVANCE_PCT = 10;
+
+/** Has the reduced (Finance-only) advance been received? */
+export function reducedAdvanceMet(paidAmount: number, invoiceTotal: number): boolean {
+  return advanceMetAt(paidAmount, invoiceTotal, REDUCED_ADVANCE_PCT);
+}
+
+/** Shared comparison, with the ₹1 GST-rounding tolerance. */
+function advanceMetAt(paidAmount: number, invoiceTotal: number, pct: number): boolean {
+  return paidAmount >= invoiceTotal * (pct / 100) - 1;
 }
 
 /**
