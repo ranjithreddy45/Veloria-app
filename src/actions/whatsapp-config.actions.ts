@@ -74,6 +74,11 @@ export async function getWhatsAppConfig() {
         crmWebhookSecret: true,
         eventSigningSecret: true,
         verifyToken: true,
+        aisensyProjectId: true,
+        aisensyApiPassword: true,
+        aisensyApiEndpoint: true,
+        aisensyWebhookSecret: true,
+        aisensyVerifyToken: true,
         otpTemplateName: true,
         otpTemplateLanguage: true,
         bookingUpdateTemplateName: true,
@@ -99,6 +104,8 @@ export async function getWhatsAppConfig() {
       appSecret: config.appSecret ? `${"*".repeat(20)}` : null,
       crmWebhookSecret: config.crmWebhookSecret ? `${"*".repeat(20)}` : null,
       eventSigningSecret: config.eventSigningSecret ? `${"*".repeat(20)}` : null,
+      aisensyApiPassword: config.aisensyApiPassword ? `${"*".repeat(20)}` : null,
+      aisensyWebhookSecret: config.aisensyWebhookSecret ? `${"*".repeat(20)}` : null,
       createdAt: config.createdAt.toISOString(),
       updatedAt: config.updatedAt.toISOString(),
     };
@@ -165,6 +172,8 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput & WhatsAppTe
           appSecret: true,
           crmWebhookSecret: true,
           eventSigningSecret: true,
+          aisensyApiPassword: true,
+          aisensyWebhookSecret: true,
         },
       });
 
@@ -172,12 +181,12 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput & WhatsAppTe
       const keepMasked = (incoming: string | undefined, stored: string | null | undefined) =>
         incoming && incoming.includes("***") ? stored ?? incoming : incoming || null;
 
-      const accessToken = data.accessToken.includes("***")
-        ? existingConfig?.accessToken ?? data.accessToken
-        : data.accessToken;
+      const accessToken = keepMasked(data.accessToken, existingConfig?.accessToken) ?? "";
       const appSecret = keepMasked(data.appSecret, existingConfig?.appSecret);
       const crmWebhookSecret = keepMasked(data.crmWebhookSecret, existingConfig?.crmWebhookSecret);
       const eventSigningSecret = keepMasked(data.eventSigningSecret, existingConfig?.eventSigningSecret);
+      const aisensyApiPassword = keepMasked(data.aisensyApiPassword, existingConfig?.aisensyApiPassword);
+      const aisensyWebhookSecret = keepMasked(data.aisensyWebhookSecret, existingConfig?.aisensyWebhookSecret);
 
       config = await prisma.whatsAppConfig.update({
         where: { id: data.id },
@@ -192,6 +201,11 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput & WhatsAppTe
           crmWebhookSecret,
           eventSigningSecret,
           verifyToken: data.verifyToken,
+          aisensyProjectId: data.aisensyProjectId || null,
+          aisensyApiPassword,
+          aisensyApiEndpoint: data.aisensyApiEndpoint || null,
+          aisensyWebhookSecret,
+          aisensyVerifyToken: data.aisensyVerifyToken || null,
           ...templateData,
           isActive: data.isActive,
         },
@@ -200,7 +214,7 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput & WhatsAppTe
       config = await prisma.whatsAppConfig.create({
         data: {
           provider: data.provider,
-          accessToken: data.accessToken,
+          accessToken: data.accessToken || "",
           phoneNumberId: data.phoneNumberId || null,
           businessAccountId: data.businessAccountId || null,
           appSecret: data.appSecret || null,
@@ -209,6 +223,11 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput & WhatsAppTe
           crmWebhookSecret: data.crmWebhookSecret || null,
           eventSigningSecret: data.eventSigningSecret || null,
           verifyToken: data.verifyToken,
+          aisensyProjectId: data.aisensyProjectId || null,
+          aisensyApiPassword: data.aisensyApiPassword || null,
+          aisensyApiEndpoint: data.aisensyApiEndpoint || null,
+          aisensyWebhookSecret: data.aisensyWebhookSecret || null,
+          aisensyVerifyToken: data.aisensyVerifyToken || null,
           ...templateData,
           isActive: data.isActive,
           createdById: session.user.id,
