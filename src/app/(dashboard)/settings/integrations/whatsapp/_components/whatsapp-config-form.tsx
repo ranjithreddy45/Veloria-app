@@ -56,6 +56,11 @@ interface WhatsAppConfigData {
   crmWebhookSecret: string | null;
   eventSigningSecret: string | null;
   verifyToken: string;
+  aisensyProjectId?: string | null;
+  aisensyApiPassword?: string | null;
+  aisensyApiEndpoint?: string | null;
+  aisensyWebhookSecret?: string | null;
+  aisensyVerifyToken?: string | null;
   // Approved templates for customer messages (blank = plain-text fallback)
   otpTemplateName?: string | null;
   otpTemplateLanguage?: string | null;
@@ -70,7 +75,7 @@ interface WhatsAppConfigFormProps {
   initialConfig: WhatsAppConfigData | null;
 }
 
-type Provider = "META" | "WEFLUX";
+type Provider = "META" | "WEFLUX" | "AISENSY";
 
 // ============================================================
 // Component
@@ -97,6 +102,19 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
   const [verifyToken, setVerifyToken] = useState(
     initialConfig?.verifyToken || "veloria_whatsapp_verify"
   );
+  const [aisensyProjectId, setAisensyProjectId] = useState(initialConfig?.aisensyProjectId || "");
+  const [aisensyApiPassword, setAisensyApiPassword] = useState(
+    initialConfig?.aisensyApiPassword || ""
+  );
+  const [aisensyApiEndpoint, setAisensyApiEndpoint] = useState(
+    initialConfig?.aisensyApiEndpoint || ""
+  );
+  const [aisensyWebhookSecret, setAisensyWebhookSecret] = useState(
+    initialConfig?.aisensyWebhookSecret || ""
+  );
+  const [aisensyVerifyToken, setAisensyVerifyToken] = useState(
+    initialConfig?.aisensyVerifyToken || ""
+  );
   const [otpTemplateName, setOtpTemplateName] = useState(initialConfig?.otpTemplateName || "");
   const [otpTemplateLanguage, setOtpTemplateLanguage] = useState(
     initialConfig?.otpTemplateLanguage || "en"
@@ -115,9 +133,15 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
   const origin =
     typeof window !== "undefined" ? window.location.origin : "https://app.theveloriagrand.com";
   const isWeflux = provider === "WEFLUX";
-  const webhookUrl = isWeflux
-    ? `${origin}/api/webhooks/weflux?token=${encodeURIComponent(verifyToken)}`
-    : `${origin}/api/webhooks/whatsapp`;
+  const isAiSensy = provider === "AISENSY";
+  // Meta is the only remaining provider, but spell it out: a later provider
+  // must not silently inherit the Meta-only fields.
+  const isMeta = provider === "META";
+  const webhookUrl = isAiSensy
+    ? `${origin}/api/webhooks/aisensy?token=${encodeURIComponent(aisensyVerifyToken)}`
+    : isWeflux
+      ? `${origin}/api/webhooks/weflux?token=${encodeURIComponent(verifyToken)}`
+      : `${origin}/api/webhooks/whatsapp`;
 
   function handleSave() {
     startTransition(async () => {
@@ -137,6 +161,11 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
           crmWebhookSecret: crmWebhookSecret || undefined,
           eventSigningSecret: eventSigningSecret || undefined,
           verifyToken,
+          aisensyProjectId: aisensyProjectId.trim() || undefined,
+          aisensyApiPassword: aisensyApiPassword || undefined,
+          aisensyApiEndpoint: aisensyApiEndpoint.trim() || undefined,
+          aisensyWebhookSecret: aisensyWebhookSecret || undefined,
+          aisensyVerifyToken: aisensyVerifyToken.trim() || undefined,
           otpTemplateName: otpTemplateName.trim(),
           otpTemplateLanguage: otpTemplateLanguage.trim(),
           bookingUpdateTemplateName: bookingUpdateTemplateName.trim(),
@@ -212,9 +241,11 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
   }
 
   const isConfigured = !!initialConfig?.id;
-  const canSave = isWeflux
-    ? !!accessToken
-    : !!(accessToken && phoneNumberId && businessAccountId);
+  const canSave = isAiSensy
+    ? !!(aisensyProjectId && aisensyApiPassword)
+    : isWeflux
+      ? !!accessToken
+      : !!(accessToken && phoneNumberId && businessAccountId);
 
   return (
     <div className="space-y-6">
@@ -253,17 +284,22 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="WEFLUX">Weflux</SelectItem>
+                <SelectItem value="AISENSY">AiSensy</SelectItem>
                 <SelectItem value="META">Meta WhatsApp Cloud API</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {isWeflux
-                ? "Recommended — Weflux is a Meta-approved BSP that manages the WhatsApp Business API for you. You only need your API key."
-                : "Direct Meta Cloud API — requires a Meta developer app, phone number ID and permanent token."}
+              {isAiSensy
+                ? "AiSensy is a Meta-approved BSP. Sending uses a Custom App (Project ID + API password); receiving needs the webhook below. Templates must be approved in AiSensy under the same names used here."
+                : isWeflux
+                  ? "Weflux is a Meta-approved BSP that manages the WhatsApp Business API for you. You only need your API key."
+                  : "Direct Meta Cloud API — requires a Meta developer app, phone number ID and permanent token."}
             </p>
           </div>
 
-          {/* Access token / API key (both providers) */}
+          {/* Access token / API key — Meta and Weflux only. AiSensy authenticates
+              with a Project ID + API password pair instead (below). */}
+          {!isAiSensy && (
           <div className="space-y-2">
             <Label htmlFor="waAccessToken">
               {isWeflux ? "Weflux API Key" : "Permanent Access Token"}{" "}
@@ -297,6 +333,91 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
                 </p>
               )}
           </div>
+          )}
+
+          {/* AiSensy Custom App credentials */}
+          {isAiSensy && (
+            <div className="space-y-4 rounded-lg border border-border/70 bg-muted/20 p-4">
+              <div className="text-sm font-semibold">AiSensy Custom App</div>
+              <div className="space-y-2">
+                <Label htmlFor="waAisensyProject">
+                  Project ID <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="waAisensyProject"
+                  placeholder="e.g. 66f0c1d2a3b4c5d6e7f80912"
+                  value={aisensyProjectId}
+                  onChange={(e) => setAisensyProjectId(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  AiSensy &rarr; Manage &rarr; API Key / Custom App. It is the id shown next to your
+                  project, not the campaign API key.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waAisensyPassword">
+                  API Password <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="waAisensyPassword"
+                  type="password"
+                  placeholder="Custom App password"
+                  value={aisensyApiPassword}
+                  onChange={(e) => setAisensyApiPassword(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waAisensyEndpoint">API Endpoint (optional)</Label>
+                <Input
+                  id="waAisensyEndpoint"
+                  placeholder="https://apis.aisensy.com"
+                  value={aisensyApiEndpoint}
+                  onChange={(e) => setAisensyApiEndpoint(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Leave blank unless AiSensy gave you a different base URL. Only
+                  <code> aisensy.com</code> hosts are accepted.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waAisensySecret">Webhook Signing Secret</Label>
+                <Input
+                  id="waAisensySecret"
+                  type="password"
+                  placeholder="From the Custom App webhook settings"
+                  value={aisensyWebhookSecret}
+                  onChange={(e) => setAisensyWebhookSecret(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Needed to RECEIVE messages — every delivery is rejected unless its
+                  signature matches. Sending works without it.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="waAisensyToken">Webhook URL Token</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="waAisensyToken"
+                    placeholder="a secret string of your choice"
+                    value={aisensyVerifyToken}
+                    onChange={(e) => setAisensyVerifyToken(e.target.value)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => copyToClipboard(aisensyVerifyToken, "Token")}
+                    type="button"
+                  >
+                    <Copy className="size-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Embedded in the webhook URL below so only AiSensy can post to this app.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Weflux-only: optional API endpoint override */}
           {isWeflux && (
@@ -363,7 +484,7 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
           )}
 
           {/* Meta-only fields */}
-          {!isWeflux && (
+          {isMeta && (
             <>
               <div className="space-y-2">
                 <Label htmlFor="waPhoneNumberId">
@@ -405,7 +526,9 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
             </>
           )}
 
-          {/* Verify / webhook secret token (both) */}
+          {/* Verify / webhook secret token — Meta and Weflux. AiSensy has its own
+              pair inside the Custom App block above. */}
+          {!isAiSensy && (
           <div className="space-y-2">
             <Label htmlFor="waVerifyToken">
               {isWeflux ? "Webhook Secret Token" : "Webhook Verify Token"}{" "}
@@ -434,6 +557,7 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
                 : "A custom string you also enter in the Meta Developer Console for webhook verification."}
             </p>
           </div>
+          )}
 
           {/* Customer message templates (both providers) */}
           <div className="space-y-4 rounded-lg border border-border/70 bg-muted/20 p-4">
@@ -553,14 +677,18 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
         <CardHeader>
           <CardTitle className="text-lg">Webhook Configuration</CardTitle>
           <CardDescription>
-            {isWeflux
-              ? "Add this URL in your weflux workspace so incoming messages and delivery statuses reach your inbox."
-              : "Configure this URL in your Meta Developer Console to receive incoming messages and delivery status updates."}
+            {isAiSensy
+              ? "Add this URL to your AiSensy Custom App so incoming messages and delivery statuses reach your inbox."
+              : isWeflux
+                ? "Add this URL in your weflux workspace so incoming messages and delivery statuses reach your inbox."
+                : "Configure this URL in your Meta Developer Console to receive incoming messages and delivery status updates."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label>{isWeflux ? "Webhook URL (includes your secret token)" : "Callback URL"}</Label>
+            <Label>
+              {isWeflux || isAiSensy ? "Webhook URL (includes your secret token)" : "Callback URL"}
+            </Label>
             <div className="flex gap-2">
               <Input value={webhookUrl} readOnly className="font-mono text-sm" />
               <Button
@@ -575,7 +703,7 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
             </div>
           </div>
 
-          {!isWeflux && (
+          {isMeta && (
             <div className="space-y-2">
               <Label>Verify Token</Label>
               <div className="flex gap-2">
@@ -595,7 +723,13 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
 
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950">
             <p className="text-sm text-blue-700 dark:text-blue-300">
-              {isWeflux ? (
+              {isAiSensy ? (
+                <>
+                  <strong>In AiSensy:</strong> open the Custom App&rsquo;s webhook settings, paste
+                  the URL above, and subscribe to <code>message.sender.user</code>,{" "}
+                  <code>message.created</code> and <code>message.status.updated</code>.
+                </>
+              ) : isWeflux ? (
                 <>
                   <strong>In weflux:</strong> open Webhooks / Developer settings, paste the URL
                   above, and enable the message-received and delivery-status events.
@@ -616,9 +750,11 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
         <CardHeader>
           <CardTitle className="text-lg">Setup Guide</CardTitle>
           <CardDescription>
-            {isWeflux
-              ? "Connect weflux in a few minutes."
-              : "Step-by-step instructions to set up Meta WhatsApp Cloud API."}
+            {isAiSensy
+              ? "Paste the Custom App credentials above, add the webhook URL in AiSensy, then get every template re-approved under AiSensy before switching over."
+              : isWeflux
+                ? "Connect weflux in a few minutes."
+                : "Step-by-step instructions to set up Meta WhatsApp Cloud API."}
           </CardDescription>
         </CardHeader>
         <CardContent>

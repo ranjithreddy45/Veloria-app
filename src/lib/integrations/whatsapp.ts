@@ -6,6 +6,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { wefluxSendText, wefluxSendTemplate, wefluxTestConnection } from "@/lib/integrations/weflux";
+import { AiSensyClient } from "@/lib/whatsapp/aisensy/client";
 
 const GRAPH_API_VERSION = "v21.0";
 const GRAPH_API_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
@@ -15,7 +16,7 @@ const GRAPH_API_BASE = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 // ============================================================
 
 export interface WhatsAppApiConfig {
-  /** "META" (Cloud API) or "WEFLUX" (weflux BSP). Defaults to META for legacy rows. */
+  /** "META" (Cloud API), "WEFLUX" or "AISENSY". Defaults to META for legacy rows. */
   provider: string;
   accessToken: string;
   phoneNumberId: string;
@@ -24,6 +25,10 @@ export interface WhatsAppApiConfig {
   verifyToken?: string;
   /** Weflux API base (optional — defaults to https://api.weflux.in/v2). */
   apiEndpoint?: string | null;
+  aisensyProjectId?: string | null;
+  aisensyApiPassword?: string | null;
+  aisensyApiEndpoint?: string | null;
+
 }
 
 interface SendWhatsAppParams {
@@ -61,6 +66,9 @@ export async function getWhatsAppApiConfig(): Promise<WhatsAppApiConfig | null> 
       appSecret: config.appSecret,
       verifyToken: config.verifyToken,
       apiEndpoint: config.apiEndpoint,
+      aisensyProjectId: config.aisensyProjectId,
+      aisensyApiPassword: config.aisensyApiPassword,
+      aisensyApiEndpoint: config.aisensyApiEndpoint,
     };
   } catch (error) {
     console.error("[WhatsApp] Failed to load config:", error);
@@ -96,6 +104,62 @@ function normalizePhone(phone: string): string {
   return cleaned;
 }
 
+
+// ============================================================
+// AiSensy adapter
+// ------------------------------------------------------------
+// Translates this app's one send shape onto the AiSensy client that shipped in
+// the integration package. Errors come back as { success: false, error } —
+// never thrown — because sendWhatsApp() is called from crons, webhooks and
+// server actions that all treat a throw as a failure of the whole operation.
+// ============================================================
+
+async function aisensySend(
+  config: WhatsAppApiConfig,
+  to: string,
+  params: SendWhatsAppParams
+): Promise<SendWhatsAppResult> {
+  const projectId = config.aisensyProjectId?.trim();
+  const apiPassword = config.aisensyApiPassword?.trim();
+  if (!projectId || !apiPassword) {
+    return {
+      success: false,
+      error: "AiSensy is selected but its Project ID or API password is missing. Set them in Settings → Integrations → WhatsApp.",
+    };
+  }
+
+  const client = new AiSensyClient({
+    projectId,
+    apiPassword,
+    ...(config.aisensyApiEndpoint ? { baseUrl: config.aisensyApiEndpoint } : {}),
+  });
+
+  try {
+    if (params.template) {
+      // AiSensy wants the body values in order for {{1}}, {{2}}…; this app
+      // passes a NAMED record ({ customerName, eventName, … }). Object.values
+      // is exactly how the Meta branch below already turns that record into
+      // ordered parameters, so a template behaves identically on either
+      // provider. It relies on the object's insertion order — the same
+      // assumption the Meta path has always made.
+      const res = await client.sendTemplate(to, params.template, {
+        ...(params.language ? { language: params.language } : {}),
+        ...(params.params ? { bodyParams: Object.values(params.params) } : {}),
+      });
+      return { success: true, messageId: res.messageId };
+    }
+    if (!params.message) {
+      return { success: false, error: "No message content provided" };
+    }
+    const res = await client.sendText(to, params.message);
+    return { success: true, messageId: res.messageId };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "AiSensy send failed";
+    console.error("[AiSensy] send failed:", message);
+    return { success: false, error: message };
+  }
+}
+
 // ============================================================
 // Send WhatsApp Text Message
 // ============================================================
@@ -125,6 +189,14 @@ export async function sendWhatsApp(
       return { success: false, error: "No message content provided" };
     }
     return await wefluxSendText(creds, to, params.message);
+  }
+
+  // ---- AiSensy provider branch -------------------------------------------
+  // Same SendWhatsAppResult shape as Meta and Weflux, so all ~25 callers are
+  // unchanged. A missing credential is reported as a configuration error
+  // rather than throwing, because every caller treats a throw as a crash.
+  if (config.provider === "AISENSY") {
+    return await aisensySend(config, to, params);
   }
 
   try {
@@ -412,6 +484,39 @@ export async function testWhatsAppConnection(
   // Weflux: validate the API key (endpoint defaults to api.weflux.in/v2).
   if (config.provider === "WEFLUX") {
     return await wefluxTestConnection({ endpoint: config.apiEndpoint, token: config.accessToken });
+  }
+
+  // AiSensy: list the templates. That both proves the credentials and answers
+  // the question that actually decides whether a switch is safe — how many
+  // templates are APPROVED on this account, since our messages are template
+  // sends and an unapproved name fails at send time, per message, silently.
+  if (config.provider === "AISENSY") {
+    const projectId = config.aisensyProjectId?.trim();
+    const apiPassword = config.aisensyApiPassword?.trim();
+    if (!projectId || !apiPassword) {
+      return { success: false, message: "Enter the AiSensy Project ID and API password first." };
+    }
+    try {
+      const client = new AiSensyClient({
+        projectId,
+        apiPassword,
+        ...(config.aisensyApiEndpoint ? { baseUrl: config.aisensyApiEndpoint } : {}),
+      });
+      const templates = await client.listTemplates();
+      const approved = templates.filter((t) => String(t.status ?? "").toUpperCase() === "APPROVED");
+      const names = approved.slice(0, 8).map((t) => t.name).join(", ");
+      return {
+        success: true,
+        message:
+          `Connected to AiSensy project ${projectId}. ${approved.length} of ${templates.length} ` +
+          `templates approved${names ? `: ${names}` : ""}${approved.length > 8 ? ", …" : ""}.`,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "AiSensy connection failed",
+      };
+    }
   }
 
   try {

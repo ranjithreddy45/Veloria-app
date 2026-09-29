@@ -4364,6 +4364,16 @@ model WhatsAppConfig {
   createdById String
   createdBy   User   @relation("UserWhatsAppConfigs", fields: [createdById], references: [id])
 
+  // ---- AiSensy (provider = "AISENSY") ----------------------------------
+  // All optional: a Meta or Weflux install stores none of them. Credentials
+  // live here rather than in env for the same reason the others do — the
+  // operator has to change them without a deploy.
+  aisensyProjectId     String? // the 24-char id in the dashboard URL
+  aisensyApiPassword   String? // Custom App password, sent as X-AiSensy-Project-API-Pwd
+  aisensyApiEndpoint   String? // base URL override; blank = the documented default
+  aisensyWebhookSecret String? // shared secret used to sign inbound webhooks
+  aisensyVerifyToken   String? // token embedded in our webhook URL
+
   @@index([isActive])
 }
 
@@ -10238,4 +10248,19 @@ model MenuSelectionRequest {
 
   @@index([bookingId])
   @@index([status])
+}
+
+/// One row per webhook notification we have claimed, so an at-least-once
+/// provider cannot deliver the same event twice. The claim is the INSERT
+/// itself: notificationId is UNIQUE, so two concurrent deliveries — or two pm2
+/// workers — race on the database, not in memory. Swept by the same daily cron
+/// that prunes WhatsAppInboundEvent (/api/cron/whatsapp-inbound-prune).
+model WhatsAppWebhookReceipt {
+  id             String    @id @default(cuid())
+  provider       String
+  notificationId String    @unique
+  createdAt      DateTime  @default(now())
+  processedAt    DateTime?
+
+  @@index([provider, createdAt])
 }

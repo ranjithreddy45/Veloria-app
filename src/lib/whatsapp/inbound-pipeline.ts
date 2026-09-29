@@ -21,6 +21,8 @@ import {
   applyWhatsAppStatusUpdate,
 } from "@/lib/whatsapp/inbound";
 import type { InboundProvider } from "@/lib/whatsapp/inbound-capture";
+import { parseAiSensyNotification, type AiSensyNotification } from "@/lib/whatsapp/aisensy/webhook";
+import { aisensySink } from "@/lib/whatsapp/aisensy/sink.impl";
 
 type AnyRec = Record<string, unknown>;
 
@@ -301,10 +303,54 @@ export async function processMetaWebhookPayload(payload: AnyRec): Promise<Inboun
   return out;
 }
 
+// ============================================================
+// AiSensy — parse with the provider's own parser, then dispatch through the
+// SAME sink the live webhook uses. Unlike the webhook path this does NOT claim a
+// receipt: a replay is a deliberate admin action on a payload whose receipt row
+// already exists, and the dedupe guard would refuse every one of them.
+// ============================================================
+
+export async function processAiSensyEvent(payload: AnyRec): Promise<InboundEventSummary> {
+  const event = parseAiSensyNotification(payload as unknown as AiSensyNotification);
+  const out = base({
+    eventType: event.topic || event.kind,
+    fromPhone: "phone" in event ? event.phone || null : null,
+    messageId: "waMessageId" in event ? event.waMessageId ?? null : null,
+    textPreview: "text" in event ? event.text ?? null : null,
+  });
+
+  switch (event.kind) {
+    case "inbound_message":
+      out.matchedContactId = await aisensySink.onInbound(event);
+      out.handled = true;
+      if (!event.phone) out.parseError = "inbound message without a phone number";
+      break;
+    case "outbound_echo":
+      await aisensySink.onOutboundEcho(event);
+      out.handled = true;
+      break;
+    case "status":
+      await aisensySink.onStatus(event);
+      out.handled = event.status !== "UNKNOWN";
+      if (!out.handled) out.parseError = "status event with no recognised status";
+      break;
+    case "contact":
+      await aisensySink.onContact(event);
+      out.handled = true;
+      break;
+    case "ignored":
+      out.parseError = event.reason;
+      break;
+  }
+  return out;
+}
+
 /** Dispatcher used by the admin Replay action. */
 export async function processInboundPayload(
   provider: InboundProvider,
   payload: AnyRec
 ): Promise<InboundEventSummary> {
-  return provider === "META" ? processMetaWebhookPayload(payload) : processWefluxEvent(payload);
+  if (provider === "META") return processMetaWebhookPayload(payload);
+  if (provider === "AISENSY") return processAiSensyEvent(payload);
+  return processWefluxEvent(payload);
 }

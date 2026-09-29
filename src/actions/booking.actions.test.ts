@@ -52,6 +52,7 @@ vi.mock("@/lib/holds/release-lapsed-holds", async (importOriginal) => ({
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { checkAvailability, completeBooking, confirmBooking, createBooking, getBookingsForCalendar, updateBooking } from "./booking.actions";
+import { ADVANCE_FRACTION } from "@/lib/sales/advance-gate";
 
 const PAST = new Date(Date.now() - 6 * 60 * 60 * 1000); // hold window passed
 const DAY = new Date("2027-01-20T00:00:00.000Z");
@@ -381,7 +382,12 @@ describe("confirmBooking", () => {
       venue: { name: "Grand Hall" },
       createdBy: null,
     });
-    db.invoice.findMany.mockResolvedValue([{ totalAmount: 500000, paidAmount: 100000 }]);
+    // Paid must clear BOOKING_ADVANCE_PCT of the value — derive it instead of
+    // hardcoding, so moving the threshold (20% → 30% in 76566f09) cannot leave
+    // this test asserting the old rule.
+    db.invoice.findMany.mockResolvedValue([
+      { totalAmount: 500000, paidAmount: 500000 * ADVANCE_FRACTION },
+    ]);
     db.booking.updateMany.mockResolvedValue({ count: 1 });
 
     await confirmBooking("booking-3");

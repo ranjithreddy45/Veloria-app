@@ -20,7 +20,7 @@
 
 import { prisma } from "@/lib/prisma";
 
-export type InboundProvider = "WEFLUX" | "META";
+export type InboundProvider = "WEFLUX" | "META" | "AISENSY";
 
 export const RAW_BODY_CAP_BYTES = 64 * 1024;
 export const TEXT_PREVIEW_MAX = 200;
@@ -145,6 +145,22 @@ export async function pruneInboundEvents(
   const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
   const res = await prisma.whatsAppInboundEvent.deleteMany({
     where: { receivedAt: { lt: cutoff } },
+  });
+  return res.count;
+}
+
+/**
+ * Sweep spent webhook-dedupe receipts. They exist only to reject a redelivery,
+ * and no provider retries for anywhere near this long, so an old row is pure
+ * growth. Kept on the same retention as the captures above so one cron covers
+ * both.
+ */
+export async function pruneWebhookReceipts(
+  days: number = INBOUND_EVENT_RETENTION_DAYS
+): Promise<number> {
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const res = await prisma.whatsAppWebhookReceipt.deleteMany({
+    where: { createdAt: { lt: cutoff } },
   });
   return res.count;
 }
