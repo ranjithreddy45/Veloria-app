@@ -297,11 +297,24 @@ export class AiSensyClient {
     let after: string | undefined;
     for (let page = 0; page < maxPages; page++) {
       const qs = new URLSearchParams({ limit: '100', ...(after ? { after } : {}) });
-      const batch = await this.request<AiSensyTemplate[] | { data?: AiSensyTemplate[]; paging?: any }>(
+      const batch = await this.request<AiSensyTemplate[] | { template?: AiSensyTemplate[]; data?: AiSensyTemplate[]; size?: number; count?: number; paging?: any }>(
         'GET',
         this.projectPath(`/wa_template/?${qs.toString()}`),
       );
-      const rows = Array.isArray(batch) ? batch : Array.isArray(batch?.data) ? batch.data : [];
+      // OBSERVED 2026-09-29 against the live project: the response is
+      // `{ template: [...], size, count }` — not a bare array and not `data`,
+      // which is what the docs-derived code assumed. That assumption made a
+      // project holding 5 templates report ZERO, i.e. "nothing is approved"
+      // when the truth was "nothing is approved AND we could not see them".
+      // The other two shapes are kept because they cost nothing and a BSP
+      // changing its envelope should degrade to fewer rows, never to silence.
+      const rows = Array.isArray(batch)
+        ? batch
+        : Array.isArray(batch?.template)
+          ? batch.template
+          : Array.isArray(batch?.data)
+            ? batch.data
+            : [];
       let fresh = 0;
       for (const r of rows) {
         const key = String(r?.id ?? r?._id ?? `${r?.name}|${r?.language}`);

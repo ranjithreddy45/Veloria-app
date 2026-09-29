@@ -176,6 +176,22 @@ test('getContactByMobile returns null on 404, ensureContact creates', async () =
   assert.deepEqual(JSON.parse(String(calls[1].init.body)), { name: 'Asha', mobile_number: '919187700778' });
 });
 
+test('listTemplates reads the { template: [...] } envelope the live API returns', async () => {
+  // Observed against the real project on 2026-09-29. Regression guard: the
+  // docs-shaped parser read this as zero templates.
+  const m = mockFetch(200, {
+    template: [
+      { id: 't1', name: 'sample_template_message', status: 'REJECTED' },
+      { id: 't2', name: 'order_information', status: 'REJECTED' },
+    ],
+    size: 2,
+    count: 2,
+  });
+  const rows = await new AiSensyClient(cfg, m.fn).listTemplates();
+  assert.equal(rows.length, 2);
+  assert.equal(rows[1].name, 'order_information');
+});
+
 test('listTemplates accepts array response', async () => {
   const m = mockFetch(200, [{ id: 't1', name: 'first_message', status: 'APPROVED' }]);
   const rows = await new AiSensyClient(cfg, m.fn).listTemplates();
