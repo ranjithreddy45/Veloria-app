@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import {
   generateUniquePartnerCode,
   buildPartnerLink,
@@ -125,7 +126,16 @@ async function sendReferralInvite(args: {
       params: { customerName: args.customerName || "there", referralLink },
     });
     if (!result.success) {
+      // Keep the template's own error: the text fallback usually fails for an
+      // unrelated reason (outside the 24h window) that would hide it.
+      const templateError = result.error;
       result = await sendWhatsApp({ to: phone, message: textFallback });
+      if (!result.success) {
+        result = {
+          ...result,
+          error: `Template: ${formatWhatsAppFailure(templateError)} · Text fallback: ${formatWhatsAppFailure(result.error)}`,
+        };
+      }
     }
   } catch (error) {
     result = {
@@ -142,7 +152,7 @@ async function sendReferralInvite(args: {
         templateName: "referral_invite",
         status: result.success ? "SENT" : "FAILED",
         whatsappId: result.success ? result.messageId || null : undefined,
-        failureReason: result.success ? undefined : result.error || "WhatsApp send failed",
+        failureReason: result.success ? undefined : formatWhatsAppFailure(result.error),
         contactId: args.contactId,
       },
     })

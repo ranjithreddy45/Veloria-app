@@ -17,6 +17,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { sendWhatsApp, sendWhatsAppInteractive } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import {
   CATALOG_STAGES,
   CATALOG_REPROMPT_WINDOW_MS,
@@ -83,7 +84,7 @@ async function mirrorOutbound(args: {
         content: args.content,
         status: args.ok ? "SENT" : "FAILED",
         whatsappId: args.messageId || null,
-        failureReason: args.ok ? null : args.error?.slice(0, 500) || "send failed",
+        failureReason: args.ok ? null : formatWhatsAppFailure(args.error),
         contactId: args.contactId,
       },
       select: { id: true },
@@ -221,6 +222,7 @@ export async function runCatalogFirstInbound(
     } catch (err) {
       // Interactive unsupported / outside window → graceful text fallback.
       console.error("[catalog-engine] interactive prompt failed, falling back:", err);
+      sendErr = err instanceof Error ? err.message : "interactive send error";
     }
 
     if (!sendOk) {
@@ -237,6 +239,7 @@ export async function runCatalogFirstInbound(
         sendErr = res.error;
       } catch (err) {
         console.error("[catalog-engine] text-fallback prompt failed:", err);
+        sendErr = err instanceof Error ? err.message : "send error";
       }
     }
 

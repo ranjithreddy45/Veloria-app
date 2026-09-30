@@ -2,6 +2,7 @@ import type { NotificationType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sendPushToUser } from "@/lib/push/send";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 
 // ============================================================
 // Notify the CUSTOMER side of a booking.
@@ -158,6 +159,9 @@ export function decideWhatsAppDelivery(input: {
   return { send: true, to: phone, template };
 }
 
+/** Cap on the booking-update {{2}} so the filled-in template body stays under WhatsApp's 1,024-character limit. */
+export const BOOKING_UPDATE_MAX_CHARS = 800;
+
 /** WhatsApp rejects template parameters with line breaks, tabs or runs of spaces: flatten and cap. */
 export function sanitizeTemplateParam(value: string, max: number): string {
   const flat = value.replace(/[\r\n\t]+/g, " ").replace(/ {2,}/g, " ").trim();
@@ -167,8 +171,10 @@ export function sanitizeTemplateParam(value: string, max: number): string {
 /**
  * Body parameters for the booking-update template, in order:
  *   {{1}} the customer's first name ("there" when unknown)
- *   {{2}} the update, "<title>: <message>" on one line (at most 900 characters)
- * e.g. "Hi {{1}}, there's an update on your Veloria Grand booking. {{2}} Open the Veloria app for details."
+ *   {{2}} the update, "<title>: <message>" on one line (at most 800 characters)
+ * The approved AiSensy body (booking_update, en) is:
+ *   "Hi {{1}}, here's an update on your Veloria Grand booking:\n\n{{2}}\n\nReply to this message if you have any questions."
+ * WhatsApp rejects a filled-in body over 1,024 characters: ~105 fixed + 60 + 800 stays under it.
  */
 export function bookingUpdateTemplateParams(input: {
   firstName: string | null | undefined;
@@ -177,7 +183,7 @@ export function bookingUpdateTemplateParams(input: {
 }): Record<string, string> {
   return {
     customerName: sanitizeTemplateParam(input.firstName ?? "", 60) || "there",
-    update: sanitizeTemplateParam([input.title, input.message].filter(Boolean).join(": "), 900),
+    update: sanitizeTemplateParam([input.title, input.message].filter(Boolean).join(": "), BOOKING_UPDATE_MAX_CHARS),
   };
 }
 
@@ -315,7 +321,7 @@ async function deliverWhatsApp(contact: LiveContact, contactUserIds: string[], n
             templateName: template,
             status: o.ok ? "SENT" : "FAILED",
             whatsappId: o.ok ? o.messageId : null,
-            failureReason: o.ok ? null : o.error,
+            failureReason: o.ok ? null : formatWhatsAppFailure(o.error),
             contactId: contact.id,
           },
         })

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-logger";
 import { sendEmail } from "@/lib/email";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { sendSms } from "@/lib/integrations/sms";
 import { processEmailForTracking } from "@/lib/email-tracking";
 
@@ -190,25 +191,42 @@ export async function processDueCadenceSteps(): Promise<{
 
         case "SEND_WHATSAPP": {
           if (contactId) {
-            await prisma.whatsAppMessage.create({
+            const row = await prisma.whatsAppMessage.create({
               data: {
                 direction: "OUTBOUND",
                 content: config.message ?? "",
                 contactId,
                 status: "SENT",
               },
+              select: { id: true },
             });
 
             // Await the send so it completes before this serverless
             // invocation can freeze. A send failure is logged but never
             // breaks the run.
-            if (contact?.phone) {
-              await sendWhatsApp({
-                to: contact.phone,
-                message: config.message ?? config.content ?? "",
-                template: config.templateId,
-              }).catch((err) => console.error("[CADENCE_WHATSAPP_ERROR]", err));
-            }
+            const result: { success: boolean; messageId?: string; error?: string } = contact?.phone
+              ? await sendWhatsApp({
+                  to: contact.phone,
+                  message: config.message ?? config.content ?? "",
+                  template: config.templateId,
+                }).catch((err: unknown) => {
+                  console.error("[CADENCE_WHATSAPP_ERROR]", err);
+                  return { success: false, error: err instanceof Error ? err.message : "WhatsApp send threw" };
+                })
+              : { success: false, error: "Contact has no phone number" };
+
+            // The row above was written as SENT before the send; correct it to
+            // what actually happened, so a failure shows as FAILED with the
+            // provider's reason instead of a false SENT. Best-effort: a throw
+            // here would re-run this step and message the customer twice.
+            await prisma.whatsAppMessage
+              .update({
+                where: { id: row.id },
+                data: result.success
+                  ? { whatsappId: result.messageId ?? null, failureReason: null }
+                  : { status: "FAILED", failureReason: formatWhatsAppFailure(result.error) },
+              })
+              .catch((err) => console.error("[CADENCE_WHATSAPP_LOG_ERROR]", err));
           }
           break;
         }

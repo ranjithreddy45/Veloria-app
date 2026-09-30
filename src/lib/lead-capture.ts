@@ -8,6 +8,7 @@ import { logActivity } from "@/lib/activity-logger";
 import { calculateLeadScore } from "@/lib/lead-scoring";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { attachAttributionToLead, type AttributionInput } from "@/lib/attribution";
 import { pushLeadToWeflux } from "@/lib/integrations/weflux-crm";
@@ -916,6 +917,7 @@ async function sendWelcomeWhatsApp(
             content: text,
             status: result.success ? "SENT" : "FAILED",
             whatsappId: result.messageId || null,
+            failureReason: result.success ? null : formatWhatsAppFailure(result.error),
             contactId,
           },
         });

@@ -192,7 +192,10 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
       if (result.success && "data" in result) {
         setConnected(true);
         setConnectionInfo(result.data?.message || "Connected");
-        toast.success(result.data?.message || "Connection successful");
+        // The full report (AiSensy: every approved template, the missing ones,
+        // language mismatches) is shown in the panel below; the toast gets its
+        // first line only.
+        toast.success(result.data?.message?.split("\n")[0] || "Connection successful");
       } else {
         setConnected(false);
         setConnectionInfo("");
@@ -625,7 +628,7 @@ export function WhatsAppConfigForm({ initialConfig }: WhatsAppConfigFormProps) {
           {connected && connectionInfo && (
             <div className="flex items-start gap-3 rounded-lg border border-success/20 bg-success/10 p-3">
               <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" />
-              <p className="text-sm text-success">{connectionInfo}</p>
+              <p className="min-w-0 whitespace-pre-line break-words text-sm text-success">{connectionInfo}</p>
             </div>
           )}
 

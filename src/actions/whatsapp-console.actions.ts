@@ -52,6 +52,8 @@ interface ThreadMessage {
   content: string;
   templateName: string | null;
   status: string;
+  /** Provider's reason when status is FAILED (getConversation returns every column). */
+  failureReason: string | null;
   sentAt: string;
   contactId: string;
 }
