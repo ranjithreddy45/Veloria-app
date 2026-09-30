@@ -133,11 +133,14 @@ export const aisensySink: AiSensySink = {
 
   async onStatus(e: StatusEvent): Promise<void> {
     if (e.status === "UNKNOWN") return;
+    // A FAILED status carries AiSensy's failureResponse ({ code, reason }); it
+    // is stored as the row's failureReason so the console shows why.
+    const failure = e.failure ? { code: e.failure.code ?? null, message: e.failure.reason ?? null } : null;
     // Our stored id is whatever the send call returned; try the wamid first,
     // then AiSensy's own id, because either can be the one on the row.
-    await applyWhatsAppStatusUpdate(e.waMessageId ?? null, e.status);
+    await applyWhatsAppStatusUpdate(e.waMessageId ?? null, e.status, failure);
     if (e.messageId && e.messageId !== e.waMessageId) {
-      await applyWhatsAppStatusUpdate(e.messageId, e.status);
+      await applyWhatsAppStatusUpdate(e.messageId, e.status, failure);
     }
   },
 

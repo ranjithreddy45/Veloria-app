@@ -37,6 +37,7 @@ interface WhatsAppMessageData {
   templateName: string | null;
   status: "SENT" | "DELIVERED" | "READ" | "FAILED";
   whatsappId: string | null;
+  failureReason: string | null;
   sentAt: string;
   contactId: string;
 }
@@ -201,6 +202,9 @@ export function WhatsAppChat({ contactId, contactPhone }: WhatsAppChatProps) {
                     {msg.status}
                   </Badge>
                 </div>
+                {msg.status === "FAILED" && msg.failureReason && (
+                  <p className="text-meta text-red-700 dark:text-red-300">{msg.failureReason}</p>
+                )}
               </div>
             ))
           )}

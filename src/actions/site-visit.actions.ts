@@ -18,6 +18,7 @@ import { hasPermission } from "@/lib/permissions";
 import { notifyAwait } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { sendEmail } from "@/lib/email";
 import { scheduleCrmTask } from "@/actions/crm-task.actions";
 import { revalidatePath } from "next/cache";
@@ -308,6 +309,7 @@ export async function confirmSiteVisit(id: string): Promise<Result<{ id: string 
               content: text,
               status: result.success ? "SENT" : "FAILED",
               whatsappId: result.messageId || null,
+              failureReason: result.success ? null : formatWhatsAppFailure(result.error),
               contactId: v.contactId,
             },
           })

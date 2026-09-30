@@ -28,6 +28,7 @@ import {
   N_DAYS_ABANDONED,
   PROXIMITY_WINDOW_MIN_DAYS,
   PROXIMITY_WINDOW_MAX_DAYS,
+  WINBACK_MAX_PENDING_AGE_DAYS,
 } from "@/lib/winback/winback-config";
 
 const BATCH = 200;
@@ -66,7 +67,7 @@ async function findOrCreateTarget(
     eventDate?: Date | null;
     coolOffUntil?: Date | null;
   }
-): Promise<{ id: string; status: string; isNew: boolean } | null> {
+): Promise<{ id: string; status: string; isNew: boolean; createdAt: Date } | null> {
   try {
     const where: Prisma.WinbackTargetWhereInput = { kind: key.kind };
     if (key.shareLinkId) where.shareLinkId = key.shareLinkId;
@@ -76,10 +77,10 @@ async function findOrCreateTarget(
 
     const existing = await prisma.winbackTarget.findFirst({
       where,
-      select: { id: true, status: true },
+      select: { id: true, status: true, createdAt: true },
     });
     if (existing) {
-      return { id: existing.id, status: existing.status, isNew: false };
+      return { id: existing.id, status: existing.status, isNew: false, createdAt: existing.createdAt };
     }
 
     const created = await prisma.winbackTarget.create({
@@ -93,13 +94,24 @@ async function findOrCreateTarget(
         eventDate: extra.eventDate ?? null,
         coolOffUntil: extra.coolOffUntil ?? null,
       },
-      select: { id: true, status: true },
+      select: { id: true, status: true, createdAt: true },
     });
-    return { id: created.id, status: created.status, isNew: true };
+    return { id: created.id, status: created.status, isNew: true, createdAt: created.createdAt };
   } catch (e) {
     console.error("[winback findOrCreateTarget] error:", e);
     return null;
   }
+}
+
+/**
+ * Backlog guard: a PENDING target has been sendable for longer than
+ * WINBACK_MAX_PENDING_AGE_DAYS — since it was created or, for a lost lead
+ * (whose target is created when the cool-off starts), since the cool-off
+ * ended. Such a target is skipped, not changed, so the guard is reversible.
+ */
+function pendingTooLong(target: { createdAt: Date }, sendableFrom: Date | null, now: Date): boolean {
+  const since = Math.max(target.createdAt.getTime(), sendableFrom?.getTime() ?? 0);
+  return now.getTime() - since > WINBACK_MAX_PENDING_AGE_DAYS * DAY_MS;
 }
 
 // ------------------------------------------------------------
@@ -243,6 +255,26 @@ function inrLabel(amount: Prisma.Decimal | number | string | null | undefined): 
   return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
+/**
+ * The occasion as it reads inside a template sentence ("…for your {{2}}").
+ * Stored values are free text in mixed case ("WEDDING", "Birthday Party",
+ * "sangeet", "NONE"), and the old fallback "your event" produced
+ * "for your your event". Lower-case, underscores to spaces, and fall back to
+ * "celebration" so every value reads naturally after "your".
+ */
+export function occasionLabel(raw: string | null | undefined): string {
+  const cleaned = (raw ?? "").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
+  if (!cleaned || /^(none|null|undefined|n\/?a|other|-)$/i.test(cleaned)) return "celebration";
+  return cleaned.toLowerCase();
+}
+
+/** Event date for customer copy, pinned to IST so a UTC server never shows the day before. */
+export function eventDateLabel(date: Date | null | undefined): string {
+  return date
+    ? date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" })
+    : "your event date";
+}
+
 // ============================================================
 // (a) Abandoned-quote recovery
 // ============================================================
@@ -253,20 +285,27 @@ function inrLabel(amount: Prisma.Decimal | number | string | null | undefined): 
 export async function runAbandonedQuoteWinback(): Promise<WinbackRunResult> {
   const kind: WinbackKind = "ABANDONED_QUOTE";
   const result = emptyResult(kind);
-  const cutoff = new Date(Date.now() - N_DAYS_ABANDONED * DAY_MS);
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - N_DAYS_ABANDONED * DAY_MS);
+  // Backlog guard at the query: a link last viewed before this has been
+  // sendable for over WINBACK_MAX_PENDING_AGE_DAYS. Its target is skipped
+  // anyway (pendingTooLong), and it stays un-nudged, so without this bound the
+  // oldest such links would fill every BATCH and starve the fresh ones.
+  const staleBefore = new Date(cutoff.getTime() - WINBACK_MAX_PENDING_AGE_DAYS * DAY_MS);
 
   try {
     const links = await prisma.quoteShareLink.findMany({
       where: {
         status: "ACTIVE",
         silentNudgeFiredAt: null,
-        lastViewedAt: { not: null, lt: cutoff },
+        lastViewedAt: { not: null, lt: cutoff, gte: staleBefore },
         contactId: { not: null },
       },
       select: {
         id: true,
         leadId: true,
         contactId: true,
+        primaryQuotationId: true,
         clientName: true,
         clientPhone: true,
         occasion: true,
@@ -300,6 +339,22 @@ export async function runAbandonedQuoteWinback(): Promise<WinbackRunResult> {
           }
         }
 
+        // Accepted since: the quotation became a booking (CONVERTED) or the
+        // lead was won — never nudge them either.
+        const [quotation, lead] = await Promise.all([
+          link.primaryQuotationId
+            ? prisma.salesQuotation.findUnique({ where: { id: link.primaryQuotationId }, select: { status: true } })
+            : null,
+          link.leadId
+            ? prisma.lead.findUnique({ where: { id: link.leadId }, select: { status: true, assignedToId: true } })
+            : null,
+        ]);
+        if (quotation?.status === "CONVERTED" || lead?.status === "WON") {
+          await markLinkNudged(link.id);
+          result.skipped++;
+          continue;
+        }
+
         if (!link.contactId) {
           result.skipped++;
           continue;
@@ -328,10 +383,12 @@ export async function runAbandonedQuoteWinback(): Promise<WinbackRunResult> {
           result.skipped++;
           continue;
         }
+        if (pendingTooLong(target, null, now)) {
+          result.skipped++;
+          continue;
+        }
 
-        const assignedToId = link.leadId
-          ? (await prisma.lead.findUnique({ where: { id: link.leadId }, select: { assignedToId: true } }))?.assignedToId ?? null
-          : null;
+        const assignedToId = lead?.assignedToId ?? null;
 
         const name = link.clientName || contactName(contact);
         const outcome = await dispatchRecovery({
@@ -343,7 +400,7 @@ export async function runAbandonedQuoteWinback(): Promise<WinbackRunResult> {
           phone: link.clientPhone || contact.phone,
           templateParams: {
             customerName: name,
-            occasion: link.occasion || "your event",
+            occasion: occasionLabel(link.occasion),
             grandTotal: inrLabel(link.grandTotal),
           },
           alertTitle: "💸 Abandoned quote — re-engage",
@@ -451,6 +508,11 @@ export async function runLostLeadRevivalWinback(): Promise<WinbackRunResult> {
           result.skipped++;
           continue;
         }
+        // Sendable since the cool-off ended (the target was made at its start).
+        if (pendingTooLong(target, gate, now)) {
+          result.skipped++;
+          continue;
+        }
 
         const name = contactName(lead.contact);
         const outcome = await dispatchRecovery({
@@ -462,7 +524,7 @@ export async function runLostLeadRevivalWinback(): Promise<WinbackRunResult> {
           phone: lead.contact.phone,
           templateParams: {
             customerName: name,
-            occasion: lead.eventType || "your event",
+            occasion: occasionLabel(lead.eventType),
           },
           alertTitle: "🔁 Lost lead revival",
           alertMessage: `Reviving ${name} (lost: ${lead.lostReason || "unspecified"}). Win-back started.`,
@@ -542,11 +604,13 @@ export async function runEventProximityWinback(): Promise<WinbackRunResult> {
           result.skipped++;
           continue;
         }
+        if (pendingTooLong(target, null, now)) {
+          result.skipped++;
+          continue;
+        }
 
         const name = contactName(lead.contact);
-        const eventDateLabel = lead.eventDate
-          ? lead.eventDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
-          : "your event date";
+        const dateLabel = eventDateLabel(lead.eventDate);
         const outcome = await dispatchRecovery({
           kind,
           targetId: target.id,
@@ -556,10 +620,10 @@ export async function runEventProximityWinback(): Promise<WinbackRunResult> {
           phone: lead.contact.phone,
           templateParams: {
             customerName: name,
-            eventDate: eventDateLabel,
+            eventDate: dateLabel,
           },
           alertTitle: "📅 Event date approaching",
-          alertMessage: `${name}'s event (${eventDateLabel}) is near and still unbooked. Win-back started.`,
+          alertMessage: `${name}'s event (${dateLabel}) is near and still unbooked. Win-back started.`,
           actionUrl: `/leads/${lead.id}`,
         });
         tally(result, outcome);

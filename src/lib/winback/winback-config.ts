@@ -74,6 +74,15 @@ export const PROXIMITY_WINDOW_MIN_DAYS = 7;
 export const PROXIMITY_WINDOW_MAX_DAYS = 21;
 
 // ------------------------------------------------------------
+// Backlog guard — a target still PENDING this many days after it became
+// sendable (created; for a lost lead, when its cool-off ended) is no longer
+// sent: a failed send retries daily, and a fixed WhatsApp provider must not
+// flush weeks-old win-backs. Rows are left as they are, so raising this
+// brings them back.
+// ------------------------------------------------------------
+export const WINBACK_MAX_PENDING_AGE_DAYS = 7;
+
+// ------------------------------------------------------------
 // Cadence resolver
 // ------------------------------------------------------------
 export interface ResolvedCadence {

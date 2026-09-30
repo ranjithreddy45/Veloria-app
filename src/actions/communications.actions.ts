@@ -41,6 +41,8 @@ export interface CommsTimelineItem {
   direction: CommsDirection;
   summary: string;
   status?: string;
+  /** Why a WhatsApp/SMS message FAILED, as the provider reported it. */
+  failureReason?: string;
   at: string; // ISO 8601
   contactId?: string;
   contactName?: string;
@@ -233,6 +235,7 @@ export async function getCommsTimeline(params: {
           direction: true,
           content: true,
           status: true,
+          failureReason: true,
           sentAt: true,
           contactId: true,
         },
@@ -246,6 +249,7 @@ export async function getCommsTimeline(params: {
           direction: m.direction as CommsDirection,
           summary: truncate(m.content) || "(no content)",
           status: m.status,
+          ...(m.status === "FAILED" && m.failureReason ? { failureReason: m.failureReason } : {}),
           at: toIso(m.sentAt),
           contactId: m.contactId ?? undefined,
         });
@@ -267,6 +271,7 @@ export async function getCommsTimeline(params: {
           direction: true,
           content: true,
           status: true,
+          failureReason: true,
           sentAt: true,
           contactId: true,
         },
@@ -280,6 +285,7 @@ export async function getCommsTimeline(params: {
           direction: m.direction as CommsDirection,
           summary: truncate(m.content) || "(no content)",
           status: m.status,
+          ...(m.status === "FAILED" && m.failureReason ? { failureReason: m.failureReason } : {}),
           at: toIso(m.sentAt),
           contactId: m.contactId ?? undefined,
         });

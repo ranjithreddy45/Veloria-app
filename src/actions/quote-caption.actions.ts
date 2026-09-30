@@ -24,6 +24,7 @@ import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { stampLeadResponded } from "@/lib/lead-pipeline";
 import { generateQuoteCaption } from "@/lib/sales/quote-caption";
 import { computeAdvanceAmount } from "@/lib/sales/quote-onetap";
@@ -176,7 +177,7 @@ export async function sendQuoteCaptionWhatsApp(
             content: caption,
             status: sent.success ? "SENT" : "FAILED",
             whatsappId: sent.messageId ?? null,
-            failureReason: sent.success ? null : sent.error ?? "Send failed",
+            failureReason: sent.success ? null : formatWhatsAppFailure(sent.error),
             contactId,
           },
         })
