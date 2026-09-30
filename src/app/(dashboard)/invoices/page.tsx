@@ -6,9 +6,11 @@ import {
   CheckCircle2Icon,
   AlertTriangleIcon,
   FileTextIcon,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { getInvoices } from "@/actions/invoice.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions } from "@/components/ui/quick-actions";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
@@ -61,13 +63,18 @@ export default async function InvoicesPage() {
         help={<PageHelp id="invoices" />}
         description="Manage invoices, track payments and generate GST-compliant documents."
       >
-        <Button asChild>
-          <Link href="/invoices/new">
-            <PlusIcon className="mr-2 size-4" />
-            New Invoice
-          </Link>
-        </Button>
       </PageHeader>
+
+      {/* Dashboard-style quick actions. The primary action MOVED here from
+          the header rather than being duplicated — two links with the same
+          accessible name break Playwright strict mode. */}
+      <QuickActions
+        actions={[
+          { href: "/invoices/new", icon: PlusIcon, label: "New invoice", hint: "Bill a booking", accent: "emerald" },
+          { href: "/payments", icon: WalletIcon, label: "Payments", hint: "What has come in", accent: "cyan" },
+          { href: "/bookings", icon: CalendarIcon, label: "Bookings", hint: "What is billable", accent: "blue" },
+        ]}
+      />
 
       {invoices.length === 0 ? (
         <div className="animate-rise-in animate-stagger-1 rounded-[22px] border border-dashed bg-card/40">

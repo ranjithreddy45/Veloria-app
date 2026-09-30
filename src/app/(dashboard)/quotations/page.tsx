@@ -6,9 +6,12 @@ import {
   ClockIcon,
   CheckCircle2Icon,
   IndianRupeeIcon,
+  Calendar as CalendarIcon,
+  Users as UsersIcon,
 } from "lucide-react";
 import { getSalesQuotations } from "@/actions/sales-quotation.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions } from "@/components/ui/quick-actions";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
 import { formatINR } from "@/lib/utils";
@@ -48,12 +51,18 @@ export default async function QuotationsPage() {
         title="Quotations"
         description="Event quotations built with the calculator — submit for approval, then send to the customer."
       >
-        <Button asChild>
-          <Link href="/quotations/new">
-            <Plus className="h-4 w-4" /> New Quotation
-          </Link>
-        </Button>
       </PageHeader>
+
+      {/* Dashboard-style quick actions. The primary action MOVED here from
+          the header rather than being duplicated — two links with the same
+          accessible name break Playwright strict mode. */}
+      <QuickActions
+        actions={[
+          { href: "/quotations/new", icon: Plus, label: "New quotation", hint: "Price an event", accent: "blue" },
+          { href: "/bookings/new", icon: CalendarIcon, label: "New booking", hint: "Block a date", accent: "emerald" },
+          { href: "/leads", icon: UsersIcon, label: "Leads", hint: "Where quotes start", accent: "cyan" },
+        ]}
+      />
 
       {total > 0 && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 animate-rise-in animate-stagger-1">

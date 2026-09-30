@@ -7,10 +7,13 @@ import {
   CircleCheckIcon,
   AlertTriangleIcon,
   ListChecks,
+  Calendar as CalendarIcon,
+  CalendarCheck as CalendarCheckIcon,
 } from "lucide-react";
 
 import { getTasks } from "@/actions/task.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions } from "@/components/ui/quick-actions";
 import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
@@ -81,13 +84,18 @@ export default async function TasksPage() {
         }
         description="Plan, assign, and ship the work behind every booking — from to-do to done."
       >
-        <Button asChild>
-          <Link href="/tasks/new">
-            <PlusIcon className="mr-2 size-4" />
-            New Task
-          </Link>
-        </Button>
       </PageHeader>
+
+      {/* Dashboard-style quick actions. The primary action MOVED here from
+          the header rather than being duplicated — two links with the same
+          accessible name break Playwright strict mode. */}
+      <QuickActions
+        actions={[
+          { href: "/tasks/new", icon: PlusIcon, label: "New task", hint: "Assign work", accent: "amber" },
+          { href: "/calendar", icon: CalendarIcon, label: "Calendar", hint: "What is due when", accent: "indigo" },
+          { href: "/bookings", icon: CalendarCheckIcon, label: "Bookings", hint: "Work comes from here", accent: "blue" },
+        ]}
+      />
 
       {totalTasks > 0 && (
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 animate-fade-in-up">

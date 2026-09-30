@@ -8,29 +8,40 @@ export type HeaderAccent =
   | "brand"
   | "gold"
   | "blue"
+  | "indigo"
   | "amber"
   | "emerald"
   | "teal"
   | "pink"
   | "cyan"
   | "rose"
+  | "red"
   | "slate";
 
 // `violet` used to be the brand slot; with an emerald+gold identity it retired and
 // gold took its place, so 85 module headers gain the second metal without touching
 // their call sites. The remaining hues stay categorical — they let each module read
 // at a glance, so they are deliberately NOT collapsed into the brand colour.
+// Solid filled chips, matching the dashboard's quick-action tiles (filled
+// square, white icon, tinted shadow) — the look Ranjith approved on 2026-09-30.
+// Full class strings, never interpolated, because Tailwind's JIT only sees
+// literals. `indigo` and `red` are included because 58 pages already pass them.
+//
+// brand and gold use tokens rather than palette steps: --primary is plum and
+// gold is too light for white ink, so each carries its own foreground token.
 const ACCENT_CHIP: Record<HeaderAccent, string> = {
-  brand: "bg-primary/12 text-primary dark:bg-primary/20",
-  gold: "bg-gold/15 text-gold dark:bg-gold/20",
-  blue: "bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300",
-  amber: "bg-amber-500/15 text-amber-600 dark:bg-amber-400/15 dark:text-amber-300",
-  emerald: "bg-emerald-500/12 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-300",
-  teal: "bg-teal-500/12 text-teal-600 dark:bg-teal-400/15 dark:text-teal-300",
-  pink: "bg-pink-500/12 text-pink-600 dark:bg-pink-400/15 dark:text-pink-300",
-  cyan: "bg-cyan-500/12 text-cyan-600 dark:bg-cyan-400/15 dark:text-cyan-300",
-  rose: "bg-rose-500/12 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300",
-  slate: "bg-slate-500/12 text-slate-600 dark:bg-slate-400/15 dark:text-slate-300",
+  brand: "bg-primary text-primary-foreground shadow-md shadow-primary/25",
+  gold: "bg-gold text-gold-foreground shadow-md shadow-gold/25",
+  blue: "bg-blue-500 text-white shadow-md shadow-blue-500/25",
+  indigo: "bg-indigo-500 text-white shadow-md shadow-indigo-500/25",
+  amber: "bg-amber-500 text-white shadow-md shadow-amber-500/25",
+  emerald: "bg-emerald-500 text-white shadow-md shadow-emerald-500/25",
+  teal: "bg-teal-500 text-white shadow-md shadow-teal-500/25",
+  pink: "bg-pink-500 text-white shadow-md shadow-pink-500/25",
+  cyan: "bg-cyan-500 text-white shadow-md shadow-cyan-500/25",
+  rose: "bg-rose-500 text-white shadow-md shadow-rose-500/25",
+  red: "bg-red-500 text-white shadow-md shadow-red-500/25",
+  slate: "bg-slate-500 text-white shadow-md shadow-slate-500/25",
 };
 
 interface PageHeaderProps {
@@ -81,9 +92,21 @@ export function PageHeader({
       )}
     >
       <div className="flex min-w-0 items-start gap-3.5 sm:min-w-[280px] sm:flex-1">
-        {/* Apple restraint: the coloured icon tile next to every page title made
-            each page open with a badge of colour. The large title now stands on
-            its own; `icon`/`accent` remain accepted for API compatibility. */}
+        {/* The module chip. It was disabled during an "Apple restraint" pass
+            while 180 pages kept passing `icon`/`accent`, so those props were
+            being thrown away — re-rendering it is what carries the dashboard's
+            look onto every page that already declared its module colour. */}
+        {Icon && (
+          <div
+            className={cn(
+              "flex size-10 shrink-0 items-center justify-center rounded-xl",
+              ACCENT_CHIP[accent] ?? ACCENT_CHIP.brand
+            )}
+            aria-hidden
+          >
+            <Icon className="size-5" strokeWidth={2} />
+          </div>
+        )}
         <div className="min-w-0 space-y-2">
           {eyebrow && (
             <div className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground">

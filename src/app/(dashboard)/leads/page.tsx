@@ -9,6 +9,7 @@ import { hasPermission } from "@/lib/permissions";
 import { CleanupTestLeadsButton } from "./_components/cleanup-test-leads-button";
 import { EngagementRepairButton } from "./_components/engagement-repair-button";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions } from "@/components/ui/quick-actions";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -191,19 +192,20 @@ export default async function LeadsPage({
       >
         {canViewAll && <EngagementRepairButton />}
         {canDeleteLeads && <CleanupTestLeadsButton count={testLeadCount} />}
-        <Button variant="outline" asChild>
-          <Link href="/leads/import">
-            <UploadCloudIcon className="size-3.5" strokeWidth={2.5} />
-            Import
-          </Link>
-        </Button>
-        <Button asChild>
-          <Link href="/leads/new">
-            <PlusIcon className="size-3.5" strokeWidth={2.5} />
-            New lead
-          </Link>
-        </Button>
       </PageHeader>
+
+      {/* The dashboard's quick-action pills. "New lead" and "Import" MOVED here
+          out of the header rather than being duplicated — a second link with
+          the same accessible name breaks Playwright's strict mode in
+          sales-leads.spec.ts. */}
+      <QuickActions
+        actions={[
+          { href: "/leads/new", icon: PlusIcon, label: "New lead", hint: "Add an enquiry", accent: "blue" },
+          { href: "/leads/import", icon: UploadCloudIcon, label: "Import", hint: "Upload a CSV", accent: "cyan" },
+          { href: "/pipeline", icon: SparklesIcon, label: "Pipeline", hint: "See deal stages", accent: "indigo" },
+          { href: "/contacts", icon: UserPlusIcon, label: "Contacts", hint: "The people behind leads", accent: "emerald" },
+        ]}
+      />
       {/* The filter bar renders even on an empty result — otherwise a filter that
           matches nothing would hide the only control that can clear it. */}
       <div className="animate-rise-in animate-stagger-1 space-y-4">

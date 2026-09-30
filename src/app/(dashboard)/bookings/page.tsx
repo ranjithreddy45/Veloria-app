@@ -7,10 +7,13 @@ import {
   ClockIcon,
   CalendarRangeIcon,
   IndianRupeeIcon,
+  FileText as FileTextIcon,
+  Wallet as WalletIcon,
 } from "lucide-react";
 
 import { getBookings, getBookingStats } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions } from "@/components/ui/quick-actions";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
@@ -129,19 +132,19 @@ export default async function BookingsPage({
           </HelpHint>
         }
       >
-        <Button variant="outline" asChild>
-          <Link href="/bookings/calendar">
-            <CalendarIcon className="mr-2 size-4" />
-            Calendar
-          </Link>
-        </Button>
-        <Button asChild>
-          <Link href="/bookings/new">
-            <PlusIcon className="mr-2 size-4" />
-            New Booking
-          </Link>
-        </Button>
       </PageHeader>
+
+      {/* Dashboard-style quick actions. The primary action MOVED here from
+          the header rather than being duplicated — two links with the same
+          accessible name break Playwright strict mode. */}
+      <QuickActions
+        actions={[
+          { href: "/bookings/new", icon: PlusIcon, label: "New booking", hint: "Block a date", accent: "blue" },
+          { href: "/bookings/calendar", icon: CalendarIcon, label: "Calendar", hint: "See the month", accent: "indigo" },
+          { href: "/quotations/new", icon: FileTextIcon, label: "Quotation", hint: "Price an event", accent: "amber" },
+          { href: "/invoices", icon: WalletIcon, label: "Invoices", hint: "Money due", accent: "emerald" },
+        ]}
+      />
 
       {hasData && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 animate-rise-in animate-stagger-1">
