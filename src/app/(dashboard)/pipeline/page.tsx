@@ -1,3 +1,4 @@
+import { Workflow } from "lucide-react";
 import type { Metadata } from "next";
 import { getPipelineStages, getPipelineStats } from "@/actions/pipeline.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -38,6 +39,8 @@ export default async function PipelinePage() {
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-5">
       <PageHeader
         aura
+        icon={Workflow}
+        accent="indigo"
         title="Pipeline"
         help={
           <HelpHint title="What is a Deal?">

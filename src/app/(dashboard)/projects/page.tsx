@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { FolderKanbanIcon } from "lucide-react";
+import { FolderKanbanIcon, LayoutGrid as LayoutGridIcon, Receipt as ReceiptIcon, Store as StoreIcon } from "lucide-react";
 import { auth } from "@/../auth";
 import { getProjects } from "@/actions/projects.actions";
 import { getDemoCount } from "@/actions/projects-demo.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions } from "@/components/ui/quick-actions";
 import { ProjectsTable, ProjectsTableSkeleton, type ProjectRow } from "./_components/projects-table";
 import { DemoControls } from "./_components/demo-controls";
 
@@ -34,6 +35,14 @@ export default async function ProjectsPage() {
       >
         {isAdmin && <DemoControls count={demoCount} />}
       </PageHeader>
+
+      <QuickActions
+        actions={[
+          { href: "/projects/portfolio", icon: LayoutGridIcon, label: "Portfolio", hint: "Everything at once", accent: "amber" },
+          { href: "/projects/rate-card", icon: ReceiptIcon, label: "Rate card", hint: "What we charge", accent: "emerald" },
+          { href: "/projects/vendors", icon: StoreIcon, label: "Vendors", hint: "Who is delivering", accent: "teal" },
+        ]}
+      />
       <Suspense fallback={<ProjectsTableSkeleton />}>
         <ProjectsList />
       </Suspense>

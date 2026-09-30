@@ -1,3 +1,4 @@
+import { ClipboardList } from "lucide-react";
 import type { Metadata } from "next";
 import { auth } from "@/../auth";
 import { getBeos, getBookableEvents, type BeoListItem, type BookableEvent } from "@/actions/beo.actions";
@@ -18,6 +19,8 @@ export default async function BeoListPage() {
     <div className="flex flex-col gap-5">
       <PageHeader
         aura
+        icon={ClipboardList}
+        accent="amber"
         eyebrow={`Event Operations · ${beos.length} ${beos.length === 1 ? "sheet" : "sheets"}`}
         title="Function Sheets"
         description="Banquet Event Orders (BEO) — the single source of truth for every confirmed event: covers, run-of-show, kitchen, floor, AV and décor briefs, and the day-of incident log."

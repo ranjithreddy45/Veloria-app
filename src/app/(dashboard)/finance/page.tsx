@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
-import { LandmarkIcon } from "lucide-react";
+import { LandmarkIcon, Gauge as GaugeIcon, TrendingUp as TrendingUpIcon, FileBarChart as FileBarChartIcon } from "lucide-react";
 import { auth } from "@/../auth";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions } from "@/components/ui/quick-actions";
 import { hasPermission } from "@/lib/permissions";
 import {
   getCurrentPeriod, getFinAccounts, getJournalEntries, getTrialBalance,
@@ -33,6 +34,14 @@ export default async function FinancePage() {
         eyebrow="General Ledger"
         title="Finance"
         description="General ledger, trial balance and journal entries — double-entry, period-locked."
+      />
+
+      <QuickActions
+        actions={[
+          { href: "/finance/command-center", icon: GaugeIcon, label: "Command centre", hint: "Today's position", accent: "gold" },
+          { href: "/finance/cash-flow", icon: TrendingUpIcon, label: "Cash flow", hint: "What is coming in", accent: "emerald" },
+          { href: "/finance/reports", icon: FileBarChartIcon, label: "Reports", hint: "P&L and ledgers", accent: "blue" },
+        ]}
       />
       <FinanceWorkspace
         seeded={!!period?.seeded}

@@ -11,6 +11,7 @@ import { CleanupEmptyFbButton } from "./_components/cleanup-empty-fb-button";
 import { getContacts } from "@/actions/contact.actions";
 import { getVenues } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions } from "@/components/ui/quick-actions";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
@@ -203,6 +204,13 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
           </Link>
         </Button>
       </PageHeader>
+
+      <QuickActions
+        actions={[
+          { href: "/contacts/new", icon: PlusIcon, label: "New contact", hint: "Add a person", accent: "blue" },
+          { href: "/leads", icon: UsersIcon, label: "Leads", hint: "Their enquiries", accent: "indigo" },
+        ]}
+      />
       {/* Filter rail — enquiry creation date + status. Always rendered when a
           filter is active, so a zero-result filter can be cleared. */}
       {(contacts.length > 0 || isFiltered) && (

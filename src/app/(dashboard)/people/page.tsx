@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Upload, SearchX, UserPlus2, Users, Building2 } from "lucide-react";
+import { Upload, SearchX, UserPlus2, Users, Building2, CalendarCheck, Wallet, CalendarDays } from "lucide-react";
 import { auth } from "@/../auth";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { hasPermission } from "@/lib/permissions";
 import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions } from "@/components/ui/quick-actions";
 import { getEmployees, getEmployeeStats, getHrLookups } from "@/actions/hr-employee.actions";
 import { getAttendanceSites } from "@/actions/hr-attendance.actions";
 import { DirectoryFilters } from "./_components/directory-filters";
@@ -80,6 +81,15 @@ export default async function PeoplePage({ searchParams }: PageProps) {
           </>
         )}
       </PageHeader>
+
+      <QuickActions
+        actions={[
+          { href: "/people/import", icon: Upload, label: "Import people", hint: "Bulk add staff", accent: "gold" },
+          { href: "/people/attendance", icon: CalendarCheck, label: "Attendance", hint: "Who is in today", accent: "blue" },
+          { href: "/people/payroll", icon: Wallet, label: "Payroll", hint: "Run the month", accent: "emerald" },
+          { href: "/people/leave", icon: CalendarDays, label: "Leave", hint: "Requests and balances", accent: "cyan" },
+        ]}
+      />
 
       {needsSeed ? (
         canAdmin ? (

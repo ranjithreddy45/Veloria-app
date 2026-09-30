@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
-import { StoreIcon } from "lucide-react";
+import { StoreIcon, Plus as PlusIcon, Package as PackageIcon } from "lucide-react";
 import { serialize } from "@/lib/utils";
 import { listCatalogVendors, listPackages } from "@/actions/vendor-catalog.actions";
 import { listVendorCategories } from "@/actions/vendor-category.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions } from "@/components/ui/quick-actions";
 import { VendorModule } from "./_components/vendor-module";
 
 export const metadata: Metadata = { title: "Vendors & Packages" };
@@ -93,6 +94,13 @@ export default async function VendorsPage() {
         title="Vendors & Packages"
         eyebrow={`Operations · Marketplace · ${vendorTotal} vendors · ${packageTotal} packages`}
         description="Your empanelled bench and everything they sell — kept current so quotes never wait on a phone call."
+      />
+
+      <QuickActions
+        actions={[
+          { href: "/vendors/new", icon: PlusIcon, label: "New vendor", hint: "Add a supplier", accent: "teal" },
+          { href: "/vendors/packages/new", icon: PackageIcon, label: "New package", hint: "Price what they offer", accent: "cyan" },
+        ]}
       />
 
       <VendorModule
