@@ -2,7 +2,7 @@
 // Sidebar Navigation Configuration
 // ============================================================
 
-import { LEAD_OPS_PAGES_ENABLED } from "@/config/feature-flags";
+import { LEAD_OPS_PAGES_ENABLED, PROJECTS_MODULE_ENABLED } from "@/config/feature-flags";
 
 export interface NavItem {
   title: string;
@@ -305,18 +305,24 @@ export const sidebarNavigation: NavItem[] = [
       },
     ],
   },
-  {
-    title: "Projects",
-    href: "/projects",
-    icon: "Building2",
-    permissions: ["projects:read"],
-    children: [
-      { title: "Venues", href: "/projects", icon: "Building2", permissions: ["projects:read"] },
-      { title: "Portfolio", href: "/projects/portfolio", icon: "BarChart3", permissions: ["projects:read"] },
-      { title: "CapEx Rate Card", href: "/projects/rate-card", icon: "Calculator", permissions: ["projects:read"] },
-      { title: "Vendors", href: "/projects/vendors", icon: "Truck", permissions: ["projects:read"] },
-    ],
-  },
+  // Projects — behind PROJECTS_MODULE_ENABLED (see src/config/feature-flags.ts).
+  // Flip the flag to bring the whole band back.
+  ...(PROJECTS_MODULE_ENABLED
+    ? [
+        {
+          title: "Projects",
+          href: "/projects",
+          icon: "Building2",
+          permissions: ["projects:read"],
+          children: [
+            { title: "Venues", href: "/projects", icon: "Building2", permissions: ["projects:read"] },
+            { title: "Portfolio", href: "/projects/portfolio", icon: "BarChart3", permissions: ["projects:read"] },
+            { title: "CapEx Rate Card", href: "/projects/rate-card", icon: "Calculator", permissions: ["projects:read"] },
+            { title: "Vendors", href: "/projects/vendors", icon: "Truck", permissions: ["projects:read"] },
+          ],
+        },
+      ]
+    : []),
   {
     title: "Operations",
     href: "/tasks",

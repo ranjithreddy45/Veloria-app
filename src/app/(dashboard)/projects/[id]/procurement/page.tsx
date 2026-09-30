@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { PROJECTS_MODULE_ENABLED } from "@/config/feature-flags";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
@@ -11,6 +12,8 @@ import { ProcurementBoard } from "./_components/procurement-board";
 export const metadata: Metadata = { title: "Procurement" };
 
 export default async function ProcurementPage({ params }: { params: Promise<{ id: string }> }) {
+  if (!PROJECTS_MODULE_ENABLED) notFound();
+
   const { id } = await params;
   const session = await auth();
   if (!hasPermission(session?.user?.role ?? "", "projects:read")) redirect("/projects");

@@ -25,7 +25,7 @@ import Link from "next/link";
 import { requiresBdHeadApproval, LEGAL_TRANSITIONS, computeEvaluation } from "@/lib/acq/domain";
 import { acqCan } from "@/lib/acq/rbac";
 import { cn } from "@/lib/utils";
-import { DEAL_CONTRACT_TAB_ENABLED, DEAL_PROJECTION_TAB_ENABLED } from "@/config/feature-flags";
+import { DEAL_CONTRACT_TAB_ENABLED, DEAL_PROJECTION_TAB_ENABLED , PROJECTS_MODULE_ENABLED } from "@/config/feature-flags";
 
 import {
   transitionAcqDeal,
@@ -2577,11 +2577,15 @@ function AlignTeamsPanel({
         <h3 className="text-copy font-semibold text-foreground">Align teams &amp; convert</h3>
       </div>
       <p className="text-detail text-muted-foreground">
-        The contract is signed. Convert this deal into a project and bring Design, Projects, Sales and Operations together with an introduction meeting.
+        {PROJECTS_MODULE_ENABLED
+          ? "The contract is signed. Convert this deal into a project and bring Design, Projects, Sales and Operations together with an introduction meeting."
+          : "The contract is signed. Bring Design, Sales and Operations together with an introduction meeting."}
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
-        {converted ? (
+        {/* Projects is hidden (PROJECTS_MODULE_ENABLED): no Convert button, and
+            no link into a module whose pages 404. The meeting half stays. */}
+        {!PROJECTS_MODULE_ENABLED ? null : converted ? (
           <Button asChild size="sm" variant="outline">
             <Link href={`/projects/${converted.projectId}`}>
               Open project · {converted.propertyName}

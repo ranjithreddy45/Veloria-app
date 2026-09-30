@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
+import { PROJECTS_MODULE_ENABLED } from "@/config/feature-flags";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -9,6 +10,8 @@ import { VendorsAdmin } from "./_components/vendors-admin";
 export const metadata: Metadata = { title: "Project Vendors" };
 
 export default async function ProjectVendorsPage() {
+  if (!PROJECTS_MODULE_ENABLED) notFound();
+
   const session = await auth();
   const role = session?.user?.role ?? "";
   if (!hasPermission(role, "projects:read")) redirect("/projects");
