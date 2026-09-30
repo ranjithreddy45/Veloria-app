@@ -160,10 +160,22 @@ export default auth((req) => {
     if (role !== "SUPER_ADMIN" && role !== "ADMIN") {
       const required = routePermission(pathname);
       if (required) {
-        const effective = (user as { perms?: string[] } | undefined)?.perms;
-        const allowed = Array.isArray(effective)
-          ? effective.includes(required)
-          : hasPermission(role, required);
+        // Role defaults are rebuilt here rather than carried in the cookie
+        // (see bakePerms in auth.ts — the full list overflowed the request
+        // header). Only overrides ride along, as a small add/remove delta.
+        // `perms` is the legacy full list: still honoured so sessions issued
+        // before this change keep working until they expire.
+        const claims = user as
+          | { perms?: string[]; permsAdd?: string[]; permsDel?: string[] }
+          | undefined;
+        let allowed: boolean;
+        if (Array.isArray(claims?.perms)) {
+          allowed = claims.perms.includes(required);
+        } else {
+          allowed = hasPermission(role, required);
+          if (claims?.permsDel?.includes(required)) allowed = false;
+          if (claims?.permsAdd?.includes(required)) allowed = true;
+        }
         if (!allowed) {
           return NextResponse.redirect(new URL("/not-authorized", nextUrl));
         }

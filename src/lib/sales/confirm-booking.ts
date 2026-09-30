@@ -16,6 +16,7 @@ import {
 } from "@/lib/sales/ops-assignment";
 
 import { SLOT_LABEL } from "@/lib/sales/slot";
+import { bookingAdvanceMet } from "@/lib/sales/quotation-calc";
 
 // ============================================================
 // Customer confirmation delivery — what was actually sent, and what wasn't.
@@ -238,13 +239,13 @@ export async function maybeConfirmBookingOnPayment(invoiceId: string): Promise<v
     const b = invoice?.booking;
     if (!b || b.status !== "HOLD") return;
 
-    // The booking advance is 20% of the value. Anchor the threshold on the
-    // INVOICE total (the same number the 20% installment was computed from),
-    // not the booking total — the two can differ by a rupee of GST rounding,
-    // and the installment is round(invoiceTotal × 0.20). The ₹1 tolerance then
+    // "Has the booking advance been received?" — the same question the slot
+    // gate asks, so it reads the same PAYMENT_TERMS-derived rule rather than a
+    // second hardcoded number. (It said 20% here while the terms said 30%.)
+    // Anchored on the INVOICE total, not the booking total: the two can differ
+    // by a rupee of GST rounding, and the ₹1 tolerance inside bookingAdvanceMet
     // guarantees an exact first-installment payment always clears the bar.
-    const threshold = Number(invoice.totalAmount) * 0.2 - 1;
-    if (Number(invoice.paidAmount) < threshold) return;
+    if (!bookingAdvanceMet(Number(invoice.paidAmount), Number(invoice.totalAmount))) return;
 
     // Atomic, once-only flip. Razorpay commonly fires the client success handler
     // AND the server webhook for the same payment, so two confirm runs can race.

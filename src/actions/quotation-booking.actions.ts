@@ -10,6 +10,12 @@ import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { updateLeadStatus } from "@/actions/lead.actions";
 import { updateDeal } from "@/actions/pipeline.actions";
 import { BOOKABLE_SLOTS, SLOT_LABEL, plannerSlotToEnum, type TimeSlotEnum } from "@/lib/sales/slot";
+import {
+  BOOKING_ADVANCE_PCT,
+  REDUCED_ADVANCE_PCT,
+  bookingAdvanceMet,
+  reducedAdvanceMet,
+} from "@/lib/sales/quotation-calc";
 
 // Push quote economics into the linked lead's deal and advance the lead to
 // PROPOSAL_SENT. Best-effort: a quote with no lead / no deal never fails the op.
@@ -99,7 +105,11 @@ export async function blockSlotFromQuotation(
   opts: { venueId: string; dateISO: string; timeSlot?: TimeSlotEnum }
 ): Promise<Result<{ bookingId: string }>> {
   const user = await requireUser();
-  if (!user || !hasPermission(user.role ?? "", "bookings:create"))
+  const role = user?.role ?? "";
+  // Finance blocks slots on the reduced advance, but must not gain general
+  // booking-creation rights, so either permission opens the door here.
+  const mayUseReducedAdvance = hasPermission(role, "bookings:block-reduced-advance");
+  if (!user || !(hasPermission(role, "bookings:create") || mayUseReducedAdvance))
     return { success: false, error: "You don't have permission to block slots." };
 
   const q = await prisma.salesQuotation.findUnique({
@@ -112,27 +122,48 @@ export async function blockSlotFromQuotation(
   if (q.bookingId) return { success: false, error: "This quotation already has a booked slot." };
   if (!opts.venueId) return { success: false, error: "Select a venue to block." };
 
-  // Advance-payment gate: blocking a slot before the 20% booking advance has
-  // been received is reserved for a Super Admin. Everyone else must collect the
-  // advance first. The threshold mirrors the auto-confirm logic in
-  // confirm-booking.ts (20% of the value, with a ₹1 rounding tolerance), and is
-  // anchored on the invoice total (the number the 20% installment was computed
+  // Advance-payment gate, two tiers:
+  //   Sales  — needs the full booking advance (BOOKING_ADVANCE_PCT, from
+  //            PAYMENT_TERMS). It was a hardcoded 20% here while the quote
+  //            printed 30%, so slots were held on less than the document said.
+  //   Finance — bookings:block-reduced-advance, may commit the slot from
+  //            REDUCED_ADVANCE_PCT, but never on nothing at all.
+  // Anchored on the invoice total (what the first installment was computed
   // from) when an invoice exists, else on the quotation grand total.
   const gateGrandTotal = Number(q.grandTotal) || 0;
-  let advanceMet = gateGrandTotal <= 0; // a ₹0 quote can't be advance-gated
-  if (!advanceMet && q.invoiceId && q.invoiceId !== "__pending__") {
+  const zeroValue = gateGrandTotal <= 0; // a ₹0 quote can't be advance-gated
+  let advanceMet = zeroValue;
+  let reducedMet = zeroValue;
+  let paidPct = 0;
+  if (!zeroValue && q.invoiceId && q.invoiceId !== "__pending__") {
     const inv = await prisma.invoice.findUnique({
       where: { id: q.invoiceId },
       select: { paidAmount: true, totalAmount: true },
     });
-    if (inv) advanceMet = Number(inv.paidAmount) >= Number(inv.totalAmount) * 0.2 - 1;
+    if (inv) {
+      const paid = Number(inv.paidAmount);
+      const total = Number(inv.totalAmount);
+      advanceMet = bookingAdvanceMet(paid, total);
+      reducedMet = reducedAdvanceMet(paid, total);
+      paidPct = total > 0 ? Math.floor((paid / total) * 100) : 0;
+    }
   }
-  if (!advanceMet && user.role !== "SUPER_ADMIN") {
-    return {
-      success: false,
-      error:
-        "Advance payment is below 20%. Only a Super Admin can block this slot before the booking advance is received.",
-    };
+  if (!advanceMet) {
+    // Sales must collect the full advance. Finance may commit the slot on the
+    // reduced one — but not on nothing: there has to be real money against the
+    // booking, so a Finance user with 0% paid is refused just like Sales.
+    if (!mayUseReducedAdvance) {
+      return {
+        success: false,
+        error: `Advance payment is below ${BOOKING_ADVANCE_PCT}%. Collect the booking advance first, or ask Finance to block the slot — Finance can block it from ${REDUCED_ADVANCE_PCT}%.`,
+      };
+    }
+    if (!reducedMet) {
+      return {
+        success: false,
+        error: `Only ${paidPct}% has been received. Even Finance needs at least ${REDUCED_ADVANCE_PCT}% against the booking before the slot can be blocked.`,
+      };
+    }
   }
 
   // Atomically claim the quotation before doing any booking work, so two

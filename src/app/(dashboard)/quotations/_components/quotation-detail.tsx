@@ -112,14 +112,15 @@ interface QuoteRow {
 
 interface Props {
   quote: QuoteRow;
-  perms: { canApprove: boolean; canSend: boolean; canCreate: boolean; canEdit: boolean };
+  perms: { canApprove: boolean; canSend: boolean; canCreate: boolean; canEdit: boolean; canBlockSlot: boolean };
   leads: LeadOpt[];
   venues: VenueOpt[];
   advancePaid?: boolean;
-  isSuperAdmin?: boolean;
+  reducedAdvancePaid?: boolean;
+  mayUseReducedAdvance?: boolean;
 }
 
-export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSuperAdmin }: Props) {
+export function QuotationDetail({ quote, perms, leads, venues, advancePaid, reducedAdvancePaid, mayUseReducedAdvance }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -338,7 +339,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
 
         {/* Totals + schedule + timeline */}
         <div className="space-y-4">
-          {(quote.status === "APPROVED" || quote.status === "SENT") && perms.canSend && (
+          {(quote.status === "APPROVED" || quote.status === "SENT") && perms.canBlockSlot && (
             <SlotBlockCard
               quotationId={quote.id}
               venues={venues}
@@ -348,7 +349,8 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, isSu
               blocked={quote.bookingId ? { bookingId: quote.bookingId, at: quote.slotBlockedAt } : null}
               invoiceId={quote.invoiceId}
               advancePaid={advancePaid}
-              isSuperAdmin={isSuperAdmin}
+              reducedAdvancePaid={reducedAdvancePaid}
+              mayUseReducedAdvance={mayUseReducedAdvance}
             />
           )}
           <Card>

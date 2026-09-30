@@ -16,8 +16,10 @@ import {
 import {
   sendWhatsApp,
   getWhatsAppApiConfig,
+  orderTemplateParams,
   WHATSAPP_TEMPLATES,
 } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 
 // ============================================================
 // Send WhatsApp Message
@@ -43,7 +45,9 @@ export async function sendWhatsAppMessage(data: SendWhatsAppMessageInput) {
       };
     }
 
-    const { contactId, content, templateName, params } = parsed.data;
+    const { contactId, content, templateName } = parsed.data;
+    // In the order the template declares them ({{1}}, {{2}}…), not the order typed.
+    const params = orderTemplateParams(templateName, parsed.data.params);
 
     // Verify contact exists and get phone number
     const contact = await prisma.contact.findUnique({
@@ -76,9 +80,9 @@ export async function sendWhatsAppMessage(data: SendWhatsAppMessageInput) {
 
     if (!result.success) {
       // Capture the provider/error reason so it surfaces in the UI instead of a
-      // silent failure (E-3). `result.error` is the Meta Cloud API message or a
+      // silent failure (E-3). `result.error` is the provider's message or a
       // "not configured" hint from the integration layer.
-      const reason = result.error || "Send failed (no reason returned by provider).";
+      const reason = formatWhatsAppFailure(result.error);
       await prisma.whatsAppMessage.create({
         data: {
           direction: "OUTBOUND",
@@ -429,7 +433,8 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
       };
     }
 
-    const { templateName, params } = parsed.data;
+    const { templateName } = parsed.data;
+    const params = orderTemplateParams(templateName, parsed.data.params);
 
     // Whitelist the template against the known set so callers can't push an
     // arbitrary/unknown template name through the bulk path.
@@ -501,9 +506,7 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
             templateName,
             status: result.success ? "SENT" : "FAILED",
             whatsappId: result.messageId || null,
-            failureReason: result.success
-              ? null
-              : result.error || "Send failed (no reason returned by provider).",
+            failureReason: result.success ? null : formatWhatsAppFailure(result.error),
             contactId: contact.id,
           },
         });
@@ -516,7 +519,7 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
       } catch (e) {
         // Record the message as FAILED with the thrown reason so the count
         // reconciles with actual rows (E-3) rather than vanishing.
-        const reason = e instanceof Error ? e.message : "Unexpected send error.";
+        const reason = formatWhatsAppFailure(e instanceof Error ? e : "Unexpected send error.");
         try {
           await prisma.whatsAppMessage.create({
             data: {

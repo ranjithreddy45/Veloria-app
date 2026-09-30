@@ -146,7 +146,7 @@ export async function replayWhatsAppInboundEvent(id: string) {
     if (isTruncatedBody(r.rawBody)) {
       return { success: false as const, error: "Raw body was truncated at 64 KB — cannot replay" };
     }
-    if (r.provider !== "WEFLUX" && r.provider !== "META") {
+    if (r.provider !== "WEFLUX" && r.provider !== "META" && r.provider !== "AISENSY") {
       return { success: false as const, error: `Unknown provider "${r.provider}"` };
     }
 

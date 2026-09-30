@@ -141,6 +141,9 @@ function TimelineRow({ item, showContact }: { item: CommsTimelineItem; showConta
           </span>
         </div>
         <p className="mt-1 text-body leading-snug text-foreground">{item.summary}</p>
+        {item.failureReason && (
+          <p className="mt-0.5 text-meta leading-snug text-red-700 dark:text-red-300">{item.failureReason}</p>
+        )}
         <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-meta text-muted-foreground">
           {showContact && item.contactName && (
             <span>

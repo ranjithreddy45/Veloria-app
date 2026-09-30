@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { bookingAdvanceMet, reducedAdvanceMet } from "@/lib/sales/quotation-calc";
 import { getSalesQuotation } from "@/actions/sales-quotation.actions";
 import { getQuoteShareLink } from "@/actions/quote-share.actions";
 import type { QuotationInput } from "@/lib/sales/quotation-calc";
@@ -24,6 +25,14 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
     canSend: isAdmin || hasPermission(role, "quotes:send"),
     canCreate: isAdmin || hasPermission(role, "quotes:create"),
     canEdit: isAdmin || hasPermission(role, "quotes:update"),
+    // The Block-the-slot card used to be gated on canSend (quotes:send), which
+    // FINANCE does not hold — so Finance could never see the card at all, and
+    // bookings:block-reduced-advance was unreachable through the UI. Gate it on
+    // actually being able to block instead.
+    canBlockSlot:
+      isAdmin ||
+      hasPermission(role, "bookings:create") ||
+      hasPermission(role, "bookings:block-reduced-advance"),
   };
 
   const [leadsRaw, venues] = await Promise.all([
@@ -73,16 +82,21 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
     clientEmail: l.contact?.email ?? null,
   }));
 
-  // Proforma-first flow: slot booking is gated until the 20% advance is paid
+  // Proforma-first flow: slot booking is gated until the booking advance is
+  // paid (PAYMENT_TERMS-derived), unless the viewer may override that gate.
   // on the quotation's invoice.
   const quoteInvoiceId = (res.data as { invoiceId?: string | null }).invoiceId;
   let advancePaid = false;
+  let reducedAdvancePaid = false;
   if (quoteInvoiceId && quoteInvoiceId !== "__pending__") {
     const inv = await prisma.invoice.findUnique({
       where: { id: quoteInvoiceId },
       select: { paidAmount: true, totalAmount: true },
     });
-    if (inv) advancePaid = Number(inv.paidAmount) >= Number(inv.totalAmount) * 0.2 - 1;
+    if (inv) {
+      advancePaid = bookingAdvanceMet(Number(inv.paidAmount), Number(inv.totalAmount));
+      reducedAdvancePaid = reducedAdvanceMet(Number(inv.paidAmount), Number(inv.totalAmount));
+    }
   }
 
   // Quote radar: existing share-link signals (best-effort — never block render).
@@ -99,7 +113,7 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-6">
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      <QuotationDetail quote={res.data as any} perms={perms} leads={leads} venues={venues} advancePaid={advancePaid} isSuperAdmin={role === "SUPER_ADMIN"} />
+      <QuotationDetail quote={res.data as any} perms={perms} leads={leads} venues={venues} advancePaid={advancePaid} reducedAdvancePaid={reducedAdvancePaid} mayUseReducedAdvance={hasPermission(role, "bookings:block-reduced-advance")} />
       <QuoteRadarPanel quotationId={id} initial={radarSignals} canShare={canShare} />
       {baseInput && typeof baseInput === "object" && (
         <TierBuilder

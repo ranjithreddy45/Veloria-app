@@ -273,6 +273,48 @@ export const PAYMENT_TERMS = [
 export const PAYMENT_TERMS_LABEL = PAYMENT_TERMS.map((t) => t.pct).join(" / ");
 
 /**
+ * The booking-advance percentage — the money that blocks a slot. Derived from
+ * PAYMENT_TERMS so it can never contradict the terms printed on the quote and
+ * the installment plan raised against it.
+ *
+ * This used to be a hardcoded 0.2 in four places while the terms said 30%, so a
+ * customer who paid 20% held a slot the document said needed 30%.
+ */
+export const BOOKING_ADVANCE_PCT = PAYMENT_TERMS[0].pct;
+
+/**
+ * Has the booking advance been received on an invoice?
+ *
+ * Anchored on the INVOICE total (the number the first installment was computed
+ * from), not the booking total — the two can differ by a rupee of GST rounding.
+ * The ₹1 tolerance guarantees an exact first-installment payment always clears
+ * the bar rather than missing it by rounding.
+ */
+export function bookingAdvanceMet(paidAmount: number, invoiceTotal: number): boolean {
+  return advanceMetAt(paidAmount, invoiceTotal, BOOKING_ADVANCE_PCT);
+}
+
+/**
+ * The reduced advance Finance may commit a slot on.
+ *
+ * Sales must collect the full BOOKING_ADVANCE_PCT before the calendar moves.
+ * Finance sees the money land and carries the judgement call, so they may hold
+ * a date on a smaller part payment — but NOT on nothing at all. There has to be
+ * real money against the booking.
+ */
+export const REDUCED_ADVANCE_PCT = 10;
+
+/** Has the reduced (Finance-only) advance been received? */
+export function reducedAdvanceMet(paidAmount: number, invoiceTotal: number): boolean {
+  return advanceMetAt(paidAmount, invoiceTotal, REDUCED_ADVANCE_PCT);
+}
+
+/** Shared comparison, with the ₹1 GST-rounding tolerance. */
+function advanceMetAt(paidAmount: number, invoiceTotal: number, pct: number): boolean {
+  return paidAmount >= invoiceTotal * (pct / 100) - 1;
+}
+
+/**
  * The customer-facing terms sentence printed on invoices and quotes. Derived from
  * PAYMENT_TERMS so the wording on the document can never contradict the
  * installment plan actually raised against it.

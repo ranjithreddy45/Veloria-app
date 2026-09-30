@@ -35,6 +35,7 @@ import {
   whatsappAllowedByPreferences,
   WHATSAPP_THROTTLE_MINUTES,
   WHATSAPP_WAIT_MS,
+  BOOKING_UPDATE_MAX_CHARS,
 } from "./customer-notify";
 
 interface World {
@@ -211,6 +212,15 @@ describe("WhatsApp delivery", () => {
     });
   });
 
+  it("logs the reason as one line with any credential in it redacted", async () => {
+    world();
+    sendWhatsApp.mockResolvedValue({ success: false, error: "401 Unauthorized:\n  Bearer EAAGm0PX4ZCpsBA1234xyz" });
+    await notifyCustomerDetailed({ contactId: "c1", title: "t", message: "m" });
+    expect(db.whatsAppMessage.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ status: "FAILED", failureReason: "401 Unauthorized: Bearer [REDACTED]" }),
+    });
+  });
+
   it("reports NO_ANSWER, not sent, when the provider stays silent past the wait", async () => {
     vi.useFakeTimers();
     world();
@@ -321,7 +331,8 @@ describe("template parameters", () => {
     const p = bookingUpdateTemplateParams({ firstName: "Priya", title: "Update", message: `a\n\tb    c ${"x".repeat(2000)}` });
     expect(p.update.startsWith("Update: a b c x")).toBe(true);
     expect(p.update).not.toMatch(/[\n\t]| {2}/);
-    expect(p.update.length).toBeLessThanOrEqual(900);
+    expect(p.update.length).toBeLessThanOrEqual(BOOKING_UPDATE_MAX_CHARS);
+    expect(BOOKING_UPDATE_MAX_CHARS).toBeLessThanOrEqual(800);
   });
 
   it("falls back to a neutral greeting without a name", () => {

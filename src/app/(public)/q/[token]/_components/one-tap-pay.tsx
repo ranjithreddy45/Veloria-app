@@ -18,6 +18,7 @@ import {
 import { startOneTapAdvance, confirmOneTapAndBlock } from "@/actions/quote-onetap.actions";
 // Good-Better-Best: pick a specific tier (re-points the link + mints its proforma).
 import { selectTier } from "@/actions/quote-share-public.actions";
+import { BOOKING_ADVANCE_PCT } from "@/lib/sales/quotation-calc";
 
 // ============================================================
 // OneTapPay — "Pay {advance} to block your date" (PUBLIC, client).
@@ -78,7 +79,7 @@ export function OneTapPay({
   contact,
 }: {
   token: string;
-  /** Server-computed 20% booking-advance amount (paise-exact, INR). */
+  /** Server-computed booking-advance amount (paise-exact, INR). */
   advanceAmount: number;
   customerName: string;
   /** True when the chosen slot is no longer free — disables the button. */
@@ -329,7 +330,7 @@ export function OneTapPay({
 
       {!slotBusy && status !== "securing" && (
         <p className="text-center text-detail text-muted-foreground">
-          Just the 20% booking advance now — it instantly blocks your date.
+          Just the {BOOKING_ADVANCE_PCT}% booking advance now — it instantly blocks your date.
         </p>
       )}
 

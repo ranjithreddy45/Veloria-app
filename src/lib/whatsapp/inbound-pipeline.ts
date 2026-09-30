@@ -19,8 +19,11 @@ import {
   recordInboundWhatsAppMessage,
   recordOutboundWhatsAppMessage,
   applyWhatsAppStatusUpdate,
+  type DeliveryFailure,
 } from "@/lib/whatsapp/inbound";
 import type { InboundProvider } from "@/lib/whatsapp/inbound-capture";
+import { parseAiSensyNotification, type AiSensyNotification } from "@/lib/whatsapp/aisensy/webhook";
+import { aisensySink } from "@/lib/whatsapp/aisensy/sink.impl";
 
 type AnyRec = Record<string, unknown>;
 
@@ -48,6 +51,28 @@ function rec(v: unknown): AnyRec | null {
 
 function arr(v: unknown): AnyRec[] {
   return Array.isArray(v) ? v.filter((x): x is AnyRec => !!x && typeof x === "object") : [];
+}
+
+/**
+ * Why a status payload says a message failed: Meta's `errors[0]`
+ * ({ code, title, message, error_data.details }), an `error` object or string,
+ * or a plain `reason` field. Null when the payload gives no reason.
+ */
+function failureOf(src: AnyRec): DeliveryFailure | null {
+  const e = arr(src.errors)[0] ?? rec(src.error);
+  if (e) {
+    const failure = {
+      code: str(e.code) || null,
+      message: str(e.title) || str(e.message) || null,
+      details: str(rec(e.error_data)?.details) || str(e.details) || null,
+    };
+    if (failure.code || failure.message || failure.details) return failure;
+  }
+  const message = [src.error, src.reason, src.failure_reason, src.error_message].find(
+    (v): v is string => typeof v === "string" && v.trim().length > 0
+  );
+  const code = str(src.error_code) || null;
+  return message || code ? { code, message: message ?? null } : null;
 }
 
 function base(partial: Partial<InboundEventSummary>): InboundEventSummary {
@@ -117,6 +142,7 @@ export async function processWefluxEvent(payload: AnyRec): Promise<InboundEventS
           text,
           templateName,
           status: status || "sent",
+          failure: failureOf(m) ?? failureOf(payload),
         });
         out.matchedContactId = r.contactId;
         out.handled = true;
@@ -128,7 +154,7 @@ export async function processWefluxEvent(payload: AnyRec): Promise<InboundEventS
     }
     case "message.status":
     case "message_status": {
-      await applyWhatsAppStatusUpdate(waId, status);
+      await applyWhatsAppStatusUpdate(waId, status, failureOf(m) ?? failureOf(payload));
       out.handled = !!(waId && status);
       if (!out.handled) out.parseError = "message.status without message id or status";
       break;
@@ -286,7 +312,9 @@ export async function processMetaWebhookPayload(payload: AnyRec): Promise<Inboun
       // Delivery status updates (sent → delivered → read → failed)
       for (const status of arr(value?.statuses)) {
         kinds.add("statuses");
-        await applyWhatsAppStatusUpdate(str(status.id) || null, str(status.status) || null);
+        // A "failed" status carries Meta's reason in errors[0]; it becomes the
+        // row's failureReason instead of being dropped.
+        await applyWhatsAppStatusUpdate(str(status.id) || null, str(status.status) || null, failureOf(status));
         out.handled = true;
         if (!out.messageId) out.messageId = str(status.id) || null;
       }
@@ -301,10 +329,54 @@ export async function processMetaWebhookPayload(payload: AnyRec): Promise<Inboun
   return out;
 }
 
+// ============================================================
+// AiSensy — parse with the provider's own parser, then dispatch through the
+// SAME sink the live webhook uses. Unlike the webhook path this does NOT claim a
+// receipt: a replay is a deliberate admin action on a payload whose receipt row
+// already exists, and the dedupe guard would refuse every one of them.
+// ============================================================
+
+export async function processAiSensyEvent(payload: AnyRec): Promise<InboundEventSummary> {
+  const event = parseAiSensyNotification(payload as unknown as AiSensyNotification);
+  const out = base({
+    eventType: event.topic || event.kind,
+    fromPhone: "phone" in event ? event.phone || null : null,
+    messageId: "waMessageId" in event ? event.waMessageId ?? null : null,
+    textPreview: "text" in event ? event.text ?? null : null,
+  });
+
+  switch (event.kind) {
+    case "inbound_message":
+      out.matchedContactId = await aisensySink.onInbound(event);
+      out.handled = true;
+      if (!event.phone) out.parseError = "inbound message without a phone number";
+      break;
+    case "outbound_echo":
+      await aisensySink.onOutboundEcho(event);
+      out.handled = true;
+      break;
+    case "status":
+      await aisensySink.onStatus(event);
+      out.handled = event.status !== "UNKNOWN";
+      if (!out.handled) out.parseError = "status event with no recognised status";
+      break;
+    case "contact":
+      await aisensySink.onContact(event);
+      out.handled = true;
+      break;
+    case "ignored":
+      out.parseError = event.reason;
+      break;
+  }
+  return out;
+}
+
 /** Dispatcher used by the admin Replay action. */
 export async function processInboundPayload(
   provider: InboundProvider,
   payload: AnyRec
 ): Promise<InboundEventSummary> {
-  return provider === "META" ? processMetaWebhookPayload(payload) : processWefluxEvent(payload);
+  if (provider === "META") return processMetaWebhookPayload(payload);
+  if (provider === "AISENSY") return processAiSensyEvent(payload);
+  return processWefluxEvent(payload);
 }
