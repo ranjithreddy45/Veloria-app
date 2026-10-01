@@ -14,6 +14,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { HelpHint } from "@/components/layout/help-hint";
 import { visibleActions } from "@/lib/permission-claims";
+import { hasPermission } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -92,15 +93,27 @@ export default async function BookingsPage({
   // enforces. Calendar, quotations and invoices are reached from the sidebar.
   // The hint stays plain: /bookings/new makes a booking without the advance
   // check that blocking a slot from a quotation applies.
+  // createBooking checks the static role matrix (bookings:create, or
+  // bookings:block-reduced-advance), so that exact check is required too
+  // (`when`): a permission granted only through an override would otherwise
+  // show a pill whose form fails on save.
+  const role = session?.user?.role ?? "";
   const actions = visibleActions<QuickActionSpec>(session, [
     {
       href: "/bookings/new",
       label: "New booking",
       hint: "Add a booking",
       permission: "bookings:create",
+      when:
+        hasPermission(role, "bookings:create") ||
+        hasPermission(role, "bookings:block-reduced-advance"),
       primary: true,
     },
   ]);
+  // The empty state offers "New booking" under exactly the same decision as
+  // the pill, so a role that cannot create bookings is never shown a create
+  // button the pill would hide from it.
+  const canCreateBookings = actions.length > 0;
 
   return (
     <div className="space-y-6">
@@ -184,14 +197,20 @@ export default async function BookingsPage({
             <EmptyState
               icon={<CalendarCheckIcon className="size-6" />}
               title="No bookings yet"
-              description="A booking is a confirmed event — a venue, date, and slot reserved for a client. Create your first booking, or convert a won deal, to start filling the calendar."
+              description={
+                canCreateBookings
+                  ? "A booking is a confirmed event — a venue, date, and slot reserved for a client. Create your first booking, or convert a won deal, to start filling the calendar."
+                  : "A booking is a confirmed event — a venue, date, and slot reserved for a client. Bookings appear here once they are made."
+              }
               action={
-                <Button asChild>
-                  <Link href="/bookings/new">
-                    <PlusIcon className="mr-2 size-4" />
-                    New booking
-                  </Link>
-                </Button>
+                canCreateBookings ? (
+                  <Button asChild>
+                    <Link href="/bookings/new">
+                      <PlusIcon className="mr-2 size-4" />
+                      New booking
+                    </Link>
+                  </Button>
+                ) : undefined
               }
             />
           </div>

@@ -134,10 +134,16 @@ export default async function LeadsPage({
 
   // The header's action cluster: the page's create action and Import, each
   // shown only to someone who holds what the destination enforces (/leads/new
-  // saves through createLead, /leads/import checks leads:create itself), under
-  // the same override-aware rule as middleware. Pipeline and Contacts are
-  // sidebar destinations, not actions, so they are not repeated here. The
-  // maintenance tools live in the More menu.
+  // saves through createLead, /leads/import checks leads:create itself).
+  // Two checks, because the two sides use different rules: middleware lets
+  // the click through under the override-aware rule (visibleActions), and
+  // createLead and /leads/import then re-check leads:create against the
+  // static role matrix (`when`). A role granted leads:create only through an
+  // override would otherwise see a pill that ends on /not-authorized or a
+  // form that fails on save. Pipeline and Contacts are sidebar destinations,
+  // not actions, so they are not repeated here. The maintenance tools live
+  // in the More menu.
+  const staticLeadsCreate = hasPermission(session?.user?.role ?? "", "leads:create");
   const actions = visibleActions<QuickActionSpec>(session, [
     {
       href: "/leads/new",
@@ -145,12 +151,14 @@ export default async function LeadsPage({
       hint: "Add an enquiry",
       primary: true,
       permission: "leads:create",
+      when: staticLeadsCreate,
     },
     {
       href: "/leads/import",
       label: "Import",
       hint: "Upload a CSV",
       permission: "leads:create",
+      when: staticLeadsCreate,
     },
   ]);
   // The empty states offer "New lead" under exactly the same decision as the

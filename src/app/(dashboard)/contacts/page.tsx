@@ -131,7 +131,9 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
   // contacts:read (the route), but its form saves through createContact, which
   // refuses anyone without contacts:create, so that is the permission the
   // destination really enforces. Leads is a sidebar destination, not an
-  // action, so it is not repeated here.
+  // action, so it is not repeated here. createContact checks the static role
+  // matrix, so that check is required too (`when`): a permission granted only
+  // through an override would otherwise show a pill whose form fails on save.
   const actions = visibleActions<QuickActionSpec>(session, [
     {
       href: "/contacts/new",
@@ -139,6 +141,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
       hint: "Add a person",
       primary: true,
       permission: "contacts:create",
+      when: !!session?.user?.role && hasPermission(session.user.role, "contacts:create"),
     },
   ]);
   // The empty state offers "New contact" under the same decision as the pill.

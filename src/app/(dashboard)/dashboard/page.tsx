@@ -34,12 +34,15 @@ export default async function DashboardPage() {
   // - the destination's route permission, always;
   // - plus what the destination itself enforces: /leads/new saves through
   //   createLead (leads:create), /quotations/new through createSalesQuotation
-  //   (quotes:create), and /site-visits re-checks tastings:read against the
-  //   static role matrix, so an override that middleware honours would still
-  //   be bounced there.
+  //   (quotes:create), and /site-visits re-checks tastings:read. All three
+  //   check the static role matrix, so `when` repeats that check: an override
+  //   that middleware honours would still be refused there.
   //
-  // Labels describe what the destination does: /payments lists payments (it
-  // records none) and /availability shows free slots (it blocks none).
+  // Labels and hints describe what the destination does: /payments lists
+  // payments (it records none), /availability shows free slots (it blocks
+  // none), and /site-visits is where staff confirm and assign the tours and
+  // tastings prospects book on the public scheduler, which is what its hint
+  // says.
   const quickActions = visibleActions<HubActionSpec>(session, [
     {
       href: "/leads/new",
@@ -47,12 +50,14 @@ export default async function DashboardPage() {
       hint: "Add a new enquiry",
       primary: true,
       permission: "leads:create",
+      when: hasPermission(role, "leads:create"),
     },
     {
       href: "/quotations/new",
       label: "Create quotation",
       hint: "Generate proposal",
       permission: "quotes:create",
+      when: hasPermission(role, "quotes:create"),
     },
     {
       href: "/payments",
@@ -62,7 +67,7 @@ export default async function DashboardPage() {
     {
       href: "/site-visits",
       label: "Schedule visit",
-      hint: "Site visit / tasting",
+      hint: "Confirm tours, tastings",
       when: hasPermission(role, "tastings:read"),
     },
     {

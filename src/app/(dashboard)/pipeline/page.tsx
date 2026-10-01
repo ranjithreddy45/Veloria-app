@@ -4,6 +4,7 @@ import { getPipelineStages, getPipelineStats } from "@/actions/pipeline.actions"
 import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
 import { QuickActions } from "@/components/ui/quick-actions";
+import { hasPermission } from "@/lib/permissions";
 import { sessionAllows } from "@/lib/permission-claims";
 import { PipelineBoard } from "./_components/pipeline-board";
 import { ScoreAllDealsButton } from "./_components/score-all-deals-button";
@@ -41,10 +42,14 @@ export default async function PipelinePage() {
   // The header's two actions are client buttons that run a server action in
   // place, so each is shown only to someone that action accepts: Sync leads
   // runs backfillLeadPipeline (pipeline:update) and Score deals runs
-  // aiScoreAllDeals (ai:admin). Anyone else would get an "Insufficient
-  // permissions" toast for their click.
-  const canSyncLeads = sessionAllows(session, "pipeline:update");
-  const canScoreDeals = sessionAllows(session, "ai:admin");
+  // aiScoreAllDeals (ai:admin). Both actions check the static role matrix,
+  // so the static check is required as well as the override-aware one the
+  // rest of the page's gating uses; a permission granted only through an
+  // override would otherwise show a button whose click gets an
+  // "Insufficient permissions" toast.
+  const role = session?.user?.role ?? "";
+  const canSyncLeads = sessionAllows(session, "pipeline:update") && hasPermission(role, "pipeline:update");
+  const canScoreDeals = sessionAllows(session, "ai:admin") && hasPermission(role, "ai:admin");
 
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-5">

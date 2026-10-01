@@ -3,7 +3,7 @@
 // ------------------------------------------------------------
 //   [LABEL, UPPERCASE, UP TO 2 LINES]            [chip]
 //   ₹12,45,000
-//   ↗ 12% vs last month          (optional trend)
+//   ↗ +12% vs last month         (optional trend)
 //   sub line                      (optional)
 //   ↑ +3 deltaLabel               (optional delta)
 //
@@ -34,23 +34,46 @@ import { CountUp } from "@/components/ui/count-up";
  */
 export type Accent = Exclude<Hue, "slate">;
 
+/** Which way the figure moved: up = an increase, down = a decrease, neutral = neither. */
 export type StatTileTrendTone = "up" | "down" | "neutral";
 
+/** What the movement means for the business; it only picks the trend line's colour. */
+export type StatTileTrendIntent = "good" | "bad" | "neutral";
+
 /**
- * A short, already-worded trend line, e.g. "12% vs last month" or
- * "3 invoices overdue". The tone sets its colour and glyph:
- * up = success with ↗, down = destructive with ↘, neutral = muted, no glyph.
- * Pick the tone for what the change means, not only its direction.
+ * A short, already-worded trend line, e.g. "+12% vs last month" or
+ * "3 invoices overdue".
+ *
+ * - `tone` is the direction only, and the glyph always follows it:
+ *   up = an increase (↗), down = a decrease (↘), neutral = no glyph (no
+ *   change, or a line that is not a change at all). Never pick "down" for a
+ *   rise because the rise is bad news; that draws a falling arrow for a
+ *   number that went up.
+ * - `intent` is optional and only picks the colour: good = success,
+ *   bad = destructive, neutral = muted. Omitted, it follows the direction
+ *   (up = good, down = bad, neutral = neutral). A rising cost is
+ *   `{ tone: "up", intent: "bad" }`.
+ *
+ * The glyph is decorative (aria-hidden), so the text must carry the
+ * direction itself: a sign ("+12%", "−8%") or a word ("up 12%").
  */
 export interface StatTileTrend {
   text: string;
   tone: StatTileTrendTone;
+  intent?: StatTileTrendIntent;
 }
 
-const TREND_TONE: Readonly<Record<StatTileTrendTone, string>> = {
-  up: "text-success",
-  down: "text-destructive",
+const TREND_INTENT: Readonly<Record<StatTileTrendIntent, string>> = {
+  good: "text-success",
+  bad: "text-destructive",
   neutral: "text-muted-foreground",
+};
+
+/** The colour a trend gets when it names no intent: rises read as good, falls as bad. */
+const DEFAULT_INTENT: Readonly<Record<StatTileTrendTone, StatTileTrendIntent>> = {
+  up: "good",
+  down: "bad",
+  neutral: "neutral",
 };
 
 export interface StatTileProps {
@@ -149,7 +172,12 @@ export function StatTile({ label, value, accent = "indigo", icon, sub, delta, de
           </div>
           {trend?.text ? (
             <p className="mt-2 text-meta font-medium leading-snug">
-              <span className={cn("flex items-start gap-1", TREND_TONE[trend.tone] ?? TREND_TONE.neutral)}>
+              <span
+                className={cn(
+                  "flex items-start gap-1",
+                  TREND_INTENT[trend.intent ?? DEFAULT_INTENT[trend.tone] ?? "neutral"] ?? TREND_INTENT.neutral
+                )}
+              >
                 {trend.tone === "up" && <ArrowUpRight aria-hidden className="mt-px size-3.5 shrink-0" />}
                 {trend.tone === "down" && <ArrowDownRight aria-hidden className="mt-px size-3.5 shrink-0" />}
                 <span className="min-w-0">{trend.text}</span>

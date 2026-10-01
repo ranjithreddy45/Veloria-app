@@ -28,8 +28,14 @@ import {
 import type { DashboardFullData } from "@/actions/dashboard-full.actions";
 import { getHallOccupancyForDate, getEventsForDate } from "@/actions/dashboard-full.actions";
 import { format, addDays, parseISO } from "date-fns";
-import { QuickActions, type HubActionSpec } from "@/components/ui/quick-actions";
+import { PageMoreMenuTrigger, QuickActions, type HubActionSpec } from "@/components/ui/quick-actions";
 import { StatTile, type StatTileTrend } from "@/components/ui/stat-tile";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface FullDashboardViewProps {
   data: DashboardFullData;
@@ -43,10 +49,46 @@ interface FullDashboardViewProps {
   canOpenLeads: boolean;
 }
 
-/** A month-over-month change as a tile trend line; the arrow follows the sign. */
+/**
+ * A month-over-month change as a tile trend line. The arrow follows the sign,
+ * and so does the text ("+12%", "−8%"): the arrow is decorative (aria-hidden),
+ * so the words alone must say which way the figure moved.
+ */
 function changeTrend(changePercent: number): StatTileTrend {
   const tone = changePercent > 0 ? "up" : changePercent < 0 ? "down" : "neutral";
-  return { text: `${Math.abs(changePercent)}% vs last month`, tone };
+  const sign = changePercent > 0 ? "+" : changePercent < 0 ? "−" : ""; // U+2212 minus sign
+  return { text: `${sign}${Math.abs(changePercent)}% vs last month`, tone };
+}
+
+// The hub's pill row. Five pills wrap to three rows on a 390px phone, which
+// pushes the KPI row far below the greeting (design spec R10: at most two
+// rows). So below sm the row shows its first three pills and folds the rest
+// into a phone-only More menu (always the row's last item); from sm up every
+// pill shows and that menu is hidden. Literal strings: Tailwind only
+// generates classes it can read in the source, so the "n+4" in the selector
+// is HUB_PHONE_PILLS + 1 written out; change the two together.
+const HUB_ROW = "xl:justify-end";
+const HUB_ROW_WITH_OVERFLOW =
+  "xl:justify-end max-sm:[&>li:nth-child(n+4):not(:last-child)]:hidden sm:[&>li:last-child]:hidden";
+/** How many hub pills a phone shows before the rest move into the More menu. */
+const HUB_PHONE_PILLS = 3;
+
+/** The phone-only More menu holding the hub pills that don't fit on a phone. */
+function HubOverflowMenu({ actions }: { actions: readonly HubActionSpec[] }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <PageMoreMenuTrigger />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-48">
+        {actions.map((action) => (
+          <DropdownMenuItem key={`${action.href}|${action.label}`} asChild>
+            <Link href={action.href}>{action.label}</Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 // The month the cash KPI covers: the current month in IST, which is the window
@@ -235,8 +277,18 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
         {/* The shared action cluster (src/components/ui/quick-actions.tsx) in
             hub mode: the dashboard is not a module landing, so it keeps its
             five shortcuts. Order, labels and permissions come from page.tsx;
-            each pill's chip is its destination's module chip. */}
-        <QuickActions hub actions={quickActions} className="xl:justify-end" />
+            each pill's chip is its destination's module chip. On a phone the
+            pills past the third move into a More menu (HUB_ROW_WITH_OVERFLOW). */}
+        {quickActions.length > HUB_PHONE_PILLS ? (
+          <QuickActions
+            hub
+            actions={quickActions}
+            more={<HubOverflowMenu actions={quickActions.slice(HUB_PHONE_PILLS)} />}
+            className={HUB_ROW_WITH_OVERFLOW}
+          />
+        ) : (
+          <QuickActions hub actions={quickActions} className={HUB_ROW} />
+        )}
       </header>
 
       {/* ============================================================ */}

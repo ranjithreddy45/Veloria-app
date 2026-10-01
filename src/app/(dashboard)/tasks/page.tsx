@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { PageHelp } from "@/lib/page-help";
 import { visibleActions } from "@/lib/permission-claims";
+import { hasPermission } from "@/lib/permissions";
 import { StatTile } from "@/components/ui/stat-tile";
 import { TasksViews } from "./_components/tasks-views";
 
@@ -55,12 +56,16 @@ export default async function TasksPage() {
 
   // The page's one action: its create, gated on the permission createTask
   // enforces. The calendar and bookings are reached from the sidebar.
+  // createTask checks tasks:create against the static role matrix, so that
+  // check is required too (`when`): a permission granted only through an
+  // override would otherwise show a pill whose form fails on save.
   const actions = visibleActions<QuickActionSpec>(session, [
     {
       href: "/tasks/new",
       label: "New task",
       hint: "Assign work",
       permission: "tasks:create",
+      when: hasPermission(session?.user?.role ?? "", "tasks:create"),
       primary: true,
     },
   ]);

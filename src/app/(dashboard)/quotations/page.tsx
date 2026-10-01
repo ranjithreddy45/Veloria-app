@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { StatTile } from "@/components/ui/stat-tile";
 import { visibleActions } from "@/lib/permission-claims";
+import { hasPermission } from "@/lib/permissions";
 import { formatINR } from "@/lib/utils";
 import { QuotationsTable, type QuotationListRow } from "./_components/quotations-table";
 
@@ -35,6 +36,9 @@ export default async function QuotationsPage() {
   // requires quotes:create). Booking from a quote goes through the quotation's
   // own Block-the-slot card, which applies the advance rule; Leads is a
   // sidebar destination. Neither is repeated here.
+  // createSalesQuotation checks quotes:create against the static role matrix,
+  // so that check is required too (`when`): a permission granted only through
+  // an override would otherwise show a pill whose form fails on save.
   const actions = visibleActions<QuickActionSpec>(session, [
     {
       href: "/quotations/new",
@@ -42,6 +46,7 @@ export default async function QuotationsPage() {
       hint: "Price an event",
       primary: true,
       permission: "quotes:create",
+      when: hasPermission(session?.user?.role ?? "", "quotes:create"),
     },
   ]);
 

@@ -25,7 +25,8 @@ import {
 //             sits where the settled h1 lands.
 //
 // Routes: every visual-tour screen except /dashboard, which is the hub and
-// has its own header with no module chip. That list already includes /leads,
+// has its own header with no module chip (its pill row gets a 390px check of
+// its own: at most two rows). That list already includes /leads,
 // /pipeline and /bd/deals. One test per width walks all of them, so the
 // cross-route comparison happens in one place; each route's problems are
 // soft assertions, reported together at the end, and the measurements are
@@ -174,6 +175,42 @@ test.describe("header geometry · 390", () => {
       contentType: "application/json",
     });
     expect(rows.length, "routes measured at 390px").toBeGreaterThan(1);
+  });
+
+  // The /dashboard hub is left out of the walk above (it has no module chip),
+  // but its pill row is held to the same phone rule: R10 allows at most two
+  // rows. Five hub pills wrap to three at 390px, so a phone shows the first
+  // three and a More menu for the rest.
+  test("the /dashboard hub's pills wrap to at most two rows, inside the gutters", async ({ page }) => {
+    test.slow();
+    const g = await openAndMeasure(page, "/dashboard");
+    if (!g) return;
+    await test.info().attach("header-geometry-390-dashboard.json", {
+      body: JSON.stringify(g, null, 2),
+      contentType: "application/json",
+    });
+
+    expect(g.lists.length, "/dashboard: rendered \"Page actions\" lists").toBe(1);
+    const pills = g.lists[0].pills;
+    expect(pills.length, "/dashboard: visible hub pills").toBeGreaterThan(0);
+
+    // A new row starts when a pill's top is clearly below the current row's
+    // (more than half a pill), so sub-pixel differences never count as rows.
+    let rows = 0;
+    let rowTop = -Infinity;
+    for (const top of pills.map((p) => p.box.top).sort((a, b) => a - b)) {
+      if (top > rowTop + 20) {
+        rows += 1;
+        rowTop = top;
+      }
+    }
+    expect(rows, `/dashboard: hub rows at 390px (${pills.map((p) => p.label).join(", ")})`).toBeLessThanOrEqual(2);
+
+    for (const pill of pills) {
+      expect.soft(pill.box.left, `/dashboard: "${pill.label}" starts at ${px(pill.box.left)}, left of the ${GUTTER}px gutter`).toBeGreaterThanOrEqual(GUTTER - SAME_X);
+      expect.soft(pill.box.right, `/dashboard: "${pill.label}" ends at ${px(pill.box.right)}, past ${RIGHT_LIMIT}px`).toBeLessThanOrEqual(RIGHT_LIMIT + SAME_X);
+      expect.soft(pill.clippedBy, `/dashboard: "${pill.label}" is clipped by an ancestor`).toBeNull();
+    }
   });
 });
 

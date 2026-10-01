@@ -1,14 +1,12 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 
 export default function WarRoomLoading() {
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-8 w-56" />
-        <Skeleton className="h-4 w-96" />
-      </div>
+      {/* Header: PageHeader's own shape (chip placeholder included), so the
+          title does not jump when the page replaces this. No action cluster. */}
+      <PageHeaderSkeleton />
 
       {/* Summary tiles */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

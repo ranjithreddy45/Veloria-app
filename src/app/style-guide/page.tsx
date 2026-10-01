@@ -189,7 +189,7 @@ export default function StyleGuidePage() {
 
       <Section title="KPI tiles (StatTile)">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatTile label="Revenue (MTD)" value="₹18.4L" accent="emerald" icon={<IndianRupee className="size-4" />} trend={{ text: "12% vs last month", tone: "up" }} />
+          <StatTile label="Revenue (MTD)" value="₹18.4L" accent="emerald" icon={<IndianRupee className="size-4" />} trend={{ text: "+12% vs last month", tone: "up" }} />
           <StatTile label="Bookings" value="34" accent="blue" icon={<CalendarCheck className="size-4" />} sub="6 this week" />
           <StatTile label="Goal progress" value="72%" accent="gold" icon={<Target className="size-4" />} pct={72} />
           <StatTile label="Day streak" value="9" accent="amber" icon={<Flame className="size-4" />} sub="Keep it going!" />
