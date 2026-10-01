@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  PlusIcon,
   CircleDashedIcon,
   CircleDotIcon,
   CircleCheckIcon,
   AlertTriangleIcon,
   ListChecks,
-  Calendar as CalendarIcon,
-  CalendarCheck as CalendarCheckIcon,
 } from "lucide-react";
 
 import { getTasks } from "@/actions/task.actions";
@@ -89,11 +86,15 @@ export default async function TasksPage() {
       {/* Dashboard-style quick actions. The primary action MOVED here from
           the header rather than being duplicated — two links with the same
           accessible name break Playwright strict mode. */}
+      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
+          relaxes QuickActions' dev checks (labels, pill count) until this row moves
+          into PageHeader `actions`; chips already come from each href. */}
       <QuickActions
+        hub
         actions={[
-          { href: "/tasks/new", icon: PlusIcon, label: "New task", hint: "Assign work", accent: "amber" },
-          { href: "/calendar", icon: CalendarIcon, label: "Calendar", hint: "What is due when", accent: "indigo" },
-          { href: "/bookings", icon: CalendarCheckIcon, label: "Bookings", hint: "Work comes from here", accent: "blue" },
+          { href: "/tasks/new", label: "New task", hint: "Assign work" },
+          { href: "/calendar", label: "Calendar", hint: "What is due when" },
+          { href: "/bookings", label: "Bookings", hint: "Work comes from here" },
         ]}
       />
 

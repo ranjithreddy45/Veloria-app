@@ -2,13 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   PlusIcon,
-  CalendarIcon,
   CalendarCheckIcon,
   ClockIcon,
   CalendarRangeIcon,
   IndianRupeeIcon,
-  FileText as FileTextIcon,
-  Wallet as WalletIcon,
 } from "lucide-react";
 
 import { getBookings, getBookingStats } from "@/actions/booking.actions";
@@ -137,12 +134,16 @@ export default async function BookingsPage({
       {/* Dashboard-style quick actions. The primary action MOVED here from
           the header rather than being duplicated — two links with the same
           accessible name break Playwright strict mode. */}
+      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
+          relaxes QuickActions' dev checks (labels, pill count) until this row moves
+          into PageHeader `actions`; chips already come from each href. */}
       <QuickActions
+        hub
         actions={[
-          { href: "/bookings/new", icon: PlusIcon, label: "New booking", hint: "Block a date", accent: "blue" },
-          { href: "/bookings/calendar", icon: CalendarIcon, label: "Calendar", hint: "See the month", accent: "indigo" },
-          { href: "/quotations/new", icon: FileTextIcon, label: "Quotation", hint: "Price an event", accent: "amber" },
-          { href: "/invoices", icon: WalletIcon, label: "Invoices", hint: "Money due", accent: "emerald" },
+          { href: "/bookings/new", label: "New booking", hint: "Block a date" },
+          { href: "/bookings/calendar", label: "Calendar", hint: "See the month" },
+          { href: "/quotations/new", label: "Quotation", hint: "Price an event" },
+          { href: "/invoices", label: "Invoices", hint: "Money due" },
         ]}
       />
 

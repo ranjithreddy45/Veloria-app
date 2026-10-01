@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
-import { StoreIcon, Plus as PlusIcon, Package as PackageIcon } from "lucide-react";
+import { StoreIcon } from "lucide-react";
 import { serialize } from "@/lib/utils";
 import { listCatalogVendors, listPackages } from "@/actions/vendor-catalog.actions";
 import { listVendorCategories } from "@/actions/vendor-category.actions";
@@ -98,8 +98,8 @@ export default async function VendorsPage() {
 
       <QuickActions
         actions={[
-          { href: "/vendors/new", icon: PlusIcon, label: "New vendor", hint: "Add a supplier", accent: "teal" },
-          { href: "/vendors/packages/new", icon: PackageIcon, label: "New package", hint: "Price what they offer", accent: "cyan" },
+          { href: "/vendors/new", label: "New vendor", hint: "Add a supplier" },
+          { href: "/vendors/packages/new", label: "New package", hint: "Price what they offer" },
         ]}
       />
 

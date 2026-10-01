@@ -205,10 +205,14 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
         </Button>
       </PageHeader>
 
+      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
+          relaxes QuickActions' dev checks (labels, pill count) until this row moves
+          into PageHeader `actions`; chips already come from each href. */}
       <QuickActions
+        hub
         actions={[
-          { href: "/contacts/new", icon: PlusIcon, label: "New contact", hint: "Add a person", accent: "blue" },
-          { href: "/leads", icon: UsersIcon, label: "Leads", hint: "Their enquiries", accent: "indigo" },
+          { href: "/contacts/new", label: "New contact", hint: "Add a person" },
+          { href: "/leads", label: "Leads", hint: "Their enquiries" },
         ]}
       />
       {/* Filter rail — enquiry creation date + status. Always rendered when a

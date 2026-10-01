@@ -6,7 +6,6 @@ import {
   CheckCircle2Icon,
   AlertTriangleIcon,
   FileTextIcon,
-  Calendar as CalendarIcon,
 } from "lucide-react";
 import { getInvoices } from "@/actions/invoice.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -68,11 +67,15 @@ export default async function InvoicesPage() {
       {/* Dashboard-style quick actions. The primary action MOVED here from
           the header rather than being duplicated — two links with the same
           accessible name break Playwright strict mode. */}
+      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
+          relaxes QuickActions' dev checks (labels, pill count) until this row moves
+          into PageHeader `actions`; chips already come from each href. */}
       <QuickActions
+        hub
         actions={[
-          { href: "/invoices/new", icon: PlusIcon, label: "New invoice", hint: "Bill a booking", accent: "emerald" },
-          { href: "/payments", icon: WalletIcon, label: "Payments", hint: "What has come in", accent: "cyan" },
-          { href: "/bookings", icon: CalendarIcon, label: "Bookings", hint: "What is billable", accent: "blue" },
+          { href: "/invoices/new", label: "New invoice", hint: "Bill a booking" },
+          { href: "/payments", label: "Payments", hint: "What has come in" },
+          { href: "/bookings", label: "Bookings", hint: "What is billable" },
         ]}
       />
 

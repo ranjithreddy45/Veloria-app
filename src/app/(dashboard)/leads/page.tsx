@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon, UploadCloud as UploadCloudIcon, Sparkles as SparklesIcon, UserPlus as UserPlusIcon, FilterX as FilterXIcon } from "lucide-react";
+import { PlusIcon, Sparkles as SparklesIcon, UserPlus as UserPlusIcon, FilterX as FilterXIcon } from "lucide-react";
 
 import { getLeads, getLeadOccasionOptions, getLeadStats, getTestLeadsCount, getUnassignedLeadsCount, type LeadListFilters } from "@/actions/lead.actions";
 import { getVenues } from "@/actions/booking.actions";
@@ -198,12 +198,16 @@ export default async function LeadsPage({
           out of the header rather than being duplicated — a second link with
           the same accessible name breaks Playwright's strict mode in
           sales-leads.spec.ts. */}
+      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
+          relaxes QuickActions' dev checks (labels, pill count) until this row moves
+          into PageHeader `actions`; chips already come from each href. */}
       <QuickActions
+        hub
         actions={[
-          { href: "/leads/new", icon: PlusIcon, label: "New lead", hint: "Add an enquiry", accent: "blue" },
-          { href: "/leads/import", icon: UploadCloudIcon, label: "Import", hint: "Upload a CSV", accent: "cyan" },
-          { href: "/pipeline", icon: SparklesIcon, label: "Pipeline", hint: "See deal stages", accent: "indigo" },
-          { href: "/contacts", icon: UserPlusIcon, label: "Contacts", hint: "The people behind leads", accent: "emerald" },
+          { href: "/leads/new", label: "New lead", hint: "Add an enquiry" },
+          { href: "/leads/import", label: "Import", hint: "Upload a CSV" },
+          { href: "/pipeline", label: "Pipeline", hint: "See deal stages" },
+          { href: "/contacts", label: "Contacts", hint: "The people behind leads" },
         ]}
       />
       {/* The filter bar renders even on an empty result — otherwise a filter that

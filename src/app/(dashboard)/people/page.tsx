@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Upload, SearchX, UserPlus2, Users, Building2, CalendarCheck, Wallet, CalendarDays } from "lucide-react";
+import { Upload, SearchX, UserPlus2, Users, Building2 } from "lucide-react";
 import { auth } from "@/../auth";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -82,12 +82,16 @@ export default async function PeoplePage({ searchParams }: PageProps) {
         )}
       </PageHeader>
 
+      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
+          relaxes QuickActions' dev checks (labels, pill count) until this row moves
+          into PageHeader `actions`; chips already come from each href. */}
       <QuickActions
+        hub
         actions={[
-          { href: "/people/import", icon: Upload, label: "Import people", hint: "Bulk add staff", accent: "gold" },
-          { href: "/people/attendance", icon: CalendarCheck, label: "Attendance", hint: "Who is in today", accent: "blue" },
-          { href: "/people/payroll", icon: Wallet, label: "Payroll", hint: "Run the month", accent: "emerald" },
-          { href: "/people/leave", icon: CalendarDays, label: "Leave", hint: "Requests and balances", accent: "cyan" },
+          { href: "/people/import", label: "Import people", hint: "Bulk add staff" },
+          { href: "/people/attendance", label: "Attendance", hint: "Who is in today" },
+          { href: "/people/payroll", label: "Payroll", hint: "Run the month" },
+          { href: "/people/leave", label: "Leave", hint: "Requests and balances" },
         ]}
       />
 

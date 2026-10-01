@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { LandmarkIcon, Gauge as GaugeIcon, TrendingUp as TrendingUpIcon, FileBarChart as FileBarChartIcon } from "lucide-react";
+import { LandmarkIcon } from "lucide-react";
 import { auth } from "@/../auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { QuickActions } from "@/components/ui/quick-actions";
@@ -36,11 +36,15 @@ export default async function FinancePage() {
         description="General ledger, trial balance and journal entries — double-entry, period-locked."
       />
 
+      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
+          relaxes QuickActions' dev checks (labels, pill count) until this row moves
+          into PageHeader `actions`; chips already come from each href. */}
       <QuickActions
+        hub
         actions={[
-          { href: "/finance/command-center", icon: GaugeIcon, label: "Command centre", hint: "Today's position", accent: "gold" },
-          { href: "/finance/cash-flow", icon: TrendingUpIcon, label: "Cash flow", hint: "What is coming in", accent: "emerald" },
-          { href: "/finance/reports", icon: FileBarChartIcon, label: "Reports", hint: "P&L and ledgers", accent: "blue" },
+          { href: "/finance/command-center", label: "Command centre", hint: "Today's position" },
+          { href: "/finance/cash-flow", label: "Cash flow", hint: "What is coming in" },
+          { href: "/finance/reports", label: "Reports", hint: "P&L and ledgers" },
         ]}
       />
       <FinanceWorkspace

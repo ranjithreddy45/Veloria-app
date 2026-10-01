@@ -6,6 +6,7 @@ import {
   HOVER_EDGE,
   HUES,
   PRIMARY_INVERSE_CHIP,
+  RING_TEXT,
   SOFT_CHIP,
   SOLID_CHIP,
   SOLID_FILL_HEX,
@@ -119,7 +120,7 @@ const EXPECTED_FILL: Record<Hue, string> = {
 
 const WHITE: Rgb = [255, 255, 255];
 const PALETTE_HUES = HUES.filter((h) => h !== "brand" && h !== "gold");
-const MAPS = { SOLID_CHIP, SOFT_CHIP, HOVER_EDGE, SOLID_FILL_HEX } as const;
+const MAPS = { SOLID_CHIP, SOFT_CHIP, HOVER_EDGE, SOLID_FILL_HEX, RING_TEXT } as const;
 
 describe("hue maps", () => {
   it.each(Object.entries(MAPS))("%s has exactly one entry per Hue", (_name, map) => {

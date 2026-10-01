@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { FolderKanbanIcon, LayoutGrid as LayoutGridIcon, Receipt as ReceiptIcon, Store as StoreIcon } from "lucide-react";
+import { FolderKanbanIcon } from "lucide-react";
 import { auth } from "@/../auth";
 import { getProjects } from "@/actions/projects.actions";
 import { getDemoCount } from "@/actions/projects-demo.actions";
@@ -36,11 +36,15 @@ export default async function ProjectsPage() {
         {isAdmin && <DemoControls count={demoCount} />}
       </PageHeader>
 
+      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
+          relaxes QuickActions' dev checks (labels, pill count) until this row moves
+          into PageHeader `actions`; chips already come from each href. */}
       <QuickActions
+        hub
         actions={[
-          { href: "/projects/portfolio", icon: LayoutGridIcon, label: "Portfolio", hint: "Everything at once", accent: "amber" },
-          { href: "/projects/rate-card", icon: ReceiptIcon, label: "Rate card", hint: "What we charge", accent: "emerald" },
-          { href: "/projects/vendors", icon: StoreIcon, label: "Vendors", hint: "Who is delivering", accent: "teal" },
+          { href: "/projects/portfolio", label: "Portfolio", hint: "Everything at once" },
+          { href: "/projects/rate-card", label: "Rate card", hint: "What we charge" },
+          { href: "/projects/vendors", label: "Vendors", hint: "Who is delivering" },
         ]}
       />
       <Suspense fallback={<ProjectsTableSkeleton />}>

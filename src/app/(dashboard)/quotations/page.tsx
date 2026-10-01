@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  Plus,
   FileTextIcon,
   ClockIcon,
   CheckCircle2Icon,
   IndianRupeeIcon,
-  Calendar as CalendarIcon,
-  Users as UsersIcon,
 } from "lucide-react";
 import { getSalesQuotations } from "@/actions/sales-quotation.actions";
 import { PageHeader } from "@/components/layout/page-header";
@@ -56,11 +53,15 @@ export default async function QuotationsPage() {
       {/* Dashboard-style quick actions. The primary action MOVED here from
           the header rather than being duplicated — two links with the same
           accessible name break Playwright strict mode. */}
+      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
+          relaxes QuickActions' dev checks (labels, pill count) until this row moves
+          into PageHeader `actions`; chips already come from each href. */}
       <QuickActions
+        hub
         actions={[
-          { href: "/quotations/new", icon: Plus, label: "New quotation", hint: "Price an event", accent: "blue" },
-          { href: "/bookings/new", icon: CalendarIcon, label: "New booking", hint: "Block a date", accent: "emerald" },
-          { href: "/leads", icon: UsersIcon, label: "Leads", hint: "Where quotes start", accent: "cyan" },
+          { href: "/quotations/new", label: "New quotation", hint: "Price an event" },
+          { href: "/bookings/new", label: "New booking", hint: "Block a date" },
+          { href: "/leads", label: "Leads", hint: "Where quotes start" },
         ]}
       />
 

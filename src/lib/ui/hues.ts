@@ -123,6 +123,25 @@ export const HOVER_EDGE: Readonly<Record<Hue, string>> = {
 };
 
 /**
+ * Arc colour of StatTile's progress ring (the Donut draws in currentColor).
+ * Not a chip class, but kept here so every per-hue class map lives in one file.
+ */
+export const RING_TEXT: Readonly<Record<Hue, string>> = {
+  brand: "text-primary",
+  gold: "text-gold",
+  blue: "text-blue-500",
+  indigo: "text-indigo-500",
+  amber: "text-amber-500",
+  emerald: "text-emerald-500",
+  teal: "text-teal-500",
+  pink: "text-pink-500",
+  cyan: "text-cyan-500",
+  rose: "text-rose-500",
+  red: "text-red-500",
+  slate: "text-slate-500",
+};
+
+/**
  * The chip inside the filled primary pill: the primary colours inverted, so the
  * chip reads as a light square on the plum pill. It has no hue because the
  * primary pill is always brand.
