@@ -3,12 +3,10 @@ import type { Metadata } from "next";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
-import { StoreIcon } from "lucide-react";
 import { serialize } from "@/lib/utils";
 import { listCatalogVendors, listPackages } from "@/actions/vendor-catalog.actions";
 import { listVendorCategories } from "@/actions/vendor-category.actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { QuickActions } from "@/components/ui/quick-actions";
 import { VendorModule } from "./_components/vendor-module";
 
 export const metadata: Metadata = { title: "Vendors & Packages" };
@@ -16,6 +14,11 @@ export const metadata: Metadata = { title: "Vendors & Packages" };
 // ============================================================
 // Vendors & Packages — Grand Module Root
 // Server component: fetch both lists, hand off to the client shell.
+//
+// No header action cluster here (the design rule's one exception): what
+// "create" means depends on the active tab, so VendorModule's tab toolbar owns
+// the single create control: "Add vendor" (VendorFormDialog) on Vendors,
+// "Create package" on Packages. Do not add header pills that repeat them.
 // ============================================================
 
 export default async function VendorsPage() {
@@ -88,19 +91,9 @@ export default async function VendorsPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        aura
-        icon={StoreIcon}
-        accent="teal"
         title="Vendors & Packages"
         eyebrow={`Operations · Marketplace · ${vendorTotal} vendors · ${packageTotal} packages`}
         description="Your empanelled bench and everything they sell — kept current so quotes never wait on a phone call."
-      />
-
-      <QuickActions
-        actions={[
-          { href: "/vendors/new", label: "New vendor", hint: "Add a supplier" },
-          { href: "/vendors/packages/new", label: "New package", hint: "Price what they offer" },
-        ]}
       />
 
       <VendorModule

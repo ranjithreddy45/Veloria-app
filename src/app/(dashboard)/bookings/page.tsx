@@ -8,10 +8,12 @@ import {
   IndianRupeeIcon,
 } from "lucide-react";
 
+import { auth } from "@/../auth";
 import { getBookings, getBookingStats } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { QuickActions } from "@/components/ui/quick-actions";
+import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { HelpHint } from "@/components/layout/help-hint";
+import { visibleActions } from "@/lib/permission-claims";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -48,9 +50,10 @@ export default async function BookingsPage({
 
   // Ceiling lets the client table page through rows without the default-50
   // cutoff, while keeping the payload far lighter than 1000.
-  const [result, statsResult] = await Promise.all([
+  const [result, statsResult, session] = await Promise.all([
     getBookings({ limit: 500, status }),
     getBookingStats(),
+    auth(),
   ]);
 
   const bookings = result.success ? result.data.data : [];
@@ -85,12 +88,23 @@ export default async function BookingsPage({
 
   const hasData = totalCount > 0;
 
+  // The page's one action: its create, gated on the permission createBooking
+  // enforces. Calendar, quotations and invoices are reached from the sidebar.
+  // The hint stays plain: /bookings/new makes a booking without the advance
+  // check that blocking a slot from a quotation applies.
+  const actions = visibleActions<QuickActionSpec>(session, [
+    {
+      href: "/bookings/new",
+      label: "New booking",
+      hint: "Add a booking",
+      permission: "bookings:create",
+      primary: true,
+    },
+  ]);
+
   return (
     <div className="space-y-6">
       <PageHeader
-        aura
-        icon={CalendarCheckIcon}
-        accent="blue"
         title="Bookings"
         eyebrow={
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -128,23 +142,7 @@ export default async function BookingsPage({
             </p>
           </HelpHint>
         }
-      >
-      </PageHeader>
-
-      {/* Dashboard-style quick actions. The primary action MOVED here from
-          the header rather than being duplicated — two links with the same
-          accessible name break Playwright strict mode. */}
-      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
-          relaxes QuickActions' dev checks (labels, pill count) until this row moves
-          into PageHeader `actions`; chips already come from each href. */}
-      <QuickActions
-        hub
-        actions={[
-          { href: "/bookings/new", label: "New booking", hint: "Block a date" },
-          { href: "/bookings/calendar", label: "Calendar", hint: "See the month" },
-          { href: "/quotations/new", label: "Quotation", hint: "Price an event" },
-          { href: "/invoices", label: "Invoices", hint: "Money due" },
-        ]}
+        actions={<QuickActions actions={actions} />}
       />
 
       {hasData && (
@@ -191,7 +189,7 @@ export default async function BookingsPage({
                 <Button asChild>
                   <Link href="/bookings/new">
                     <PlusIcon className="mr-2 size-4" />
-                    New Booking
+                    New booking
                   </Link>
                 </Button>
               }

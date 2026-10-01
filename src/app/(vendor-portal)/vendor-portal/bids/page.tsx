@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Gavel, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { auth } from "@/../auth";
 import { getVendorBids, getAvailableBookingsForBid } from "@/actions/vendor-portal.actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,9 +27,7 @@ export default async function VendorBidsPage() {
     return (
       <div className="space-y-6">
         <PageHeader
-          eyebrow="Quoting"
-          icon={Gavel}
-          accent="amber"
+          eyebrow="Opportunities"
           title="Your bids"
           description="What you've quoted us, and where each one stands."
         />

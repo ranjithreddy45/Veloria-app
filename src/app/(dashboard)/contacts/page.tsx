@@ -1,23 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon, UsersIcon, UserIcon, Building2Icon, ContactIcon } from "lucide-react";
+import { PlusIcon, UsersIcon, UserIcon, Building2Icon } from "lucide-react";
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { visibleActions } from "@/lib/permission-claims";
 import { prisma } from "@/lib/prisma";
 import { CHANNEL_TAG_LIST } from "@/lib/enquiry-source-backfill";
-import { EnquiryRepairButton } from "./_components/enquiry-repair-button";
-import { CleanupEmptyFbButton } from "./_components/cleanup-empty-fb-button";
 import { getContacts } from "@/actions/contact.actions";
 import { getVenues } from "@/actions/booking.actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { QuickActions } from "@/components/ui/quick-actions";
+import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ContactsTable } from "./_components/contacts-table";
 import { EnquiryFilterBar } from "./_components/enquiry-filter-bar";
+import { ContactsMoreMenu } from "./_components/contacts-more-menu";
 
 export const metadata: Metadata = { title: "Enquiry" };
 
@@ -89,8 +89,8 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
   const contactsTruncated = contacts.length < totalContacts;
 
   // Only offer the one-off tidy-up to an admin, and only while there is
-  // something left to tidy — otherwise it is a button that does nothing.
-  // No session → no role → no repair button. Fail closed.
+  // something left to tidy — otherwise it is a menu item that does nothing.
+  // No session → no role → no repair item. Fail closed.
   const canRepair =
     !!session?.user?.role && hasPermission(session.user.role, "settings:update");
   const repairable = canRepair
@@ -127,12 +127,26 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
   const corporate = contacts.filter((c) => c.type === "CORPORATE").length;
   const individual = contacts.filter((c) => c.type === "INDIVIDUAL").length;
 
+  // The page's one action: its create. /contacts/new itself only needs
+  // contacts:read (the route), but its form saves through createContact, which
+  // refuses anyone without contacts:create, so that is the permission the
+  // destination really enforces. Leads is a sidebar destination, not an
+  // action, so it is not repeated here.
+  const actions = visibleActions<QuickActionSpec>(session, [
+    {
+      href: "/contacts/new",
+      label: "New contact",
+      hint: "Add a person",
+      primary: true,
+      permission: "contacts:create",
+    },
+  ]);
+  // The empty state offers "New contact" under the same decision as the pill.
+  const canCreateContacts = actions.length > 0;
+
   return (
     <div className="space-y-6">
       <PageHeader
-        aura
-        icon={ContactIcon}
-        accent="blue"
         title="Enquiry"
         help={
           <HelpHint title="What is an Enquiry?">
@@ -168,8 +182,22 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
           </div>
         }
         description="Your people. Every conversation, deal, and booking ties back here."
+        actions={
+          <QuickActions
+            actions={actions}
+            more={
+              // Maintenance tools (remove empty Facebook leads, tidy up
+              // enquiry data) live in the More menu, each still gated by its
+              // own permission and shown only while there is work to do.
+              emptyFbCount > 0 || repairable > 0 ? (
+                <ContactsMoreMenu emptyFbCount={emptyFbCount} repairable={repairable} />
+              ) : undefined
+            }
+          />
+        }
       >
-        {emptyFbCount > 0 && <CleanupEmptyFbButton count={emptyFbCount} />}
+        {/* With `actions` set, these render as the meta row under the
+            description. */}
         {/*
           Explains the two headline numbers instead of leaving them to be
           discovered as a contradiction. Enquiries counts PEOPLE, Leads counts
@@ -196,25 +224,8 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
             Showing {contacts.length} of {totalContacts} — narrow the filters to see the rest.
           </span>
         )}
-        {repairable > 0 && <EnquiryRepairButton affected={repairable} />}
-        <Button asChild>
-          <Link href="/contacts/new">
-            <PlusIcon className="size-3.5" strokeWidth={2.5} />
-            New contact
-          </Link>
-        </Button>
       </PageHeader>
 
-      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
-          relaxes QuickActions' dev checks (labels, pill count) until this row moves
-          into PageHeader `actions`; chips already come from each href. */}
-      <QuickActions
-        hub
-        actions={[
-          { href: "/contacts/new", label: "New contact", hint: "Add a person" },
-          { href: "/leads", label: "Leads", hint: "Their enquiries" },
-        ]}
-      />
       {/* Filter rail — enquiry creation date + status. Always rendered when a
           filter is active, so a zero-result filter can be cleared. */}
       {(contacts.length > 0 || isFiltered) && (
@@ -235,14 +246,20 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
             <EmptyState
               icon={<UsersIcon className="size-6" />}
               title="No contacts yet"
-              description="This is your address book — every client and prospect you talk to. Add your first contact, and their leads, bookings, and history will roll up here."
+              description={
+                canCreateContacts
+                  ? "This is your address book — every client and prospect you talk to. Add your first contact, and their leads, bookings, and history will roll up here."
+                  : "This is your address book — every client and prospect you talk to. Once contacts are added, their leads, bookings, and history roll up here."
+              }
               action={
-                <Button asChild>
-                  <Link href="/contacts/new">
-                    <PlusIcon className="size-3.5" strokeWidth={2.5} />
-                    New contact
-                  </Link>
-                </Button>
+                canCreateContacts ? (
+                  <Button asChild>
+                    <Link href="/contacts/new">
+                      <PlusIcon className="size-3.5" strokeWidth={2.5} />
+                      New contact
+                    </Link>
+                  </Button>
+                ) : undefined
               }
             />
           )}

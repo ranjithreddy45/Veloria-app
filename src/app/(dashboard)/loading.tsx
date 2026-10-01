@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 
 // ============================================================
 // The fallback skeleton for every dashboard route that doesn't ship its own.
@@ -10,6 +11,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 // doesn't match is worse than no skeleton: it promises a layout and then
 // breaks the promise, which reads as jank rather than speed.
 //
+// The header is PageHeaderSkeleton, built from the real header's own class
+// strings, including the module-chip placeholder. PageHeader takes its chip
+// from the route, so every header under (dashboard) shows one at sm and
+// above; one neutral placeholder therefore fits every route, and the title
+// no longer jumps right when the page lands. It reserves no action pills:
+// this fallback cannot know which header has them, and a placeholder button
+// that never arrives is worse than none.
+//
 // It also guessed at two side-by-side chart panels. Most routes here are a
 // header + stat tiles + a table, so that's the shape it holds now.
 // ============================================================
@@ -17,12 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function DashboardLoading() {
   return (
     <div className="space-y-6">
-      {/* Page header: eyebrow, title, description */}
-      <div className="space-y-2.5">
-        <Skeleton className="h-2.5 w-40 rounded-full" />
-        <Skeleton className="h-8 w-64 rounded-xl" />
-        <Skeleton className="h-3.5 w-96 max-w-full rounded-full" />
-      </div>
+      <PageHeaderSkeleton />
 
       {/* Stat tiles — same 3-up grid and card treatment as the real pages */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">

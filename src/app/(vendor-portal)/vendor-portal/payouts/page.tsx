@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Wallet, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { auth } from "@/../auth";
 import { getVendorPayouts } from "@/actions/vendor-portal.actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,8 +25,6 @@ export default async function VendorPayoutsPage() {
       <div className="space-y-6">
         <PageHeader
           eyebrow="Payments"
-          icon={Wallet}
-          accent="emerald"
           title="Your payouts"
           description="Every advance and settlement we've raised against your work."
         />

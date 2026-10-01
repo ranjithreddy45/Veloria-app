@@ -227,8 +227,6 @@ export function VendorEventsClient({ initialData }: VendorEventsClientProps) {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Schedule"
-        icon={CalendarCheck}
-        accent="teal"
         title="Your events"
         description="Every date our clients are counting on you for."
       >

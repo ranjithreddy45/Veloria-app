@@ -5,12 +5,13 @@ import {
   WalletIcon,
   CheckCircle2Icon,
   AlertTriangleIcon,
-  FileTextIcon,
 } from "lucide-react";
+import { auth } from "@/../auth";
 import { getInvoices } from "@/actions/invoice.actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { QuickActions } from "@/components/ui/quick-actions";
+import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { PageHelp } from "@/lib/page-help";
+import { visibleActions } from "@/lib/permission-claims";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -27,7 +28,7 @@ const num = (v: InvoiceRow["totalAmount"]): number =>
   Number(typeof v === "object" && v !== null ? v.toString() : v) || 0;
 
 export default async function InvoicesPage() {
-  const result = await getInvoices();
+  const [result, session] = await Promise.all([getInvoices(), auth()]);
 
   const invoices: InvoiceRow[] = result.success ? result.data?.data ?? [] : [];
 
@@ -44,12 +45,21 @@ export default async function InvoicesPage() {
   const paid = invoices.reduce((s, i) => s + num(i.paidAmount), 0);
   const overdueCount = invoices.filter((i) => i.status === "OVERDUE").length;
 
+  // The page's one action: its create, gated on the permission createInvoice
+  // enforces. Payments and bookings are reached from the sidebar.
+  const actions = visibleActions<QuickActionSpec>(session, [
+    {
+      href: "/invoices/new",
+      label: "New invoice",
+      hint: "Bill a booking",
+      permission: "invoices:create",
+      primary: true,
+    },
+  ]);
+
   return (
     <div className="space-y-6">
       <PageHeader
-        aura
-        icon={FileTextIcon}
-        accent="emerald"
         eyebrow={
           <span>
             FINANCE ·{" "}
@@ -61,22 +71,7 @@ export default async function InvoicesPage() {
         title="Invoices"
         help={<PageHelp id="invoices" />}
         description="Manage invoices, track payments and generate GST-compliant documents."
-      >
-      </PageHeader>
-
-      {/* Dashboard-style quick actions. The primary action MOVED here from
-          the header rather than being duplicated — two links with the same
-          accessible name break Playwright strict mode. */}
-      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
-          relaxes QuickActions' dev checks (labels, pill count) until this row moves
-          into PageHeader `actions`; chips already come from each href. */}
-      <QuickActions
-        hub
-        actions={[
-          { href: "/invoices/new", label: "New invoice", hint: "Bill a booking" },
-          { href: "/payments", label: "Payments", hint: "What has come in" },
-          { href: "/bookings", label: "Bookings", hint: "What is billable" },
-        ]}
+        actions={<QuickActions actions={actions} />}
       />
 
       {invoices.length === 0 ? (
@@ -89,7 +84,7 @@ export default async function InvoicesPage() {
               <Button asChild>
                 <Link href="/invoices/new">
                   <PlusIcon className="mr-2 size-4" />
-                  New Invoice
+                  New invoice
                 </Link>
               </Button>
             }

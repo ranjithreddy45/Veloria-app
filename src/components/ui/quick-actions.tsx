@@ -30,6 +30,12 @@ import { MODULES, resolveModule, type ModuleKey } from "@/config/modules";
 //
 // Server-safe: no "use client" and no hooks, so a server page can render the
 // cluster directly and a client component can render QuickActionButton.
+// A pill that triggers a dialog (`<DialogTrigger asChild>`) must be CREATED in
+// the client component that owns the dialog, never passed in from a server
+// page as a `trigger` prop: once the page's payload ahead of it passes about
+// 3.2 KB, React Flight serialises a server-built element as a lazy reference,
+// and Radix Slot (1.2.3) renders a lazy child as nothing, so the button
+// silently disappears.
 // Every class string is a literal; text-size utilities are never passed
 // through cn(), because tailwind-merge drops text-meta/text-detail when a
 // text colour follows them.
@@ -237,6 +243,11 @@ export interface QuickActionButtonProps
 /**
  * A pill that is a <button>: a dialog trigger (`<DialogTrigger asChild>`), or
  * a client action such as "Sync leads". Put it in QuickActions' `leading`.
+ * As a dialog trigger, create it inside the client dialog component (see
+ * NewKitchenPlanDialog), not on a server page: a server-built element can
+ * reach the client as a lazy Flight reference, which Radix Slot renders as
+ * nothing. data-slot and data-variant are set after the spread props, so an
+ * asChild trigger's own data-slot ("dialog-trigger") cannot replace them.
  */
 export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickActionButtonProps>(
   function QuickActionButton(
@@ -254,9 +265,9 @@ export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickAction
         type={type}
         aria-label={label}
         aria-describedby={hint ? id : undefined}
+        {...rest}
         data-slot="quick-action"
         data-variant={primary ? "primary" : "secondary"}
-        {...rest}
         className={cn(PILL_BASE, primary ? PILL_PRIMARY : PILL_SECONDARY, !primary && HOVER_EDGE[hue], className)}
       >
         <PillBody
@@ -282,7 +293,9 @@ export type PageMoreMenuTriggerProps = Omit<React.ComponentPropsWithoutRef<"butt
  * The "More actions" button at the end of the cluster, for maintenance tools
  * (recompute, clean up, repair, demo data). Use it as
  * `<DropdownMenuTrigger asChild><PageMoreMenuTrigger /></DropdownMenuTrigger>`
- * and pass the whole menu as QuickActions' `more`.
+ * and pass the whole menu as QuickActions' `more`. data-slot is set after the
+ * spread props, so the trigger's data-slot ("dropdown-menu-trigger") cannot
+ * replace it.
  */
 export const PageMoreMenuTrigger = React.forwardRef<HTMLButtonElement, PageMoreMenuTriggerProps>(
   function PageMoreMenuTrigger({ className, type = "button", ...rest }, ref) {
@@ -291,8 +304,8 @@ export const PageMoreMenuTrigger = React.forwardRef<HTMLButtonElement, PageMoreM
         ref={ref}
         type={type}
         aria-label="More actions"
-        data-slot="page-more-trigger"
         {...rest}
+        data-slot="page-more-trigger"
         className={cn(MORE_TRIGGER, className)}
       >
         <span className="flex size-7 items-center justify-center" aria-hidden>
@@ -310,8 +323,10 @@ export const PageMoreMenuTrigger = React.forwardRef<HTMLButtonElement, PageMoreM
 interface QuickActionsSlots {
   /**
    * Pills rendered before the link pills, each child in its own list item:
-   * the dialog-trigger primary (`<EmployeeFormDialog trigger={<QuickActionButton
-   * variant="primary" … />} />`), or client buttons such as "Sync leads".
+   * the dialog-trigger primary (a client dialog that builds its own
+   * QuickActionButton trigger, e.g. `<NewKitchenPlanDialog />`), or client
+   * buttons such as "Sync leads". Never pass a server-built QuickActionButton
+   * into a client dialog's `asChild` trigger (see QuickActionButton).
    */
   leading?: React.ReactNode;
   /** The "More" menu (a DropdownMenu around PageMoreMenuTrigger). Always last. */

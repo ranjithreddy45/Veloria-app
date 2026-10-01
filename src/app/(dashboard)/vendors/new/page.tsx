@@ -1,27 +1,22 @@
-import type { Metadata } from "next";
-import { StoreIcon } from "lucide-react";
-import { PageHeader } from "@/components/layout/page-header";
-import { VendorForm } from "../_components/vendor-form";
-
-export const metadata: Metadata = { title: "New Vendor" };
+import { redirect } from "next/navigation";
 
 // ============================================================
-// Create Vendor Page
+// "/vendors/new" — retired; kept only as a redirect.
+// ------------------------------------------------------------
+// This route used to render the legacy VendorForm, whose create path
+// (createVendor) writes only the old single `category` field. A vendor made
+// here had no `categories`, no vendor type and no venues, so it vanished under
+// every category filter and createPackage refused every package for it.
+//
+// Vendors are created with the "Add vendor" dialog in the /vendors toolbar
+// (VendorFormDialog -> createCatalogVendor, which requires a category). The
+// URL stays alive as a redirect so an old bookmark or link lands on that list
+// instead of /vendors/[vendorId] with the id "new".
+//
+// Do NOT delete VendorForm or updateVendor with this page: VendorForm still
+// powers /vendors/[vendorId]/edit.
 // ============================================================
 
 export default function NewVendorPage() {
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        icon={StoreIcon}
-        accent="teal"
-        eyebrow="Vendors · Partners"
-        title="New vendor"
-        description="Add a partner to the bench. Their packages, rates, and ratings all hang off this record."
-      />
-      <div className="mx-auto max-w-3xl">
-        <VendorForm />
-      </div>
-    </div>
-  );
+  redirect("/vendors");
 }

@@ -1,47 +1,24 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { Plus, ChefHat, IndianRupee, Users } from "lucide-react";
+import { ChefHat, IndianRupee, Users } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { StatTile } from "@/components/ui/stat-tile";
 import { StatusPill } from "@/components/shared/status-pill";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatINR } from "@/lib/utils";
-import {
-  type KitchenPlanRowDTO,
-  type BookableEventDTO,
-  getBookableEvents,
-  createKitchenPlan,
-} from "@/actions/kitchen.actions";
+import type { KitchenPlanRowDTO } from "@/actions/kitchen.actions";
 import { STATUS_LABEL, statusHue, fmtEventDate } from "./kitchen-format";
 
+// The "New plan" create action lives in the page header's action cluster
+// (kitchen/page.tsx, NewKitchenPlanDialog); this component is the list.
 export function KitchenList({
   plans,
   canWrite,
 }: {
   plans: KitchenPlanRowDTO[];
+  /** kitchen:write. Only changes the empty-state copy here. */
   canWrite: boolean;
 }) {
   const active = plans.filter((p) => p.status !== "COMPLETED").length;
@@ -75,9 +52,8 @@ export function KitchenList({
 
       <Card>
         <CardContent className="p-0">
-          <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+          <div className="border-b px-4 py-3">
             <h2 className="text-sm font-semibold">Production plans</h2>
-            {canWrite && <NewPlanDialog />}
           </div>
 
           {plans.length === 0 ? (
@@ -148,120 +124,5 @@ export function KitchenList({
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-function NewPlanDialog() {
-  const router = useRouter();
-  const [open, setOpen] = React.useState(false);
-  const [events, setEvents] = React.useState<BookableEventDTO[]>([]);
-  const [loadingEv, setLoadingEv] = React.useState(false);
-  const [bookingId, setBookingId] = React.useState("");
-  const [covers, setCovers] = React.useState("");
-  const [submitting, setSubmitting] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!open || events.length > 0) return;
-    setLoadingEv(true);
-    getBookableEvents()
-      .then((res) => {
-        if (res.success) setEvents(res.data);
-        else toast.error(res.error);
-      })
-      .finally(() => setLoadingEv(false));
-  }, [open, events.length]);
-
-  // Prefill covers from the picked event's guest count.
-  function handlePickEvent(id: string) {
-    setBookingId(id);
-    const ev = events.find((e) => e.id === id);
-    if (ev && !covers) setCovers(String(ev.guestCount));
-  }
-
-  async function handleCreate() {
-    if (!bookingId) {
-      toast.error("Select an event");
-      return;
-    }
-    if (covers) {
-      const coversNum = Number(covers);
-      if (!Number.isFinite(coversNum) || coversNum <= 0) {
-        toast.error("Covers must be a positive number");
-        return;
-      }
-    }
-    setSubmitting(true);
-    const res = await createKitchenPlan({
-      bookingId,
-      covers: covers ? Number(covers) : undefined,
-    });
-    setSubmitting(false);
-    if (res.success) {
-      toast.success("Kitchen plan created");
-      setOpen(false);
-      router.push(`/kitchen/${res.data.id}`);
-    } else {
-      toast.error(res.error);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <Button size="sm" onClick={() => setOpen(true)}>
-        <Plus className="size-4" /> New plan
-      </Button>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>New kitchen plan</DialogTitle>
-          <DialogDescription>
-            Pick a confirmed event. Covers prefill from its guest count.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex flex-col gap-4 py-1">
-          <div className="flex flex-col gap-1.5">
-            <Label>Event</Label>
-            <Select value={bookingId} onValueChange={handlePickEvent} disabled={loadingEv}>
-              <SelectTrigger>
-                <SelectValue placeholder={loadingEv ? "Loading…" : "Select event"} />
-              </SelectTrigger>
-              <SelectContent>
-                {events.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {!loadingEv && events.length === 0 && (
-              <p className="text-xs text-muted-foreground">
-                No confirmed events available.
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="kitchen-covers">Covers</Label>
-            <Input
-              id="kitchen-covers"
-              type="number"
-              min={0}
-              value={covers}
-              onChange={(e) => setCovers(e.target.value)}
-              placeholder="Number of plates"
-            />
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button onClick={handleCreate} disabled={submitting}>
-            {submitting ? "Creating…" : "Create plan"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

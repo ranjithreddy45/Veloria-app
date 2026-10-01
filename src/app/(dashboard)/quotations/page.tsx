@@ -1,23 +1,23 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   FileTextIcon,
   ClockIcon,
   CheckCircle2Icon,
   IndianRupeeIcon,
 } from "lucide-react";
+import { auth } from "@/../auth";
 import { getSalesQuotations } from "@/actions/sales-quotation.actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { QuickActions } from "@/components/ui/quick-actions";
-import { Button } from "@/components/ui/button";
+import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { StatTile } from "@/components/ui/stat-tile";
+import { visibleActions } from "@/lib/permission-claims";
 import { formatINR } from "@/lib/utils";
 import { QuotationsTable, type QuotationListRow } from "./_components/quotations-table";
 
 export const metadata: Metadata = { title: "Quotations" };
 
 export default async function QuotationsPage() {
-  const res = await getSalesQuotations();
+  const [res, session] = await Promise.all([getSalesQuotations(), auth()]);
   const rows = (res.success ? (res.data as QuotationListRow[]) : []) ?? [];
 
   // KPIs derived from the loaded rows (visual-only — no extra fetch).
@@ -30,12 +30,24 @@ export default async function QuotationsPage() {
     .filter((r) => r.status !== "REJECTED")
     .reduce((s, r) => s + Number(r.grandTotal || 0), 0);
 
+  // The page's one action: its create, shown only to someone who can save a
+  // quotation (/quotations/new saves through createSalesQuotation, which
+  // requires quotes:create). Booking from a quote goes through the quotation's
+  // own Block-the-slot card, which applies the advance rule; Leads is a
+  // sidebar destination. Neither is repeated here.
+  const actions = visibleActions<QuickActionSpec>(session, [
+    {
+      href: "/quotations/new",
+      label: "New quotation",
+      hint: "Price an event",
+      primary: true,
+      permission: "quotes:create",
+    },
+  ]);
+
   return (
     <div className="space-y-6">
       <PageHeader
-        aura
-        icon={FileTextIcon}
-        accent="blue"
         eyebrow={
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>Sales · Pricing</span>
@@ -47,22 +59,7 @@ export default async function QuotationsPage() {
         }
         title="Quotations"
         description="Event quotations built with the calculator — submit for approval, then send to the customer."
-      >
-      </PageHeader>
-
-      {/* Dashboard-style quick actions. The primary action MOVED here from
-          the header rather than being duplicated — two links with the same
-          accessible name break Playwright strict mode. */}
-      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
-          relaxes QuickActions' dev checks (labels, pill count) until this row moves
-          into PageHeader `actions`; chips already come from each href. */}
-      <QuickActions
-        hub
-        actions={[
-          { href: "/quotations/new", label: "New quotation", hint: "Price an event" },
-          { href: "/bookings/new", label: "New booking", hint: "Block a date" },
-          { href: "/leads", label: "Leads", hint: "Where quotes start" },
-        ]}
+        actions={<QuickActions actions={actions} />}
       />
 
       {total > 0 && (

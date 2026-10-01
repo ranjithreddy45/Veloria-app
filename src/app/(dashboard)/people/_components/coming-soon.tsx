@@ -1,14 +1,18 @@
-import { Sparkles } from "lucide-react";
+import { Hourglass } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 
 // Shared "coming soon" stub for P2 People modules (nav present, build deferred).
+// The header chip is the People module's, from src/config/modules.ts via the
+// route, like every other People page; the dashed card below is what says the
+// page is unbuilt. Sparkles stays the AI assistant's mark, so the card's glyph
+// is a neutral Hourglass.
 export function ComingSoon({ title, description, bullets }: { title: string; description: string; bullets: string[] }) {
   return (
     <div className="space-y-6">
-      <PageHeader title={title} eyebrow="People" icon={Sparkles} description={description} />
+      <PageHeader title={title} eyebrow="People" description={description} />
       <div className="mx-auto max-w-lg rounded-[22px] border border-dashed bg-card/40 p-8 text-center sm:p-10">
         <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <Sparkles className="size-6" />
+          <Hourglass className="size-6" />
         </div>
         <h3 className="mt-5 text-title leading-tight">Coming soon</h3>
         <p className="mx-auto mt-2 max-w-sm text-body leading-relaxed text-muted-foreground">

@@ -14,6 +14,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { QuickActionButton } from "@/components/ui/quick-actions";
 import { createEmployee } from "@/actions/hr-employee.actions";
 import { EMPLOYMENT_TYPE_LABELS, EMPLOYEE_STATUS_LABELS, GENDER_OPTIONS } from "@/lib/hr/constants";
 
@@ -28,9 +29,24 @@ interface Props {
   managers: ManagerLookup[];
   /** Active attendance sites — the new hire can be geofenced to any selected ones. */
   sites?: Lookup[];
+  /**
+   * What opens the dialog. "header": the page header's primary pill (a
+   * QuickActionButton), which /people uses. "button" (default): a filled
+   * "Add employee" button. Either way the accessible name is exactly
+   * "Add employee": tests/e2e/people.spec.ts and helpers.ts find it by that
+   * name, and expect exactly one.
+   *
+   * The pill is built here, in the client, on purpose. Passed in from the
+   * server page as an element, it would follow the lookup lists in the RSC
+   * payload, and past about 3.2 KB React Flight sends it as a lazy reference,
+   * which DialogTrigger's asChild Slot renders as nothing.
+   */
+  variant?: "button" | "header";
 }
 
-export function EmployeeFormDialog({ entities, verticals, departments, designations, managers, sites = [] }: Props) {
+export function EmployeeFormDialog({
+  entities, verticals, departments, designations, managers, sites = [], variant = "button",
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -100,9 +116,13 @@ export function EmployeeFormDialog({ entities, verticals, departments, designati
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
       <DialogTrigger asChild>
-        <Button className="gap-1.5">
-          <UserPlus className="size-4" /> Add employee
-        </Button>
+        {variant === "header" ? (
+          <QuickActionButton variant="primary" label="Add employee" hint="Add a person" />
+        ) : (
+          <Button className="gap-1.5">
+            <UserPlus className="size-4" /> Add employee
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>

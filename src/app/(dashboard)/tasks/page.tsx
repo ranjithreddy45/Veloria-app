@@ -1,18 +1,17 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   CircleDashedIcon,
   CircleDotIcon,
   CircleCheckIcon,
   AlertTriangleIcon,
-  ListChecks,
 } from "lucide-react";
 
+import { auth } from "@/../auth";
 import { getTasks } from "@/actions/task.actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { QuickActions } from "@/components/ui/quick-actions";
+import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { PageHelp } from "@/lib/page-help";
-import { Button } from "@/components/ui/button";
+import { visibleActions } from "@/lib/permission-claims";
 import { StatTile } from "@/components/ui/stat-tile";
 import { TasksViews } from "./_components/tasks-views";
 
@@ -23,7 +22,7 @@ export const metadata: Metadata = { title: "Tasks" };
 // ============================================================
 
 export default async function TasksPage() {
-  const result = await getTasks();
+  const [result, session] = await Promise.all([getTasks(), auth()]);
   const tasks = result.success ? result.data!.data : [];
 
   // Group tasks by status for the board view
@@ -54,12 +53,24 @@ export default async function TasksPage() {
   const completionPct =
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
+  // The page's one action: its create, gated on the permission createTask
+  // enforces. The calendar and bookings are reached from the sidebar.
+  const actions = visibleActions<QuickActionSpec>(session, [
+    {
+      href: "/tasks/new",
+      label: "New task",
+      hint: "Assign work",
+      permission: "tasks:create",
+      primary: true,
+    },
+  ]);
+
+  // A fixed-height column: the board below takes what is left. The column's
+  // gap spaces only the children that render, so with no tasks (no tiles)
+  // the List/Board tabs sit one gap under the header.
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col">
+    <div className="flex h-[calc(100vh-8rem)] flex-col gap-6">
       <PageHeader
-        aura
-        icon={ListChecks}
-        accent="amber"
         title="Tasks"
         help={<PageHelp id="tasks" />}
         eyebrow={
@@ -80,26 +91,11 @@ export default async function TasksPage() {
           </div>
         }
         description="Plan, assign, and ship the work behind every booking — from to-do to done."
-      >
-      </PageHeader>
-
-      {/* Dashboard-style quick actions. The primary action MOVED here from
-          the header rather than being duplicated — two links with the same
-          accessible name break Playwright strict mode. */}
-      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
-          relaxes QuickActions' dev checks (labels, pill count) until this row moves
-          into PageHeader `actions`; chips already come from each href. */}
-      <QuickActions
-        hub
-        actions={[
-          { href: "/tasks/new", label: "New task", hint: "Assign work" },
-          { href: "/calendar", label: "Calendar", hint: "What is due when" },
-          { href: "/bookings", label: "Bookings", hint: "Work comes from here" },
-        ]}
+        actions={<QuickActions actions={actions} />}
       />
 
       {totalTasks > 0 && (
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 animate-fade-in-up">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 animate-fade-in-up">
           <StatTile
             label="To-do"
             value={todoCount}
@@ -131,7 +127,7 @@ export default async function TasksPage() {
         </div>
       )}
 
-      <div className="mt-6 flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden">
         <TasksViews tasks={tasks} />
       </div>
     </div>

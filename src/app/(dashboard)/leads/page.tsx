@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PlusIcon, Sparkles as SparklesIcon, UserPlus as UserPlusIcon, FilterX as FilterXIcon } from "lucide-react";
+import { PlusIcon, Sparkles as SparklesIcon, FilterX as FilterXIcon } from "lucide-react";
 
 import { getLeads, getLeadOccasionOptions, getLeadStats, getTestLeadsCount, getUnassignedLeadsCount, type LeadListFilters } from "@/actions/lead.actions";
 import { getVenues } from "@/actions/booking.actions";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
-import { CleanupTestLeadsButton } from "./_components/cleanup-test-leads-button";
-import { EngagementRepairButton } from "./_components/engagement-repair-button";
+import { visibleActions } from "@/lib/permission-claims";
 import { PageHeader } from "@/components/layout/page-header";
-import { QuickActions } from "@/components/ui/quick-actions";
+import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LeadsViews } from "./_components/leads-views";
 import { LeadsFilterBar } from "./_components/leads-filter-bar";
 import { WorkStrip } from "./_components/work-strip";
+import { LeadsMoreMenu } from "./_components/leads-more-menu";
 
 export const metadata: Metadata = { title: "Leads" };
 // Filters live in the URL, so this page always renders per-request.
@@ -132,6 +132,31 @@ export default async function LeadsPage({
   const totalLeads = statsResult.success ? statsResult.data.total : leads.length;
   const pipelineValue = statsResult.success ? statsResult.data.pipelineValue : 0;
 
+  // The header's action cluster: the page's create action and Import, each
+  // shown only to someone who holds what the destination enforces (/leads/new
+  // saves through createLead, /leads/import checks leads:create itself), under
+  // the same override-aware rule as middleware. Pipeline and Contacts are
+  // sidebar destinations, not actions, so they are not repeated here. The
+  // maintenance tools live in the More menu.
+  const actions = visibleActions<QuickActionSpec>(session, [
+    {
+      href: "/leads/new",
+      label: "New lead",
+      hint: "Add an enquiry",
+      primary: true,
+      permission: "leads:create",
+    },
+    {
+      href: "/leads/import",
+      label: "Import",
+      hint: "Upload a CSV",
+      permission: "leads:create",
+    },
+  ]);
+  // The empty states offer "New lead" under exactly the same decision as the
+  // pill, so the two can never disagree.
+  const canCreateLeads = actions.some((a) => a.href === "/leads/new");
+
   const fmtCurrency = (n: number) => {
     if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
     if (n >= 100000) return `₹${(n / 100000).toFixed(1)} L`;
@@ -142,9 +167,6 @@ export default async function LeadsPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        aura
-        icon={UserPlusIcon}
-        accent="blue"
         title="Leads"
         help={
           <HelpHint title="What is a Lead?">
@@ -189,26 +211,18 @@ export default async function LeadsPage({
           </div>
         }
         description="Track and qualify every inbound opportunity — from first contact to close."
-      >
-        {canViewAll && <EngagementRepairButton />}
-        {canDeleteLeads && <CleanupTestLeadsButton count={testLeadCount} />}
-      </PageHeader>
-
-      {/* The dashboard's quick-action pills. "New lead" and "Import" MOVED here
-          out of the header rather than being duplicated — a second link with
-          the same accessible name breaks Playwright's strict mode in
-          sales-leads.spec.ts. */}
-      {/* Transitional: these pills predate the verb-only landing rule. `hub` only
-          relaxes QuickActions' dev checks (labels, pill count) until this row moves
-          into PageHeader `actions`; chips already come from each href. */}
-      <QuickActions
-        hub
-        actions={[
-          { href: "/leads/new", label: "New lead", hint: "Add an enquiry" },
-          { href: "/leads/import", label: "Import", hint: "Upload a CSV" },
-          { href: "/pipeline", label: "Pipeline", hint: "See deal stages" },
-          { href: "/contacts", label: "Contacts", hint: "The people behind leads" },
-        ]}
+        actions={
+          <QuickActions
+            actions={actions}
+            more={
+              <LeadsMoreMenu
+                canViewAll={canViewAll}
+                canDeleteLeads={canDeleteLeads}
+                testLeadCount={testLeadCount}
+              />
+            }
+          />
+        }
       />
       {/* The filter bar renders even on an empty result — otherwise a filter that
           matches nothing would hide the only control that can clear it. */}
@@ -287,41 +301,49 @@ export default async function LeadsPage({
                 description={
                   canViewAll && orgLeadTotal > 0
                     ? `Nothing is assigned to you right now, but there ${orgLeadTotal === 1 ? "is" : "are"} ${orgLeadTotal} lead${orgLeadTotal === 1 ? "" : "s"} in the pipeline${unassignedCount > 0 ? `, ${unassignedCount} of them unassigned` : ""}.`
-                    : "Leads land here once they're assigned to you. Create one yourself, or ask your manager to route enquiries your way."
+                    : canCreateLeads
+                      ? "Leads land here once they're assigned to you. Create one yourself, or ask your manager to route enquiries your way."
+                      : "Leads land here once they're assigned to you. Ask your manager to route enquiries your way."
                 }
                 action={
-                  <div className="flex flex-wrap items-center justify-center gap-2">
-                    {canViewAll && orgLeadTotal > 0 ? (
-                      <>
-                        <Button asChild>
-                          <Link href="/leads?scope=all">
-                            View all {orgLeadTotal} leads
-                          </Link>
-                        </Button>
-                        {unassignedCount > 0 && (
-                          <Button variant="outline" asChild>
-                            <Link href="/leads?scope=unassigned">
-                              Route {unassignedCount} unassigned
+                  // Nothing to offer a viewer who can neither create leads nor
+                  // see the whole book, so no empty button row.
+                  canViewAll || canCreateLeads ? (
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      {canViewAll && orgLeadTotal > 0 ? (
+                        <>
+                          <Button asChild>
+                            <Link href="/leads?scope=all">
+                              View all {orgLeadTotal} leads
                             </Link>
                           </Button>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <Button asChild>
-                          <Link href="/leads/new">
-                            <PlusIcon className="size-3.5" strokeWidth={2.5} />
-                            New lead
-                          </Link>
-                        </Button>
-                        {canViewAll && (
-                          <Button variant="outline" asChild>
-                            <Link href="/leads?scope=all">View all leads</Link>
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
+                          {unassignedCount > 0 && (
+                            <Button variant="outline" asChild>
+                              <Link href="/leads?scope=unassigned">
+                                Route {unassignedCount} unassigned
+                              </Link>
+                            </Button>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {canCreateLeads && (
+                            <Button asChild>
+                              <Link href="/leads/new">
+                                <PlusIcon className="size-3.5" strokeWidth={2.5} />
+                                New lead
+                              </Link>
+                            </Button>
+                          )}
+                          {canViewAll && (
+                            <Button variant="outline" asChild>
+                              <Link href="/leads?scope=all">View all leads</Link>
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  ) : undefined
                 }
               />
             ) : scope === "unassigned" ? (
@@ -339,14 +361,20 @@ export default async function LeadsPage({
               <EmptyState
                 icon={<SparklesIcon className="size-6" />}
                 title="No enquiries yet"
-                description="Every event opportunity starts here. Add your first lead — or import a list — to begin tracking and qualifying enquiries from first contact to close."
+                description={
+                  canCreateLeads
+                    ? "Every event opportunity starts here. Add your first lead — or import a list — to begin tracking and qualifying enquiries from first contact to close."
+                    : "Every event opportunity starts here. Once enquiries come in, they're tracked and qualified on this page from first contact to close."
+                }
                 action={
-                  <Button asChild>
-                    <Link href="/leads/new">
-                      <PlusIcon className="size-3.5" strokeWidth={2.5} />
-                      New lead
-                    </Link>
-                  </Button>
+                  canCreateLeads ? (
+                    <Button asChild>
+                      <Link href="/leads/new">
+                        <PlusIcon className="size-3.5" strokeWidth={2.5} />
+                        New lead
+                      </Link>
+                    </Button>
+                  ) : undefined
                 }
               />
             )}
@@ -369,7 +397,7 @@ export default async function LeadsPage({
               does, the screen says so instead of quietly lying.
             */}
             {leads.length < totalLeads && (
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-white/80">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-foreground/80">
                 Showing{" "}
                 <span className="font-semibold numeric">{leads.length}</span> of{" "}
                 <span className="font-semibold numeric">{totalLeads}</span> leads

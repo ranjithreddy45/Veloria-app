@@ -1,10 +1,15 @@
 "use client";
 
 // ============================================================
-// /style-guide (Spec C) — a public showcase of the Projects-module design
-// foundation: tokens, primitives, and the key composed components rendered
-// with local/mock state (no server actions fire). Used for visual QA across
-// desktop / tablet / mobile and dark mode.
+// /style-guide (Spec C) — a public showcase of the design foundation: the
+// module chip and page header, action pills, KPI tiles, the module registry,
+// and the Projects kit, rendered with local/mock state (no server actions
+// fire, and the demo pills are plain buttons that navigate nowhere). Used for
+// visual QA across desktop / tablet / mobile and dark mode.
+//
+// Nothing here restates a colour: the chips and the module list are drawn
+// from src/config/modules.ts and src/lib/ui/hues.ts (through IconChip), so
+// this page cannot drift from the app.
 // ============================================================
 
 import * as React from "react";
@@ -16,12 +21,15 @@ import { IndianRupee, CalendarCheck, Users, Trophy, Target, Flame } from "lucide
 import { SegmentedControl, type SegmentOption } from "@/components/ui/segmented-control";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { PageHeader } from "@/components/layout/page-header";
+import { IconChip } from "@/components/ui/icon-chip";
+import { QuickActionButton, QuickActions } from "@/components/ui/quick-actions";
+import { MODULES, MODULE_KEYS } from "@/config/modules";
 import { ViewTabs } from "@/components/ui/view-tabs";
 import { KanbanBoard, type KanbanColumn } from "@/components/ui/kanban-board";
 import { LayoutList, Kanban as KanbanIcon, CalendarDays } from "lucide-react";
 import { WorkflowStepper, type Step } from "@/app/(dashboard)/projects/_components/workflow-stepper";
 import { CategorySection, ChecklistItem, ChecklistHeader, type ChecklistFilter } from "@/app/(dashboard)/projects/_components/checklist-kit";
-import { readinessTone, type ChecklistTone } from "@/lib/projects/ui";
+import { phaseHue, readinessTone, type ChecklistTone } from "@/lib/projects/ui";
 
 const STAGES: Step[] = [
   { key: "HANDOFF", label: "Handoff Received", status: "complete" },
@@ -47,14 +55,47 @@ const MOCK_ITEMS = [
   { id: "3", category: "Interiors", title: "Feature wall & cladding", description: "Signature feature wall installed and lit.", status: "NA" },
 ];
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, note, children }: { title: string; note?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+      {note && <p className="max-w-2xl text-body leading-relaxed text-muted-foreground">{note}</p>}
       {children}
     </section>
   );
 }
+
+// The three chip jobs, side by side. Each example is the real IconChip at the
+// size and tone that job uses in the app; the module chips come from the
+// registry, so a registry change shows up here too.
+const BOOKINGS = MODULES.bookings;
+const SITE_VISITS = MODULES["site-visits"];
+
+const CHIP_JOBS: ReadonlyArray<{
+  job: string;
+  spec: string;
+  rule: string;
+  example: React.ReactNode;
+}> = [
+  {
+    job: "Identity",
+    spec: "Module chip · lg 40px · solid",
+    rule: "One per page, in the header's title row. It comes from the route through the module registry, never from the page. Hidden below sm.",
+    example: <IconChip icon={BOOKINGS.icon} hue={BOOKINGS.hue} size="lg" tone="solid" />,
+  },
+  {
+    job: "Action",
+    spec: "Pill chip · sm 28px · solid",
+    rule: "Inside an action pill, showing the destination module's chip. The primary pill carries an inverse Plus chip instead.",
+    example: <IconChip icon={SITE_VISITS.icon} hue={SITE_VISITS.hue} size="sm" tone="solid" />,
+  },
+  {
+    job: "Metric",
+    spec: "KPI chip · md 36px · tinted",
+    rule: "Only on a KPI tile (the StatTile row above). Never solid, so a number never reads as an action or a module.",
+    example: <IconChip icon={<IndianRupee className="size-4" />} hue="emerald" size="md" tone="soft" />,
+  },
+];
 
 type BoardCard = { id: string; title: string; when: string; pax: number; amount: string; tag?: string; tagHue?: Hue };
 const BOARD_COLUMNS: KanbanColumn<BoardCard>[] = [
@@ -63,7 +104,7 @@ const BOARD_COLUMNS: KanbanColumn<BoardCard>[] = [
     { id: "2", title: "Infosys Corporate Offsite", when: "02 Sep", pax: 120, amount: "₹4.2L", tag: "Corporate", tagHue: "blue" },
   ] },
   { id: "visit", label: "Site visit", hue: "cyan", items: [
-    { id: "3", title: "Reddy Reception", when: "Tomorrow, 4 PM", pax: 300, amount: "₹9.8L", tag: "Grand Hall", tagHue: "violet" },
+    { id: "3", title: "Reddy Reception", when: "Tomorrow, 4 PM", pax: 300, amount: "₹9.8L", tag: "Grand Hall", tagHue: "indigo" },
   ] },
   { id: "quote", label: "Quotation", hue: "amber", items: [
     { id: "4", title: "Mehta Sangeet", when: "Quote #Q-2048", pax: 250, amount: "₹16.0L", tag: "Awaiting approval", tagHue: "amber" },
@@ -92,18 +133,32 @@ export default function StyleGuidePage() {
   return (
     <div className="mx-auto max-w-4xl space-y-10 p-6">
       <header>
-        <h1 className="text-2xl font-semibold">Projects — design foundation</h1>
-        <p className="text-sm text-muted-foreground">Phase 0 tokens &amp; primitives + the composed Workflow stepper and Readiness checklist.</p>
+        <h1 className="text-2xl font-semibold">Design foundation</h1>
+        <p className="text-sm text-muted-foreground">The page header, module chips, action pills and KPI tiles, plus the Projects kit (Workflow stepper and Readiness checklist).</p>
       </header>
 
-      <Section title="Workspace kit (ClickUp-style) — module header · view tabs · board">
+      <Section
+        title="Workspace kit — page header · actions · view tabs · board"
+        note={
+          <>
+            The header&rsquo;s chip comes from the module registry: a real page gets it from its route, and this demo
+            forces <code className="font-mono text-detail">module=&quot;bookings&quot;</code>. The action cluster sits right
+            of the title and wraps below it when there is no room. With actions present, other controls such as view tabs
+            move to a row under the description.
+          </>
+        }
+      >
         <div className="space-y-4 rounded-2xl border border-border/60 bg-card/40 p-4">
           <PageHeader
             title="Bookings"
             description="Every event across the pipeline, at a glance."
             eyebrow="Sales & CRM"
-            icon={CalendarCheck}
-            accent="blue"
+            module="bookings"
+            actions={
+              <QuickActions
+                leading={<QuickActionButton variant="primary" label="New booking" hint="Add a booking" />}
+              />
+            }
           >
             <ViewTabs
               value={view}
@@ -132,9 +187,9 @@ export default function StyleGuidePage() {
         </div>
       </Section>
 
-      <Section title="Colorful KPI tiles (StatTile) — gamified progress">
+      <Section title="KPI tiles (StatTile)">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatTile label="Revenue (MTD)" value="₹18.4L" accent="emerald" icon={<IndianRupee className="size-4" />} delta={12} deltaLabel="%" />
+          <StatTile label="Revenue (MTD)" value="₹18.4L" accent="emerald" icon={<IndianRupee className="size-4" />} trend={{ text: "12% vs last month", tone: "up" }} />
           <StatTile label="Bookings" value="34" accent="blue" icon={<CalendarCheck className="size-4" />} sub="6 this week" />
           <StatTile label="Goal progress" value="72%" accent="gold" icon={<Target className="size-4" />} pct={72} />
           <StatTile label="Day streak" value="9" accent="amber" icon={<Flame className="size-4" />} sub="Keep it going!" />
@@ -145,17 +200,57 @@ export default function StyleGuidePage() {
         </div>
       </Section>
 
-      <Section title="Module accent palette">
-        <div className="flex flex-wrap gap-2">
-          {[
-            ["Sales & CRM", "bg-blue-500"], ["Delivery & Ops", "bg-amber-500"], ["People", "bg-violet-500"],
-            ["Catalog & Finance", "bg-emerald-500"], ["Marketing", "bg-pink-500"], ["Workspace", "bg-cyan-500"],
-          ].map(([label, dot]) => (
-            <span key={label} className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-xs font-medium shadow-card">
-              <span className={`size-2 rounded-full ${dot}`} /> {label}
-            </span>
+      <Section
+        title="Chips — identity · action · metric"
+        note="Solid means identity or action; tinted means a metric. Each job has its own size, so two kinds of chip never share a shape on one screen."
+      >
+        <div className="grid gap-3 sm:grid-cols-3">
+          {CHIP_JOBS.map((c) => (
+            <div key={c.job} data-chip-job={c.job.toLowerCase()} className="space-y-2 rounded-xl border border-border bg-card p-4">
+              <div className="flex h-10 items-center">{c.example}</div>
+              <p className="text-copy font-semibold leading-tight text-foreground">{c.job}</p>
+              <p className="text-meta font-medium text-muted-foreground">{c.spec}</p>
+              <p className="text-body leading-relaxed text-muted-foreground">{c.rule}</p>
+            </div>
           ))}
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-body text-muted-foreground">In a pill:</span>
+          <QuickActionButton label="Schedule site visit" hint="Book a show-around" module="site-visits" />
+        </div>
+      </Section>
+
+      <Section
+        title="Module registry — one glyph and hue per module"
+        note={
+          <>
+            Generated from <code className="font-mono text-detail">src/config/modules.ts</code>. A module wears the same
+            chip on its landing, its record pages, its forms and on any pill that links to it. Plum is reserved for the
+            primary action and rose/red for states, so none of them is a module hue.
+          </>
+        }
+      >
+        <ul role="list" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {MODULE_KEYS.map((key) => {
+            const mod = MODULES[key];
+            return (
+              <li
+                key={key}
+                data-module={key}
+                data-hue={mod.hue}
+                className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2"
+              >
+                <IconChip icon={mod.icon} hue={mod.hue} size="sm" tone="solid" />
+                <span className="min-w-0">
+                  <span className="block text-detail font-semibold leading-tight text-foreground">{mod.label}</span>
+                  <span className="block break-words text-meta leading-tight text-muted-foreground">
+                    {mod.hue} · {mod.prefixes.join(" ")}
+                  </span>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       </Section>
 
       <Section title="Donut · health bands">
@@ -176,13 +271,14 @@ export default function StyleGuidePage() {
         />
       </Section>
 
-      <Section title="StatusPill · phase hues">
+      <Section
+        title="StatusPill · phase hues"
+        note="Status hues describe a record's state, drawn here with the same phaseHue() the Projects pages use. They are a separate palette from the module chips above and never mark a module."
+      >
         <div className="flex flex-wrap gap-2">
-          <StatusPill label="Handoff Received" hue="slate" size="sm" />
-          <StatusPill label="CapEx & Timeline" hue="violet" size="sm" />
-          <StatusPill label="Execution / Fit-out" hue="amber" size="sm" />
-          <StatusPill label="Handover & Launch" hue="teal" size="sm" />
-          <StatusPill label="Live / Handed Over" hue="emerald" size="sm" />
+          {STAGES.map((s) => (
+            <StatusPill key={s.key} label={s.label} hue={phaseHue(s.key)} size="sm" />
+          ))}
         </div>
       </Section>
 
