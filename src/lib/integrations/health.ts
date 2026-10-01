@@ -66,6 +66,10 @@ export async function getIntegrationHealth(): Promise<IntegrationStatus[]> {
         businessAccountId: true,
         apiEndpoint: true,
         crmWebhookUrl: true,
+        aisensyProjectId: true,
+        aisensyApiPassword: true,
+        aisensyWebhookSecret: true,
+        aisensyVerifyToken: true,
       },
     })
     .catch(() => null);
@@ -123,33 +127,67 @@ export async function getIntegrationHealth(): Promise<IntegrationStatus[]> {
     impact: "Payment reminders, OTPs and event reminders sent by SMS do not go out.",
   });
 
-  const waLive = has(waConfig?.accessToken);
-  const waWebhookMissing = absent(["WHATSAPP_APP_SECRET", "WHATSAPP_VERIFY_TOKEN"]);
+  // Every check below is per-PROVIDER. Keying them on `accessToken` and the two
+  // Meta env vars reported AiSensy — which sends through a Project ID + API
+  // password held in the database — as not configured while it was live and
+  // delivering, and it only looked fine at all because a stale Weflux token was
+  // still sitting in the row.
+  const isAiSensy = waConfig?.provider === "AISENSY";
+  const waLive = isAiSensy
+    ? has(waConfig?.aisensyProjectId) && has(waConfig?.aisensyApiPassword)
+    : has(waConfig?.accessToken);
+
+  // Inbound auth lives in the DB for AiSensy (the Custom App's shared secret
+  // plus the token baked into our webhook URL), and in env for Meta/Weflux.
+  const aisensyInboundMissing = [
+    ...(has(waConfig?.aisensyWebhookSecret) ? [] : ["WhatsAppConfig.aisensyWebhookSecret (AiSensy Custom App shared secret)"]),
+    ...(has(waConfig?.aisensyVerifyToken) ? [] : ["WhatsAppConfig.aisensyVerifyToken (token in the webhook URL)"]),
+  ];
+  const waWebhookMissing = isAiSensy
+    ? aisensyInboundMissing
+    : absent(["WHATSAPP_APP_SECRET", "WHATSAPP_VERIFY_TOKEN"]);
+
+  const waCredentialDetail = isAiSensy
+    ? "No AiSensy Project ID or API password saved."
+    : "No active WhatsApp configuration with an access token.";
+
   out.push({
     key: "whatsapp",
     label: `WhatsApp${waConfig?.provider ? ` (${waConfig.provider})` : ""}`,
     category: "Messaging",
     state: !waLive ? "NOT_CONFIGURED" : waWebhookMissing.length ? "PARTIAL" : "LIVE",
     detail: !waLive
-      ? "No active WhatsApp configuration with an access token."
+      ? waCredentialDetail
       : waWebhookMissing.length
-        ? "Sending is configured. INBOUND webhook secrets are not, so replies cannot be signature-verified."
+        ? "Sending is configured. INBOUND webhook auth is not, so customer replies and delivery receipts cannot be accepted."
         : "Sending and inbound webhook both configured.",
     missing: waWebhookMissing,
     impact:
-      "Without sending: no WhatsApp goes out. Without the webhook secrets: customer replies may be rejected or unverified.",
+      "Without sending: no WhatsApp goes out. Without the inbound secrets: replies never reach the inbox and messages never move past SENT.",
   });
 
-  const templatesReady = has(waConfig?.businessAccountId);
+  // AiSensy lists the project's own templates over its API, so the Meta
+  // Business Account ID is not what gates this for that provider.
+  const templatesReady = isAiSensy
+    ? has(waConfig?.aisensyProjectId) && has(waConfig?.aisensyApiPassword)
+    : has(waConfig?.businessAccountId);
   out.push({
     key: "whatsapp-templates",
-    label: "WhatsApp approved templates (Meta)",
+    label: isAiSensy ? "WhatsApp approved templates (AiSensy)" : "WhatsApp approved templates (Meta)",
     category: "Messaging",
     state: templatesReady ? "LIVE" : "NOT_CONFIGURED",
-    detail: templatesReady
-      ? "Business Account ID present — templates can be synced from Meta."
-      : "No Meta Business Account ID saved, so the approved-template list cannot be fetched. A Weflux API key alone cannot list templates; they live on Meta.",
-    missing: templatesReady ? [] : ["WhatsAppConfig.businessAccountId (saved in WhatsApp settings, not env)"],
+    detail: isAiSensy
+      ? templatesReady
+        ? "Project credentials present — Test connection lists the approved templates by name."
+        : "Without the AiSensy Project ID and API password the approved-template list cannot be fetched."
+      : templatesReady
+        ? "Business Account ID present — templates can be synced from Meta."
+        : "No Meta Business Account ID saved, so the approved-template list cannot be fetched. A Weflux API key alone cannot list templates; they live on Meta.",
+    missing: templatesReady
+      ? []
+      : isAiSensy
+        ? ["WhatsAppConfig.aisensyProjectId + aisensyApiPassword (saved in WhatsApp settings)"]
+        : ["WhatsAppConfig.businessAccountId (saved in WhatsApp settings, not env)"],
     impact: "Template names stay free text, so a wrong or paused template fails at send time with no warning.",
   });
 
@@ -252,16 +290,24 @@ export async function getIntegrationHealth(): Promise<IntegrationStatus[]> {
   });
 
   const wefluxPush = has(waConfig?.crmWebhookUrl) || has(process.env.WEFLUX_CRM_WEBHOOK_URL);
+  // Pushing leads to Weflux while someone else sends our WhatsApp is not a
+  // feature, it is a second number messaging the same customer: Weflux fires
+  // its own first-message automations on every lead it receives. Flag it.
+  const wefluxPushStranded = wefluxPush && !!waConfig?.provider && waConfig.provider !== "WEFLUX";
   out.push({
     key: "weflux-crm",
     label: "Weflux CRM push",
     category: "Lead capture",
-    state: wefluxPush ? "LIVE" : "NOT_CONFIGURED",
-    detail: wefluxPush
-      ? "New leads are pushed to Weflux."
-      : "No Weflux CRM webhook URL, so new leads are not pushed and Weflux automations never fire.",
+    state: !wefluxPush ? "NOT_CONFIGURED" : wefluxPushStranded ? "PARTIAL" : "LIVE",
+    detail: !wefluxPush
+      ? "No Weflux CRM webhook URL, so new leads are not pushed and Weflux automations never fire."
+      : wefluxPushStranded
+        ? `New leads are still pushed to Weflux, but WhatsApp now sends through ${waConfig?.provider}. If any Weflux automation is still switched on, the customer gets a first message from BOTH numbers. Turn the Weflux automations off, or clear this webhook URL.`
+        : "New leads are pushed to Weflux.",
     missing: wefluxPush ? [] : ["WhatsAppConfig.crmWebhookUrl (or WEFLUX_CRM_WEBHOOK_URL)"],
-    impact: "Weflux-side automations on a new lead do not run.",
+    impact: wefluxPushStranded
+      ? "Duplicate first messages to new leads, from a number the team no longer watches."
+      : "Weflux-side automations on a new lead do not run.",
   });
 
   // ---- AI ----------------------------------------------------------------
