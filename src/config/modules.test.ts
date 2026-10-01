@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import * as Lucide from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { describe, expect, it } from "vitest";
+import { PROJECTS_MODULE_ENABLED } from "./feature-flags";
 import { MODULES, MODULE_KEYS, isModuleKey, resolveModule, type ModuleKey } from "./modules";
 import { sidebarNavigation, type NavItem } from "./navigation";
 
@@ -50,6 +51,15 @@ function navIconsByHref(items: NavItem[], into = new Map<string, Set<string>>())
   return into;
 }
 const NAV_ICONS = navIconsByHref(sidebarNavigation);
+
+/**
+ * Modules whose whole sidebar band a feature flag can hide
+ * (src/config/feature-flags.ts). With PROJECTS_MODULE_ENABLED = false the
+ * Projects band leaves navigation.ts and its pages 404, so its navHref has no
+ * sidebar icon to compare; its routes still resolve to the module.
+ */
+const NAV_FLAGS: Partial<Record<ModuleKey, boolean>> = { projects: PROJECTS_MODULE_ENABLED };
+const shownInNav = (key: ModuleKey) => NAV_FLAGS[key] !== false;
 const LUCIDE = Lucide as unknown as Record<string, LucideIcon | undefined>;
 
 /** Lucide's canonical name for an export (aliases such as CheckSquare -> SquareCheckBig). */
@@ -178,7 +188,7 @@ describe("registry shape", () => {
 });
 
 describe("one module, one look (R3)", () => {
-  it.each(MODULE_KEYS.filter((k) => MODULES[k].navHref))("%s: glyph is its sidebar icon", (key) => {
+  it.each(MODULE_KEYS.filter((k) => MODULES[k].navHref && shownInNav(k)))("%s: glyph is its sidebar icon", (key) => {
     const { navHref, icon } = MODULES[key];
     const navIcons = NAV_ICONS.get(navHref!);
     expect(navIcons, `${navHref} is not in navigation.ts`).toBeDefined();

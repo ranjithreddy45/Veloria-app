@@ -28,16 +28,18 @@ export default function DashboardLoading() {
     <div className="space-y-6">
       <PageHeaderSkeleton />
 
-      {/* Stat tiles — same 3-up grid and card treatment as the real pages */}
+      {/* Stat tiles — same 3-up grid and card treatment as the real pages:
+          StatTile's bordered glass surface and padding, its label top-left
+          and its chip top-right in a 36px band. */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="space-y-3 surface-glass rounded-[22px] p-5"
+            className="space-y-3 surface-glass rounded-[22px] border border-border p-4 sm:p-5"
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex h-9 items-center justify-between gap-2">
+              <Skeleton className="h-2.5 w-24 rounded-full" />
               <Skeleton className="size-9 rounded-xl" />
-              <Skeleton className="h-3 w-24 rounded-full" />
             </div>
             <Skeleton className="h-7 w-20 rounded-lg" />
             <Skeleton className="h-2.5 w-28 rounded-full" />

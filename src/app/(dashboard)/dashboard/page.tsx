@@ -38,11 +38,14 @@ export default async function DashboardPage() {
   //   check the static role matrix, so `when` repeats that check: an override
   //   that middleware honours would still be refused there.
   //
-  // Labels and hints describe what the destination does: /payments lists
-  // payments (it records none), /availability shows free slots (it blocks
-  // none), and /site-visits is where staff confirm and assign the tours and
-  // tastings prospects book on the public scheduler, which is what its hint
-  // says.
+  // Copy: the approved labels and hints in sentence case, except where the
+  // approved words promised something the destination does not do. /payments
+  // lists payments and records none, so "Record Payment" became "Payments"
+  // (owner decision) and its hint "Add client payment" became "Track
+  // collections". /availability shows free slots and blocks none, so "New
+  // Booking Hold" / "Block a venue slot" became its sidebar title, "Slot
+  // availability" / "See free venue slots" (awaiting the owner's sign-off).
+  // "Inquiry" is spelt "enquiry" (design spec R16).
   const quickActions = visibleActions<HubActionSpec>(session, [
     {
       href: "/leads/new",
@@ -67,7 +70,7 @@ export default async function DashboardPage() {
     {
       href: "/site-visits",
       label: "Schedule visit",
-      hint: "Confirm tours, tastings",
+      hint: "Site visit / tasting",
       when: hasPermission(role, "tastings:read"),
     },
     {

@@ -39,6 +39,10 @@ export type SeededRole = keyof typeof ROLE_USERS;
  * layout (home, list, board, calendar, detail-heavy, settings, ops, finance,
  * HR). header-geometry.spec.ts measures the same list, so a screen added here
  * is both photographed and held to the header rules.
+ *
+ * /projects is left out: the Projects module is hidden behind
+ * PROJECTS_MODULE_ENABLED (src/config/feature-flags.ts) and its pages 404.
+ * Put it back under "Delivery and ops" when the flag is switched on.
  */
 export const TOUR_SCREENS: readonly { name: string; path: string }[] = [
   { name: "home", path: "/dashboard" },
@@ -57,7 +61,6 @@ export const TOUR_SCREENS: readonly { name: string; path: string }[] = [
   { name: "site-visits", path: "/site-visits" },
   // Delivery and ops
   { name: "tasks", path: "/tasks" },
-  { name: "projects", path: "/projects" },
   { name: "beo", path: "/beo" },
   { name: "kitchen", path: "/kitchen" },
   { name: "procurement", path: "/procurement" },
@@ -557,10 +560,11 @@ export function measurePageHeader(ring: number): PageHeaderGeometry {
 }
 
 /**
- * The title box of the first visible PageHeaderSkeleton: the second of the two
- * placeholders in its title row (the first is the chip placeholder). Runs IN
- * THE PAGE: `page.evaluate(measureSkeletonTitle)`. Null when no skeleton is
- * on screen.
+ * The title box of the first visible PageHeaderSkeleton: the placeholder it
+ * marks `data-skeleton-part="title"` in its title row (a two-line eyebrow
+ * placeholder has two bars too, so the row's shape alone can't identify it).
+ * Runs IN THE PAGE: `page.evaluate(measureSkeletonTitle)`. Null when no
+ * skeleton is on screen.
  */
 export function measureSkeletonTitle(): { left: number; top: number; width: number; height: number } | null {
   const roots = Array.from(document.querySelectorAll('[data-slot="page-header-skeleton"]'));
@@ -569,12 +573,7 @@ export function measureSkeletonTitle(): { left: number; top: number; width: numb
     return r.width > 0 && r.height > 0;
   });
   if (!root) return null;
-  // Skeleton root > title column > [eyebrow?, title row, description, meta?].
-  const column = root.querySelector(":scope > div");
-  const row = Array.from(column?.children ?? []).find(
-    (el) => el.children.length === 2 && Array.from(el.children).every((c) => c.getAttribute("data-slot") === "skeleton")
-  );
-  const title = row?.lastElementChild;
+  const title = root.querySelector('[data-skeleton-part="title"]');
   if (!title) return null;
   const r = title.getBoundingClientRect();
   return { left: r.left, top: r.top, width: r.width, height: r.height };

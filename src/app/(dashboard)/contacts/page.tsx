@@ -171,7 +171,7 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
           </HelpHint>
         }
         eyebrow={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>CRM · Directory</span>
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">

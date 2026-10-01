@@ -28,14 +28,8 @@ import {
 import type { DashboardFullData } from "@/actions/dashboard-full.actions";
 import { getHallOccupancyForDate, getEventsForDate } from "@/actions/dashboard-full.actions";
 import { format, addDays, parseISO } from "date-fns";
-import { PageMoreMenuTrigger, QuickActions, type HubActionSpec } from "@/components/ui/quick-actions";
+import { QuickActions, type HubActionSpec } from "@/components/ui/quick-actions";
 import { StatTile, type StatTileTrend } from "@/components/ui/stat-tile";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface FullDashboardViewProps {
   data: DashboardFullData;
@@ -60,36 +54,11 @@ function changeTrend(changePercent: number): StatTileTrend {
   return { text: `${sign}${Math.abs(changePercent)}% vs last month`, tone };
 }
 
-// The hub's pill row. Five pills wrap to three rows on a 390px phone, which
-// pushes the KPI row far below the greeting (design spec R10: at most two
-// rows). So below sm the row shows its first three pills and folds the rest
-// into a phone-only More menu (always the row's last item); from sm up every
-// pill shows and that menu is hidden. Literal strings: Tailwind only
-// generates classes it can read in the source, so the "n+4" in the selector
-// is HUB_PHONE_PILLS + 1 written out; change the two together.
+// The hub's pill row: every pill stays a visible pill at every width, and the
+// row wraps instead of clipping (owner decision). On a 390px phone the five
+// pills take three rows; the hub is the one header allowed more than R10's
+// two, as it is the one allowed destination labels (R6).
 const HUB_ROW = "xl:justify-end";
-const HUB_ROW_WITH_OVERFLOW =
-  "xl:justify-end max-sm:[&>li:nth-child(n+4):not(:last-child)]:hidden sm:[&>li:last-child]:hidden";
-/** How many hub pills a phone shows before the rest move into the More menu. */
-const HUB_PHONE_PILLS = 3;
-
-/** The phone-only More menu holding the hub pills that don't fit on a phone. */
-function HubOverflowMenu({ actions }: { actions: readonly HubActionSpec[] }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <PageMoreMenuTrigger />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-48">
-        {actions.map((action) => (
-          <DropdownMenuItem key={`${action.href}|${action.label}`} asChild>
-            <Link href={action.href}>{action.label}</Link>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
 
 // The month the cash KPI covers: the current month in IST, which is the window
 // getDashboardFullData sums. Derived from the data's own timestamp so the
@@ -277,18 +246,8 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
         {/* The shared action cluster (src/components/ui/quick-actions.tsx) in
             hub mode: the dashboard is not a module landing, so it keeps its
             five shortcuts. Order, labels and permissions come from page.tsx;
-            each pill's chip is its destination's module chip. On a phone the
-            pills past the third move into a More menu (HUB_ROW_WITH_OVERFLOW). */}
-        {quickActions.length > HUB_PHONE_PILLS ? (
-          <QuickActions
-            hub
-            actions={quickActions}
-            more={<HubOverflowMenu actions={quickActions.slice(HUB_PHONE_PILLS)} />}
-            className={HUB_ROW_WITH_OVERFLOW}
-          />
-        ) : (
-          <QuickActions hub actions={quickActions} className={HUB_ROW} />
-        )}
+            each pill's chip is its destination's module chip. */}
+        <QuickActions hub actions={quickActions} className={HUB_ROW} />
       </header>
 
       {/* ============================================================ */}

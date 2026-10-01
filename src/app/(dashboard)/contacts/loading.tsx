@@ -4,6 +4,7 @@ import { ListSkeleton } from "@/components/shared/list-skeleton";
 // under the description: the repeat-enquirer link, the truncation note and
 // the repair tools. A directory with any repeat enquirer shows that row, so
 // the skeleton reserves it and the list does not drop when the page lands.
+// Its eyebrow (section plus counts) always wraps to two lines on a phone.
 export default function Loading() {
-  return <ListSkeleton headerActions={1} headerMeta />;
+  return <ListSkeleton headerActions={1} headerMeta headerEyebrowLines={2} />;
 }

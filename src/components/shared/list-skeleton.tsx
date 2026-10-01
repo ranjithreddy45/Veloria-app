@@ -12,7 +12,8 @@ import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 //
 // Only the route knows what its settled header shows, so each route sets its
 // action-slot placeholders with `headerActions` (0 for a header with none),
-// and `headerMeta` when the header has a meta row under the description. A
+// `headerMeta` when the header has a meta row under the description, and
+// `headerEyebrowLines={2}` when its eyebrow of counts wraps on a phone. A
 // placeholder button that never arrives points the eye at the wrong place.
 // The body stays generic: action pills live in the header, never in a row
 // inside the body.
@@ -32,6 +33,11 @@ interface HeaderSkeletonOptions {
    * notes there).
    */
   headerMeta?: boolean;
+  /**
+   * Lines the header's eyebrow takes below sm: 2 for an eyebrow of counts that
+   * wraps on a phone, so the title box keeps the settled h1's top there.
+   */
+  headerEyebrowLines?: 1 | 2;
 }
 
 export interface ListSkeletonProps extends HeaderSkeletonOptions {
@@ -40,10 +46,15 @@ export interface ListSkeletonProps extends HeaderSkeletonOptions {
 }
 
 /** Generic list/table page skeleton. */
-export function ListSkeleton({ rows = 8, headerActions = 1, headerMeta = false }: ListSkeletonProps) {
+export function ListSkeleton({
+  rows = 8,
+  headerActions = 1,
+  headerMeta = false,
+  headerEyebrowLines = 1,
+}: ListSkeletonProps) {
   return (
     <div className="space-y-5">
-      <PageHeaderSkeleton actions={headerActions} meta={headerMeta} />
+      <PageHeaderSkeleton actions={headerActions} meta={headerMeta} eyebrowLines={headerEyebrowLines} />
 
       {/* Filter bar */}
       <div className="flex items-center gap-3">
@@ -82,10 +93,15 @@ export interface BoardSkeletonProps extends HeaderSkeletonOptions {
 }
 
 /** Kanban/board skeleton (pipeline + BD deal board). */
-export function BoardSkeleton({ columns = 5, headerActions = 1, headerMeta = false }: BoardSkeletonProps) {
+export function BoardSkeleton({
+  columns = 5,
+  headerActions = 1,
+  headerMeta = false,
+  headerEyebrowLines = 1,
+}: BoardSkeletonProps) {
   return (
     <div className="space-y-5">
-      <PageHeaderSkeleton actions={headerActions} meta={headerMeta} />
+      <PageHeaderSkeleton actions={headerActions} meta={headerMeta} eyebrowLines={headerEyebrowLines} />
       <div className="flex gap-4 overflow-hidden">
         {Array.from({ length: columns }).map((_, c) => (
           <div key={c} className="w-72 shrink-0 space-y-3">
