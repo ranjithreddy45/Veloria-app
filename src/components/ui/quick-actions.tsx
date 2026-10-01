@@ -51,7 +51,7 @@ export function QuickAction({ href, icon: Icon, label, hint, accent = "brand" }:
     <Link
       href={href}
       className={cn(
-        "group flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs transition-all hover:brightness-110 active:scale-95",
+        "group flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs transition-all hover:bg-muted/40 active:scale-95",
         HOVER_EDGE[accent] ?? HOVER_EDGE.brand
       )}
     >
@@ -66,7 +66,7 @@ export function QuickAction({ href, icon: Icon, label, hint, accent = "brand" }:
       </div>
       <div className="flex min-w-0 flex-col text-left">
         <span className="font-semibold leading-tight text-foreground">{label}</span>
-        {hint && <span className="text-[10px] font-normal text-muted-foreground">{hint}</span>}
+        {hint && <span className="text-meta font-normal text-muted-foreground">{hint}</span>}
       </div>
     </Link>
   );

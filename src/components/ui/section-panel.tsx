@@ -35,7 +35,7 @@ export function SectionPanel({
           <div className="flex min-w-0 items-center gap-2">
             {Icon && <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />}
             {label && (
-              <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <p className="truncate text-meta font-semibold uppercase tracking-wider text-muted-foreground">
                 {label}
               </p>
             )}
