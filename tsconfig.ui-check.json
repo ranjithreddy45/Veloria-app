@@ -1,0 +1,78 @@
+// Scoped typecheck for the design-system rollout (module registry, chips,
+// PageHeader + QuickActions, StatTile, and the landings built on them).
+//
+// `next build` ignores type errors (next.config.ts), and a full-project tsc
+// runs out of memory on small machines and still fails on older errors. This
+// config checks only the files the rollout touched, plus everything they
+// import. Run it with:
+//   NODE_OPTIONS=--max-old-space-size=4096 ./node_modules/.bin/tsc -p tsconfig.ui-check.json
+// CI (.github/workflows/e2e.yml) runs the same command.
+//
+// src/types/next-auth.d.ts is listed first: without it every
+// `session.user.role` is an error. When a later change touches another
+// shared UI file, add it to "files".
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "noEmit": true
+  },
+  "include": [],
+  "files": [
+    "src/types/next-auth.d.ts",
+    "src/app/(dashboard)/beo/_components/beo-dashboard.tsx",
+    "src/app/(dashboard)/beo/_components/new-function-sheet-dialog.tsx",
+    "src/app/(dashboard)/beo/page.tsx",
+    "src/app/(dashboard)/bookings/loading.tsx",
+    "src/app/(dashboard)/bookings/page.tsx",
+    "src/app/(dashboard)/contacts/_components/contacts-more-menu.tsx",
+    "src/app/(dashboard)/contacts/loading.tsx",
+    "src/app/(dashboard)/contacts/page.tsx",
+    "src/app/(dashboard)/dashboard/_components/full-dashboard-view.tsx",
+    "src/app/(dashboard)/dashboard/page.tsx",
+    "src/app/(dashboard)/finance/_components/finance-workspace.tsx",
+    "src/app/(dashboard)/finance/_components/new-journal-dialog.tsx",
+    "src/app/(dashboard)/finance/page.tsx",
+    "src/app/(dashboard)/invoices/loading.tsx",
+    "src/app/(dashboard)/invoices/page.tsx",
+    "src/app/(dashboard)/kitchen/_components/kitchen-list.tsx",
+    "src/app/(dashboard)/kitchen/_components/new-kitchen-plan-dialog.tsx",
+    "src/app/(dashboard)/kitchen/page.tsx",
+    "src/app/(dashboard)/leads/_components/leads-more-menu.tsx",
+    "src/app/(dashboard)/leads/loading.tsx",
+    "src/app/(dashboard)/leads/page.tsx",
+    "src/app/(dashboard)/loading.tsx",
+    "src/app/(dashboard)/people/_components/coming-soon.tsx",
+    "src/app/(dashboard)/people/_components/employee-form-dialog.tsx",
+    "src/app/(dashboard)/people/page.tsx",
+    "src/app/(dashboard)/pipeline/_components/score-all-deals-button.tsx",
+    "src/app/(dashboard)/pipeline/_components/sync-leads-button.tsx",
+    "src/app/(dashboard)/pipeline/loading.tsx",
+    "src/app/(dashboard)/pipeline/page.tsx",
+    "src/app/(dashboard)/projects/page.tsx",
+    "src/app/(dashboard)/quotations/page.tsx",
+    "src/app/(dashboard)/tasks/page.tsx",
+    "src/app/(dashboard)/vendors/new/page.tsx",
+    "src/app/(dashboard)/vendors/page.tsx",
+    "src/app/(vendor-portal)/vendor-portal/bids/page.tsx",
+    "src/app/(vendor-portal)/vendor-portal/bids/vendor-bids-client.tsx",
+    "src/app/(vendor-portal)/vendor-portal/events/page.tsx",
+    "src/app/(vendor-portal)/vendor-portal/events/vendor-events-client.tsx",
+    "src/app/(vendor-portal)/vendor-portal/payouts/page.tsx",
+    "src/app/(vendor-portal)/vendor-portal/payouts/vendor-payouts-client.tsx",
+    "src/app/style-guide/page.tsx",
+    "src/components/layout/module-chip.tsx",
+    "src/components/layout/page-header-skeleton.tsx",
+    "src/components/layout/page-header.tsx",
+    "src/components/shared/list-skeleton.tsx",
+    "src/components/ui/icon-chip.tsx",
+    "src/components/ui/quick-actions.tsx",
+    "src/components/ui/stat-tile.tsx",
+    "src/config/modules.test.ts",
+    "src/config/modules.ts",
+    "src/lib/permission-claims.test.ts",
+    "src/lib/permission-claims.ts",
+    "src/lib/ui/hues.test.ts",
+    "src/lib/ui/hues.ts"
+  ]
+}

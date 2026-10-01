@@ -57,6 +57,16 @@ jobs:
       - name: Install dependencies (postinstall runs prisma generate)
         run: pnpm install --frozen-lockfile
 
+      # `next build` ignores type errors (next.config.ts), so this is the only
+      # check that the design-system files type-check: the Record<Hue, …> maps,
+      # the verb-only ActionLabel, component props. It is scoped to the files
+      # that work touched (tsconfig.ui-check.json) because a full-project tsc
+      # still fails on older errors elsewhere. Non-blocking for its first run;
+      # remove `continue-on-error` once it is green on main.
+      - name: Typecheck the design-system files (scoped)
+        continue-on-error: true
+        run: NODE_OPTIONS=--max-old-space-size=4096 ./node_modules/.bin/tsc -p tsconfig.ui-check.json
+
       - name: Push schema to the service database
         run: pnpm exec prisma db push --skip-generate
 
