@@ -19,6 +19,7 @@
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/notify";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import { buildAiFirstResponse } from "@/lib/ai/first-response-message";
 import { plannerSlotToEnum, SLOT_LABEL, type TimeSlotEnum } from "@/lib/sales/slot";
@@ -254,6 +255,7 @@ export async function runSpeedToLead(
           content: text,
           status: result.success ? "SENT" : "FAILED",
           whatsappId: result.messageId || null,
+          failureReason: result.success ? null : formatWhatsAppFailure(result.error),
           contactId: lead.contactId,
         },
       });

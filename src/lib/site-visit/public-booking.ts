@@ -23,6 +23,7 @@ import { prisma } from "@/lib/prisma";
 import { notifyAwait } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { captureLeadFromExternal, getSystemUserId } from "@/lib/lead-capture";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import type { SiteVisitKind } from "@prisma/client";
@@ -351,6 +352,7 @@ async function sendVisitConfirmation(args: {
           content: text,
           status: result.success ? "SENT" : "FAILED",
           whatsappId: result.messageId || null,
+          failureReason: result.success ? null : formatWhatsAppFailure(result.error),
           contactId: args.contactId,
         },
       })

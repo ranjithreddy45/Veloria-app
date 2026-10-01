@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { redirect, notFound } from "next/navigation";
+import { PROJECTS_MODULE_ENABLED } from "@/config/feature-flags";
 import { AlertTriangle, Building2, IndianRupee, ShieldAlert } from "lucide-react";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
@@ -15,6 +16,8 @@ import { getPortfolio } from "@/actions/project-portfolio.actions";
 export const metadata: Metadata = { title: "Portfolio" };
 
 export default async function PortfolioPage() {
+  if (!PROJECTS_MODULE_ENABLED) notFound();
+
   const session = await auth();
   if (!hasPermission(session?.user?.role ?? "", "projects:read")) redirect("/projects");
   const data = await getPortfolio();

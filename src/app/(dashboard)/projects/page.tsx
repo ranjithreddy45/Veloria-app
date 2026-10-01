@@ -1,3 +1,6 @@
+import { notFound } from "next/navigation";
+
+import { PROJECTS_MODULE_ENABLED } from "@/config/feature-flags";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { auth } from "@/../auth";
@@ -17,6 +20,8 @@ async function ProjectsList() {
 }
 
 export default async function ProjectsPage() {
+  if (!PROJECTS_MODULE_ENABLED) notFound();
+
   const session = await auth();
   const role = session?.user?.role ?? "";
   const isAdmin = role === "SUPER_ADMIN" || role === "ADMIN";

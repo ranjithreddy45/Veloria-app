@@ -24,6 +24,7 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { generateQuoteCaption } from "@/lib/sales/quote-caption";
 import { computeAdvanceAmount } from "@/lib/sales/quote-onetap";
 import { enrollEntity } from "@/actions/cadence.actions";
@@ -201,7 +202,7 @@ export async function nudgeViewedUnpaidQuotes(): Promise<QuoteNudgeSummary> {
                 content: caption.text,
                 status: sent.success ? "SENT" : "FAILED",
                 whatsappId: sent.messageId ?? null,
-                failureReason: sent.success ? null : sent.error ?? "Send failed",
+                failureReason: sent.success ? null : formatWhatsAppFailure(sent.error),
                 contactId,
               },
               select: { id: true },

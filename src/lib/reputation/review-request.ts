@@ -2,6 +2,7 @@ import { randomBytes } from "crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 
 // ============================================================
 // Reputation Flywheel — core helper library (NOT "use server")
@@ -15,6 +16,20 @@ import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 // Best-effort throughout (mirrors the guest-reminder engine): a single failing
 // row never aborts the sweep. No money/Decimal handling in this feature.
 // ============================================================
+
+// --- Backlog guard ------------------------------------------------------------
+// Review requests go out only for events in the last N days. Older bookings
+// (and PENDING/FAILED requests for them) are left in the DB untouched, just
+// never picked — so a fixed WhatsApp provider doesn't flush months-old asks,
+// and raising N brings them back.
+export const REVIEW_REQUEST_MAX_AGE_DAYS = 30;
+
+/** The earliest event date (Booking.date, a UTC-midnight @db.Date) that may still get a review request. */
+export function reviewRequestCutoff(now: Date = new Date()): Date {
+  const cutoff = new Date(now.getTime() - REVIEW_REQUEST_MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
+  cutoff.setUTCHours(0, 0, 0, 0);
+  return cutoff;
+}
 
 // --- Token generation (matches createPortalInvite convention) ---------------
 export function generateReviewToken(): string {
@@ -101,7 +116,16 @@ async function sendReviewRequest(reviewRequest: {
       params: { customerName, eventName, reviewLink },
     });
     if (!result.success) {
+      // Keep the template's own error: the text fallback usually fails for an
+      // unrelated reason (outside the 24h window) that would hide it.
+      const templateError = result.error;
       result = await sendWhatsApp({ to: phone, message: textFallback });
+      if (!result.success) {
+        result = {
+          ...result,
+          error: `Template: ${formatWhatsAppFailure(templateError)} · Text fallback: ${formatWhatsAppFailure(result.error)}`,
+        };
+      }
     }
   } catch (error) {
     result = {
@@ -113,7 +137,7 @@ async function sendReviewRequest(reviewRequest: {
   const messageContent = `[Review request] ${textFallback}`;
 
   if (!result.success) {
-    const reason = result.error || "WhatsApp send failed";
+    const reason = formatWhatsAppFailure(result.error);
     await prisma.whatsAppMessage
       .create({
         data: {
@@ -183,11 +207,13 @@ export async function enqueueReviewRequestsForCompletedBookings(): Promise<Enque
   };
 
   const googleReviewUrl = getGoogleReviewUrl();
+  const cutoff = reviewRequestCutoff();
 
-  // 1) Enqueue for COMPLETED bookings lacking a ReviewRequest.
+  // 1) Enqueue for recent COMPLETED bookings lacking a ReviewRequest.
   const bookings = await prisma.booking.findMany({
     where: {
       status: "COMPLETED",
+      date: { gte: cutoff },
       reviewRequests: { none: {} },
     },
     select: { id: true, contactId: true },
@@ -220,9 +246,9 @@ export async function enqueueReviewRequestsForCompletedBookings(): Promise<Enque
     }
   }
 
-  // 2) Send (or retry) every PENDING/FAILED request.
+  // 2) Send (or retry) every PENDING/FAILED request for a recent event.
   const pending = await prisma.reviewRequest.findMany({
-    where: { status: { in: ["PENDING", "FAILED"] } },
+    where: { status: { in: ["PENDING", "FAILED"] }, booking: { date: { gte: cutoff } } },
     include: {
       contact: { select: { firstName: true, lastName: true, phone: true } },
       booking: { select: { eventName: true } },
@@ -259,12 +285,18 @@ export async function enqueueReviewRequestForBooking(
 > {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
-    select: { id: true, status: true, contactId: true },
+    select: { id: true, status: true, contactId: true, date: true },
   });
 
   if (!booking) return { ok: false, error: "Booking not found" };
   if (booking.status !== "COMPLETED") {
     return { ok: false, error: "Only completed bookings can be sent a review request" };
+  }
+  if (booking.date < reviewRequestCutoff()) {
+    return {
+      ok: false,
+      error: `Review requests are only sent within ${REVIEW_REQUEST_MAX_AGE_DAYS} days of the event`,
+    };
   }
 
   let alreadyExisted = false;

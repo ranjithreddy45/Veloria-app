@@ -34,7 +34,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { globalSearch, type SearchResult } from "@/actions/search.actions";
-import { LEAD_OPS_PAGES_ENABLED } from "@/config/feature-flags";
+import { LEAD_OPS_PAGES_ENABLED, PROJECTS_MODULE_ENABLED } from "@/config/feature-flags";
 
 // ============================================================
 // Quick navigation entries (shown on the empty landing view)
@@ -129,8 +129,13 @@ const PAGE_INDEX: PageEntry[] = [
   { label: "BD Properties", href: "/bd/properties", keywords: "acquisition halls venues" },
   { label: "Hall Owners", href: "/owners", keywords: "b2b property owners landlords" },
   // Projects
-  { label: "Projects", href: "/projects", keywords: "renovation capex fit-out handover" },
-  { label: "Projects Portfolio", href: "/projects/portfolio", keywords: "all projects dashboard" },
+  // Projects — behind PROJECTS_MODULE_ENABLED (feature-flags.ts).
+  ...(PROJECTS_MODULE_ENABLED
+    ? [
+        { label: "Projects", href: "/projects", keywords: "renovation capex fit-out handover" },
+        { label: "Projects Portfolio", href: "/projects/portfolio", keywords: "all projects dashboard" },
+      ]
+    : []),
   // Finance
   { label: "Finance", href: "/finance", keywords: "accounting gl ledger money" },
   { label: "Trial Balance", href: "/finance/trial-balance", keywords: "accounting tb gl report" },

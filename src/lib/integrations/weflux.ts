@@ -95,10 +95,14 @@ export async function wefluxSendTemplate(
     const res = await fetch(`${apiBase(creds.endpoint)}/messages`, {
       method: "POST",
       headers: authHeaders(creds.token),
-      // Weflux v2 template format (https://www.weflux.in/docs): recipient in `to`
-      // (E.164), the template name, its language, and the template variables in `vars`.
+      // Recipient key is `phone`, NOT `to`. The docs-derived `to` was rejected by
+      // the live API with 400 "Provide `phone` or `contact_id`" on EVERY template
+      // send — 199 of them in the week to 2026-09-29, with not one delivered — and
+      // the failure was only visible in the pm2 log, never on the message row.
+      // wefluxSendText below has always used `phone`, and it is the one shape that
+      // ever produced a DELIVERED.
       body: JSON.stringify({
-        to: `+${toPhone(to)}`,
+        phone: toPhone(to),
         template: templateName,
         language: language || "en",
         ...(params && Object.keys(params).length > 0 ? { vars: params } : {}),

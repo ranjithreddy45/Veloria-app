@@ -5,6 +5,7 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { testWhatsAppConnection } from "@/lib/integrations/whatsapp";
+import { requiredWhatsAppTemplates } from "@/lib/whatsapp/required-templates";
 import { whatsappConfigSchema, type WhatsAppConfigInput } from "@/schemas/whatsapp-config.schema";
 import { revalidatePath } from "next/cache";
 
@@ -293,15 +294,37 @@ export async function testWhatsAppConnectionAction() {
       return { success: false as const, error: "No active WhatsApp configuration found" };
     }
 
-    const result = await testWhatsAppConnection({
-      provider: config.provider || "META",
-      accessToken: config.accessToken,
-      phoneNumberId: config.phoneNumberId ?? "",
-      businessAccountId: config.businessAccountId ?? "",
-      appSecret: config.appSecret,
-      apiEndpoint: config.apiEndpoint,
-      verifyToken: config.verifyToken,
-    });
+    // AiSensy's test also checks the templates this app sends against the
+    // approved list, so it needs the configured names and the auto-welcomes.
+    const provider = config.provider || "META";
+    const requiredTemplates =
+      provider === "AISENSY"
+        ? requiredWhatsAppTemplates(
+            config,
+            (
+              await prisma.autoWelcomeConfig.findMany({
+                where: { isEnabled: true },
+                select: { templateName: true },
+              })
+            ).map((w) => w.templateName)
+          )
+        : [];
+
+    const result = await testWhatsAppConnection(
+      {
+        provider,
+        accessToken: config.accessToken,
+        phoneNumberId: config.phoneNumberId ?? "",
+        businessAccountId: config.businessAccountId ?? "",
+        appSecret: config.appSecret,
+        apiEndpoint: config.apiEndpoint,
+        verifyToken: config.verifyToken,
+        aisensyProjectId: config.aisensyProjectId,
+        aisensyApiPassword: config.aisensyApiPassword,
+        aisensyApiEndpoint: config.aisensyApiEndpoint,
+      },
+      requiredTemplates
+    );
 
     return {
       success: result.success,

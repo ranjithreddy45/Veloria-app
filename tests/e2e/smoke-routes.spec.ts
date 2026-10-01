@@ -39,7 +39,6 @@ const ROUTES: { path: string; heading?: string | RegExp }[] = [
   { path: "/beo" },
   { path: "/procurement" },
   { path: "/support" },
-  { path: "/projects" },
   // People / HR
   { path: "/people", heading: "People" },
   { path: "/people/handbook", heading: "Employee Handbook" },

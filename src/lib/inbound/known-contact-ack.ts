@@ -33,6 +33,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { notifyAwait } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
@@ -338,6 +339,7 @@ export async function handleKnownContactAck(
           content: text,
           status: result.success ? "SENT" : "FAILED",
           whatsappId: result.messageId || null,
+          failureReason: result.success ? null : formatWhatsAppFailure(result.error),
           contactId,
         },
       });

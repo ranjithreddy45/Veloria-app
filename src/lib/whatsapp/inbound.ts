@@ -11,6 +11,7 @@
 import { prisma } from "@/lib/prisma";
 import { captureLeadFromExternal } from "@/lib/lead-capture";
 import { handleInboundReply } from "@/lib/lead-pipeline";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 
 export interface InboundWhatsAppMessage {
   /** Sender's WhatsApp number: digits, country code, no "+" (e.g. 919876543210). */
@@ -50,20 +51,45 @@ const STATUS_MAP: Record<string, "SENT" | "DELIVERED" | "READ" | "FAILED"> = {
   error: "FAILED",
 };
 
+/** What a provider said about a failed delivery (Meta `errors[0]`, AiSensy `failureResponse`, …). */
+export interface DeliveryFailure {
+  code?: string | number | null;
+  message?: string | null;
+  details?: string | null;
+}
+
+/**
+ * The failureReason stored when a provider reports, after accepting a message,
+ * that it could not be delivered:
+ *   "Delivery failed [131047]: Re-engagement message — Message failed to send because …"
+ */
+export function deliveryFailureReason(failure: DeliveryFailure | null | undefined): string {
+  const code = failure?.code != null && String(failure.code).trim() ? ` [${String(failure.code).trim()}]` : "";
+  const message = failure?.message?.trim() ?? "";
+  const details = failure?.details?.trim() ?? "";
+  const text = [message, details && details !== message ? details : ""].filter(Boolean).join(" — ");
+  return formatWhatsAppFailure(`Delivery failed${code}${text ? `: ${text}` : " (no reason returned by provider)"}`);
+}
+
 /**
  * Map a provider delivery-status string onto our enum and update every message
  * row carrying that provider id. Case-insensitive; unknown statuses are ignored.
+ * A FAILED status records the provider's reason; any other status clears it.
  */
 export async function applyWhatsAppStatusUpdate(
   waId: string | null | undefined,
-  providerStatus: string | null | undefined
+  providerStatus: string | null | undefined,
+  failure?: DeliveryFailure | null
 ): Promise<void> {
   if (!waId || !providerStatus) return;
   const mapped = STATUS_MAP[providerStatus.trim().toLowerCase()];
   if (!mapped) return;
   await prisma.whatsAppMessage.updateMany({
     where: { whatsappId: waId },
-    data: { status: mapped },
+    data: {
+      status: mapped,
+      failureReason: mapped === "FAILED" ? deliveryFailureReason(failure) : null,
+    },
   });
 }
 
@@ -218,6 +244,8 @@ export async function recordOutboundWhatsAppMessage(msg: {
   text: string;
   templateName?: string | null;
   status?: string | null;
+  /** Why the provider failed it, when `status` is a failure. */
+  failure?: DeliveryFailure | null;
 }): Promise<OutboundRecordResult> {
   const contact = await findContactByPhone(msg.to);
   if (!contact) return { contactId: null, outcome: "NO_CONTACT" };
@@ -234,6 +262,7 @@ export async function recordOutboundWhatsAppMessage(msg: {
       templateName: msg.templateName || null,
       status,
       whatsappId: waId,
+      failureReason: status === "FAILED" ? deliveryFailureReason(msg.failure) : null,
       contactId: contact.id,
     },
   });

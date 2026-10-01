@@ -15,6 +15,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
+import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import {
   formatVisitDateLabel,
   formatVisitTimeLabel,
@@ -106,6 +107,7 @@ export async function processDueSiteVisitReminders(): Promise<SiteVisitReminderR
                 content: text,
                 status: result.success ? "SENT" : "FAILED",
                 whatsappId: result.messageId || null,
+                failureReason: result.success ? null : formatWhatsAppFailure(result.error),
                 contactId: v.contactId,
               },
             })
