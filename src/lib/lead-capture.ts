@@ -11,7 +11,7 @@ import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { attachAttributionToLead, type AttributionInput } from "@/lib/attribution";
-import { pushLeadToWeflux } from "@/lib/integrations/weflux-crm";
+import { syncLeadToWhatsAppProvider } from "@/lib/integrations/lead-sync";
 import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
 import { normalizePhone } from "@/lib/sales/lead-import";
 import { coarseContactWhere, matchesContactKey, phoneDigits } from "@/lib/dedup";
@@ -799,10 +799,10 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       await runTail();
     }
 
-    // Mirror the new lead into Weflux (creates the contact there so Weflux can
-    // run its "first message" automation and open an inbox thread). Fire-and-
-    // forget — a Weflux outage must never fail lead capture.
-    void pushLeadToWeflux("lead.created", {
+    // Mirror the new lead into whichever WhatsApp provider is active, so the
+    // number is addressable and a reply threads against a named contact.
+    // Fire-and-forget — a provider outage must never fail lead capture.
+    void syncLeadToWhatsAppProvider("lead.created", {
       id: lead.id,
       name: `${firstName} ${lastName}`.trim() || data.name,
       phone: contact.phone || data.phone || "",

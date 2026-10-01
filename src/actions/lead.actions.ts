@@ -29,7 +29,7 @@ import { notify } from "@/lib/notify";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
-import { pushLeadToWeflux } from "@/lib/integrations/weflux-crm";
+import { syncLeadToWhatsAppProvider } from "@/lib/integrations/lead-sync";
 import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
 import { after } from "next/server";
 // LeadStatus enum values matching Prisma schema
@@ -595,7 +595,7 @@ export async function createLead(data: LeadInput & { images?: string[] }) {
           select: { phone: true, email: true, city: true },
         });
         if (c?.phone) {
-          await pushLeadToWeflux("lead.created", {
+          await syncLeadToWhatsAppProvider("lead.created", {
             id: lead.id,
             name: `${lead.contact.firstName} ${lead.contact.lastName}`.trim(),
             phone: c.phone,
