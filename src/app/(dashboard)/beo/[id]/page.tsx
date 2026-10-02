@@ -22,20 +22,27 @@ export default async function BeoDetailPage({ params }: { params: Promise<{ id: 
   // a person decides which one the kitchen cooks to.
   const covers = await getBookingCovers(beo.bookingId);
 
+  // The panel renders under the sheet's header, not above it: the header
+  // comes first on every page, and the panel's height depends on the guest
+  // list, so above the header it moved the title after the loading skeleton
+  // (beo/[id]/loading.tsx) had placed it.
   return (
-    <div className="space-y-4">
-      {covers.success && covers.data.beo && (
-        <CoversPanel
-          target="beo"
-          targetId={covers.data.beo.id}
-          covers={covers.data.beo.covers}
-          coversSource={covers.data.beo.coversSource}
-          headcount={covers.data.headcount}
-          noGuestList={covers.data.noGuestList}
-          canEdit={canWrite && beo.status !== "LOCKED"}
-        />
-      )}
-      <BeoDetailView beo={beo} canWrite={canWrite} />
-    </div>
+    <BeoDetailView
+      beo={beo}
+      canWrite={canWrite}
+      coversPanel={
+        covers.success && covers.data.beo ? (
+          <CoversPanel
+            target="beo"
+            targetId={covers.data.beo.id}
+            covers={covers.data.beo.covers}
+            coversSource={covers.data.beo.coversSource}
+            headcount={covers.data.headcount}
+            noGuestList={covers.data.noGuestList}
+            canEdit={canWrite && beo.status !== "LOCKED"}
+          />
+        ) : null
+      }
+    />
   );
 }

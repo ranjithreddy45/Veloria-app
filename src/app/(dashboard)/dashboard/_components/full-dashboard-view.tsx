@@ -73,11 +73,12 @@ const KPI_TILE = "sm:p-4";
 
 /**
  * A money figure that may wrap only after a digit-group comma. The approved
- * KPI row is five across from lg, and from 1024px to 1279px a tile is about
- * 96px wide inside, narrower than a lakh figure at the tile's size. StatTile
- * never truncates a value (a clipped figure is a wrong number), so the figure
- * wraps there; the <wbr> after each comma makes it wrap as "₹12,45," / "000"
- * rather than in the middle of a digit group.
+ * KPI row is five across from lg, and with the 256px sidebar and lg:px-8 a
+ * tile is only 96px wide inside at 1024px (147px at 1279px), narrower than a
+ * lakh figure at the tile's size until about 1240-1279px. StatTile never
+ * truncates a value (a clipped figure is a wrong number), so the figure wraps
+ * there; the <wbr> after each comma makes it wrap as "₹12,45," / "000" rather
+ * than in the middle of a digit group.
  */
 function breakAtGroups(figure: string): React.ReactNode {
   const groups = figure.split(",");
@@ -276,10 +277,22 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
       {/* ============================================================ */}
       {/* 2. TOP METRICS BAND: 5 KPI tiles in a row (the shared StatTile) */}
       {/* ============================================================ */}
-      {/* The approved grid: five across from lg, as on the original dashboard.
-          From 1024px to 1279px a lakh figure is wider than a tile, so the
-          money values wrap at a digit-group comma (breakAtGroups) instead of
-          being cut off. */}
+      {/* The approved grid: five across from lg, as on the original dashboard
+          (owner decision 8). The tiles are narrow at the low end of lg: 96px
+          inside at 1024px, 124px at about 1166px, 147px at 1279px. Measured
+          in Chromium with Geist:
+          - Money values wrap at a digit-group comma (breakAtGroups) below
+            about 1240-1279px, instead of being cut off.
+          - Below about 1166px the tiles show no icon chip. StatTile (R12)
+            keeps the label whole: never `truncate`, never a word broken
+            mid-word, at least 80px wide. That plus the gap and the 36px chip
+            needs 124px, so the chip wraps onto the label band's clipped
+            second line. The original card kept its chip there by truncating
+            the label ("CASH C…"). "COLLECTED" alone is 70px, so no
+            label-plus-chip layout that R12 allows fits the cash tile at
+            1024px. Keeping the chip at these widths is an owner call: a
+            smaller chip or truncated labels at lg only, or chipless tiles
+            from 1024px to about 1166px as now. */}
       <section className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
         <StatTile
           label={`Cash collected · ${IST_MONTH.format(new Date(data.asOf))}`}

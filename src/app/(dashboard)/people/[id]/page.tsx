@@ -13,6 +13,7 @@ import { StatusPill } from "@/components/shared/status-pill";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ModuleChip } from "@/components/layout/module-chip";
 import { getEmployee, getHrLookups } from "@/actions/hr-employee.actions";
 import { getAttendanceSites } from "@/actions/hr-attendance.actions";
 import { getStatutoryMasked } from "@/actions/hr-statutory.actions";
@@ -119,7 +120,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         <ArrowLeft className="size-3.5" /> All people
       </Link>
 
-      {/* Identity header */}
+      {/* Identity header. people/[id]/loading.tsx repeats the back link and
+          this card; keep the two in step. */}
       <div className="flex flex-wrap items-start gap-5 surface-glass rounded-[22px] p-5 sm:p-6">
         <Avatar size="lg" className="size-16 ring-1 ring-border/60 sm:size-20">
           <AvatarImage src={emp.photoUrl || undefined} alt={name} />
@@ -129,9 +131,15 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           <div className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             <span className="numeric tracking-[0.08em]">{emp.empCode}</span>
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2.5">
-            <h1 className="text-h2 leading-tight text-foreground sm:text-h1">{name}</h1>
-            <StatusPill label={EMPLOYEE_STATUS_LABELS[emp.status]} hue={EMPLOYEE_STATUS_HUE[emp.status]} size="sm" />
+          {/* The module chip leads the title row, as in PageHeader (top-aligned,
+              14px to the title, hidden below sm): the 40px chip matches the
+              h1's first line, as it does on every header. */}
+          <div className="mt-1 flex min-w-0 items-start gap-2.5">
+            <ModuleChip className="mr-1" />
+            <div className="flex min-w-0 flex-wrap items-center gap-2.5">
+              <h1 className="min-w-0 break-words text-h2 leading-tight text-foreground sm:text-h1">{name}</h1>
+              <StatusPill label={EMPLOYEE_STATUS_LABELS[emp.status]} hue={EMPLOYEE_STATUS_HUE[emp.status]} size="sm" />
+            </div>
           </div>
           {(emp.designation?.name || emp.department?.name) && (
             <p className="mt-1.5 text-copy text-muted-foreground">

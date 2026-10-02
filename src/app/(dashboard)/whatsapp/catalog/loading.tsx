@@ -5,9 +5,8 @@ import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 // The Catalog Funnel header has a one-line eyebrow and no action pills (its
 // Resend prompt button sits in the children slot, beside the title column), so
 // the title box lands where its h1 does. Without this file the route falls
-// back to whatsapp/loading.tsx, whose inbox header has no eyebrow, and the
-// title dropped 24px when the page arrived. The stat tiles and the sessions
-// table follow.
+// back to whatsapp/loading.tsx, which draws the inbox's body. The stat tiles
+// and the sessions table follow.
 export default function Loading() {
   return (
     <div className="space-y-6">

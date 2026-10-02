@@ -1,57 +1,31 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { BdDashboardHeader } from "./_components/bd-dashboard-header";
 
 // ============================================================
 // The BD dashboard while it loads.
 // ------------------------------------------------------------
 // Without this file it fell back to (dashboard)/loading.tsx, whose title box
 // sits under a 16px eyebrow placeholder at 24px from the content edge. This
-// header is bespoke (bd/dashboard/page.tsx): it sits in its own band
-// (px-5 pt-5 pb-4, border-b), its eyebrow takes 18px (a text-meta line plus
-// mb-0.5; on a phone it wraps beside the button, to two lines), and its
-// text-h2 h1 is dropped 4px from sm up to centre on the chip, so the settled
-// title landed 20px right of the placeholder and 14px or more below it. This
-// repeats the header's wrappers and boxes (measured in Chromium with Geist:
-// the title box lands within 0.1px of the h1 at 1440, 700 and 390); keep the
-// two in step.
+// header is bespoke: it sits in its own band (px-5 pt-5 pb-4, border-b), its
+// eyebrow wraps beside the Full reports button on a narrow screen, and its h1
+// is dropped 4px from sm up to centre on the chip.
 //
-// "Full reports" renders for every viewer, so it gets a placeholder. Below
-// the header: the filter band, then the body's p-5 column with its KPI row.
+// Nothing in that header depends on the analytics, so this draws the real one
+// (BdDashboardHeader, shared with page.tsx) in its loading mode: the title is
+// exactly where it will be at every width, the eyebrow wraps exactly when the
+// settled one does, and the two cannot drift. A copy built from fixed-width
+// boxes had to guess the wrap and was 16px off between about 455px and 640px.
+// Below the header: the filter band, then the body's p-5 column with its KPI
+// row.
 //
-// data-slot / data-skeleton-part match PageHeaderSkeleton's, so the e2e
-// helper measureSkeletonTitle can measure this header too.
+// The header's loading mode carries PageHeaderSkeleton's data-slot and
+// data-skeleton-part, so the e2e helper measureSkeletonTitle measures it too.
 // ============================================================
 
 export default function Loading() {
   return (
     <div className="flex flex-col min-h-full">
-      <div
-        aria-busy="true"
-        data-slot="page-header-skeleton"
-        className="flex items-start justify-between gap-4 px-5 pt-5 pb-4 border-b border-border"
-      >
-        <span className="sr-only">Loading…</span>
-        {/* min-w-0 and max-w-full boxes: the placeholders must shrink beside
-            the button on a phone, where fixed widths would overflow. */}
-        <div className="min-w-0">
-          {/* The eyebrow plus its mb-0.5: one 16px text-meta line from sm up.
-              On a phone, beside the button, it wraps to two lines (32px). */}
-          <div className="mb-0.5 flex h-8 flex-col justify-center gap-1.5 sm:h-4">
-            <Skeleton className="h-2.5 w-48 max-w-full rounded-full" />
-            <Skeleton className="h-2.5 w-24 max-w-full rounded-full sm:hidden" />
-          </div>
-          <div className="flex items-start gap-2.5">
-            <Skeleton className="mr-1 hidden size-10 shrink-0 rounded-xl sm:block" />
-            {/* The h1's 32.5px line box. */}
-            <Skeleton data-skeleton-part="title" className="h-8 w-48 max-w-full rounded-xl sm:mt-1" />
-          </div>
-          {/* The description: one text-xs line plus mt-0.5. */}
-          <div className="mt-0.5 flex h-4 items-center">
-            <Skeleton className="h-3 w-72 max-w-full rounded-full" />
-          </div>
-        </div>
-        {/* Full reports (34px tall, 122px wide). */}
-        <Skeleton className="mt-1 h-8.5 w-30 shrink-0 rounded-xl" />
-      </div>
+      <BdDashboardHeader loading />
 
       {/* Filter band: the range and employee pills, and the range label. */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-2.5 border-b border-border">

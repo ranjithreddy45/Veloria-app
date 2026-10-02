@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Request } from "@playwright/test";
+import { test, expect, type Locator, type Page, type Request } from "@playwright/test";
 import {
   TOUR_SCREENS,
   dismissTwoFactorBanner,
@@ -14,15 +14,16 @@ import {
 // The visual tour takes pictures; this spec measures the same screens so the
 // header layout can't drift silently (design spec R1, R2, R5, R10, R11, R15):
 //
-//   1440px  - every page shows exactly one module chip, and the chip, the h1
-//             and the eyebrow sit at the same x on every route (one left
-//             edge, no 54px title jump between sibling pages);
+//   1440px  - every page shows exactly one module chip and an eyebrow, and
+//             the chip, the h1 and the eyebrow sit at the same x on every
+//             route (one left edge, no 54px title jump between sibling pages);
 //           - the "Page actions" cluster, when there is one, is fully on
 //             screen and no pill is clipped (focus ring included).
 //   390px   - no chip, the h1 starts at the 16px gutter, and every pill sits
 //             inside [16, 374].
-//   loading - on a client navigation to /bookings the skeleton's title box
-//             sits where the settled h1 lands, at 1440px and at 390px.
+//   loading - on a client navigation to /bookings, /bd/dashboard, a package
+//             record and a function sheet, the skeleton's title box sits
+//             where the settled h1 lands, at 1440px and at 390px.
 //
 // Routes: every visual-tour screen except /dashboard, which is the hub and
 // has its own header with no module chip (its pill row gets a 390px check of
@@ -82,6 +83,11 @@ test.describe("header geometry · 1440", () => {
 
         // R2: exactly one module chip, at the content edge.
         expect.soft(g.visibleChips, `${route}: visible module chips`).toBe(1);
+        // R1/R15: every header has an eyebrow above its title row (the page's
+        // own or, when it passes none, the module's name). The loading
+        // skeletons put their title box under one, so a header without it
+        // makes the title jump up when the page lands.
+        expect.soft(g.eyebrow, `${route}: no eyebrow above the title row`).not.toBeNull();
         if (!g.chip || !g.h1) return;
         expect.soft(Math.abs(g.chip.left - g.contentLeft), `${route}: chip x ${px(g.chip.left)}, content edge ${px(g.contentLeft)}`).toBeLessThanOrEqual(SAME_X);
 
@@ -150,6 +156,7 @@ test.describe("header geometry · 390", () => {
 
         // R2/R10: the chip is hidden below sm, so the title takes the gutter.
         expect.soft(g.visibleChips, `${route}: module chips visible at 390px`).toBe(0);
+        expect.soft(g.eyebrow, `${route}: no eyebrow above the title row`).not.toBeNull();
         if (!g.h1) return;
         expect.soft(Math.abs(g.h1.left - GUTTER), `${route}: h1 x ${px(g.h1.left)}, expected ${GUTTER}px`).toBeLessThanOrEqual(SAME_X);
         if (g.eyebrow) {
@@ -228,6 +235,49 @@ const LOADING_VIEWPORTS = [
 ] as const;
 const SIDEBAR_SHEET_BELOW = 768;
 
+/**
+ * The routes whose loading skeleton is checked, each reached by a client
+ * navigation the way a person gets there:
+ *
+ *   /bookings          the list skeleton with the two-line phone eyebrow
+ *                      (bookings/loading.tsx), from its sidebar link;
+ *   /bd/dashboard      the bespoke BD header, which its loading.tsx draws for
+ *                      real, from its sidebar link;
+ *   a package record   the bespoke record header (packages/[packageId]/
+ *                      loading.tsx), from a card on /packages;
+ *   a function sheet   the bespoke BEO header (beo/[id]/loading.tsx), from a
+ *                      row on /beo. The seed has no function sheets, so this
+ *                      one is skipped on a fresh database.
+ *
+ * `sidebarGroup` is the sidebar group whose link to open; `fromPage` instead
+ * names a page whose own link (the first that `link` matches) is clicked.
+ */
+type LoadingCase = {
+  name: string;
+  /** The settled h1's accessible name, when it is fixed. */
+  heading?: string;
+} & (
+  | { sidebarGroup: string; href: string }
+  | { fromPage: string; link: string; emptyReason: string }
+);
+
+const LOADING_CASES: readonly LoadingCase[] = [
+  { name: "/bookings", heading: "Bookings", sidebarGroup: "Bookings", href: "/bookings" },
+  { name: "/bd/dashboard", heading: "BD Dashboard", sidebarGroup: "BD CRM", href: "/bd/dashboard" },
+  {
+    name: "a package record",
+    fromPage: "/packages",
+    link: 'a[href^="/packages/"]:not([href$="/edit"]):not([href="/packages/new"])',
+    emptyReason: "No package on /packages to open.",
+  },
+  {
+    name: "a function sheet",
+    fromPage: "/beo",
+    link: 'a[href^="/beo/"]',
+    emptyReason: "No function sheet on /beo to open (the seed creates none).",
+  },
+];
+
 for (const { label, width, height } of LOADING_VIEWPORTS) {
   test.describe(`header geometry · loading skeleton · ${label}`, () => {
     test.use({ viewport: { width, height } });
@@ -235,113 +285,151 @@ for (const { label, width, height } of LOADING_VIEWPORTS) {
     /** How long the navigation's RSC response is held back, so the skeleton stays up to be measured. */
     const DELAY_MS = 1_500;
 
-    test("on /bookings the skeleton's title box sits where the settled h1 lands", async ({ page }) => {
-      test.slow();
+    for (const target of LOADING_CASES) {
+      test(`on ${target.name} the skeleton's title box sits where the settled h1 lands`, async ({ page }) => {
+        test.slow();
 
-      // Next prefetches a route's loading state (everything down to its
-      // loading.tsx) when a link to it is on screen or hovered, in a production
-      // build only. Watch those prefetches of /bookings, so the click happens
-      // once the skeleton is already on the client.
-      const isRsc = (url: URL) => url.searchParams.has("_rsc");
-      const isPrefetch = (req: Request) => req.headers()["next-router-prefetch"] !== undefined;
-      const isBookingsPrefetch = (req: Request) => {
-        const url = new URL(req.url());
-        return url.pathname === "/bookings" && isRsc(url) && isPrefetch(req);
-      };
-      const pending = new Set<Request>();
-      let prefetched = 0;
-      let lastActivity = Date.now();
-      page.on("request", (req) => {
-        if (!isBookingsPrefetch(req)) return;
-        pending.add(req);
-        lastActivity = Date.now();
-      });
-      page.on("requestfinished", (req) => {
-        if (!pending.delete(req)) return;
-        prefetched += 1;
-        lastActivity = Date.now();
-      });
-      page.on("requestfailed", (req) => {
-        if (pending.delete(req)) lastActivity = Date.now();
-      });
+        // Next prefetches a route's loading state (everything down to its
+        // loading.tsx) when a link to it is on screen or hovered, in a
+        // production build only. Watch every such prefetch from the start,
+        // per path, because a link that is on screen as soon as the page
+        // loads (a package card) is prefetched before the test has found it,
+        // and a hover does not ask again for a route already cached. The click
+        // happens once the target's skeleton is on the client.
+        const isRsc = (url: URL) => url.searchParams.has("_rsc");
+        const isPrefetch = (req: Request) => req.headers()["next-router-prefetch"] !== undefined;
+        const prefetchPath = (req: Request): string | null => {
+          const url = new URL(req.url());
+          return isRsc(url) && isPrefetch(req) ? url.pathname : null;
+        };
+        const pending = new Map<Request, string>();
+        const prefetched = new Map<string, number>();
+        const lastActivity = new Map<string, number>();
+        page.on("request", (req) => {
+          const path = prefetchPath(req);
+          if (!path) return;
+          pending.set(req, path);
+          lastActivity.set(path, Date.now());
+        });
+        page.on("requestfinished", (req) => {
+          const path = pending.get(req);
+          if (!path) return;
+          pending.delete(req);
+          prefetched.set(path, (prefetched.get(path) ?? 0) + 1);
+          lastActivity.set(path, Date.now());
+        });
+        page.on("requestfailed", (req) => {
+          const path = pending.get(req);
+          if (!path) return;
+          pending.delete(req);
+          lastActivity.set(path, Date.now());
+        });
 
-      await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
-      await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 30_000 });
-      await dismissTwoFactorBanner(page);
+        // Open the page the click starts from, and find the link.
+        const start = "fromPage" in target ? target.fromPage : "/dashboard";
+        await page.goto(start, { waitUntil: "domcontentloaded" });
+        await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 30_000 });
+        await dismissTwoFactorBanner(page);
 
-      // On a phone the sidebar lives in a sheet; open it from the header's
-      // sidebar toggle. Clicking one of its links closes it again.
-      if (width < SIDEBAR_SHEET_BELOW) {
-        await page.getByRole("button", { name: "Toggle Sidebar" }).filter({ visible: true }).first().click();
-        await expect(page.locator('[data-sidebar="sidebar"][data-mobile="true"]')).toBeVisible();
-      }
-
-      // Off its own pages the sidebar's Bookings group is collapsed; open it to
-      // reach its Bookings link (/bookings).
-      const sidebar = page.locator('[data-sidebar="sidebar"]').filter({ visible: true }).first();
-      const bookingsLink = sidebar.locator('a[href="/bookings"]').first();
-      if (!(await bookingsLink.isVisible().catch(() => false))) {
-        await sidebar.getByRole("button", { name: "Bookings", exact: true }).click();
-      }
-      await expect(bookingsLink).toBeVisible();
-      // Hovering a link is a navigation intent: Next prefetches it straight away.
-      await bookingsLink.hover();
-
-      const ready = await expect
-        .poll(() => prefetched > 0 && pending.size === 0 && Date.now() - lastActivity > 500, {
-          timeout: 20_000,
-          intervals: [100, 250, 500],
-        })
-        .toBe(true)
-        .then(
-          () => true,
-          () => false
-        );
-      // `next dev` never prefetches, so there is no skeleton to catch there. In
-      // CI (a production build) a missing prefetch is a real failure.
-      test.skip(!ready && !process.env.CI, "The server did not prefetch /bookings; run against a production build (next start).");
-      expect(ready, "Next never finished prefetching /bookings from the sidebar").toBe(true);
-
-      // Hold back the navigation's own RSC request (never a prefetch), so the
-      // prefetched skeleton stays on screen while it is measured.
-      let held = 0;
-      await page.route(isRsc, async (route) => {
-        if (!isPrefetch(route.request())) {
-          held += 1;
-          await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+        let link: Locator;
+        if ("sidebarGroup" in target) {
+          // On a phone the sidebar lives in a sheet; open it from the header's
+          // sidebar toggle. Clicking one of its links closes it again.
+          if (width < SIDEBAR_SHEET_BELOW) {
+            await page.getByRole("button", { name: "Toggle Sidebar" }).filter({ visible: true }).first().click();
+            await expect(page.locator('[data-sidebar="sidebar"][data-mobile="true"]')).toBeVisible();
+          }
+          // Off its own pages a sidebar group is collapsed; open it to reach
+          // the link.
+          const sidebar = page.locator('[data-sidebar="sidebar"]').filter({ visible: true }).first();
+          link = sidebar.locator(`a[href="${target.href}"]`).first();
+          if (!(await link.isVisible().catch(() => false))) {
+            await sidebar.getByRole("button", { name: target.sidebarGroup, exact: true }).click();
+          }
+        } else {
+          link = page.locator("#main-content").locator(target.link).filter({ visible: true }).first();
+          const found = await link.waitFor({ state: "visible", timeout: 10_000 }).then(
+            () => true,
+            () => false
+          );
+          test.skip(!found, target.emptyReason);
         }
-        await route.continue();
+        await expect(link).toBeVisible();
+        const href = await link.getAttribute("href");
+        expect(href, `${target.name}: the link has no href`).toBeTruthy();
+        const targetPath = new URL(href!, page.url()).pathname;
+        const targetPending = () => [...pending.values()].some((path) => path === targetPath);
+
+        // Hovering a link is a navigation intent: Next prefetches it straight
+        // away if it has not already.
+        await link.hover();
+
+        const ready = await expect
+          .poll(
+            () =>
+              (prefetched.get(targetPath) ?? 0) > 0 &&
+              !targetPending() &&
+              Date.now() - (lastActivity.get(targetPath) ?? 0) > 500,
+            {
+              timeout: 20_000,
+              intervals: [100, 250, 500],
+            }
+          )
+          .toBe(true)
+          .then(
+            () => true,
+            () => false
+          );
+        // `next dev` never prefetches, so there is no skeleton to catch there. In
+        // CI (a production build) a missing prefetch is a real failure.
+        test.skip(!ready && !process.env.CI, `The server did not prefetch ${targetPath}; run against a production build (next start).`);
+        expect(ready, `Next never finished prefetching ${targetPath}`).toBe(true);
+
+        // Hold back the navigation's own RSC request (never a prefetch), so the
+        // prefetched skeleton stays on screen while it is measured.
+        let held = 0;
+        await page.route(isRsc, async (route) => {
+          if (!isPrefetch(route.request())) {
+            held += 1;
+            await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
+          }
+          await route.continue();
+        });
+
+        await link.click();
+
+        const skeleton = page.locator('[data-slot="page-header-skeleton"]').filter({ visible: true }).first();
+        await expect(skeleton, `the ${target.name} loading skeleton never appeared`).toBeVisible({ timeout: DELAY_MS });
+        const skeletonTitle = await page.evaluate(measureSkeletonTitle);
+        expect(skeletonTitle, "no title box in the skeleton's title row").not.toBeNull();
+
+        await page.waitForURL((url) => url.pathname === targetPath);
+        await expect(page.locator('[data-slot="page-header-skeleton"]').filter({ visible: true })).toHaveCount(0, {
+          timeout: 30_000,
+        });
+        const h1 = target.heading
+          ? page.locator("#main-content").getByRole("heading", { level: 1, name: target.heading })
+          : page.locator("#main-content h1").filter({ visible: true }).first();
+        await expect(h1).toBeVisible({ timeout: 30_000 });
+        await settleLayout(page);
+        const settled = await h1.evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          return { left: r.left, top: r.top };
+        });
+
+        expect(held, "the navigation's RSC request was never held back").toBeGreaterThan(0);
+        // R15: the title does not move when the page replaces the skeleton. On a
+        // phone the bookings eyebrow wraps to two lines, which the skeleton
+        // reserves (bookings/loading.tsx), so the top holds there too.
+        expect(
+          Math.abs(skeletonTitle!.left - settled.left),
+          `${label}px ${target.name}: skeleton title x ${px(skeletonTitle!.left)}, settled h1 x ${px(settled.left)}`
+        ).toBeLessThanOrEqual(2);
+        expect(
+          Math.abs(skeletonTitle!.top - settled.top),
+          `${label}px ${target.name}: skeleton title y ${px(skeletonTitle!.top)}, settled h1 y ${px(settled.top)}`
+        ).toBeLessThanOrEqual(2);
       });
-
-      await bookingsLink.click();
-
-      const skeleton = page.locator('[data-slot="page-header-skeleton"]').filter({ visible: true }).first();
-      await expect(skeleton, "the /bookings loading skeleton never appeared").toBeVisible({ timeout: DELAY_MS });
-      const skeletonTitle = await page.evaluate(measureSkeletonTitle);
-      expect(skeletonTitle, "no title box in the skeleton's title row").not.toBeNull();
-
-      await page.waitForURL(/\/bookings(\?|$)/);
-      const h1 = page.locator("#main-content").getByRole("heading", { level: 1, name: "Bookings" });
-      await expect(h1).toBeVisible({ timeout: 30_000 });
-      await expect(page.locator('[data-slot="page-header-skeleton"]').filter({ visible: true })).toHaveCount(0);
-      await settleLayout(page);
-      const settled = await h1.evaluate((el) => {
-        const r = el.getBoundingClientRect();
-        return { left: r.left, top: r.top };
-      });
-
-      expect(held, "the navigation's RSC request was never held back").toBeGreaterThan(0);
-      // R15: the title does not move when the page replaces the skeleton. On a
-      // phone the bookings eyebrow wraps to two lines, which the skeleton
-      // reserves (bookings/loading.tsx), so the top holds there too.
-      expect(
-        Math.abs(skeletonTitle!.left - settled.left),
-        `${label}px: skeleton title x ${px(skeletonTitle!.left)}, settled h1 x ${px(settled.left)}`
-      ).toBeLessThanOrEqual(2);
-      expect(
-        Math.abs(skeletonTitle!.top - settled.top),
-        `${label}px: skeleton title y ${px(skeletonTitle!.top)}, settled h1 y ${px(settled.top)}`
-      ).toBeLessThanOrEqual(2);
-    });
+    }
   });
 }

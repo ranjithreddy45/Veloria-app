@@ -72,7 +72,21 @@ const SECTIONS: { key: keyof BeoDetail; label: string; placeholder: string }[] =
   { key: "specialInstructions", label: "Special instructions", placeholder: "VIP notes, client requests, watch-outs…" },
 ];
 
-export function BeoDetailView({ beo, canWrite }: { beo: BeoDetail; canWrite: boolean }) {
+export function BeoDetailView({
+  beo,
+  canWrite,
+  coversPanel,
+}: {
+  beo: BeoDetail;
+  canWrite: boolean;
+  /**
+   * The Guest numbers panel (CoversPanel), drawn straight under the header.
+   * It used to sit above the header, where its guest-list-dependent height
+   * pushed the title down by 100px or more after the loading skeleton had
+   * promised it at the top; under the header it moves nothing above it.
+   */
+  coversPanel?: React.ReactNode;
+}) {
   const router = useRouter();
   const locked = beo.status === "LOCKED";
   const editable = canWrite && !locked;
@@ -103,7 +117,8 @@ export function BeoDetailView({ beo, canWrite }: { beo: BeoDetail; canWrite: boo
           {/* The module chip leads the title row, as in PageHeader (top-aligned,
               14px to the title, hidden below sm). The h1 is text-h2 at
               leading-tight, a 32.5px line, so from sm up the title is dropped
-              4px to centre its first line on the 40px chip. */}
+              4px to centre its first line on the 40px chip. beo/[id]/loading.tsx
+              repeats this header; keep the two in step. */}
           <div className="flex items-start gap-2.5">
             <ModuleChip className="mr-1" />
             <div className="flex items-center gap-2.5 sm:pt-1">
@@ -147,6 +162,8 @@ export function BeoDetailView({ beo, canWrite }: { beo: BeoDetail; canWrite: boo
           </div>
         )}
       </div>
+
+      {coversPanel}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="flex flex-col gap-5 lg:col-span-2">

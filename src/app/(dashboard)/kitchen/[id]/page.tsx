@@ -31,20 +31,27 @@ export default async function KitchenPlanDetailPage({
   // contracted count at creation; confirmed replies are shown beside it.
   const covers = await getBookingCovers(res.data.bookingId);
 
+  // The panel renders under the plan's header, not above it: the header comes
+  // first on every page, and the panel's height depends on the guest list, so
+  // above the header it moved the title after the loading skeleton
+  // (kitchen/[id]/loading.tsx) had placed it.
   return (
-    <div className="space-y-4">
-      {covers.success && covers.data.kitchenPlan && (
-        <CoversPanel
-          target="kitchen"
-          targetId={covers.data.kitchenPlan.id}
-          covers={covers.data.kitchenPlan.covers}
-          coversSource={covers.data.kitchenPlan.coversSource}
-          headcount={covers.data.headcount}
-          noGuestList={covers.data.noGuestList}
-          canEdit={canWrite && res.data.status !== "COMPLETED"}
-        />
-      )}
-      <KitchenDetail plan={res.data} canWrite={canWrite} />
-    </div>
+    <KitchenDetail
+      plan={res.data}
+      canWrite={canWrite}
+      coversPanel={
+        covers.success && covers.data.kitchenPlan ? (
+          <CoversPanel
+            target="kitchen"
+            targetId={covers.data.kitchenPlan.id}
+            covers={covers.data.kitchenPlan.covers}
+            coversSource={covers.data.kitchenPlan.coversSource}
+            headcount={covers.data.headcount}
+            noGuestList={covers.data.noGuestList}
+            canEdit={canWrite && res.data.status !== "COMPLETED"}
+          />
+        ) : null
+      }
+    />
   );
 }

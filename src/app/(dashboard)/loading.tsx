@@ -18,22 +18,24 @@ import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 // the column's 8px gap, and 54px in from sm up (chip, mr-1, gap-2.5).
 //
 // What it matches, so the title does not move when the page arrives:
-//   - A PageHeader with a one-line eyebrow.
+//   - Any PageHeader whose eyebrow fits on one line. Every PageHeader has an
+//     eyebrow: the page's own, or, when it passes none, its module's name
+//     (PageHeader falls back to ModuleEyebrow), so no header starts with its
+//     title row.
 // What it does NOT match, on the routes that still fall back to it:
-//   - A PageHeader with no eyebrow: the h1 lands 24px higher.
-//   - /beo/[id]: the page renders its Guest numbers panel (CoversPanel)
-//     above the header whenever the booking resolves, and that panel's
-//     height depends on the guest list, so no fixed placeholder can hold the
-//     h1's top there. Its title is also dropped 4px from sm up to centre on
-//     the chip.
-//   - people/[id] and projects/[id]: the title follows an avatar or a back
-//     button, and there is no module chip.
-//   Each of those needs a loading.tsx of its own, drawn from its real header.
-// The bespoke headers that have one: /bd/dashboard, /bd/leads/[leadId] (and
-// bd/leads/loading.tsx draws the same LeadDetailSkeleton on any path below
-// /bd/leads, for a lead opened from another module),
-// /bd/contracts/[contractId] and /packages/[packageId] (which also covers its
-// /edit form).
+//   - An eyebrow of counts long enough to wrap on a phone: the h1 lands 20px
+//     lower there. Bookings, leads, contacts and pipeline, whose eyebrows do
+//     that, have their own loading.tsx; any other count eyebrow that wraps
+//     needs one too.
+//   - A bespoke record header (a back link or button above the title, an
+//     avatar or a card around it). Each of those has a loading.tsx of its
+//     own, drawn from its real header; a new one needs one too.
+// The bespoke headers that have one: /bd/dashboard (which draws its real,
+// data-free header), /bd/leads/[leadId] (and bd/leads/loading.tsx draws the
+// same LeadDetailSkeleton on any path below /bd/leads, for a lead opened from
+// another module), /bd/contracts/[contractId], /beo/[id], /kitchen/[id],
+// /packages/[packageId] (which also covers its /edit form), /people/[id], and
+// /projects/[id] (which also covers its /procurement board).
 //
 // It reserves no action pills: this fallback cannot know which header has
 // them, and a placeholder button that never arrives is worse than none.

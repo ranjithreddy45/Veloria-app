@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Hue } from "@/lib/ui/hues";
 import type { ModuleKey } from "@/config/modules";
-import { ModuleChip } from "@/components/layout/module-chip";
+import { ModuleChip, ModuleEyebrow } from "@/components/layout/module-chip";
 
 // ============================================================
 // PageHeader: the one header every page under src/app/(dashboard) uses.
@@ -23,6 +23,12 @@ import { ModuleChip } from "@/components/layout/module-chip";
 // and aria-hidden), so the eyebrow, title row and description all start at
 // the content edge, and it is hidden below sm so a phone title starts at the
 // 16px gutter.
+//
+// Every header has an eyebrow (R1). A page that passes none gets its module's
+// name there (ModuleEyebrow, the same route lookup), so the title row never
+// starts the header. That is also what the loading skeletons assume: their
+// title box sits under a one-line eyebrow, so a header without one made the
+// title jump 24px up when the page replaced its skeleton.
 //
 // Colours: --primary is plum. Chip colours live only in src/lib/ui/hues.ts.
 // ============================================================
@@ -89,7 +95,11 @@ interface PageHeaderProps {
   /** Supporting copy under the title. ReactNode (not just string) so callers can
    * inline links/emphasis instead of flattening rich content to a template string. */
   description?: React.ReactNode;
-  /** Small uppercase label rendered above the title (Linear-style eyebrow). */
+  /**
+   * Small uppercase label rendered above the title (Linear-style eyebrow),
+   * normally "Module · Section". Omitted, it is the module's name from
+   * src/config/modules.ts.
+   */
   eyebrow?: React.ReactNode;
   /**
    * The module whose chip to show. Omit it: the chip comes from the current
@@ -141,7 +151,11 @@ export function PageHeader({
   return (
     <div className={cn(hasActions ? C.rootWithActions : C.root, className)}>
       <div className={C.titleColumn}>
-        {eyebrow && <div className={C.eyebrow}>{eyebrow}</div>}
+        {eyebrow ? (
+          <div className={C.eyebrow}>{eyebrow}</div>
+        ) : (
+          <ModuleEyebrow module={moduleKey} className={C.eyebrow} />
+        )}
         {/* The help "?" must not be pushed off-screen by a long title, so the
             title takes the min-w-0/wrap and the hint stays shrink-0. */}
         <div className={C.titleRow}>

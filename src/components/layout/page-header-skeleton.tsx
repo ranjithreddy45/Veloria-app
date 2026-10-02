@@ -9,9 +9,9 @@ import { PAGE_HEADER_CLASSES as C } from "@/components/layout/page-header";
 // title row, chip spacing, meta row, action slot), so the placeholder and the
 // settled header cannot drift: the title box lands where the h1 will, at
 // every width. Every PageHeader under (dashboard) shows a module chip at sm
-// and above (bespoke record headers render ModuleChip in their title row, bar
-// the few on the deferred list), so one neutral chip placeholder fits every
-// such route; like the real chip it is hidden below sm.
+// and above (the bespoke record headers with a loading.tsx of their own
+// render ModuleChip in their title row too), so one neutral chip placeholder
+// fits every such route; like the real chip it is hidden below sm.
 //
 // Only reserve action pills where the route's settled header really has them;
 // a placeholder button that never arrives reads as jank.
@@ -27,7 +27,11 @@ export interface PageHeaderSkeletonProps {
   actions?: number;
   /** A meta-row placeholder under the description (pages that pass `children` with `actions`). */
   meta?: boolean;
-  /** The eyebrow placeholder. Most headers have an eyebrow, so it is on by default. */
+  /**
+   * The eyebrow placeholder. On by default: every PageHeader has an eyebrow
+   * (the module's name when the page passes none). False only for a bespoke
+   * header without one.
+   */
   eyebrow?: boolean;
   /**
    * How many lines the eyebrow takes below sm. 2 for an eyebrow of counts that

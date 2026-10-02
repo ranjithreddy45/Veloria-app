@@ -14,7 +14,8 @@ import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 // action-slot placeholders with `headerActions` (none unless it passes a count),
 // `headerMeta` when the header has a meta row under the description,
 // `headerEyebrowLines={2}` when its eyebrow of counts wraps on a phone, and
-// `headerEyebrow={false}` when its header has no eyebrow at all. A
+// `headerEyebrow={false}` only for a bespoke header with no eyebrow at all (a
+// PageHeader always has one: the page's own, or its module's name). A
 // placeholder button that never arrives points the eye at the wrong place.
 // The body stays generic: action pills live in the header, never in a row
 // inside the body.
@@ -40,8 +41,10 @@ interface HeaderSkeletonOptions {
    */
   headerEyebrowLines?: 1 | 2;
   /**
-   * The eyebrow placeholder. On by default; false for a header with no
-   * eyebrow (its title row comes first, so its h1 sits 24px higher).
+   * The eyebrow placeholder. On by default, as every PageHeader has an
+   * eyebrow (the module's name when the page passes none); false only for a
+   * bespoke header without one (its title row comes first, so its h1 sits
+   * 24px higher).
    */
   headerEyebrow?: boolean;
 }

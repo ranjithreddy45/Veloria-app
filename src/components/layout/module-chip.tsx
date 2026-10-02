@@ -11,6 +11,11 @@
 //
 // Hidden below sm: on a phone the title starts at the 16px gutter, so the
 // title, description and actions keep one left edge.
+//
+// ModuleEyebrow is the same lookup for PageHeader's eyebrow line: a page that
+// passes no `eyebrow` gets its module's name there (design spec R1: every
+// PageHeader has an eyebrow). That also keeps the title where the loading
+// skeletons expect it, under a one-line eyebrow.
 // ============================================================
 
 import { usePathname } from "next/navigation";
@@ -24,13 +29,17 @@ export interface ModuleChipProps {
   className?: string;
 }
 
-export function ModuleChip({ module: override, className }: ModuleChipProps) {
+/** The module for a route: an explicit key wins, `false` means none. */
+function useModuleKey(override: ModuleKey | false | undefined): ModuleKey | null {
   const pathname = usePathname();
   if (override === false) return null;
+  // An unknown key (a stale string from a call site) falls back to the route
+  // rather than rendering nothing.
+  return isModuleKey(override) ? override : resolveModule(pathname);
+}
 
-  // An explicit key wins. An unknown key (a stale string from a call site)
-  // falls back to the route rather than rendering nothing.
-  const key = isModuleKey(override) ? override : resolveModule(pathname);
+export function ModuleChip({ module: override, className }: ModuleChipProps) {
+  const key = useModuleKey(override);
   if (!key) return null;
   const mod = MODULES[key];
 
@@ -43,5 +52,21 @@ export function ModuleChip({ module: override, className }: ModuleChipProps) {
     >
       <IconChip icon={mod.icon} hue={mod.hue} size="lg" tone="solid" />
     </span>
+  );
+}
+
+/**
+ * PageHeader's default eyebrow: the module's name as src/config/modules.ts
+ * spells it (the eyebrow class uppercases it on screen). Renders nothing
+ * where the route has no module (the hub, the external portals) or the page
+ * passes `module={false}`.
+ */
+export function ModuleEyebrow({ module: override, className }: ModuleChipProps) {
+  const key = useModuleKey(override);
+  if (!key) return null;
+  return (
+    <div data-slot="module-eyebrow" className={className}>
+      {MODULES[key].label}
+    </div>
   );
 }

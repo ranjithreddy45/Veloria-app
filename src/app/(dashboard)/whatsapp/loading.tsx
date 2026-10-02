@@ -6,17 +6,18 @@ import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 // WhatsApp Page Loading Skeleton
 // ------------------------------------------------------------
 // Also the fallback for /whatsapp/console. The header is PageHeaderSkeleton,
-// so its chip placeholder and title box sit where PageHeader's engagement chip
-// and h1 land. No eyebrow and no action pills: the inbox and console headers
-// have neither. /whatsapp/catalog, whose header has a one-line eyebrow, has
-// its own loading.tsx (this file can still show first on a navigation from
-// another module, where Next prefetches only down to this boundary).
+// so its eyebrow line, chip placeholder and title box sit where PageHeader's
+// eyebrow (the inbox and console pass none, so it is the module's name),
+// engagement chip and h1 land. No action pills: neither header has any.
+// /whatsapp/catalog has its own loading.tsx for its funnel tiles and table
+// (this file can still show first on a navigation from another module, where
+// Next prefetches only down to this boundary).
 // ============================================================
 
 export default function WhatsAppLoading() {
   return (
     <div className="space-y-4">
-      <PageHeaderSkeleton eyebrow={false} />
+      <PageHeaderSkeleton />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

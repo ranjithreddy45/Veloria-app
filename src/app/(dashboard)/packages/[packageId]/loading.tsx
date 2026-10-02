@@ -10,16 +10,18 @@ import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 // it, the edit form (/packages/<id>/edit), which has no loading.tsx of its own.
 // ------------------------------------------------------------
 // Without this file both fell back to (dashboard)/loading.tsx, whose title box
-// sits under a 16px eyebrow placeholder at 24px. Neither page has an eyebrow,
-// so each title landed 24px higher than the placeholder promised.
+// sits under a 16px eyebrow placeholder at 24px. The record's bespoke header
+// has no eyebrow, so its title landed 24px higher than the placeholder
+// promised.
 //
 // The record's header is bespoke (package-detail.tsx): the title row comes
 // first, module chip then a 32px text-2xl h1 and the tier and status badges,
 // dropped 4px from sm up so the title's first line centres on the chip; the
 // Edit, Duplicate and Delete buttons render for every viewer, so they get
 // placeholders. This repeats that header's wrappers and classes; keep the two
-// in step. The edit page is a plain PageHeader with no eyebrow and no actions
-// over the form's cards, so it gets PageHeaderSkeleton without the eyebrow.
+// in step. The edit page is a plain PageHeader (its eyebrow is the module's
+// name, as the page passes none) with no actions over the form's cards, so it
+// gets the plain PageHeaderSkeleton.
 //
 // A client component because only the URL tells the two apart: the router
 // commits the destination URL together with the loading state.
@@ -41,22 +43,26 @@ function PackageRecordSkeleton() {
         className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
       >
         <span className="sr-only">Loading…</span>
-        <div>
-          <div className="flex items-start gap-2.5">
+        {/* min-w-0 down to the title box. The real h1 is text, so it wraps
+            when the buttons leave it little room; a fixed-width box cannot,
+            and without these the row's minimum width (742px with the
+            buttons) pushed the page into a sideways scroll while it loaded,
+            at content widths the settled page fits. Now the title box gives
+            way and the badges and buttons keep their size. */}
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-start gap-2.5">
             <Skeleton className="mr-1 hidden size-10 shrink-0 rounded-xl sm:block" />
-            <div className="flex items-center gap-3 sm:pt-1">
-              {/* The h1's 32px line box. Narrower on a phone: this row has no
-                  wrap, and fixed-width boxes (unlike the h1's text) cannot
-                  shrink below their width, so 224px plus the badges would
-                  run past a 375px screen. */}
-              <Skeleton data-skeleton-part="title" className="h-8 w-44 rounded-xl sm:w-56" />
-              <Skeleton className="h-5.5 w-16 rounded-full" />
-              <Skeleton className="h-5.5 w-14 rounded-full" />
+            <div className="flex min-w-0 items-center gap-3 sm:pt-1">
+              {/* The h1's 32px line box. Narrower on a phone, where the badges
+                  take the rest of the row. */}
+              <Skeleton data-skeleton-part="title" className="h-8 w-44 min-w-0 rounded-xl sm:w-56" />
+              <Skeleton className="h-5.5 w-16 shrink-0 rounded-full" />
+              <Skeleton className="h-5.5 w-14 shrink-0 rounded-full" />
             </div>
           </div>
         </div>
         {/* Edit, Duplicate, Delete (default size). */}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <Skeleton className="h-9 w-20 rounded-xl" />
           <Skeleton className="h-9 w-28 rounded-xl" />
           <Skeleton className="h-9 w-24 rounded-xl" />
@@ -112,7 +118,7 @@ function PackageRecordSkeleton() {
 function PackageEditSkeleton() {
   return (
     <div className="space-y-6">
-      <PageHeaderSkeleton eyebrow={false} />
+      <PageHeaderSkeleton />
       {/* The form's Package details and Package items cards, in the same
           centred max-w-3xl column. */}
       <div className="mx-auto max-w-3xl space-y-6">

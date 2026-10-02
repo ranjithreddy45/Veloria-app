@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { BarChart3 as BarChart3Icon } from "lucide-react";
 import { getBdAnalytics, getBdExecutives } from "@/actions/acq-analytics.actions";
-import { ModuleChip } from "@/components/layout/module-chip";
 import { BdFilterBar } from "../_components/bd-filter-bar";
 import { BdDashboardClient } from "./_components/bd-dashboard-client";
+import { BdDashboardHeader } from "./_components/bd-dashboard-header";
 export const metadata: Metadata = { title: "BD Dashboard" };
 export const dynamic = "force-dynamic";
 
@@ -52,34 +50,9 @@ export default async function BdDashboardPage({
     <div className="flex flex-col min-h-full">
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-4 border-b border-border">
-        <div>
-          <p className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-0.5">
-            Business Development · Acquisition
-          </p>
-          {/* The module chip leads the title row, as in PageHeader (top-aligned,
-              14px to the title, hidden below sm). The h1 is text-h2 at
-              leading-tight, a 32.5px line, so from sm up it is dropped 4px to
-              centre that line on the 40px chip. bd/dashboard/loading.tsx
-              repeats this header; keep the two in step. */}
-          <div className="flex items-start gap-2.5">
-            <ModuleChip className="mr-1" />
-            <h1 className="text-h2 font-black text-foreground tracking-tight leading-tight sm:mt-1">
-              BD Dashboard
-            </h1>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Employee-wise acquisition funnel, activity and leaderboard.
-          </p>
-        </div>
-        <Link
-          href="/bd/reports"
-          className="flex items-center gap-2 shrink-0 mt-1 rounded-xl border border-border bg-muted px-4 py-2 text-xs font-semibold text-foreground hover:bg-border hover:border-white/20 transition-all"
-        >
-          <BarChart3Icon className="size-4" />
-          Full reports
-        </Link>
-      </div>
+      {/* Shared with bd/dashboard/loading.tsx, which draws this same header
+          while the analytics load, so the title never moves. */}
+      <BdDashboardHeader />
 
       {/* ── Filter bar ─────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-2.5 border-b border-border">
