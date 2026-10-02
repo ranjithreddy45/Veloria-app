@@ -239,9 +239,12 @@ test.describe("header geometry · 390", () => {
 // no seeded rows; /style-guide is public, so this runs signed out.
 //
 // What it does not cover: which props each route's loading.tsx passes
-// (bookings, leads, contacts and pipeline reserve a two-line phone eyebrow),
-// and the bespoke record skeletons (bd/dashboard, beo/[id], kitchen/[id],
-// packages/[packageId] and the like), which are drawn from their own headers.
+// (bookings, leads, contacts and pipeline reserve a two-line phone eyebrow).
+// Record pages with bespoke headers (bd/dashboard, beo/[id], kitchen/[id],
+// packages/[packageId] and the like) have no loading.tsx of their own — a new
+// route boundary trips Next.js router race vercel/next.js#98684, pinned by
+// src/app/route-loading-boundaries.test.ts — so they show the generic
+// (dashboard)/loading.tsx skeleton, which is not drawn from their headers.
 
 const SKELETON_VIEWPORTS = [
   { label: "1440", width: 1440, height: 900 },

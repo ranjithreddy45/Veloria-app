@@ -9,28 +9,11 @@ import { ModuleChip } from "@/components/layout/module-chip";
 // trips a Next.js router race; see src/app/route-loading-boundaries.test.ts),
 // so while the analytics load it shows the generic (dashboard)/loading.tsx
 // skeleton, which is not drawn from this header.
-//
-// Nothing in the header depends on data, so a loading state can draw the
-// real header rather than a copy made of fixed-width boxes. A copy could not
-// wrap the way the text does: the eyebrow wraps beside the Full reports
-// button only below a viewport of about 450px, and a placeholder that
-// reserved two lines for it on every phone-width screen left the title 16px
-// off between about 455px and 640px.
-//
-// `loading` is that mode: the same header, marked the way PageHeaderSkeleton
-// marks its own root and title box (data-slot / data-skeleton-part). It was
-// written for the route's own loading.tsx, since removed, and nothing passes
-// it now.
 // ============================================================
 
-export function BdDashboardHeader({ loading = false }: { loading?: boolean }) {
+export function BdDashboardHeader() {
   return (
-    <div
-      aria-busy={loading || undefined}
-      data-slot={loading ? "page-header-skeleton" : undefined}
-      className="flex items-start justify-between gap-4 px-5 pt-5 pb-4 border-b border-border"
-    >
-      {loading && <span className="sr-only">Loading…</span>}
+    <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-4 border-b border-border">
       <div>
         <p className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-0.5">
           Business Development · Acquisition
@@ -41,10 +24,7 @@ export function BdDashboardHeader({ loading = false }: { loading?: boolean }) {
             centre that line on the 40px chip. */}
         <div className="flex items-start gap-2.5">
           <ModuleChip className="mr-1" />
-          <h1
-            data-skeleton-part={loading ? "title" : undefined}
-            className="text-h2 font-black text-foreground tracking-tight leading-tight sm:mt-1"
-          >
+          <h1 className="text-h2 font-black text-foreground tracking-tight leading-tight sm:mt-1">
             BD Dashboard
           </h1>
         </div>
