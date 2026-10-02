@@ -50,8 +50,6 @@ export default async function BdDashboardPage({
     <div className="flex flex-col min-h-full">
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      {/* Shared with bd/dashboard/loading.tsx, which draws this same header
-          while the analytics load, so the title never moves. */}
       <BdDashboardHeader />
 
       {/* ── Filter bar ─────────────────────────────────────────── */}

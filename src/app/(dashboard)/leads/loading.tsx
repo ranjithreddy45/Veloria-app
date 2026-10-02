@@ -10,10 +10,10 @@ import { LandingListSkeleton } from "@/components/shared/landing-list-skeleton";
 // whenever the scope has any pipeline value, which is the common case, so the
 // skeleton reserves two lines there.
 //
-// This file is also the loading state of the /leads child routes: a lead, new
-// and import, which have loading.tsx files of their own (shown when they are
-// opened from /leads), and cooling, follow-ups, missed calls and SLA, which do
-// not. Their headers have a one-line eyebrow and no action cluster, so
+// This file is also the loading state of the /leads child routes that have no
+// loading.tsx of their own (all but the war room): a lead, new, import,
+// cooling, follow-ups, missed calls and SLA. Their headers have a one-line
+// eyebrow and no action cluster, so
 // LandingListSkeleton draws the pills and the two-line eyebrow on /leads
 // only, and the plain header everywhere below it.
 export default function Loading() {

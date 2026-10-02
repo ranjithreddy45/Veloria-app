@@ -163,8 +163,7 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
         * The module chip leads the title block, as in PageHeader (14px to the
         * title, hidden below sm), centred on the 44px name + locality pair.
         * It carries the module's glyph, so the h1's own Building2 is shown
-        * only below sm, where the chip is hidden. projects/[id]/loading.tsx
-        * repeats this row; keep the two in step. */}
+        * only below sm, where the chip is hidden. */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 items-center gap-3">
           <Button asChild variant="ghost" size="sm"><a href="/projects"><ArrowLeft className="h-4 w-4" /> Projects</a></Button>

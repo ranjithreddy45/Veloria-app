@@ -28,13 +28,12 @@
 // WhatsApp under Engagement, Win-back/Referrals under Marketing), that segment
 // shares the group's module. A nested URL belongs to its URL parent's module
 // (all of /finance/* is Finance, all of /settings/* is Settings), except where a
-// module claims a longer prefix (people-attendance, people-leave,
-// people-payroll).
+// module claims a longer prefix (people-attendance, people-payroll).
 //
 // Section: the sidebar band the module's nav entry sits under, spelled as the
 // sidebar spells it (the SECTIONS map in src/components/layout/app-sidebar.tsx,
 // e.g. "Sales & CRM", "Delivery & Ops"). One rule for every module, sub-modules
-// included: the People sub-modules (attendance, leave, payroll) are in the
+// included: the People sub-modules (attendance, payroll) are in the
 // People band, which is also their parent module's name. The hub rows (My work,
 // Team chat, Playbook) sit above the first band, unlabelled, and Notifications
 // is not in the sidebar at all; those take "Workspace".
@@ -171,15 +170,16 @@ const MODULE_DEFS = {
   // Employee self-service. Lives under /me because /people/* is hr:read-gated.
   me: { label: "My HR", section: "People", prefixes: ["/me"], icon: Contact, hue: "indigo", navHref: "/me/attendance" },
   people: { label: "People", section: "People", prefixes: ["/people"], icon: Users, hue: "gold", navHref: "/people" },
+  // The sidebar's "Time & Attendance" group: attendance, muster, leave (with
+  // comp-off and holidays), shifts and timesheets.
   "people-attendance": {
     label: "Time & attendance",
     section: "People",
-    prefixes: ["/people/attendance", "/people/shifts", "/people/timesheets"],
+    prefixes: ["/people/attendance", "/people/leave", "/people/shifts", "/people/timesheets"],
     icon: Clock,
     hue: "blue",
     navHref: "/people/attendance",
   },
-  "people-leave": { label: "Leave", section: "People", prefixes: ["/people/leave"], icon: CalendarCheck, hue: "cyan", navHref: "/people/leave" },
   "people-payroll": {
     label: "Payroll",
     section: "People",

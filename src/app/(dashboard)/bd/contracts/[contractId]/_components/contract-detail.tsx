@@ -131,8 +131,7 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
                 line, so from sm up the title block drops 6px (sm:pt-1.5) to put
                 that first line's centre on the 40px chip's (19.5px against
                 20px). Padding rather than centring keeps it there when a long
-                title wraps. ../loading.tsx repeats this markup, so keep the two
-                in step and the title does not move when the page lands. */}
+                title wraps. */}
             <div className="flex items-start gap-2.5">
               <ModuleChip className="mr-1" />
               <div className="flex flex-wrap items-center gap-2 sm:pt-1.5">

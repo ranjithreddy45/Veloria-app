@@ -157,10 +157,7 @@ export function PackageDetail({ eventPackage }: PackageDetailProps) {
                 its h1's first line is 39px tall; this h1 is text-2xl, a 32px
                 line, so from sm up the title block drops 4px (sm:pt-1) to put
                 that first line's centre exactly on the 40px chip's. Padding
-                rather than centring keeps it there when a long name wraps.
-                packages/[packageId]/loading.tsx repeats this markup, so keep
-                the two in step and the title does not move when the page
-                lands. */}
+                rather than centring keeps it there when a long name wraps. */}
             <div className="flex items-start gap-2.5">
               <ModuleChip className="mr-1" />
               <div className="flex items-center gap-3 sm:pt-1">

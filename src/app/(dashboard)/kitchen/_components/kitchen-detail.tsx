@@ -63,8 +63,6 @@ export function KitchenDetail({
   const router = useRouter();
   const refresh = () => router.refresh();
 
-  // kitchen/[id]/loading.tsx repeats the back row and the header card below;
-  // keep the two in step.
   return (
     <div className="flex flex-col gap-5">
       <div>

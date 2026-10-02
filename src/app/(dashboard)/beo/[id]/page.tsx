@@ -24,8 +24,8 @@ export default async function BeoDetailPage({ params }: { params: Promise<{ id: 
 
   // The panel renders under the sheet's header, not above it: the header
   // comes first on every page, and the panel's height depends on the guest
-  // list, so above the header it moved the title after the loading skeleton
-  // (beo/[id]/loading.tsx) had placed it.
+  // list, so above the header it would push the title down after it had
+  // first painted.
   return (
     <BeoDetailView
       beo={beo}

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 
 // ============================================================
-// List, board and form skeletons, streamed by a route's `loading.tsx` so the
+// List and board skeletons, streamed by a route's `loading.tsx` so the
 // shell paints instantly on navigation instead of blocking on the data query.
 // ------------------------------------------------------------
 // The header is PageHeaderSkeleton: the same boxes the real PageHeader draws
@@ -137,52 +137,6 @@ export function BoardSkeleton({
               </Card>
             ))}
           </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export interface FormSkeletonProps extends HeaderSkeletonOptions {
-  /** Form sections (cards) to draw. */
-  sections?: number;
-}
-
-/**
- * Create/edit form page skeleton (/leads/new, /bookings/new): the header,
- * then the form's section cards in the same centred max-w-3xl column the
- * form pages use.
- */
-export function FormSkeleton({
-  sections = 2,
-  headerActions = 0,
-  headerMeta = false,
-  headerEyebrowLines = 1,
-  headerEyebrow = true,
-}: FormSkeletonProps) {
-  return (
-    <div className="space-y-6">
-      <PageHeaderSkeleton
-        actions={headerActions}
-        meta={headerMeta}
-        eyebrow={headerEyebrow}
-        eyebrowLines={headerEyebrowLines}
-      />
-      <div className="mx-auto max-w-3xl space-y-6">
-        {Array.from({ length: sections }).map((_, s) => (
-          <Card key={s}>
-            <CardHeader>
-              <Skeleton className="h-5 w-40" />
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="space-y-2">
-                  <Skeleton className="h-3.5 w-24 rounded-full" />
-                  <Skeleton className="h-9 w-full rounded-md" />
-                </div>
-              ))}
-            </CardContent>
-          </Card>
         ))}
       </div>
     </div>

@@ -33,8 +33,7 @@ export default async function KitchenPlanDetailPage({
 
   // The panel renders under the plan's header, not above it: the header comes
   // first on every page, and the panel's height depends on the guest list, so
-  // above the header it moved the title after the loading skeleton
-  // (kitchen/[id]/loading.tsx) had placed it.
+  // above the header it would push the title down after it had first painted.
   return (
     <KitchenDetail
       plan={res.data}

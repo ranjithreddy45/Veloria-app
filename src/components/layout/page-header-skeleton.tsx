@@ -9,8 +9,8 @@ import { PAGE_HEADER_CLASSES as C } from "@/components/layout/page-header";
 // title row, chip spacing, meta row, action slot), so the placeholder and the
 // settled header cannot drift: the title box lands where the h1 will, at
 // every width. Every PageHeader under (dashboard) shows a module chip at sm
-// and above (the bespoke record headers with a loading.tsx of their own
-// render ModuleChip in their title row too), so one neutral chip placeholder
+// and above (the bespoke record headers render ModuleChip in their title
+// row too), so one neutral chip placeholder
 // fits every such route; like the real chip it is hidden below sm.
 //
 // Only reserve action pills where the route's settled header really has them;

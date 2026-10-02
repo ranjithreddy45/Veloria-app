@@ -3,18 +3,24 @@ import { BarChart3 as BarChart3Icon } from "lucide-react";
 import { ModuleChip } from "@/components/layout/module-chip";
 
 // ============================================================
-// The BD dashboard's header band, shared by page.tsx and loading.tsx.
+// The BD dashboard's header band (page.tsx).
 // ------------------------------------------------------------
-// Nothing in it depends on data, so the loading state draws the real header
-// rather than a copy made of fixed-width boxes. A copy could not wrap the way
-// the text does: the eyebrow wraps beside the Full reports button only below
-// a viewport of about 450px, and a placeholder that reserved two lines for it
-// on every phone-width screen left the title 16px off between about 455px and
-// 640px. One component, so the two cannot drift.
+// /bd/dashboard has no loading.tsx of its own (a new route loading boundary
+// trips a Next.js router race; see src/app/route-loading-boundaries.test.ts),
+// so while the analytics load it shows the generic (dashboard)/loading.tsx
+// skeleton, which is not drawn from this header.
 //
-// `loading` marks it the way PageHeaderSkeleton marks its own root and title
-// box (data-slot / data-skeleton-part), so the e2e helper
-// measureSkeletonTitle can measure it like any other skeleton.
+// Nothing in the header depends on data, so a loading state can draw the
+// real header rather than a copy made of fixed-width boxes. A copy could not
+// wrap the way the text does: the eyebrow wraps beside the Full reports
+// button only below a viewport of about 450px, and a placeholder that
+// reserved two lines for it on every phone-width screen left the title 16px
+// off between about 455px and 640px.
+//
+// `loading` is that mode: the same header, marked the way PageHeaderSkeleton
+// marks its own root and title box (data-slot / data-skeleton-part). It was
+// written for the route's own loading.tsx, since removed, and nothing passes
+// it now.
 // ============================================================
 
 export function BdDashboardHeader({ loading = false }: { loading?: boolean }) {

@@ -6,8 +6,8 @@ import { LandingListSkeleton } from "@/components/shared/landing-list-skeleton";
 // page lands.
 //
 // This file is also the loading state of the /bookings child routes (new,
-// which has a loading.tsx of its own for navigations from /bookings, the
-// calendar, blackouts, and every page of a single booking). Their headers have
+// the calendar, blackouts, and every page of a single booking), none of which
+// has a loading.tsx of its own. Their headers have
 // a one-line eyebrow and no action cluster, so LandingListSkeleton reserves
 // the pill and the two-line eyebrow on /bookings only.
 export default function Loading() {

@@ -22,20 +22,22 @@ import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 //     eyebrow: the page's own, or, when it passes none, its module's name
 //     (PageHeader falls back to ModuleEyebrow), so no header starts with its
 //     title row.
-// What it does NOT match, on the routes that still fall back to it:
+// What it does NOT match, on the routes that fall back to it:
 //   - An eyebrow of counts long enough to wrap on a phone: the h1 lands 20px
 //     lower there. Bookings, leads, contacts and pipeline, whose eyebrows do
-//     that, have their own loading.tsx; any other count eyebrow that wraps
-//     needs one too.
+//     that, have their own loading.tsx.
 //   - A bespoke record header (a back link or button above the title, an
-//     avatar or a card around it). Each of those has a loading.tsx of its
-//     own, drawn from its real header; a new one needs one too.
-// The bespoke headers that have one: /bd/dashboard (which draws its real,
-// data-free header), /bd/leads/[leadId] (and bd/leads/loading.tsx draws the
-// same LeadDetailSkeleton on any path below /bd/leads, for a lead opened from
-// another module), /bd/contracts/[contractId], /beo/[id], /kitchen/[id],
-// /packages/[packageId] (which also covers its /edit form), /people/[id], and
-// /projects/[id] (which also covers its /procurement board).
+//     avatar or a card around it). /bd/dashboard, /bd/contracts/[contractId],
+//     /beo/[id], /kitchen/[id], /packages/[packageId], /people/[id] and
+//     /projects/[id] fall back to this skeleton, so their title can shift
+//     when the page lands. A BD lead does not: bd/leads/loading.tsx draws
+//     LeadDetailSkeleton, built from the lead's header, on any path below
+//     /bd/leads.
+// Those records do not get a loading.tsx of their own: on Next 16.1.6, adding
+// a route loading.tsx exposes a router race (vercel/next.js#98684) in which a
+// link clicked while the route's prefetch is in flight commits the URL with
+// an empty page that never fills. src/app/route-loading-boundaries.test.ts
+// pins the set of loading.tsx files; read it before adding one.
 //
 // It reserves no action pills: this fallback cannot know which header has
 // them, and a placeholder button that never arrives is worse than none.

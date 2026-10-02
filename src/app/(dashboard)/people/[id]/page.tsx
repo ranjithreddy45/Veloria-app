@@ -120,8 +120,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         <ArrowLeft className="size-3.5" /> All people
       </Link>
 
-      {/* Identity header. people/[id]/loading.tsx repeats the back link and
-          this card; keep the two in step. */}
+      {/* Identity header. */}
       <div className="flex flex-wrap items-start gap-5 surface-glass rounded-[22px] p-5 sm:p-6">
         <Avatar size="lg" className="size-16 ring-1 ring-border/60 sm:size-20">
           <AvatarImage src={emp.photoUrl || undefined} alt={name} />

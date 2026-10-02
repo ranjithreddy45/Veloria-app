@@ -8,7 +8,7 @@ import { PageHelp } from "@/lib/page-help";
 import { Button } from "@/components/ui/button";
 import { OwnersWorkspace, type OwnerItem } from "./_components/owners-workspace";
 
-export const metadata: Metadata = { title: "BD CRM" };
+export const metadata: Metadata = { title: "Hall Owners" };
 
 function fmtCr(n: number): string {
   if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
@@ -28,11 +28,11 @@ export default async function HallOwnersPage() {
     <div className="space-y-5">
       <PageHeader
         aura
-        title="BD CRM"
+        title="Hall Owners"
         help={<PageHelp id="owners" />}
         eyebrow={
           <div className="flex items-center gap-3">
-            <span>Business Development · Hall Owner Acquisition</span>
+            <span>Business Development · Acquisition</span>
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">
               <span className="font-semibold tabular-nums">{owners.length}</span> owners

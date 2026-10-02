@@ -117,8 +117,7 @@ export function BeoDetailView({
           {/* The module chip leads the title row, as in PageHeader (top-aligned,
               14px to the title, hidden below sm). The h1 is text-h2 at
               leading-tight, a 32.5px line, so from sm up the title is dropped
-              4px to centre its first line on the 40px chip. beo/[id]/loading.tsx
-              repeats this header; keep the two in step. */}
+              4px to centre its first line on the 40px chip. */}
           <div className="flex items-start gap-2.5">
             <ModuleChip className="mr-1" />
             <div className="flex items-center gap-2.5 sm:pt-1">

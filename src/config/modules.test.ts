@@ -121,7 +121,8 @@ describe("resolveModule: matching rules", () => {
     ["/bookings/new", "bookings"],
     // Longest prefix wins
     ["/people/payroll/fnf/abc", "people-payroll"],
-    ["/people/leave/comp-off", "people-leave"],
+    ["/people/leave", "people-attendance"],
+    ["/people/leave/comp-off", "people-attendance"],
     ["/people/attendance/muster", "people-attendance"],
     ["/people/shifts", "people-attendance"],
     ["/people/gratuity/report", "people-payroll"],
@@ -251,7 +252,6 @@ describe("one module, one look (R3)", () => {
     ["people", "gold", "Users"],
     ["people-attendance", "blue", "Clock"],
     ["people-payroll", "emerald", "IndianRupee"],
-    ["people-leave", "cyan", "CalendarCheck"],
     ["settings", "slate", "Settings"],
   ])("%s is %s %s", (key, hue, iconName) => {
     expect(MODULES[key].hue).toBe(hue);
@@ -262,10 +262,10 @@ describe("one module, one look (R3)", () => {
     ["Sales", ["leads", "pipeline", "quotations", "contacts", "bookings", "availability", "site-visits"]],
     ["Ops", ["projects", "tasks", "beo", "kitchen", "procurement", "logistics", "support", "vendors"]],
     ["Finance", ["finance", "invoices", "payments"]],
-    ["People", ["people", "people-attendance", "people-payroll", "people-leave"]],
+    ["People", ["people", "people-attendance", "people-payroll"]],
     // The wider sidebar bands where the palette allows it
     ["Finance band", ["finance", "invoices", "payments", "payouts"]],
-    ["People band", ["recruitment", "me", "people", "people-attendance", "people-leave", "people-payroll"]],
+    ["People band", ["recruitment", "me", "people", "people-attendance", "people-payroll"]],
   ])("%s: no two modules share a hue", (_set, keys) => {
     const hues = keys.map((k) => MODULES[k].hue);
     expect(new Set(hues).size, hues.join(", ")).toBe(keys.length);
@@ -414,7 +414,7 @@ describe("sections and the default eyebrow", () => {
   });
 
   it("the People sub-modules share the People band", () => {
-    for (const key of ["people", "people-attendance", "people-leave", "people-payroll"] as const) {
+    for (const key of ["people", "people-attendance", "people-payroll"] as const) {
       expect(MODULES[key].section, key).toBe("People");
     }
   });
@@ -439,14 +439,14 @@ describe("sections and the default eyebrow", () => {
   it.each<[ModuleKey, string | null | undefined, string]>([
     // The label, when it doesn't repeat the title
     ["leads", "SLA War-Room", "Leads"],
-    ["people-leave", "Leave types", "Leave"],
+    ["people-attendance", "Leave types", "Time & attendance"],
     ["settings", "Integrations", "Settings"],
     ["resources", undefined, "Resources"],
     ["resources", "", "Resources"],
     // The section, when the label is the title
     ["resources", "Resources", "Delivery & Ops"],
     ["people-payroll", "Payroll", "People"],
-    ["people-leave", "Leave", "People"],
+    ["people-attendance", "Time & Attendance", "People"],
     ["chat", "Team Chat", "Workspace"],
     ["notifications", "Notifications", "Workspace"],
     ["engagement", "engagement", "Sales & CRM"],
@@ -500,7 +500,7 @@ describe("sections and the default eyebrow", () => {
     it("finds the pages whose title is their module's label", () => {
       const repeats = byDefault.filter((u) => sameDisplayName(MODULES[u.key].label, u.title)).map((u) => u.route);
       // The cases that read "RESOURCES" over "Resources" before the fix.
-      expect(repeats).toEqual(expect.arrayContaining(["/resources", "/people/payroll", "/people/leave"]));
+      expect(repeats).toEqual(expect.arrayContaining(["/resources", "/people/payroll"]));
     });
 
     it("no default eyebrow repeats its page title", () => {

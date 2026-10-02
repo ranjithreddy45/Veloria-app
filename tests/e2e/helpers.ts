@@ -558,23 +558,3 @@ export function measurePageHeader(ring: number): PageHeaderGeometry {
     lists,
   };
 }
-
-/**
- * The title box of the first visible PageHeaderSkeleton: the placeholder it
- * marks `data-skeleton-part="title"` in its title row (a two-line eyebrow
- * placeholder has two bars too, so the row's shape alone can't identify it).
- * Runs IN THE PAGE: `page.evaluate(measureSkeletonTitle)`. Null when no
- * skeleton is on screen.
- */
-export function measureSkeletonTitle(): { left: number; top: number; width: number; height: number } | null {
-  const roots = Array.from(document.querySelectorAll('[data-slot="page-header-skeleton"]'));
-  const root = roots.find((el) => {
-    const r = el.getBoundingClientRect();
-    return r.width > 0 && r.height > 0;
-  });
-  if (!root) return null;
-  const title = root.querySelector('[data-skeleton-part="title"]');
-  if (!title) return null;
-  const r = title.getBoundingClientRect();
-  return { left: r.left, top: r.top, width: r.width, height: r.height };
-}
