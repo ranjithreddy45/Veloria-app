@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StatusPill } from "@/components/shared/status-pill";
+import { ModuleChip } from "@/components/layout/module-chip";
 import { LeadVisits } from "./lead-visits";
 import { LeadContacts, type AcqLeadContactRow } from "./lead-contacts";
 // Shared notes-on-visits/meetings/calls panel (owned by another agent).
@@ -222,15 +223,27 @@ export function LeadDetail({
         </Link>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-title font-semibold tracking-tight text-foreground">
-                {lead.propertyName}
-              </h1>
-              <StatusPill
-                label={ACQ_LEAD_STATUS_LABEL[lead.status]}
-                hue={STATUS_HUE[lead.status]}
-                size="xs"
-              />
+            {/* The module chip leads the title row, as in PageHeader (14px to
+                the title, hidden below sm). PageHeader can top-align it because
+                its h1's first line is 39px tall; this h1 is text-title, a 27px
+                line, so from sm up the title block drops 6px (sm:pt-1.5) to put
+                that first line's centre on the 40px chip's (19.5px against
+                20px). Padding rather than centring keeps it there when a long
+                property name wraps. LeadDetailSkeleton (in bd/leads/loading.tsx,
+                which draws it for a lead) repeats this markup, so keep the
+                two in step and the title does not move when the page lands. */}
+            <div className="flex items-start gap-2.5">
+              <ModuleChip className="mr-1" />
+              <div className="flex flex-wrap items-center gap-2 sm:pt-1.5">
+                <h1 className="text-title font-semibold tracking-tight text-foreground">
+                  {lead.propertyName}
+                </h1>
+                <StatusPill
+                  label={ACQ_LEAD_STATUS_LABEL[lead.status]}
+                  hue={STATUS_HUE[lead.status]}
+                  size="xs"
+                />
+              </div>
             </div>
             <p className="text-body text-muted-foreground">
               {lead.ownerName} · {label(ACQ_PROPERTY_TYPE_LABEL, lead.propertyType)} ·{" "}

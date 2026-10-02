@@ -31,6 +31,7 @@ import {
 import { StatTile } from "@/components/ui/stat-tile";
 import { StatusPill } from "@/components/shared/status-pill";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ModuleChip } from "@/components/layout/module-chip";
 import { cn, formatINR } from "@/lib/utils";
 import {
   type KitchenPlanDTO,
@@ -47,9 +48,17 @@ const STATUSES = ["PLANNED", "IN_PROGRESS", "COMPLETED"] as const;
 export function KitchenDetail({
   plan,
   canWrite,
+  coversPanel,
 }: {
   plan: KitchenPlanDTO;
   canWrite: boolean;
+  /**
+   * The Guest numbers panel (CoversPanel), drawn straight under the header.
+   * It used to sit above the header, where its guest-list-dependent height
+   * pushed the title down after the loading skeleton had placed it; under
+   * the header it moves nothing above it.
+   */
+  coversPanel?: React.ReactNode;
 }) {
   const router = useRouter();
   const refresh = () => router.refresh();
@@ -57,7 +66,10 @@ export function KitchenDetail({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <div className="flex items-center justify-between gap-2">
+        {/* min-h-6.5 is the Function Sheet link's height (text-xs, py-1 and a
+            border), so the row, and the title under it, sits at the same
+            height whether or not the plan has a sheet to link to. */}
+        <div className="flex min-h-6.5 items-center justify-between gap-2">
           <Link
             href="/kitchen"
             className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
@@ -76,6 +88,8 @@ export function KitchenDetail({
       </div>
 
       <Header plan={plan} canWrite={canWrite} onChange={refresh} />
+
+      {coversPanel}
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -136,9 +150,16 @@ function Header({
     <Card>
       <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 space-y-1">
-          <h1 className="truncate text-xl font-medium tracking-[-0.01em]">
-            {plan.eventName ?? "Untitled event"}
-          </h1>
+          {/* The module chip leads the title row, as in PageHeader (top-aligned,
+              14px to the title, hidden below sm). The h1 is a 28px text-xl
+              line, so from sm up it is dropped 6px (a margin, so the h1's box
+              starts where its text does) to centre on the 40px chip. */}
+          <div className="flex min-w-0 items-start gap-2.5">
+            <ModuleChip className="mr-1" />
+            <h1 className="min-w-0 truncate text-xl font-medium tracking-[-0.01em] sm:mt-1.5">
+              {plan.eventName ?? "Untitled event"}
+            </h1>
+          </div>
           <p className="text-sm text-muted-foreground">
             {fmtEventDate(plan.eventDate)}
           </p>

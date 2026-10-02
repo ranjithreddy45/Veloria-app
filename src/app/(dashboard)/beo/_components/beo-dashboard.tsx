@@ -2,32 +2,13 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { Plus, ClipboardList, CheckCircle2, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ClipboardList, CheckCircle2, AlertTriangle } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { StatTile } from "@/components/ui/stat-tile";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { createBeo, type BeoListItem, type BookableEvent } from "@/actions/beo.actions";
+import type { BeoListItem } from "@/actions/beo.actions";
 
 export const STATUS_HUE: Record<string, Hue> = {
   DRAFT: "slate",
@@ -46,16 +27,16 @@ function fmtDate(iso?: string | null): string {
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
+// The "New function sheet" create action lives in the page header's action
+// cluster (beo/page.tsx, NewFunctionSheetDialog); this component is the list.
 export function BeoDashboard({
   beos,
-  events,
   canWrite,
 }: {
   beos: BeoListItem[];
-  events: BookableEvent[];
+  /** beo:write. Only changes the empty-state copy here. */
   canWrite: boolean;
 }) {
-  const [createOpen, setCreateOpen] = React.useState(false);
   const [filter, setFilter] = React.useState<string>("ALL");
   const [q, setQ] = React.useState("");
 
@@ -110,11 +91,6 @@ export function BeoDashboard({
             placeholder="Search BEO #, event, venue…"
             className="h-9 w-full sm:w-72"
           />
-          {canWrite && (
-            <Button size="sm" onClick={() => setCreateOpen(true)} className="shrink-0">
-              <Plus className="size-3.5" /> New function sheet
-            </Button>
-          )}
         </div>
       </div>
 
@@ -174,8 +150,6 @@ export function BeoDashboard({
           )}
         </CardContent>
       </Card>
-
-      {canWrite && <CreateBeoDialog events={events} open={createOpen} onOpenChange={setCreateOpen} />}
     </div>
   );
 }
@@ -189,81 +163,5 @@ function StatusChip({ label, count, active, onClick }: { label: string; count: n
       {label}
       <span className="rounded-md bg-foreground/10 px-1 text-meta tabular-nums">{count}</span>
     </button>
-  );
-}
-
-function CreateBeoDialog({ events, open, onOpenChange }: { events: BookableEvent[]; open: boolean; onOpenChange: (o: boolean) => void }) {
-  const router = useRouter();
-  const [bookingId, setBookingId] = React.useState("");
-  const [covers, setCovers] = React.useState("");
-  const [busy, setBusy] = React.useState(false);
-
-  React.useEffect(() => {
-    if (open) { setBookingId(""); setCovers(""); }
-  }, [open]);
-
-  const selected = events.find((e) => e.id === bookingId);
-
-  function pick(id: string) {
-    setBookingId(id);
-    const e = events.find((x) => x.id === id);
-    if (e?.guestCount != null) setCovers(String(e.guestCount));
-  }
-
-  async function create() {
-    if (!bookingId) { toast.error("Pick an event first."); return; }
-    setBusy(true);
-    try {
-      const res = await createBeo({ bookingId, covers: covers ? Number(covers) : undefined });
-      if (!res.success) { toast.error(res.error); return; }
-      toast.success("Function sheet created");
-      onOpenChange(false);
-      router.push(`/beo/${res.data.id}`);
-    } catch {
-      toast.error("Couldn't create — please try again.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>New function sheet</DialogTitle>
-          <DialogDescription>Create a BEO from a confirmed booking. Covers pre-fill from the guest count.</DialogDescription>
-        </DialogHeader>
-        <div className="grid grid-cols-1 gap-3">
-          <div className="space-y-1.5">
-            <Label>Event (confirmed booking)</Label>
-            <Select value={bookingId || undefined} onValueChange={pick}>
-              <SelectTrigger className="w-full"><SelectValue placeholder="Select an event…" /></SelectTrigger>
-              <SelectContent>
-                {events.length === 0 ? (
-                  <div className="px-2 py-1.5 text-detail text-muted-foreground">No confirmed events.</div>
-                ) : (
-                  events.map((e) => (
-                    <SelectItem key={e.id} value={e.id} disabled={e.hasBeo}>
-                      {e.label}{e.hasBeo ? " (has BEO)" : ""}
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            {selected?.hasBeo && (
-              <p className="text-detail text-amber-600">This event already has a function sheet.</p>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label>Covers</Label>
-            <Input inputMode="numeric" value={covers} onChange={(e) => setCovers(e.target.value)} placeholder="Number of covers" />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
-          <Button onClick={create} disabled={busy || !bookingId || selected?.hasBeo}>{busy ? "Creating…" : "Create"}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

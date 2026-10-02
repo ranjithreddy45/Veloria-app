@@ -1,14 +1,12 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 
 export default function QualityLoading() {
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <Skeleton className="h-3 w-28" />
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-full max-w-2xl" />
-      </div>
+      {/* Header: PageHeader's own shape (chip placeholder included), so the
+          title does not jump when the page replaces this. No action cluster. */}
+      <PageHeaderSkeleton />
 
       {/* Overall sigma hero */}
       <Skeleton className="h-[140px] w-full rounded-2xl" />

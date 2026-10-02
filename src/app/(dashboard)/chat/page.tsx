@@ -13,7 +13,7 @@ export default async function ChatPage() {
   if (!channelsRes.success) {
     return (
       <div className="space-y-6">
-        <PageHeader icon={MessageSquareText} accent="pink" title="Team Chat" description="" />
+        <PageHeader icon={MessageSquareText} accent="pink" eyebrow="Team" title="Team Chat" description="" />
         <p className="text-sm text-muted-foreground">{channelsRes.error}</p>
       </div>
     );

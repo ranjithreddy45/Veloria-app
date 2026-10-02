@@ -1,23 +1,24 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
-  Plus,
   FileTextIcon,
   ClockIcon,
   CheckCircle2Icon,
   IndianRupeeIcon,
 } from "lucide-react";
+import { auth } from "@/../auth";
 import { getSalesQuotations } from "@/actions/sales-quotation.actions";
 import { PageHeader } from "@/components/layout/page-header";
-import { Button } from "@/components/ui/button";
+import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { StatTile } from "@/components/ui/stat-tile";
+import { visibleActions } from "@/lib/permission-claims";
+import { hasPermission } from "@/lib/permissions";
 import { formatINR } from "@/lib/utils";
 import { QuotationsTable, type QuotationListRow } from "./_components/quotations-table";
 
 export const metadata: Metadata = { title: "Quotations" };
 
 export default async function QuotationsPage() {
-  const res = await getSalesQuotations();
+  const [res, session] = await Promise.all([getSalesQuotations(), auth()]);
   const rows = (res.success ? (res.data as QuotationListRow[]) : []) ?? [];
 
   // KPIs derived from the loaded rows (visual-only — no extra fetch).
@@ -30,12 +31,28 @@ export default async function QuotationsPage() {
     .filter((r) => r.status !== "REJECTED")
     .reduce((s, r) => s + Number(r.grandTotal || 0), 0);
 
+  // The page's one action: its create, shown only to someone who can save a
+  // quotation (/quotations/new saves through createSalesQuotation, which
+  // requires quotes:create). Booking from a quote goes through the quotation's
+  // own Block-the-slot card, which applies the advance rule; Leads is a
+  // sidebar destination. Neither is repeated here.
+  // createSalesQuotation checks quotes:create against the static role matrix,
+  // so that check is required too (`when`): a permission granted only through
+  // an override would otherwise show a pill whose form fails on save.
+  const actions = visibleActions<QuickActionSpec>(session, [
+    {
+      href: "/quotations/new",
+      label: "New quotation",
+      hint: "Price an event",
+      primary: true,
+      permission: "quotes:create",
+      when: hasPermission(session?.user?.role ?? "", "quotes:create"),
+    },
+  ]);
+
   return (
     <div className="space-y-6">
       <PageHeader
-        aura
-        icon={FileTextIcon}
-        accent="blue"
         eyebrow={
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>Sales · Pricing</span>
@@ -47,13 +64,8 @@ export default async function QuotationsPage() {
         }
         title="Quotations"
         description="Event quotations built with the calculator — submit for approval, then send to the customer."
-      >
-        <Button asChild>
-          <Link href="/quotations/new">
-            <Plus className="h-4 w-4" /> New Quotation
-          </Link>
-        </Button>
-      </PageHeader>
+        actions={<QuickActions actions={actions} />}
+      />
 
       {total > 0 && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 animate-rise-in animate-stagger-1">

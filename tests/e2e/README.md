@@ -15,6 +15,13 @@ SUPER_ADMIN, drive the real UI, and create their own uniquely-named data
 | `customer-app.spec.ts` | Customer app (`/app`) and team side show the same records: Business contact → Help, published policy → policy page, concierge message ↔ team reply, balance due (draft excluded), guest list, access boundary, VIEWER co-host limits |
 | `customer-browse.spec.ts` | Browsing halls, signed out: the feed's pill + size chips + count line, the "Find a hall" sheet writing a date into the URL, availability that agrees with the hall's own calendar, card → hall page → **Reserve**, illustration honesty, the home screen's browse block |
 | `smoke-routes.spec.ts` | ~40 key routes from `src/config/navigation.ts` render without the error boundary |
+| `visual-tour.spec.ts` | Screenshots every tour screen in desktop light, desktop dark and 390px phone, and fails if the page scrolls sideways or the main heading is hidden. The screen list is `TOUR_SCREENS` in `helpers.ts` |
+| `header-geometry.spec.ts` | Page-header layout on every tour screen except `/dashboard`. At 1440px: exactly one module chip, one left edge for the chip, eyebrow and description, the same h1 x on every route, and no pill clipped (focus ring included). At 390px: no chip, the h1 starts at the 16px gutter, and every pill sits inside [16, 374]; the `/dashboard` hub's five pills are all on screen, in at most three rows. Loading: on the header/skeleton pairs `/style-guide` renders, at 1440px and at 390px, `PageHeaderSkeleton`'s title box is within 2px of where `PageHeader`'s h1 lands. It runs signed out and involves no navigation or prefetch timing |
+| `restricted-role-actions.spec.ts` | Signs in as STAFF, SALES_EXEC, EVENT_COORDINATOR and FINANCE, and opens every link in each landing's "Page actions" cluster. None may bounce to `/not-authorized`, `/sign-in`, `/dashboard` or back to the landing, and the create pills each role is entitled to must be offered |
+
+The tour's screen list is `TOUR_SCREENS` in `helpers.ts`. `visual-tour.spec.ts`
+photographs it and `header-geometry.spec.ts` measures it, so a screen added
+there is both photographed and held to the header rules.
 
 ## Running locally
 
@@ -70,6 +77,27 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 If the saved session ever goes stale (e.g. `AUTH_SECRET` rotated), delete
 `tests/e2e/.auth/` — the next run recreates it.
+
+### Signing in as another role
+
+Super Admin can open everything, so a spec that checks what a real role sees
+has to sign in as that role. `helpers.ts` has what it needs:
+
+- `ROLE_USERS` lists the seeded non-admin logins (STAFF, SALES_EXEC,
+  EVENT_COORDINATOR, FINANCE) with their seed passwords. `prisma/seed.ts`
+  creates every one of them.
+- `signInAs(page, email, password)` signs in through the real `/sign-in`
+  form and waits for `/dashboard`. It marks the welcome tour as seen before
+  the first page script runs. If the login is refused it fails with the URL
+  and the toast text, so the cause is clear.
+- `dismissTwoFactorBanner(page)` closes the "Two-factor authentication is
+  required for your role" strip if it shows up (SUPER_ADMIN, ADMIN, FINANCE
+  and HR_MANAGER see it until they enrol). It only hides the strip for that
+  browser session and never enrols 2FA.
+
+A spec that uses them must opt out of the shared admin session with
+`test.use({ storageState: { cookies: [], origins: [] } })`, as
+`restricted-role-actions.spec.ts` does.
 
 ## Customer app specs
 
@@ -158,6 +186,12 @@ Component gotchas:
   so assert right after the action.
 - **Welcome tour** — gated by `localStorage`; global setup pre-dismisses it.
   `dismissTour(page)` exists for fresh contexts (auth specs).
+- **URL changed, page never filled** — on Next 16.1.6, a link clicked while
+  the target route's `loading.tsx` prefetch is still in flight commits the
+  URL with an empty page that never fills: no h1, no error, nothing in the
+  server log (vercel/next.js#98684). That is why the set of route
+  `loading.tsx` files is pinned by `src/app/route-loading-boundaries.test.ts`.
+  If a spec shows this symptom, check that list first.
 - **Leads list scope** — defaults to "My leads"; auto-assignment may route a
   new lead elsewhere, so search with `/leads?scope=all`.
 - **Reimbursements precondition** — filing a claim requires the signed-in
@@ -169,5 +203,26 @@ Component gotchas:
 
 `.github/workflows/e2e.yml` runs on pull requests and on demand: Postgres 16
 service → `prisma db push` → seed → `next build` → chromium install →
-`E2E_USE_WEBSERVER=1 playwright test`. The HTML report and traces are
-uploaded as an artifact when the job fails.
+`E2E_USE_WEBSERVER=1 playwright test`. Two artifacts are uploaded on every
+run, pass or fail:
+
+- `playwright-failures`: `tests/e2e/.results` (the trace, screenshot and
+  video of every failed attempt) and the HTML report from
+  `tests/e2e/.report`. It is uploaded on green runs too, because a test
+  that fails its first attempt and passes on retry still leaves the job
+  green, and that attempt's trace is the only record of why it failed.
+- `visual-tour`: the visual tour's screenshots.
+
+Right after `pnpm install` the workflow also runs a scoped typecheck,
+`tsc -p tsconfig.ui-check.json`. It is needed because `next build` ignores
+type errors, and a full-project `tsc` still fails on older errors elsewhere.
+It checks the shared design-system files (module registry, chips,
+`PageHeader`, `QuickActions`, `StatTile`) and the landings built on them,
+plus everything those files import. It is non-blocking
+(`continue-on-error: true`) until it is green on `main`. When you add a new
+shared UI file, add it to the `files` list in `tsconfig.ui-check.json`. To
+run it locally:
+
+```bash
+NODE_OPTIONS=--max-old-space-size=4096 ./node_modules/.bin/tsc -p tsconfig.ui-check.json
+```

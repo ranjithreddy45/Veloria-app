@@ -5,11 +5,14 @@ import {
   WalletIcon,
   CheckCircle2Icon,
   AlertTriangleIcon,
-  FileTextIcon,
 } from "lucide-react";
+import { auth } from "@/../auth";
 import { getInvoices } from "@/actions/invoice.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { PageHelp } from "@/lib/page-help";
+import { visibleActions } from "@/lib/permission-claims";
+import { hasPermission } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -26,7 +29,7 @@ const num = (v: InvoiceRow["totalAmount"]): number =>
   Number(typeof v === "object" && v !== null ? v.toString() : v) || 0;
 
 export default async function InvoicesPage() {
-  const result = await getInvoices();
+  const [result, session] = await Promise.all([getInvoices(), auth()]);
 
   const invoices: InvoiceRow[] = result.success ? result.data?.data ?? [] : [];
 
@@ -43,12 +46,29 @@ export default async function InvoicesPage() {
   const paid = invoices.reduce((s, i) => s + num(i.paidAmount), 0);
   const overdueCount = invoices.filter((i) => i.status === "OVERDUE").length;
 
+  // The page's one action: its create, gated on the permission createInvoice
+  // enforces. Payments and bookings are reached from the sidebar.
+  // createInvoice checks invoices:create against the static role matrix, so
+  // that check is required too (`when`): a permission granted only through an
+  // override would otherwise show a pill whose form fails on save.
+  const actions = visibleActions<QuickActionSpec>(session, [
+    {
+      href: "/invoices/new",
+      label: "New invoice",
+      hint: "Bill a booking",
+      permission: "invoices:create",
+      when: hasPermission(session?.user?.role ?? "", "invoices:create"),
+      primary: true,
+    },
+  ]);
+  // The empty state offers "New invoice" under exactly the same decision as
+  // the pill, so a role that cannot create invoices is never shown a create
+  // button the pill would hide from it.
+  const canCreateInvoices = actions.length > 0;
+
   return (
     <div className="space-y-6">
       <PageHeader
-        aura
-        icon={FileTextIcon}
-        accent="emerald"
         eyebrow={
           <span>
             FINANCE ·{" "}
@@ -60,28 +80,28 @@ export default async function InvoicesPage() {
         title="Invoices"
         help={<PageHelp id="invoices" />}
         description="Manage invoices, track payments and generate GST-compliant documents."
-      >
-        <Button asChild>
-          <Link href="/invoices/new">
-            <PlusIcon className="mr-2 size-4" />
-            New Invoice
-          </Link>
-        </Button>
-      </PageHeader>
+        actions={<QuickActions actions={actions} />}
+      />
 
       {invoices.length === 0 ? (
         <div className="animate-rise-in animate-stagger-1 rounded-[22px] border border-dashed bg-card/40">
           <EmptyState
             icon={<ReceiptIndianRupeeIcon className="size-6" />}
             title="No invoices yet"
-            description="Raise your first invoice to bill a client for a booking — or convert an accepted quotation. Payments you collect will be tracked against it here."
+            description={
+              canCreateInvoices
+                ? "Raise your first invoice to bill a client for a booking — or convert an accepted quotation. Payments you collect will be tracked against it here."
+                : "An invoice bills a client for a booking. Invoices appear here once they are raised, with the payments collected against each one."
+            }
             action={
-              <Button asChild>
-                <Link href="/invoices/new">
-                  <PlusIcon className="mr-2 size-4" />
-                  New Invoice
-                </Link>
-              </Button>
+              canCreateInvoices ? (
+                <Button asChild>
+                  <Link href="/invoices/new">
+                    <PlusIcon className="mr-2 size-4" />
+                    New invoice
+                  </Link>
+                </Button>
+              ) : undefined
             }
           />
         </div>

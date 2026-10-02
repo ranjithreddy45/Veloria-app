@@ -3,13 +3,21 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, GitMerge } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { backfillLeadPipeline } from "@/actions/lead.actions";
-import { Button } from "@/components/ui/button";
+import { QuickActionButton } from "@/components/ui/quick-actions";
 
 // One-click backfill: pulls any open/won leads that don't yet have a pipeline
 // deal onto the board (audit S-9). Idempotent — safe to run repeatedly.
+//
+// Rendered as a secondary pill in the /pipeline header's action cluster. Its
+// chip is the Pipeline module's own (teal Kanban, from src/config/modules.ts):
+// the leads it pulls in land on this board, so Pipeline is the destination, and
+// pages never pick a pill's glyph. The only override is the busy state: while
+// it runs, the pill is disabled and busy and its chip turns into a spinner;
+// the label stays "Sync leads" so its accessible name does not change
+// mid-action, and the toast reports the result.
 export function SyncLeadsButton() {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
@@ -36,9 +44,13 @@ export function SyncLeadsButton() {
   }
 
   return (
-    <Button variant="outline" size="sm" onClick={handleSync} disabled={loading}>
-      {loading ? <Loader2 className="size-3.5 animate-spin" /> : <GitMerge className="size-3.5" />}
-      {loading ? "Syncing…" : "Sync leads"}
-    </Button>
+    <QuickActionButton
+      label="Sync leads"
+      module="pipeline"
+      icon={loading ? <Loader2 className="animate-spin" strokeWidth={2} aria-hidden /> : undefined}
+      onClick={handleSync}
+      disabled={loading}
+      aria-busy={loading || undefined}
+    />
   );
 }

@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
-  PlusIcon,
   CircleDashedIcon,
   CircleDotIcon,
   CircleCheckIcon,
   AlertTriangleIcon,
-  ListChecks,
 } from "lucide-react";
 
+import { auth } from "@/../auth";
 import { getTasks } from "@/actions/task.actions";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { PageHelp } from "@/lib/page-help";
-import { Button } from "@/components/ui/button";
+import { visibleActions } from "@/lib/permission-claims";
+import { hasPermission } from "@/lib/permissions";
 import { StatTile } from "@/components/ui/stat-tile";
 import { TasksViews } from "./_components/tasks-views";
 
@@ -23,7 +23,7 @@ export const metadata: Metadata = { title: "Tasks" };
 // ============================================================
 
 export default async function TasksPage() {
-  const result = await getTasks();
+  const [result, session] = await Promise.all([getTasks(), auth()]);
   const tasks = result.success ? result.data!.data : [];
 
   // Group tasks by status for the board view
@@ -54,12 +54,28 @@ export default async function TasksPage() {
   const completionPct =
     totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
+  // The page's one action: its create, gated on the permission createTask
+  // enforces. The calendar and bookings are reached from the sidebar.
+  // createTask checks tasks:create against the static role matrix, so that
+  // check is required too (`when`): a permission granted only through an
+  // override would otherwise show a pill whose form fails on save.
+  const actions = visibleActions<QuickActionSpec>(session, [
+    {
+      href: "/tasks/new",
+      label: "New task",
+      hint: "Assign work",
+      permission: "tasks:create",
+      when: hasPermission(session?.user?.role ?? "", "tasks:create"),
+      primary: true,
+    },
+  ]);
+
+  // A fixed-height column: the board below takes what is left. The column's
+  // gap spaces only the children that render, so with no tasks (no tiles)
+  // the List/Board tabs sit one gap under the header.
   return (
-    <div className="flex h-[calc(100vh-8rem)] flex-col">
+    <div className="flex h-[calc(100vh-8rem)] flex-col gap-6">
       <PageHeader
-        aura
-        icon={ListChecks}
-        accent="amber"
         title="Tasks"
         help={<PageHelp id="tasks" />}
         eyebrow={
@@ -80,17 +96,11 @@ export default async function TasksPage() {
           </div>
         }
         description="Plan, assign, and ship the work behind every booking — from to-do to done."
-      >
-        <Button asChild>
-          <Link href="/tasks/new">
-            <PlusIcon className="mr-2 size-4" />
-            New Task
-          </Link>
-        </Button>
-      </PageHeader>
+        actions={<QuickActions actions={actions} />}
+      />
 
       {totalTasks > 0 && (
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 animate-fade-in-up">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 animate-fade-in-up">
           <StatTile
             label="To-do"
             value={todoCount}
@@ -122,7 +132,7 @@ export default async function TasksPage() {
         </div>
       )}
 
-      <div className="mt-6 flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden">
         <TasksViews tasks={tasks} />
       </div>
     </div>

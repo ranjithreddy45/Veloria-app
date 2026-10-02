@@ -15,6 +15,7 @@ import {
 import { PROJECT_PHASES, PROJECT_PHASE_LABEL, PROJECT_PHASE_HINT, phaseIndex } from "@/lib/projects/phases";
 import type { CapexInput } from "@/lib/projects/capex-calc";
 import { StatusPill } from "@/components/shared/status-pill";
+import { ModuleChip } from "@/components/layout/module-chip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -157,13 +158,21 @@ export function ProjectDetail({ project, perms }: { project: any; perms: Perms }
       {/* Back link + venue name + up to three status pills + a 48px readiness
         * donut is far wider than 375px. Both halves wrap, and the title block
         * gets min-w-0 so a long venue name truncates instead of stretching the
-        * row past the viewport. */}
+        * row past the viewport.
+        *
+        * The module chip leads the title block, as in PageHeader (14px to the
+        * title, hidden below sm), centred on the 44px name + locality pair.
+        * It carries the module's glyph, so the h1's own Building2 is shown
+        * only below sm, where the chip is hidden. */}
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 items-center gap-3">
           <Button asChild variant="ghost" size="sm"><a href="/projects"><ArrowLeft className="h-4 w-4" /> Projects</a></Button>
-          <div className="min-w-0">
-            <h1 className="flex items-center gap-2 text-lg font-semibold"><Building2 className="h-4 w-4 shrink-0" /> <span className="truncate">{project.property.propertyName}</span></h1>
-            <p className="truncate text-xs text-muted-foreground">{project.property.locality}, {project.property.city}</p>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <ModuleChip className="mr-1" />
+            <div className="min-w-0">
+              <h1 className="flex items-center gap-2 text-lg font-semibold"><Building2 className="h-4 w-4 shrink-0 sm:hidden" /> <span className="truncate">{project.property.propertyName}</span></h1>
+              <p className="truncate text-xs text-muted-foreground">{project.property.locality}, {project.property.city}</p>
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">

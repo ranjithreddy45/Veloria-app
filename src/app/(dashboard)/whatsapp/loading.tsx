@@ -1,18 +1,24 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 
 // ============================================================
 // WhatsApp Page Loading Skeleton
+// ------------------------------------------------------------
+// Also the fallback for /whatsapp/console and /whatsapp/catalog. The header
+// is PageHeaderSkeleton, so its eyebrow line, chip placeholder and title box
+// sit where PageHeader's eyebrow (the inbox and console pass none, so it is
+// the module's name; the catalog's own is one line too), engagement chip and
+// h1 land. No action pills: none of the three headers has any. The catalog's
+// body (funnel tiles and a table) differs from this one, but it gets no
+// loading.tsx of its own: a new route loading boundary trips a Next.js router
+// race (see src/app/route-loading-boundaries.test.ts).
 // ============================================================
 
 export default function WhatsAppLoading() {
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="space-y-1">
-        <Skeleton className="h-8 w-32" />
-        <Skeleton className="h-4 w-64" />
-      </div>
+      <PageHeaderSkeleton />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

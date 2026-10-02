@@ -3,13 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import {
-  Plus,
-  FileText,
-  CreditCard,
-  Calendar,
-  BookmarkCheck,
   TrendingUp,
-  TrendingDown,
   Wallet,
   Globe,
   AlertCircle,
@@ -18,13 +12,6 @@ import {
   ChevronRight,
   ChevronLeft,
   ChevronDown,
-  Clock,
-  CheckCircle2,
-  UtensilsCrossed,
-  Award,
-  ArrowUpRight,
-  ExternalLink,
-  ShieldAlert,
 } from "lucide-react";
 import {
   AreaChart,
@@ -41,9 +28,70 @@ import {
 import type { DashboardFullData } from "@/actions/dashboard-full.actions";
 import { getHallOccupancyForDate, getEventsForDate } from "@/actions/dashboard-full.actions";
 import { format, addDays, parseISO } from "date-fns";
+import { QuickActions, type HubActionSpec } from "@/components/ui/quick-actions";
+import { StatTile, type StatTileTrend } from "@/components/ui/stat-tile";
 
 interface FullDashboardViewProps {
   data: DashboardFullData;
+  /**
+   * The hub's shortcut pills, already filtered on the server with
+   * visibleActions() (dashboard/page.tsx). Plain data, so it crosses the
+   * server/client boundary as is.
+   */
+  quickActions: readonly HubActionSpec[];
+  /** Whether the Open leads tile may link to /leads (leads:read, override-aware). */
+  canOpenLeads: boolean;
+}
+
+/**
+ * A month-over-month change as a tile trend line. The arrow follows the sign,
+ * and so does the text ("+12%", "−8%"): the arrow is decorative (aria-hidden),
+ * so the words alone must say which way the figure moved.
+ */
+function changeTrend(changePercent: number): StatTileTrend {
+  const tone = changePercent > 0 ? "up" : changePercent < 0 ? "down" : "neutral";
+  const sign = changePercent > 0 ? "+" : changePercent < 0 ? "−" : ""; // U+2212 minus sign
+  return { text: `${sign}${Math.abs(changePercent)}% vs last month`, tone };
+}
+
+// The hub's pill row: every pill stays a visible pill at every width, and the
+// row wraps instead of clipping (owner decision). On a 390px phone the five
+// pills take three rows; the hub is the one header allowed more than R10's
+// two, as it is the one allowed destination labels (R6). py-1 is the approved
+// row's own vertical padding, kept so the header's rhythm is unchanged.
+const HUB_ROW = "py-1 xl:justify-end";
+
+// The month the cash KPI covers: the current month in IST, which is the window
+// getDashboardFullData sums. Derived from the data's own timestamp so the
+// server render and the client hydrate agree.
+const IST_MONTH = new Intl.DateTimeFormat("en-IN", { month: "long", timeZone: "Asia/Kolkata" });
+
+// The KPI tiles keep the dashboard card's own 16px padding at every width
+// (StatTile's default steps up to 20px from sm), so a lakh figure fits a tile
+// in the five-across row at 1280px.
+const KPI_TILE = "sm:p-4";
+
+/**
+ * A money figure that may wrap only after a digit-group comma. The approved
+ * KPI row is five across from lg, and with the 256px sidebar and lg:px-8 a
+ * tile is only 96px wide inside at 1024px (147px at 1279px), narrower than a
+ * lakh figure at the tile's size until about 1240-1279px. StatTile never
+ * truncates a value (a clipped figure is a wrong number), so the figure wraps
+ * there; the <wbr> after each comma makes it wrap as "₹12,45," / "000" rather
+ * than in the middle of a digit group.
+ */
+function breakAtGroups(figure: string): React.ReactNode {
+  const groups = figure.split(",");
+  return groups.map((group, i) => (
+    <React.Fragment key={i}>
+      {group}
+      {i < groups.length - 1 && (
+        <>
+          ,<wbr />
+        </>
+      )}
+    </React.Fragment>
+  ));
 }
 
 const FUNNEL_TRAPEZOIDS = [
@@ -80,7 +128,7 @@ function formatDateLabel(isoDate: string) {
   return format(d, "d MMM yyyy");
 }
 
-export function FullDashboardView({ data }: FullDashboardViewProps) {
+export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDashboardViewProps) {
   const [timeRange, setTimeRange] = useState("Last 12 Months");
   const [pipelinePeriod, setPipelinePeriod] = useState<"This Month" | "This Quarter" | "This Year" | "All Time">("This Month");
   const [eventTypePeriod, setEventTypePeriod] = useState<"This Month" | "This Quarter" | "This Year" | "All Time">("This Month");
@@ -181,212 +229,121 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
     return "₹" + Math.round(amount).toLocaleString("en-IN");
   };
 
+  const openLeadsTile = (
+    <StatTile
+      label="Open leads"
+      value={data.kpis.openLeads.count}
+      accent="blue"
+      icon={<Users className="size-4" />}
+      trend={{
+        text:
+          data.kpis.openLeads.breachedCount === 0
+            ? "None past response deadline"
+            : `${data.kpis.openLeads.breachedCount} past deadline`,
+        tone: "neutral",
+      }}
+      className="h-full sm:p-4"
+    />
+  );
+
   return (
     <div className="flex w-full flex-col gap-6">
       {/* ============================================================ */}
-      {/* 1. HEADER BAR: Greeting + Quick Action Buttons */}
+      {/* 1. HEADER BAR: Greeting + the hub's shortcut pills */}
       {/* ============================================================ */}
-      <header className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between overflow-x-auto pb-1">
+      {/* No overflow clipping here: the pill cluster wraps onto a second row
+          when it doesn't fit beside the greeting, and every pill's focus ring
+          stays whole. */}
+      <header className="flex flex-col gap-4 pb-1 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-col gap-0.5 shrink-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground">
             {data.todayFormatted}
           </p>
-          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl whitespace-nowrap">
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl sm:whitespace-nowrap">
             Good afternoon, {data.user.name.split(" ")[0]}.
           </h1>
-          <p className="text-xs text-muted-foreground whitespace-nowrap">
+          <p className="text-xs text-muted-foreground sm:whitespace-nowrap">
             Here&apos;s what&apos;s happening across your venues today.
           </p>
         </div>
 
-        {/* 5 Quick Action Pill Buttons in One Single Row */}
-        <div className="flex items-center gap-2 overflow-x-auto flex-nowrap py-1">
-          {/* New Lead */}
-          <Link
-            href="/leads/new"
-            className="group flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs transition-all hover:border-emerald-500/40 hover:brightness-110 active:scale-95"
-          >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-white font-bold shadow-md shadow-emerald-500/20">
-              <Plus className="size-4" strokeWidth={2.5} />
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="leading-tight font-semibold text-foreground">New Lead</span>
-              <span className="text-[10px] font-normal text-muted-foreground">Add a new inquiry</span>
-            </div>
-          </Link>
-
-          {/* Create Quotation */}
-          <Link
-            href="/quotations/new"
-            className="group flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs transition-all hover:border-indigo-500/40 hover:brightness-110 active:scale-95"
-          >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-indigo-500 text-white font-bold shadow-md shadow-indigo-500/20">
-              <FileText className="size-4" strokeWidth={2} />
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="leading-tight font-semibold text-foreground">Create Quotation</span>
-              <span className="text-[10px] font-normal text-muted-foreground">Generate proposal</span>
-            </div>
-          </Link>
-
-          {/* Record Payment */}
-          <Link
-            href="/payments"
-            className="group flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs transition-all hover:border-cyan-500/40 hover:brightness-110 active:scale-95"
-          >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-cyan-500 text-white font-bold shadow-md shadow-cyan-500/20">
-              <CreditCard className="size-4" strokeWidth={2} />
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="leading-tight font-semibold text-foreground">Record Payment</span>
-              <span className="text-[10px] font-normal text-muted-foreground">Add client payment</span>
-            </div>
-          </Link>
-
-          {/* Schedule Visit */}
-          <Link
-            href="/site-visits"
-            className="group flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs transition-all hover:border-amber-500/40 hover:brightness-110 active:scale-95"
-          >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-white font-bold shadow-md shadow-amber-500/20">
-              <Calendar className="size-4" strokeWidth={2} />
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="leading-tight font-semibold text-foreground">Schedule Visit</span>
-              <span className="text-[10px] font-normal text-muted-foreground">Site visit / tasting</span>
-            </div>
-          </Link>
-
-          {/* New Booking Hold */}
-          <Link
-            href="/availability"
-            className="group flex shrink-0 items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-xs transition-all hover:border-pink-500/40 hover:brightness-110 active:scale-95"
-          >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-pink-500 text-white font-bold shadow-md shadow-pink-500/20">
-              <BookmarkCheck className="size-4" strokeWidth={2} />
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="leading-tight font-semibold text-foreground">New Booking Hold</span>
-              <span className="text-[10px] font-normal text-muted-foreground">Block a venue slot</span>
-            </div>
-          </Link>
-        </div>
+        {/* The shared action cluster (src/components/ui/quick-actions.tsx) in
+            hub mode: the dashboard is not a module landing, so it keeps its
+            five shortcuts. Order, labels and permissions come from page.tsx;
+            each pill's chip is its destination's module chip. */}
+        <QuickActions hub actions={quickActions} className={HUB_ROW} />
       </header>
 
       {/* ============================================================ */}
-      {/* 2. TOP METRICS BAND: 5 Cards in a Row */}
+      {/* 2. TOP METRICS BAND: 5 KPI tiles in a row (the shared StatTile) */}
       {/* ============================================================ */}
+      {/* The approved grid: five across from lg, as on the original dashboard
+          (owner decision 8). The tiles are narrow at the low end of lg: 96px
+          inside at 1024px, 124px at about 1166px, 147px at 1279px. Measured
+          in Chromium with Geist:
+          - Money values wrap at a digit-group comma (breakAtGroups) below
+            about 1240-1279px, instead of being cut off.
+          - Below about 1166px the tiles show no icon chip. StatTile (R12)
+            keeps the label whole: never `truncate`, never a word broken
+            mid-word, at least 80px wide. That plus the gap and the 36px chip
+            needs 124px, so the chip wraps onto the label band's clipped
+            second line. The original card kept its chip there by truncating
+            the label ("CASH C…"). "COLLECTED" alone is 70px, so no
+            label-plus-chip layout that R12 allows fits the cash tile at
+            1024px. Keeping the chip at these widths is an owner call: a
+            smaller chip or truncated labels at lg only, or chipless tiles
+            from 1024px to about 1166px as now. */}
       <section className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
-        {/* Card 1: Cash Collected */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all hover:border-emerald-500/30 hover:brightness-110">
-          <div className="flex items-start justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
-              Cash Collected · September
-            </span>
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-              <Wallet className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2.5 flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl truncate">
-              {formattedKpiCurrency(data.kpis.cashCollected.amount)}
-            </span>
-            <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-emerald-400">
-              <TrendingUp className="size-3.5" />
-              <span>↑ {data.kpis.cashCollected.changePercent}% vs last month</span>
-            </span>
-          </div>
-        </div>
+        <StatTile
+          label={`Cash collected · ${IST_MONTH.format(new Date(data.asOf))}`}
+          value={breakAtGroups(formattedKpiCurrency(data.kpis.cashCollected.amount))}
+          accent="emerald"
+          icon={<Wallet className="size-4" />}
+          trend={changeTrend(data.kpis.cashCollected.changePercent)}
+          className={KPI_TILE}
+        />
 
-        {/* Card 2: Booked Value */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all hover:border-purple-500/30 hover:brightness-110">
-          <div className="flex items-start justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
-              Booked Value · This Month
-            </span>
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-purple-500/15 text-purple-400 border border-purple-500/30">
-              <Globe className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2.5 flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl truncate">
-              {formattedKpiCurrency(data.kpis.bookedValue.amount)}
-            </span>
-            <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-purple-400">
-              <TrendingUp className="size-3.5" />
-              <span>↑ {data.kpis.bookedValue.changePercent}% vs last month</span>
-            </span>
-          </div>
-        </div>
+        <StatTile
+          label="Booked value · this month"
+          value={breakAtGroups(formattedKpiCurrency(data.kpis.bookedValue.amount))}
+          accent="brand"
+          icon={<Globe className="size-4" />}
+          trend={changeTrend(data.kpis.bookedValue.changePercent)}
+          className={KPI_TILE}
+        />
 
-        {/* Card 3: Overdue */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all hover:border-rose-500/30 hover:brightness-110">
-          <div className="flex items-start justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
-              Overdue
-            </span>
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/15 text-rose-400 border border-rose-500/30">
-              <AlertCircle className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2.5 flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl truncate">
-              {formattedKpiCurrency(data.kpis.overdue.amount)}
-            </span>
-            <span className="mt-1 flex items-center gap-1 text-[11px] font-medium text-rose-400">
-              <TrendingUp className="size-3.5" />
-              <span>↑ {data.kpis.overdue.count} invoices overdue</span>
-            </span>
-          </div>
-        </div>
+        <StatTile
+          label="Overdue"
+          value={breakAtGroups(formattedKpiCurrency(data.kpis.overdue.amount))}
+          accent="rose"
+          icon={<AlertCircle className="size-4" />}
+          trend={{
+            text: `${data.kpis.overdue.count} ${data.kpis.overdue.count === 1 ? "invoice" : "invoices"} overdue`,
+            tone: "neutral",
+          }}
+          className={KPI_TILE}
+        />
 
-        {/* Card 4: Open Leads */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all hover:border-blue-500/30 hover:brightness-110">
-          <div className="flex items-start justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
-              Open Leads
-            </span>
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 text-blue-400 border border-blue-500/30">
-              <Users className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2.5 flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl truncate">
-              {data.kpis.openLeads.count}
-            </span>
-            <Link
-              href="/leads"
-              className="mt-1 flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-blue-400 transition-colors truncate"
-            >
-              <span>
-                {data.kpis.openLeads.breachedCount === 0
-                  ? "None past response deadline"
-                  : `${data.kpis.openLeads.breachedCount} past deadline`}
-              </span>
-              <ChevronRight className="size-3.5 shrink-0" />
-            </Link>
-          </div>
-        </div>
+        {/* The whole tile opens the leads list, for anyone who can open it. */}
+        {canOpenLeads ? (
+          <Link href="/leads" className="block rounded-[22px]">
+            {openLeadsTile}
+          </Link>
+        ) : (
+          openLeadsTile
+        )}
 
-        {/* Card 5: Events This Week */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all hover:border-indigo-500/30 hover:brightness-110">
-          <div className="flex items-start justify-between gap-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
-              Events This Week
-            </span>
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
-              <CalendarCheck className="size-4" />
-            </div>
-          </div>
-          <div className="mt-2.5 flex flex-col">
-            <span className="text-xl font-bold tracking-tight text-foreground sm:text-2xl truncate">
-              {data.kpis.eventsThisWeek.total}
-            </span>
-            <span className="mt-1 text-[11px] font-medium text-muted-foreground truncate">
-              {data.kpis.eventsThisWeek.todayCount} today · {data.kpis.eventsThisWeek.upcomingCount} upcoming
-            </span>
-          </div>
-        </div>
+        <StatTile
+          label="Events this week"
+          value={data.kpis.eventsThisWeek.total}
+          accent="indigo"
+          icon={<CalendarCheck className="size-4" />}
+          trend={{
+            text: `${data.kpis.eventsThisWeek.todayCount} today · ${data.kpis.eventsThisWeek.upcomingCount} upcoming`,
+            tone: "neutral",
+          }}
+          className={KPI_TILE}
+        />
       </section>
 
       {/* ============================================================ */}
@@ -402,7 +359,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(e.target.value)}
-                className="no-ring appearance-none rounded-xl border border-border bg-background/80 pl-2 pr-6 py-1 text-[11px] font-medium text-foreground outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 cursor-pointer shadow-sm hover:bg-muted/90 transition-colors whitespace-nowrap"
+                className="no-ring appearance-none rounded-xl border border-border bg-background/80 pl-2 pr-6 py-1 text-meta font-medium text-foreground outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 cursor-pointer shadow-sm hover:bg-muted/90 transition-colors whitespace-nowrap"
               >
                 <option value="Last 12 Months" className="bg-background text-foreground">Last 12 Months</option>
                 <option value="This Year" className="bg-background text-foreground">This Year</option>
@@ -429,7 +386,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                 <XAxis dataKey="month" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} dy={4} />
                 <YAxis
                   stroke="#64748b"
-                  fontSize={10}
+                  fontSize={11}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={(val) => (val === 0 ? "0" : `₹${Math.round(val / 100000)}L`)}
@@ -495,7 +452,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
           </div>
 
           {/* Bottom Legend */}
-          <div className="mt-1 flex items-center justify-center gap-5 text-[11px] font-medium pt-1 border-t border-border/50">
+          <div className="mt-1 flex items-center justify-center gap-5 text-meta font-medium pt-1 border-t border-border/50">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <span className="size-2 rounded-full bg-[#10b981] shadow-sm shadow-emerald-500/50 shrink-0" />
               Booked Value
@@ -616,7 +573,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
                 <span className="text-xl font-bold text-foreground font-mono">{activeBookingsByType.total}</span>
-                <span className="text-[10px] text-muted-foreground font-medium">Total Bookings</span>
+                <span className="text-meta text-muted-foreground font-medium">Total Bookings</span>
               </div>
             </div>
 
@@ -629,7 +586,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                     {t.type}
                   </span>
                   <span className="font-semibold text-foreground text-xs whitespace-nowrap shrink-0 font-mono ml-2">
-                    {t.count} <span className="text-[10px] text-muted-foreground font-normal">({t.percentage}%)</span>
+                    {t.count} <span className="text-meta text-muted-foreground font-normal">({t.percentage}%)</span>
                   </span>
                 </div>
               ))}
@@ -647,14 +604,14 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
           <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-foreground">Needs You Now</h2>
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full ring-1 ring-emerald-500/20">
+              <span className="flex items-center gap-1 text-meta font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full ring-1 ring-emerald-500/20">
                 <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Live
               </span>
             </div>
             <Link
               href="/my-work"
-              className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors"
+              className="text-detail font-semibold text-purple-400 hover:text-purple-300 transition-colors"
             >
               View all ({data.attentionItems.length})
             </Link>
@@ -672,7 +629,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                   <div className="flex-1 min-w-0 flex flex-col gap-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span
-                        className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md shrink-0 ${item.badge === "URGENT"
+                        className={`text-meta font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md shrink-0 ${item.badge === "URGENT"
                           ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                           : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
                           }`}
@@ -681,7 +638,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                       </span>
                       <span className="text-xs font-medium text-foreground truncate min-w-0 flex-1">{item.title}</span>
                     </div>
-                    <span className="text-[11px] text-muted-foreground truncate min-w-0">{item.subtitle}</span>
+                    <span className="text-meta text-muted-foreground truncate min-w-0">{item.subtitle}</span>
                   </div>
 
                   <Link
@@ -734,7 +691,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
 
               <Link
                 href="/calendar"
-                className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors shrink-0 whitespace-nowrap"
+                className="text-detail font-semibold text-purple-400 hover:text-purple-300 transition-colors shrink-0 whitespace-nowrap"
               >
                 View all
               </Link>
@@ -751,12 +708,12 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                     <span className="text-xs font-bold text-emerald-400 shrink-0">{evt.formattedTime}</span>
                     <div className="flex flex-col min-w-0 flex-1">
                       <span className="text-xs font-bold text-foreground truncate min-w-0">{evt.eventName}</span>
-                      <span className="text-[11px] text-muted-foreground truncate min-w-0">{evt.hall}</span>
+                      <span className="text-meta text-muted-foreground truncate min-w-0">{evt.hall}</span>
                     </div>
                   </div>
 
                   <span
-                    className={`shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${evt.statusTone === "success"
+                    className={`shrink-0 text-meta font-semibold px-2 py-0.5 rounded-full border ${evt.statusTone === "success"
                       ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
                       : evt.statusTone === "info"
                         ? "bg-blue-500/15 text-blue-400 border-blue-500/30"
@@ -810,7 +767,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
           <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-2 w-full mt-1">
             <table className="w-full text-left text-xs text-muted-foreground">
               <thead className="sticky top-0 bg-card z-10">
-                <tr className="border-b border-border text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <tr className="border-b border-border text-meta font-semibold uppercase tracking-wider text-muted-foreground">
                   <th className="py-2 pr-2">Hall</th>
                   <th className="py-2 px-1">Morning</th>
                   <th className="py-2 px-1">Evening</th>
@@ -830,7 +787,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                       <td className="py-2.5 pr-2 font-medium text-foreground truncate max-w-[100px]">{h.venueName}</td>
                       <td className="py-2.5 px-1">
                         <span
-                          className={`inline-block px-2 py-1 rounded-lg text-[10px] font-medium border ${h.morning.status === "FREE"
+                          className={`inline-block px-1.5 py-1 rounded-lg text-meta font-medium border ${h.morning.status === "FREE"
                             ? "bg-muted/50 text-muted-foreground border-border/50"
                             : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-semibold shadow-sm"
                             }`}
@@ -841,7 +798,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                       </td>
                       <td className="py-2.5 px-1">
                         <span
-                          className={`inline-block px-2 py-1 rounded-lg text-[10px] font-medium border ${h.evening.status === "FREE"
+                          className={`inline-block px-1.5 py-1 rounded-lg text-meta font-medium border ${h.evening.status === "FREE"
                             ? "bg-muted/50 text-muted-foreground border-border/50"
                             : "bg-purple-500/20 text-purple-300 border-purple-500/30 font-semibold shadow-sm"
                             }`}
@@ -852,7 +809,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                       </td>
                       <td className="py-2.5 pl-1">
                         <span
-                          className={`inline-block px-2 py-1 rounded-lg text-[10px] font-medium border ${h.fullDay.status === "FREE"
+                          className={`inline-block px-1.5 py-1 rounded-lg text-meta font-medium border ${h.fullDay.status === "FREE"
                             ? "bg-muted/50 text-muted-foreground border-border/50"
                             : "bg-amber-500/20 text-amber-300 border-amber-500/30 font-semibold shadow-sm"
                             }`}
@@ -881,7 +838,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
             <h2 className="text-base font-bold text-foreground">Team Performance (Velos)</h2>
             <Link
               href="/performance/velos"
-              className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors shrink-0"
+              className="text-detail font-semibold text-purple-400 hover:text-purple-300 transition-colors shrink-0"
             >
               View leaderboard
             </Link>
@@ -913,7 +870,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                         </div>
                         {/* Info */}
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-[11px] font-extrabold text-amber-400 tracking-wider leading-none">#1</span>
+                          <span className="text-meta font-extrabold text-amber-400 tracking-wider leading-none">#1</span>
                           <span className="text-sm font-bold text-foreground leading-tight whitespace-nowrap">{winner.name}</span>
                           <span className="text-sm font-extrabold text-emerald-400 flex items-center gap-1 font-mono whitespace-nowrap">
                             {winner.points.toLocaleString("en-IN")} pts
@@ -950,16 +907,16 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                                 )}
                               </div>
                               {/* Rank badge — bottom-left of avatar */}
-                              <span className={`absolute -bottom-1 -left-0.5 flex items-center justify-center text-[9px] font-extrabold min-w-[20px] h-[14px] px-1 rounded-full shadow ${badgeColors}`}>
+                              <span className={`absolute -bottom-1 -left-0.5 flex items-center justify-center text-meta leading-none font-extrabold min-w-5 h-4 px-1 rounded-full shadow ${badgeColors}`}>
                                 #{user.rank}
                               </span>
                             </div>
                             {/* Name */}
-                            <span className="text-[11px] font-semibold text-foreground whitespace-nowrap">
+                            <span className="text-meta font-semibold text-foreground whitespace-nowrap">
                               {user.name.split(" ")[0]}
                             </span>
                             {/* Points */}
-                            <span className="text-[11px] font-bold text-muted-foreground font-mono whitespace-nowrap">
+                            <span className="text-meta tracking-normal font-bold text-muted-foreground font-mono whitespace-nowrap">
                               {user.points.toLocaleString("en-IN")} pts
                             </span>
                           </div>
@@ -979,7 +936,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
             <h2 className="text-base font-bold text-foreground">Receivables & Overdue Invoices</h2>
             <Link
               href="/invoices"
-              className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors"
+              className="text-detail font-semibold text-purple-400 hover:text-purple-300 transition-colors"
             >
               View all ({data.overdueInvoices.length})
             </Link>
@@ -996,8 +953,8 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                     <span className="text-muted-foreground truncate min-w-0 flex-1">{inv.clientName}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[11px] text-muted-foreground whitespace-nowrap">Due {inv.dueDateFormatted}</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30 whitespace-nowrap">
+                    <span className="text-meta text-muted-foreground whitespace-nowrap">Due {inv.dueDateFormatted}</span>
+                    <span className="px-2 py-0.5 rounded-full text-meta font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30 whitespace-nowrap">
                       Overdue
                     </span>
                   </div>
@@ -1013,7 +970,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
             <h2 className="text-base font-bold text-foreground">Pending Payment Proofs</h2>
             <Link
               href="/payments"
-              className="text-xs font-semibold text-purple-400 hover:text-purple-300 transition-colors"
+              className="text-detail font-semibold text-purple-400 hover:text-purple-300 transition-colors"
             >
               View all ({data.pendingPaymentProofs.length})
             </Link>
@@ -1027,7 +984,7 @@ export function FullDashboardView({ data }: FullDashboardViewProps) {
                 <div key={proof.id} className="flex items-center justify-between gap-2 text-xs py-1.5 border-b border-border/50 last:border-0 shrink-0 w-full">
                   <div className="flex-1 min-w-0 flex flex-col">
                     <span className="font-bold text-foreground truncate min-w-0">{proof.clientName}</span>
-                    <span className="text-[11px] text-muted-foreground truncate min-w-0">{proof.uploadedAgo}</span>
+                    <span className="text-meta text-muted-foreground truncate min-w-0">{proof.uploadedAgo}</span>
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0">

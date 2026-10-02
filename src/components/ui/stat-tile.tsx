@@ -1,72 +1,189 @@
 // ============================================================
-// StatTile — a colorful, gamified KPI tile. A soft color-washed card with an
-// icon chip, a big value, an optional trend delta, and an optional progress
-// ring/bar. Used across dashboards and module landings to make progress feel
-// lively and worth coming back to. Pick an `accent` per metric.
+// StatTile: the one KPI tile, styled like the approved dashboard KPI card.
+// ------------------------------------------------------------
+//   [LABEL, UPPERCASE, UP TO 2 LINES]            [chip]
+//   ₹12,45,000
+//   ↗ +12% vs last month         (optional trend)
+//   sub line                      (optional)
+//   ↑ +3 deltaLabel               (optional delta)
+//
+// When `pct` is set the progress ring takes the top-right slot and the chip
+// moves to the left of the label.
+//
+// The surface is the shared glass material plus an explicit 1px border on the
+// element. The border is never added inside the surface-glass @utility: that
+// utility compiles after Tailwind's border utilities, and a border there once
+// silently removed every Card's own border.
+//
+// Chip colours come from SOFT_CHIP in src/lib/ui/hues.ts through IconChip.
+// Nothing here assembles a class name from a variable.
 // ============================================================
 
 import * as React from "react";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowDown, ArrowDownRight, ArrowUp, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HOVER_EDGE, RING_TEXT, isHue, type Hue } from "@/lib/ui/hues";
+import { IconChip } from "@/components/ui/icon-chip";
 import { Donut } from "@/components/ui/donut";
 import { CountUp } from "@/components/ui/count-up";
 
-export type Accent = "indigo" | "blue" | "gold" | "brand" | "emerald" | "amber" | "rose" | "red" | "pink" | "cyan" | "teal";
+/**
+ * The 11 accents StatTile has always taken. It is a subset of Hue (everything
+ * except slate), so other files that key their own Record<Accent, …> maps on
+ * it keep type-checking. The `accent` prop itself takes any Hue.
+ */
+export type Accent = Exclude<Hue, "slate">;
 
-const ACCENT: Record<Accent, { wash: string; chip: string; ring: string; bar: string; text: string }> = {
-  indigo: { wash: "from-indigo-500/8 to-indigo-500/0", chip: "bg-indigo-100 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-300", ring: "text-indigo-500", bar: "bg-indigo-500", text: "text-indigo-600 dark:text-indigo-300" },
-  blue: { wash: "from-blue-500/8 to-blue-500/0", chip: "bg-blue-100 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300", ring: "text-blue-500", bar: "bg-blue-500", text: "text-blue-600 dark:text-blue-300" },
-  // Brand slots — token-driven so they follow the emerald+gold identity rather
-  // than a frozen palette step. `violet` retired with the rebrand.
-  gold: { wash: "from-gold/10 to-gold/0", chip: "bg-gold/15 text-gold dark:bg-gold/20", ring: "text-gold", bar: "bg-gold", text: "text-gold" },
-  brand: { wash: "from-primary/10 to-primary/0", chip: "bg-primary/12 text-primary dark:bg-primary/20", ring: "text-primary", bar: "bg-primary", text: "text-primary" },
-  emerald: { wash: "from-emerald-500/8 to-emerald-500/0", chip: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300", ring: "text-emerald-500", bar: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-300" },
-  amber: { wash: "from-amber-500/8 to-amber-500/0", chip: "bg-amber-100 text-amber-600 dark:bg-amber-950/50 dark:text-amber-300", ring: "text-amber-500", bar: "bg-amber-500", text: "text-amber-600 dark:text-amber-300" },
-  rose: { wash: "from-rose-500/8 to-rose-500/0", chip: "bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-300", ring: "text-rose-500", bar: "bg-rose-500", text: "text-rose-600 dark:text-rose-300" },
-  // `red` for urgent/negative states (overdue money, failures). Distinct from
-  // `rose`, whose 500 stop (#f43f5e) reads pink rather than urgent.
-  red: { wash: "from-red-500/8 to-red-500/0", chip: "bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-300", ring: "text-red-500", bar: "bg-red-500", text: "text-red-600 dark:text-red-300" },
-  pink: { wash: "from-pink-500/8 to-pink-500/0", chip: "bg-pink-100 text-pink-600 dark:bg-pink-950/50 dark:text-pink-300", ring: "text-pink-500", bar: "bg-pink-500", text: "text-pink-600 dark:text-pink-300" },
-  cyan: { wash: "from-cyan-500/8 to-cyan-500/0", chip: "bg-cyan-100 text-cyan-600 dark:bg-cyan-950/50 dark:text-cyan-300", ring: "text-cyan-500", bar: "bg-cyan-500", text: "text-cyan-600 dark:text-cyan-300" },
-  teal: { wash: "from-teal-500/8 to-teal-500/0", chip: "bg-teal-100 text-teal-600 dark:bg-teal-950/50 dark:text-teal-300", ring: "text-teal-500", bar: "bg-teal-500", text: "text-teal-600 dark:text-teal-300" },
+/** Which way the figure moved: up = an increase, down = a decrease, neutral = neither. */
+export type StatTileTrendTone = "up" | "down" | "neutral";
+
+/** What the movement means for the business; it only picks the trend line's colour. */
+export type StatTileTrendIntent = "good" | "bad" | "neutral";
+
+/**
+ * A short, already-worded trend line, e.g. "+12% vs last month" or
+ * "3 invoices overdue".
+ *
+ * - `tone` is the direction only, and the glyph always follows it:
+ *   up = an increase (↗), down = a decrease (↘), neutral = no glyph (no
+ *   change, or a line that is not a change at all). Never pick "down" for a
+ *   rise because the rise is bad news; that draws a falling arrow for a
+ *   number that went up.
+ * - `intent` is optional and only picks the colour: good = success,
+ *   bad = destructive, neutral = muted. Omitted, it follows the direction
+ *   (up = good, down = bad, neutral = neutral). A rising cost is
+ *   `{ tone: "up", intent: "bad" }`.
+ *
+ * The glyph is decorative (aria-hidden), so the text must carry the
+ * direction itself: a sign ("+12%", "−8%") or a word ("up 12%").
+ */
+export interface StatTileTrend {
+  text: string;
+  tone: StatTileTrendTone;
+  intent?: StatTileTrendIntent;
+}
+
+const TREND_INTENT: Readonly<Record<StatTileTrendIntent, string>> = {
+  good: "text-success",
+  bad: "text-destructive",
+  neutral: "text-muted-foreground",
 };
 
-interface StatTileProps {
+/** The colour a trend gets when it names no intent: rises read as good, falls as bad. */
+const DEFAULT_INTENT: Readonly<Record<StatTileTrendTone, StatTileTrendIntent>> = {
+  up: "good",
+  down: "bad",
+  neutral: "neutral",
+};
+
+export interface StatTileProps {
   label: string;
   value: React.ReactNode;
-  accent?: Accent;
+  /** Hue of the tinted chip, the ring and the hover edge. Unknown values fall back to brand. */
+  accent?: Hue;
   icon?: React.ReactNode;
   sub?: string;
-  /** Trend delta vs previous period (e.g. +12 or "+12%"). Positive = green. */
+  /** Trend delta vs previous period (e.g. +12). Positive = green. */
   delta?: number;
   deltaLabel?: string;
+  /** Optional worded trend line under the value. */
+  trend?: StatTileTrend;
   /** Show a progress ring (0–100) instead of plain value emphasis. */
   pct?: number;
   className?: string;
 }
 
-export function StatTile({ label, value, accent = "indigo", icon, sub, delta, deltaLabel, pct, className }: StatTileProps) {
-  const a = ACCENT[accent];
+export function StatTile({ label, value, accent = "indigo", icon, sub, delta, deltaLabel, trend, pct, className }: StatTileProps) {
+  // Same contract as `SOFT_CHIP[accent] ?? SOFT_CHIP.brand`: a hue that isn't
+  // in the token set (a stale string, a null from untyped data) renders as
+  // brand instead of throwing. Every map below is then read with a known key.
+  const hue: Hue = isHue(accent) ? accent : "brand";
+  const ring = typeof pct === "number" ? Math.max(0, Math.min(100, pct)) : null;
+  const hasRing = ring !== null;
+
+  // IconChip takes an element. Every caller passes one (an icon like
+  // <Wallet className="size-4" />); anything else is wrapped in a fragment so
+  // it still renders inside the chip.
+  const chip = icon ? (
+    <IconChip icon={React.isValidElement(icon) ? icon : <>{icon}</>} hue={hue} size="md" tone="soft" />
+  ) : null;
+
+  // The label band. Uppercase plus tracking makes labels about 20% wider than
+  // before, and the band also holds the 36px chip (and, beside it, the ring),
+  // so it is built to degrade instead of squeezing:
+  // - The band is exactly chip height (h-9), and the label is clamped to two
+  //   lines (line-clamp-2, never `truncate`), so values line up across a grid
+  //   row whatever the label length.
+  // - The label's flex size is the larger of a floor (5rem; 4rem beside a
+  //   ring) and its longest word (w-min + min-w). When that plus the chip
+  //   doesn't fit on one line (a 6-column grid, a 4-column grid on a tablet),
+  //   the chip wraps to a second line that the band clips. The tile then shows
+  //   no chip rather than a label broken mid-word.
+  // - break-words only acts if a single word is wider than the whole band.
+  const labelEl = (
+    <span
+      className={
+        hasRing
+          ? "flex min-h-9 w-min min-w-[min(4rem,100%)] grow items-center"
+          : "flex min-h-9 w-min min-w-[min(5rem,100%)] grow items-center"
+      }
+    >
+      <span className="line-clamp-2 min-w-0 break-words text-meta font-semibold uppercase leading-snug tracking-[0.06em] text-muted-foreground">
+        {label}
+      </span>
+    </span>
+  );
+
   return (
     // KPI grids are routinely `grid-cols-2 md:grid-cols-4`, so at 375px a tile
     // is only ~171px wide. p-5 (40px of gutter) plus a 28px money figure like
     // "₹12,45,000" overflowed its own card; the mobile-first values below shrink
-    // the padding and type just enough to fit, and `sm:` restores today's
-    // desktop look exactly.
-    <div className={cn("group relative overflow-hidden surface-glass rounded-[22px] p-4 transition-shadow duration-200 hover:shadow-card-hover sm:p-5", className)}>
+    // the padding and type just enough to fit, and `sm:` restores the desktop
+    // size.
+    <div
+      className={cn(
+        "group relative overflow-hidden surface-glass rounded-[22px] border border-border p-4 transition-[box-shadow,border-color] duration-200 hover:shadow-card-hover sm:p-5",
+        HOVER_EDGE[hue],
+        className
+      )}
+    >
       <div className="relative z-[1] flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            {icon && <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-[10px] [&>svg]:size-4", a.chip)}>{icon}</span>}
-            {/* min-w-0 + wrapping: labels like "Leads created this month" must
-                wrap rather than push the tile wider than its grid cell. */}
-            <span className="min-w-0 text-meta font-medium leading-snug tracking-[-0.005em] text-muted-foreground sm:text-xs">{label}</span>
-          </div>
-          {/* break-words, never truncate — a clipped money figure is a wrong
+          {hasRing ? (
+            // Ring tile: the ring holds the top-right slot, so the chip sits
+            // left of the label. The label comes first in the DOM so that,
+            // when space runs out, the chip is the item that wraps away;
+            // row-reverse + justify-end still draws it on the left.
+            <div className="flex h-9 flex-row-reverse flex-wrap content-start items-center justify-end gap-x-2 overflow-hidden">
+              {labelEl}
+              {chip}
+            </div>
+          ) : (
+            // Label top-left, chip top-right.
+            <div className="flex h-9 flex-wrap content-start items-center justify-between gap-x-2 overflow-hidden">
+              {labelEl}
+              {chip}
+            </div>
+          )}
+          {/* break-words, never truncate: a clipped money figure is a wrong
               number, so a long value wraps to a second line instead. */}
           <div className="mt-2.5 break-words text-title font-bold tabular-nums leading-tight tracking-[-0.03em] sm:mt-3 sm:text-h2 sm:leading-none">
             {typeof value === "number" ? <CountUp value={value} /> : value}
           </div>
+          {trend?.text ? (
+            <p className="mt-2 text-meta font-medium leading-snug">
+              <span
+                className={cn(
+                  "flex items-start gap-1",
+                  TREND_INTENT[trend.intent ?? DEFAULT_INTENT[trend.tone] ?? "neutral"] ?? TREND_INTENT.neutral
+                )}
+              >
+                {trend.tone === "up" && <ArrowUpRight aria-hidden className="mt-px size-3.5 shrink-0" />}
+                {trend.tone === "down" && <ArrowDownRight aria-hidden className="mt-px size-3.5 shrink-0" />}
+                <span className="min-w-0">{trend.text}</span>
+              </span>
+            </p>
+          ) : null}
           {sub && <p className="mt-2 text-meta leading-snug text-muted-foreground">{sub}</p>}
           {typeof delta === "number" && delta !== 0 && (
             <p className="mt-2 flex items-center gap-1.5 text-meta">
@@ -78,14 +195,14 @@ export function StatTile({ label, value, accent = "indigo", icon, sub, delta, de
             </p>
           )}
         </div>
-        {typeof pct === "number" && (
+        {ring !== null && (
           // shrink-0: without it flexbox squeezes the 48px ring into an ellipse
           // when the label column is long. It keeps its full size on mobile —
           // scaling it down would only add whitespace, since the layout still
           // reserves 48px — and the text column absorbs the difference by
           // wrapping instead.
           <span className="block shrink-0">
-            <Donut value={Math.max(0, Math.min(100, pct))} size={48} thickness={5} colorClass={a.ring} ariaLabel={`${pct}% ${label}`} />
+            <Donut value={ring} size={48} thickness={5} colorClass={RING_TEXT[hue]} ariaLabel={`${pct}% ${label}`} />
           </span>
         )}
       </div>

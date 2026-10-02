@@ -3,11 +3,20 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, SparklesIcon } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { aiScoreAllDeals } from "@/actions/ai.actions";
-import { Button } from "@/components/ui/button";
+import { QuickActionButton } from "@/components/ui/quick-actions";
 
+// Runs AI scoring over every open deal. Rendered as a secondary pill in the
+// /pipeline header's action cluster. Its chip is the Pipeline module's own
+// (teal Kanban, from src/config/modules.ts), because the scores land on this
+// board's deals. It is deliberately not Sparkles even though the scoring is
+// AI: Sparkles is reserved for the AI assistant's mark, and pages never pick a
+// pill's glyph. The only override is the busy state: while it runs, the pill
+// is disabled and busy and its chip turns into a spinner; the label stays
+// "Score deals" so its accessible name does not change mid-action, and the
+// toast reports the result.
 export function ScoreAllDealsButton() {
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
@@ -30,18 +39,13 @@ export function ScoreAllDealsButton() {
   }
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
+    <QuickActionButton
+      label="Score deals"
+      module="pipeline"
+      icon={loading ? <Loader2 className="animate-spin" strokeWidth={2} aria-hidden /> : undefined}
       onClick={handleScoreAll}
       disabled={loading}
-    >
-      {loading ? (
-        <Loader2 className="size-3.5 animate-spin" />
-      ) : (
-        <SparklesIcon className="size-3.5" />
-      )}
-      {loading ? "Scoring…" : "Score all"}
-    </Button>
+      aria-busy={loading || undefined}
+    />
   );
 }

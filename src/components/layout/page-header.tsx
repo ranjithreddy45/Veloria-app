@@ -1,55 +1,144 @@
 import type React from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Hue } from "@/lib/ui/hues";
+import type { ModuleKey } from "@/config/modules";
+import { ModuleChip, ModuleEyebrow } from "@/components/layout/module-chip";
 
-// ClickUp-style module accent chips — a colored icon tile to the left of the
-// title so each module reads at a glance. Full class strings for Tailwind's JIT.
-export type HeaderAccent =
-  | "brand"
-  | "gold"
-  | "blue"
-  | "amber"
-  | "emerald"
-  | "teal"
-  | "pink"
-  | "cyan"
-  | "rose"
-  | "slate";
+// ============================================================
+// PageHeader: the one header every page under src/app/(dashboard) uses.
+// ------------------------------------------------------------
+// Composition (one left edge):
+//   eyebrow
+//   [module chip] title [?]
+//   description
+//   meta row (only when `actions` is passed; holds `children`)
+// with the action cluster to the right of that block.
+//
+// The module chip is NOT chosen by the page. ModuleChip (a small client
+// island, so this file stays a server component) resolves it from the current
+// route through src/config/modules.ts, longest prefix first. Pages pass
+// `module` only to force another module's chip, or `module={false}` for none.
+// The chip sits inside the title row as a sibling of the h1 (never inside it,
+// and aria-hidden), so the eyebrow, title row and description all start at
+// the content edge, and it is hidden below sm so a phone title starts at the
+// 16px gutter.
+//
+// Every header has an eyebrow (R1). A page that passes none gets its module's
+// name there (ModuleEyebrow, the same route lookup), so the title row never
+// starts the header. That is also what the loading skeletons assume: their
+// title box sits under a one-line eyebrow, so a header without one made the
+// title jump 24px up when the page replaced its skeleton.
+//
+// The default eyebrow never just repeats the h1. ModuleEyebrow is handed the
+// title, and where the module's name equals it (/resources "Resources",
+// /people/payroll "Payroll") it names the module's sidebar section instead
+// ("Delivery & Ops", "People"); moduleEyebrowText in src/config/modules.ts
+// holds the rule. The text is still one short line.
+//
+// Colours: --primary is plum. Chip colours live only in src/lib/ui/hues.ts.
+// ============================================================
 
-// `violet` used to be the brand slot; with an emerald+gold identity it retired and
-// gold took its place, so 85 module headers gain the second metal without touching
-// their call sites. The remaining hues stay categorical — they let each module read
-// at a glance, so they are deliberately NOT collapsed into the brand colour.
-const ACCENT_CHIP: Record<HeaderAccent, string> = {
-  brand: "bg-primary/12 text-primary dark:bg-primary/20",
-  gold: "bg-gold/15 text-gold dark:bg-gold/20",
-  blue: "bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300",
-  amber: "bg-amber-500/15 text-amber-600 dark:bg-amber-400/15 dark:text-amber-300",
-  emerald: "bg-emerald-500/12 text-emerald-600 dark:bg-emerald-400/15 dark:text-emerald-300",
-  teal: "bg-teal-500/12 text-teal-600 dark:bg-teal-400/15 dark:text-teal-300",
-  pink: "bg-pink-500/12 text-pink-600 dark:bg-pink-400/15 dark:text-pink-300",
-  cyan: "bg-cyan-500/12 text-cyan-600 dark:bg-cyan-400/15 dark:text-cyan-300",
-  rose: "bg-rose-500/12 text-rose-600 dark:bg-rose-400/15 dark:text-rose-300",
-  slate: "bg-slate-500/12 text-slate-600 dark:bg-slate-400/15 dark:text-slate-300",
-};
+/**
+ * @deprecated The header chip's hue comes from src/config/modules.ts; the
+ * `accent` prop is ignored. Kept as an alias so existing call sites still
+ * type-check until the call-site cleanup removes them.
+ */
+export type HeaderAccent = Hue;
+
+/**
+ * The header's class strings, exported so PageHeaderSkeleton draws exactly the
+ * same boxes and the two cannot drift. Full literals (Tailwind only generates
+ * classes it can read in the source).
+ */
+export const PAGE_HEADER_CLASSES = {
+  // min-w-0 on the wrapper AND the title column: without it a long unbroken
+  // title (or a wide action button) sets the flex basis and pushes the whole
+  // page into a horizontal scroll on a 375px screen. sm:flex-wrap plus a
+  // minimum title width: a dense action row (lead detail has nine controls)
+  // must wrap BELOW the title, never crush it into letter-by-letter breaks.
+  root: "relative flex min-w-0 flex-col gap-4 pb-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between",
+  // With an action cluster the cluster centres on the title block instead of
+  // sitting on its baseline.
+  rootWithActions:
+    "relative flex min-w-0 flex-col gap-4 pb-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between",
+  titleColumn: "min-w-0 space-y-2 sm:min-w-[280px] sm:flex-1",
+  eyebrow: "text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground",
+  // items-start: the 40px chip lines up with the h1's first line (39px at
+  // sm and above) and stays there when a long title wraps.
+  titleRow: "flex min-w-0 items-start gap-2.5",
+  // The chip's own spacing, on top of the row gap (which also spaces the help
+  // "?"), so chip-to-title is 14px.
+  chip: "mr-1",
+  // The chip's box: IconChip size "lg".
+  chipBox: "size-10 rounded-xl",
+  title: "large-title min-w-0 break-words text-h2 leading-tight text-foreground sm:text-h1",
+  // self-center keeps the "?" centred on the title, as it was before the row
+  // switched to items-start for the chip.
+  help: "shrink-0 self-center",
+  description: "max-w-2xl text-body leading-relaxed text-muted-foreground sm:text-copy",
+  // `children` when the page also passes `actions`.
+  meta: "flex flex-wrap items-center gap-2 empty:hidden",
+  // `children` when the page passes no `actions` (unchanged right-side slot).
+  // Actions wrap AND each child may shrink, so a header with three buttons
+  // stacks into rows instead of running off a 375px screen.
+  children: "relative flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto",
+  // The action cluster. shrink-0 keeps it on one line beside the title; when
+  // it does not fit beside a 280px title column, the root's flex-wrap moves the
+  // whole cluster below the title block. max-w-full caps it at the content
+  // width so it can never be clipped or scroll sideways.
+  actions: "flex max-w-full shrink-0 items-center gap-2",
+  // When nothing in the slot is clickable (every pill filtered out by
+  // permissions, a menu that rendered nothing) the slot disappears instead of
+  // leaving an empty box and its gap.
+  actionsAutoHide: "[&:not(:has(a,button))]:hidden",
+} as const;
+
+const C = PAGE_HEADER_CLASSES;
 
 interface PageHeaderProps {
   title: string;
   /** Supporting copy under the title. ReactNode (not just string) so callers can
    * inline links/emphasis instead of flattening rich content to a template string. */
   description?: React.ReactNode;
-  /** Small uppercase label rendered above the title (Linear-style eyebrow). */
+  /**
+   * Small uppercase label rendered above the title (Linear-style eyebrow),
+   * normally "Module · Section". Omitted, it is the module's name from
+   * src/config/modules.ts, or the module's sidebar section where that name
+   * equals `title`.
+   */
   eyebrow?: React.ReactNode;
-  /** Optional module icon rendered in a colored chip to the left of the title. */
+  /**
+   * The module whose chip to show. Omit it: the chip comes from the current
+   * route via src/config/modules.ts. Pass a key only for a page that lives
+   * outside its module's URL tree, or `false` for no chip.
+   */
+  module?: ModuleKey | false;
+  /**
+   * The page's action cluster, normally `<QuickActions … />`. It sits right of
+   * the title block, vertically centred, and wraps below it as one row when it
+   * does not fit. When it is passed, `children` render as a meta row under the
+   * description instead of beside the actions.
+   */
+  actions?: React.ReactNode;
+  /**
+   * @deprecated Ignored. The chip comes from src/config/modules.ts via the
+   * route; use `module` to override it.
+   */
   icon?: LucideIcon;
-  /** Accent hue for the icon chip. Defaults to violet. */
+  /**
+   * @deprecated Ignored. The chip's hue comes from src/config/modules.ts; use
+   * `module` to override it.
+   */
   accent?: HeaderAccent;
-  /** Right-side actions. */
+  /**
+   * Without `actions`: right-side controls (unchanged behaviour).
+   * With `actions`: a meta row under the description.
+   */
   children?: React.ReactNode;
   /** Optional help hint rendered as a "?" next to the title. */
   help?: React.ReactNode;
-  /** Render a premium ambient aura + dotted grid behind the header.
-   * Use on module landing pages for a hero moment. */
+  /** @deprecated No-op. The header always sits on the plain canvas. */
   aura?: boolean;
   className?: string;
 }
@@ -58,55 +147,36 @@ export function PageHeader({
   title,
   description,
   eyebrow,
-  icon: Icon,
-  accent = "brand",
+  module: moduleKey,
+  actions,
   children,
   help,
   className,
 }: PageHeaderProps) {
+  const hasActions = Boolean(actions);
+
   return (
-    <div
-      className={cn(
-        // min-w-0 on the wrapper AND the text column: without it a long
-        // unbroken title (or a wide action button) sets the flex basis and
-        // pushes the whole page into a horizontal scroll on a 375px screen.
-        // sm:flex-wrap + a minimum title width: a dense action row (lead detail
-        // has nine controls) must wrap BELOW the title, never crush it into
-        // letter-by-letter line breaks.
-        "relative flex min-w-0 flex-col gap-4 pb-2 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between",
-        // `aura` retained for API compatibility but intentionally no longer
-        // paints an ambient glow / dotted grid — Apple restraint keeps the
-        // header on the plain canvas.
-        className
-      )}
-    >
-      <div className="flex min-w-0 items-start gap-3.5 sm:min-w-[280px] sm:flex-1">
-        {/* Apple restraint: the coloured icon tile next to every page title made
-            each page open with a badge of colour. The large title now stands on
-            its own; `icon`/`accent` remain accepted for API compatibility. */}
-        <div className="min-w-0 space-y-2">
-          {eyebrow && (
-            <div className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-              {eyebrow}
-            </div>
-          )}
-          {/* The help "?" must not be pushed off-screen by a long title, so the
-              title takes the min-w-0/wrap and the hint stays shrink-0. */}
-          <div className="flex min-w-0 items-center gap-2.5">
-            <h1 className="large-title min-w-0 break-words text-h2 leading-tight text-foreground sm:text-h1">
-              {title}
-            </h1>
-            {help && <span className="shrink-0">{help}</span>}
-          </div>
-          {description && (
-            <p className="max-w-2xl text-body leading-relaxed text-muted-foreground sm:text-copy">{description}</p>
-          )}
+    <div className={cn(hasActions ? C.rootWithActions : C.root, className)}>
+      <div className={C.titleColumn}>
+        {eyebrow ? (
+          <div className={C.eyebrow}>{eyebrow}</div>
+        ) : (
+          <ModuleEyebrow module={moduleKey} title={title} className={C.eyebrow} />
+        )}
+        {/* The help "?" must not be pushed off-screen by a long title, so the
+            title takes the min-w-0/wrap and the hint stays shrink-0. */}
+        <div className={C.titleRow}>
+          <ModuleChip module={moduleKey} className={C.chip} />
+          <h1 className={C.title}>{title}</h1>
+          {help && <span className={C.help}>{help}</span>}
         </div>
+        {description && <p className={C.description}>{description}</p>}
+        {hasActions && children && <div className={C.meta}>{children}</div>}
       </div>
-      {children && (
-        // Actions wrap AND each child may shrink, so a header with three
-        // buttons stacks into rows instead of running off a 375px screen.
-        <div className="relative flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">{children}</div>
+      {hasActions ? (
+        <div className={cn(C.actions, C.actionsAutoHide)}>{actions}</div>
+      ) : (
+        children && <div className={C.children}>{children}</div>
       )}
     </div>
   );

@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
+import { auth } from "@/../auth";
 import { getPipelineStages, getPipelineStats } from "@/actions/pipeline.actions";
 import { PageHeader } from "@/components/layout/page-header";
 import { HelpHint } from "@/components/layout/help-hint";
+import { QuickActions } from "@/components/ui/quick-actions";
+import { hasPermission } from "@/lib/permissions";
+import { sessionAllows } from "@/lib/permission-claims";
 import { PipelineBoard } from "./_components/pipeline-board";
 import { ScoreAllDealsButton } from "./_components/score-all-deals-button";
 import { SyncLeadsButton } from "./_components/sync-leads-button";
@@ -17,9 +21,10 @@ function formatIndianCurrency(value: number): string {
 }
 
 export default async function PipelinePage() {
-  const [stagesResult, statsResult] = await Promise.all([
+  const [stagesResult, statsResult, session] = await Promise.all([
     getPipelineStages(),
     getPipelineStats(),
+    auth(),
   ]);
 
   const stages = stagesResult.success ? stagesResult.data : [];
@@ -34,10 +39,43 @@ export default async function PipelinePage() {
       ?.filter((s) => s.isWonStage)
       .reduce((sum, s) => sum + s.totalValue, 0) ?? 0;
 
+  // The header's two actions are client buttons that run a server action in
+  // place, so each is shown only to someone that action accepts: Sync leads
+  // runs backfillLeadPipeline (pipeline:update) and Score deals runs
+  // aiScoreAllDeals (ai:admin). Both actions check the static role matrix,
+  // so the static check is required as well as the override-aware one the
+  // rest of the page's gating uses; a permission granted only through an
+  // override would otherwise show a button whose click gets an
+  // "Insufficient permissions" toast.
+  const role = session?.user?.role ?? "";
+  const canSyncLeads = sessionAllows(session, "pipeline:update") && hasPermission(role, "pipeline:update");
+  const canScoreDeals = sessionAllows(session, "ai:admin") && hasPermission(role, "ai:admin");
+
+  // R6 exception (the second, after Vendors): this cluster has no primary pill.
+  // A deal is an existing lead placed INTO a stage, and AddDealDialog takes
+  // that stage from the column it is opened from, so the page's create is the
+  // stage-aware "New deal" at the foot of every open column
+  // (_components/pipeline-column.tsx). A header "New deal" would either repeat
+  // those buttons with the same label and dialog (R8: one action, once per
+  // page state) or have to pick a stage for the user and silently file every
+  // new deal under the first one. Vendors keeps its create in the tab toolbar
+  // because it depends on the tab; Pipeline keeps it in the columns because it
+  // depends on the stage. What is left are the two run-in-place verbs, both
+  // secondary and both wearing the Pipeline chip (loading.tsx reserves one
+  // pill to match). Do not add a header create pill without removing the
+  // column buttons.
+  const headerActions = (
+    <QuickActions
+      leading={[
+        canSyncLeads && <SyncLeadsButton key="sync-leads" />,
+        canScoreDeals && <ScoreAllDealsButton key="score-deals" />,
+      ]}
+    />
+  );
+
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-5">
       <PageHeader
-        aura
         title="Pipeline"
         help={
           <HelpHint title="What is a Deal?">
@@ -89,10 +127,8 @@ export default async function PipelinePage() {
           </div>
         }
         description="Drag deals through stages — values and probability auto-update."
-      >
-        <SyncLeadsButton />
-        <ScoreAllDealsButton />
-      </PageHeader>
+        actions={headerActions}
+      />
 
       <div className="flex-1 overflow-hidden">
         <PipelineBoard initialStages={stages} />

@@ -146,8 +146,6 @@ export function VendorPayoutsClient({ initialData }: VendorPayoutsClientProps) {
     <div className="space-y-6">
       <PageHeader
         eyebrow="Payments"
-        icon={Wallet}
-        accent="emerald"
         title="Your payouts"
         description="Every advance and settlement we've raised against your work."
       >

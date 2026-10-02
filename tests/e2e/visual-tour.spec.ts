@@ -1,5 +1,6 @@
 import path from "node:path";
 import { test, expect } from "@playwright/test";
+import { TOUR_SCREENS } from "./helpers";
 
 // ============================================================
 // A visual tour, not a pixel diff.
@@ -17,28 +18,21 @@ import { test, expect } from "@playwright/test";
 //   - the page's main heading is actually visible, i.e. nothing opaque is
 //     sitting on top of the content.
 // Whether it looks GOOD is a human call — that is what the pictures are for.
+//
+// The screenshot is taken BEFORE the overflow assertion, so a screen that
+// fails it is still in the artifact for someone to look at. When a phone
+// screen fails the overflow check, compare it with the same screen on
+// origin/main before blaming the change under review: wide tables on some of
+// these screens predate it.
+//
+// The screen list lives in helpers.ts (TOUR_SCREENS) because
+// header-geometry.spec.ts measures the same screens.
 // ============================================================
 
 const SHOTS = path.join(__dirname, "visual-tour-shots");
 
-/** One screen from each family of layout: home, list, board, calendar, detail-heavy, settings, ops, finance, HR. */
-const SCREENS: { name: string; path: string }[] = [
-  { name: "home", path: "/dashboard" },
-  { name: "sales-dashboard", path: "/sales/dashboard" },
-  { name: "leads", path: "/leads" },
-  { name: "pipeline", path: "/pipeline" },
-  { name: "bookings", path: "/bookings" },
-  { name: "calendar", path: "/calendar" },
-  { name: "quotations", path: "/quotations" },
-  { name: "invoices", path: "/invoices" },
-  { name: "bd-deals", path: "/bd/deals" },
-  { name: "beo", path: "/beo" },
-  { name: "kitchen", path: "/kitchen" },
-  { name: "vendors", path: "/vendors" },
-  { name: "people", path: "/people" },
-  { name: "reports", path: "/reports" },
-  { name: "settings", path: "/settings" },
-];
+/** One or more screens from each family of layout; see TOUR_SCREENS. */
+const SCREENS = TOUR_SCREENS;
 
 const MODES = [
   { id: "desktop-light", viewport: { width: 1440, height: 900 }, scheme: "light" as const },
@@ -84,12 +78,14 @@ for (const mode of MODES) {
         const overflow = await page.evaluate(
           () => document.documentElement.scrollWidth - window.innerWidth
         );
-        expect(overflow, `${screen.path} overflows the viewport by ${overflow}px`).toBeLessThanOrEqual(2);
 
+        // Picture first, so a failing screen is still in the artifact.
         await page.screenshot({
           path: path.join(SHOTS, mode.id, `${screen.name}.png`),
           fullPage: false,
         });
+
+        expect(overflow, `${screen.path} overflows the viewport by ${overflow}px`).toBeLessThanOrEqual(2);
       });
     }
   });

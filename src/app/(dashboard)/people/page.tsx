@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Upload, SearchX, UserPlus2, Users, Building2 } from "lucide-react";
+import { SearchX, UserPlus2, Building2 } from "lucide-react";
 import { auth } from "@/../auth";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { hasPermission } from "@/lib/permissions";
+import { visibleActions } from "@/lib/permission-claims";
 import { FEATURES } from "@/config/features";
 import { PageHeader } from "@/components/layout/page-header";
+import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-actions";
 import { getEmployees, getEmployeeStats, getHrLookups } from "@/actions/hr-employee.actions";
 import { getAttendanceSites } from "@/actions/hr-attendance.actions";
 import { DirectoryFilters } from "./_components/directory-filters";
@@ -54,32 +54,40 @@ export default async function PeoplePage({ searchParams }: PageProps) {
 
   const needsSeed = lookups.entities.length === 0;
 
+  // The header's action cluster: Add employee (the primary, a dialog) and
+  // Import. Both need hr:write, the check createEmployee and /people/import
+  // make, and neither shows until the organisation is set up: before that the
+  // seed panel below owns the page, and every import row would fail for want
+  // of a legal entity. Attendance, payroll and leave are reached from the
+  // sidebar (navigation is the sidebar's job, not the header's).
+  const actions =
+    canWrite && !needsSeed ? (
+      <QuickActions
+        leading={
+          <EmployeeFormDialog
+            entities={lookups.entities}
+            verticals={lookups.verticals}
+            departments={lookups.departments}
+            designations={lookups.designations}
+            managers={lookups.managers}
+            sites={siteOptions}
+            variant="header"
+          />
+        }
+        actions={visibleActions<QuickActionSpec>(session, [
+          { href: "/people/import", label: "Import", hint: "Bulk add staff", permission: "hr:write" },
+        ])}
+      />
+    ) : undefined;
+
   return (
     <div className="space-y-6">
       <PageHeader
-        aura
-        icon={Users}
-        accent="gold"
         eyebrow="People · Directory"
         title="People"
         description="The single employee master for the whole group — across every legal entity and business vertical. The same record powers Projects, approvals and access everywhere."
-      >
-        {canWrite && !needsSeed && (
-          <>
-            <Button variant="outline" asChild className="gap-1.5">
-              <Link href="/people/import"><Upload className="size-4" /> Import</Link>
-            </Button>
-            <EmployeeFormDialog
-              entities={lookups.entities}
-              verticals={lookups.verticals}
-              departments={lookups.departments}
-              designations={lookups.designations}
-              managers={lookups.managers}
-              sites={siteOptions}
-            />
-          </>
-        )}
-      </PageHeader>
+        actions={actions}
+      />
 
       {needsSeed ? (
         canAdmin ? (

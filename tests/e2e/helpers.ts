@@ -20,6 +20,67 @@ export const ADMIN = {
   name: process.env.E2E_ADMIN_NAME ?? "Rajesh Kumar",
 };
 
+/**
+ * Seeded non-admin logins (prisma/seed.ts creates every one of these, with
+ * these passwords). Specs that sign in as one of them must opt out of the
+ * shared admin session: `test.use({ storageState: { cookies: [], origins: [] } })`.
+ */
+export const ROLE_USERS = {
+  STAFF: { email: "staff@veloriagrand.com", password: "Staff@123" },
+  SALES_EXEC: { email: "sales1@veloriagrand.com", password: "Sales@123" },
+  EVENT_COORDINATOR: { email: "events@veloriagrand.com", password: "Events@123" },
+  FINANCE: { email: "finance@veloriagrand.com", password: "Finance@123" },
+} as const;
+
+export type SeededRole = keyof typeof ROLE_USERS;
+
+/**
+ * The screens the visual tour photographs: one or more from each family of
+ * layout (home, list, board, calendar, detail-heavy, settings, ops, finance,
+ * HR). header-geometry.spec.ts measures the same list, so a screen added here
+ * is both photographed and held to the header rules.
+ *
+ * /projects is left out: the Projects module is hidden behind
+ * PROJECTS_MODULE_ENABLED (src/config/feature-flags.ts) and its pages 404.
+ * Put it back under "Delivery and ops" when the flag is switched on.
+ */
+export const TOUR_SCREENS: readonly { name: string; path: string }[] = [
+  { name: "home", path: "/dashboard" },
+  // Sales
+  { name: "sales-dashboard", path: "/sales/dashboard" },
+  { name: "leads", path: "/leads" },
+  { name: "contacts", path: "/contacts" },
+  { name: "pipeline", path: "/pipeline" },
+  { name: "quotations", path: "/quotations" },
+  { name: "calendar", path: "/calendar" },
+  { name: "bd-deals", path: "/bd/deals" },
+  // Bookings and venue
+  { name: "bookings", path: "/bookings" },
+  { name: "bookings-calendar", path: "/bookings/calendar" },
+  { name: "availability", path: "/availability" },
+  { name: "site-visits", path: "/site-visits" },
+  // Delivery and ops
+  { name: "tasks", path: "/tasks" },
+  { name: "beo", path: "/beo" },
+  { name: "kitchen", path: "/kitchen" },
+  { name: "procurement", path: "/procurement" },
+  { name: "support", path: "/support" },
+  { name: "vendors", path: "/vendors" },
+  // Money
+  { name: "invoices", path: "/invoices" },
+  { name: "payments", path: "/payments" },
+  { name: "finance", path: "/finance" },
+  { name: "finance-command-center", path: "/finance/command-center" },
+  // People
+  { name: "people", path: "/people" },
+  { name: "people-payroll", path: "/people/payroll" },
+  { name: "people-lms", path: "/people/lms" },
+  // Insight and admin
+  { name: "reports", path: "/reports" },
+  { name: "settings", path: "/settings" },
+  { name: "settings-integrations", path: "/settings/integrations" },
+];
+
 /** Every record a spec creates starts with this so humans can spot/purge it. */
 export const E2E_PREFIX = "E2E";
 
@@ -142,6 +203,56 @@ export async function login(
   await page.locator("input[type=email]").fill(email);
   await page.locator("input[type=password]").fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
+}
+
+/**
+ * Sign in through the real /sign-in form as any seeded user and wait for the
+ * dashboard. Use it from a spec that opted out of the shared admin session.
+ *
+ * The welcome tour is marked as seen before the first page script runs (the
+ * same localStorage key global setup sets), so it never opens over a spec.
+ */
+export async function signInAs(page: Page, email: string, password: string): Promise<void> {
+  await page.addInitScript((key) => {
+    try {
+      window.localStorage.setItem(key, "1");
+    } catch {
+      /* storage blocked: dismissTour() is the fallback */
+    }
+  }, WELCOME_TOUR_SEEN_KEY);
+
+  await login(page, email, password);
+
+  // A refused login stays on /sign-in with a toast. Say so, rather than let
+  // the spec fail later on a redirect it can't explain.
+  await page.waitForURL(/\/dashboard/, { timeout: 90_000 }).catch(async () => {
+    const toastText = await page
+      .locator("[data-sonner-toast]")
+      .first()
+      .textContent()
+      .catch(() => null);
+    throw new Error(
+      `signInAs could not sign in as ${email}. Still on ${page.url()}` +
+        (toastText ? ` (toast: "${toastText.trim()}")` : "") +
+        ". Is the database seeded (pnpm db:seed)?"
+    );
+  });
+}
+
+/**
+ * Close the "Two-factor authentication is required for your role" strip if it
+ * is showing (SUPER_ADMIN, ADMIN, FINANCE and HR_MANAGER see it until they
+ * enrol). This only hides it for the browser session; it never enrols 2FA.
+ * The strip renders after hydration, so give it a moment to appear.
+ */
+export async function dismissTwoFactorBanner(page: Page): Promise<void> {
+  const dismiss = page.getByRole("button", { name: "Dismiss for this session", exact: true });
+  const shown = await dismiss
+    .waitFor({ state: "visible", timeout: 3_000 })
+    .then(() => true, () => false);
+  if (!shown) return;
+  await dismiss.click();
+  await expect(dismiss).toBeHidden();
 }
 
 /** Skip the first-run "Welcome to Veloria Grand" tour if it is showing. */
@@ -304,4 +415,146 @@ export async function createEmployee(
   await dialog.getByRole("button", { name: "Create employee" }).click();
   await page.waitForURL(/\/people\/[^/?]+$/);
   return page.url();
+}
+
+// ------------------------------------------------------------
+// Layout measurement (header-geometry.spec.ts)
+// ------------------------------------------------------------
+
+/**
+ * Wait until what a spec measures has stopped moving: web fonts loaded and
+ * every finite animation or transition finished (the layout's fade-in-up, a
+ * hover transition). Infinite ones (skeleton pulses, spinners) are ignored.
+ * Capped at 3s, so a page that keeps starting new animations can't hang a spec.
+ */
+export async function settleLayout(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const done = (async () => {
+      await document.fonts.ready;
+      const finite = document.getAnimations().filter((a) => {
+        const timing = a.effect?.getComputedTiming();
+        return !!timing && timing.endTime !== Infinity;
+      });
+      await Promise.all(finite.map((a) => a.finished.catch(() => undefined)));
+    })();
+    await Promise.race([done, new Promise((resolve) => setTimeout(resolve, 3_000))]);
+  });
+}
+
+export type Box = { left: number; right: number; top: number; bottom: number; width: number; height: number };
+
+/** A list item or pill in a "Page actions" cluster. `clippedBy` names the ancestor that cuts it, if any. */
+export type ClusterPart = { label: string; box: Box; clippedBy: string | null };
+
+export type PageHeaderGeometry = {
+  viewportWidth: number;
+  /** Left edge of the page content: the layout's max-width wrapper inside #main-content. */
+  contentLeft: number;
+  /** Module chips actually on screen (the chip is display:none below sm). */
+  visibleChips: number;
+  chip: Box | null;
+  h1: Box | null;
+  h1Text: string;
+  eyebrow: Box | null;
+  description: Box | null;
+  /** Every rendered `[aria-label="Page actions"]` list: its <li>s and its pills (links, buttons, More). */
+  lists: { box: Box; items: ClusterPart[]; pills: ClusterPart[] }[];
+};
+
+/**
+ * Measure the page header inside #main-content. Runs IN THE PAGE:
+ * `page.evaluate(measurePageHeader, 4)`. Self-contained, because Playwright
+ * serialises it; it may not call anything defined outside its own body.
+ *
+ * `ring` is how far past an element the focus outline reaches (2px outline at
+ * a 2px offset): an ancestor that clips (overflow other than visible) must
+ * contain the element plus that margin.
+ *
+ * The header's h1 is found through the module chip, its sibling in the title
+ * row (even below sm, where the chip is display:none), so another h1 on the
+ * page can't be mistaken for the title. The eyebrow and the description are
+ * the title row's neighbours in PageHeader's title column.
+ */
+export function measurePageHeader(ring: number): PageHeaderGeometry {
+  const toBox = (r: DOMRect): Box => ({
+    left: r.left,
+    right: r.right,
+    top: r.top,
+    bottom: r.bottom,
+    width: r.width,
+    height: r.height,
+  });
+  const rendered = (el: Element | null): el is Element => {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden";
+  };
+  const describe = (el: Element) => {
+    const slot = el.getAttribute("data-slot");
+    return el.tagName.toLowerCase() + (el.id ? `#${el.id}` : "") + (slot ? `[data-slot=${slot}]` : "");
+  };
+  const clippingAncestor = (el: Element): string | null => {
+    const r = el.getBoundingClientRect();
+    for (let a = el.parentElement; a && a !== document.documentElement; a = a.parentElement) {
+      const cs = getComputedStyle(a);
+      if (cs.overflowX === "visible" && cs.overflowY === "visible") continue;
+      // A clipping box is the padding box: border box minus borders and scrollbars.
+      const ar = a.getBoundingClientRect();
+      const left = ar.left + a.clientLeft;
+      const top = ar.top + a.clientTop;
+      const right = left + a.clientWidth;
+      const bottom = top + a.clientHeight;
+      const cut =
+        r.left - ring < left - 0.5 ||
+        r.right + ring > right + 0.5 ||
+        r.top - ring < top - 0.5 ||
+        r.bottom + ring > bottom + 0.5;
+      if (cut) return `${describe(a)} (overflow ${cs.overflowX}/${cs.overflowY})`;
+    }
+    return null;
+  };
+  const labelOf = (el: Element) =>
+    (el.getAttribute("aria-label") ?? el.querySelector("[aria-label]")?.getAttribute("aria-label") ?? el.textContent ?? "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .slice(0, 40);
+  const part = (el: Element): ClusterPart => ({
+    label: labelOf(el),
+    box: toBox(el.getBoundingClientRect()),
+    clippedBy: clippingAncestor(el),
+  });
+
+  const main = document.querySelector("#main-content");
+  if (!main) throw new Error("#main-content is missing");
+  const content = main.firstElementChild ?? main;
+
+  const chips = Array.from(main.querySelectorAll('[data-slot="module-chip"]'));
+  const visibleChips = chips.filter(rendered);
+  const chipEl = visibleChips[0] ?? chips[0] ?? null;
+  const h1 = chipEl?.parentElement?.querySelector(":scope > h1") ?? main.querySelector("h1");
+  const titleRow = h1?.parentElement ?? null;
+  const before = titleRow?.previousElementSibling ?? null;
+  const after = titleRow?.nextElementSibling ?? null;
+
+  const lists = Array.from(main.querySelectorAll('[aria-label="Page actions"]'))
+    .filter(rendered)
+    .map((list) => ({
+      box: toBox(list.getBoundingClientRect()),
+      items: Array.from(list.querySelectorAll(":scope > li")).filter(rendered).map(part),
+      pills: Array.from(list.querySelectorAll('[data-slot="quick-action"], [data-slot="page-more-trigger"]'))
+        .filter(rendered)
+        .map(part),
+    }));
+
+  return {
+    viewportWidth: window.innerWidth,
+    contentLeft: content.getBoundingClientRect().left,
+    visibleChips: visibleChips.length,
+    chip: visibleChips[0] ? toBox(visibleChips[0].getBoundingClientRect()) : null,
+    h1: h1 ? toBox(h1.getBoundingClientRect()) : null,
+    h1Text: (h1?.textContent ?? "").trim(),
+    eyebrow: rendered(before) ? toBox(before.getBoundingClientRect()) : null,
+    description: rendered(after) && after.tagName === "P" ? toBox(after.getBoundingClientRect()) : null,
+    lists,
+  };
 }

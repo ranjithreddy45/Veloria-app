@@ -200,8 +200,6 @@ export function VendorBidsClient({ initialData, availableBookings }: VendorBidsC
     <div className="space-y-6">
       <PageHeader
         eyebrow="Opportunities"
-        icon={Gavel}
-        accent="amber"
         title="Your bids"
         description="What you've quoted us, and where each one stands."
       >

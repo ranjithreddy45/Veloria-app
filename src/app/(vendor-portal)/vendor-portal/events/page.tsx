@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { CalendarCheck, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { auth } from "@/../auth";
 import { getVendorEvents } from "@/actions/vendor-portal.actions";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,8 +25,6 @@ export default async function VendorEventsPage() {
       <div className="space-y-6">
         <PageHeader
           eyebrow="Schedule"
-          icon={CalendarCheck}
-          accent="teal"
           title="Your events"
           description="Every date our clients are counting on you for."
         />
