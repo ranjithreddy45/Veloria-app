@@ -1,4 +1,4 @@
-import { ListSkeleton } from "@/components/shared/list-skeleton";
+import { LandingListSkeleton } from "@/components/shared/landing-list-skeleton";
 
 // The leads header's action cluster is the New lead and Import pills, plus a
 // More menu (Recompute engagement, Clean up test leads) for the roles allowed
@@ -10,10 +10,12 @@ import { ListSkeleton } from "@/components/shared/list-skeleton";
 // whenever the scope has any pipeline value, which is the common case, so the
 // skeleton reserves two lines there.
 //
-// This file is also the fallback for the /leads child routes that have no
-// loading.tsx of their own (a lead, new, import). From sm up their title lands
-// in the same place, because the action slot never moves the title; on a
-// phone, under a one-line eyebrow, their title lands 20px higher.
+// This file is also the loading state of the /leads child routes: a lead, new
+// and import, which have loading.tsx files of their own (shown when they are
+// opened from /leads), and cooling, follow-ups, missed calls and SLA, which do
+// not. Their headers have a one-line eyebrow and no action cluster, so
+// LandingListSkeleton draws the pills and the two-line eyebrow on /leads
+// only, and the plain header everywhere below it.
 export default function Loading() {
-  return <ListSkeleton headerActions={2} headerEyebrowLines={2} />;
+  return <LandingListSkeleton landing="/leads" headerActions={2} headerEyebrowLines={2} />;
 }

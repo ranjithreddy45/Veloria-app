@@ -42,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StatusPill } from "@/components/shared/status-pill";
+import { ModuleChip } from "@/components/layout/module-chip";
 import { LeadVisits } from "./lead-visits";
 import { LeadContacts, type AcqLeadContactRow } from "./lead-contacts";
 // Shared notes-on-visits/meetings/calls panel (owned by another agent).
@@ -222,15 +223,20 @@ export function LeadDetail({
         </Link>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-title font-semibold tracking-tight text-foreground">
-                {lead.propertyName}
-              </h1>
-              <StatusPill
-                label={ACQ_LEAD_STATUS_LABEL[lead.status]}
-                hue={STATUS_HUE[lead.status]}
-                size="xs"
-              />
+            {/* The module chip leads the title row, as in PageHeader (top-aligned,
+                14px to the title, hidden below sm). */}
+            <div className="flex items-start gap-2.5">
+              <ModuleChip className="mr-1" />
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-title font-semibold tracking-tight text-foreground">
+                  {lead.propertyName}
+                </h1>
+                <StatusPill
+                  label={ACQ_LEAD_STATUS_LABEL[lead.status]}
+                  hue={STATUS_HUE[lead.status]}
+                  size="xs"
+                />
+              </div>
             </div>
             <p className="text-body text-muted-foreground">
               {lead.ownerName} · {label(ACQ_PROPERTY_TYPE_LABEL, lead.propertyType)} ·{" "}

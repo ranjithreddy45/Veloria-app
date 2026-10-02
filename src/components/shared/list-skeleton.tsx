@@ -3,15 +3,15 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 
 // ============================================================
-// List and board skeletons, streamed by a route's `loading.tsx` so the shell
-// paints instantly on navigation instead of blocking on the data query.
+// List, board and form skeletons, streamed by a route's `loading.tsx` so the
+// shell paints instantly on navigation instead of blocking on the data query.
 // ------------------------------------------------------------
 // The header is PageHeaderSkeleton: the same boxes the real PageHeader draws
 // (eyebrow, module-chip placeholder, title line box, description), so the
 // title does not jump sideways when the page replaces the skeleton.
 //
 // Only the route knows what its settled header shows, so each route sets its
-// action-slot placeholders with `headerActions` (0 for a header with none),
+// action-slot placeholders with `headerActions` (none unless it passes a count),
 // `headerMeta` when the header has a meta row under the description, and
 // `headerEyebrowLines={2}` when its eyebrow of counts wraps on a phone. A
 // placeholder button that never arrives points the eye at the wrong place.
@@ -22,9 +22,9 @@ import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 interface HeaderSkeletonOptions {
   /**
    * Pill placeholders in the header's action slot: how many actions the
-   * route's settled header shows, 0 for a header with none. Defaults to 1, the
-   * single header button every route reserved before this prop existed, so a
-   * route that does not set it looks as it did.
+   * route's settled header shows. Defaults to 0, like PageHeaderSkeleton: a
+   * route whose header has a button says so (contracts, bd/leads and bd/deals
+   * pass 1), and one with none (payments, bd/properties) reserves nothing.
    */
   headerActions?: number;
   /**
@@ -48,7 +48,7 @@ export interface ListSkeletonProps extends HeaderSkeletonOptions {
 /** Generic list/table page skeleton. */
 export function ListSkeleton({
   rows = 8,
-  headerActions = 1,
+  headerActions = 0,
   headerMeta = false,
   headerEyebrowLines = 1,
 }: ListSkeletonProps) {
@@ -95,7 +95,7 @@ export interface BoardSkeletonProps extends HeaderSkeletonOptions {
 /** Kanban/board skeleton (pipeline + BD deal board). */
 export function BoardSkeleton({
   columns = 5,
-  headerActions = 1,
+  headerActions = 0,
   headerMeta = false,
   headerEyebrowLines = 1,
 }: BoardSkeletonProps) {
@@ -116,6 +116,46 @@ export function BoardSkeleton({
               </Card>
             ))}
           </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export interface FormSkeletonProps extends HeaderSkeletonOptions {
+  /** Form sections (cards) to draw. */
+  sections?: number;
+}
+
+/**
+ * Create/edit form page skeleton (/leads/new, /bookings/new): the header,
+ * then the form's section cards in the same centred max-w-3xl column the
+ * form pages use.
+ */
+export function FormSkeleton({
+  sections = 2,
+  headerActions = 0,
+  headerMeta = false,
+  headerEyebrowLines = 1,
+}: FormSkeletonProps) {
+  return (
+    <div className="space-y-6">
+      <PageHeaderSkeleton actions={headerActions} meta={headerMeta} eyebrowLines={headerEyebrowLines} />
+      <div className="mx-auto max-w-3xl space-y-6">
+        {Array.from({ length: sections }).map((_, s) => (
+          <Card key={s}>
+            <CardHeader>
+              <Skeleton className="h-5 w-40" />
+            </CardHeader>
+            <CardContent className="grid gap-4 sm:grid-cols-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-3.5 w-24 rounded-full" />
+                  <Skeleton className="h-9 w-full rounded-md" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         ))}
       </div>
     </div>

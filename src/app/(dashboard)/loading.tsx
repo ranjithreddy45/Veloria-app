@@ -13,11 +13,17 @@ import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 //
 // The header is PageHeaderSkeleton, built from the real header's own class
 // strings, including the module-chip placeholder. PageHeader takes its chip
-// from the route, so every header under (dashboard) shows one at sm and
-// above; one neutral placeholder therefore fits every route, and the title
-// no longer jumps right when the page lands. It reserves no action pills:
-// this fallback cannot know which header has them, and a placeholder button
-// that never arrives is worse than none.
+// from the route, so every PageHeader under (dashboard) shows one at sm and
+// above, and so do the pages that draw their own title row (a function sheet,
+// a BD lead or contract, a package, the BD dashboard), which render
+// ModuleChip there. One neutral placeholder therefore fits those routes, and
+// the title no longer jumps when the page lands (bar the BD dashboard's own
+// 20px band padding, which it always had). The exceptions are the
+// bespoke headers still without a chip, on the deferred list: people/[id] and
+// projects/[id] put their title after an avatar or a back button, so they
+// need a loading.tsx of their own. It reserves no action pills: this
+// fallback cannot know which header has them, and a placeholder button that
+// never arrives is worse than none.
 //
 // It also guessed at two side-by-side chart panels. Most routes here are a
 // header + stat tiles + a table, so that's the shape it holds now.

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BarChart3 as BarChart3Icon } from "lucide-react";
 import { getBdAnalytics, getBdExecutives } from "@/actions/acq-analytics.actions";
+import { ModuleChip } from "@/components/layout/module-chip";
 import { BdFilterBar } from "../_components/bd-filter-bar";
 import { BdDashboardClient } from "./_components/bd-dashboard-client";
 export const metadata: Metadata = { title: "BD Dashboard" };
@@ -56,9 +57,14 @@ export default async function BdDashboardPage({
           <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mb-0.5">
             Business Development · Acquisition
           </p>
-          <h1 className="text-[1.75rem] font-black text-foreground tracking-tight leading-tight">
-            BD Dashboard
-          </h1>
+          {/* The module chip leads the title row, as in PageHeader (top-aligned,
+              14px to the title, hidden below sm). */}
+          <div className="flex items-start gap-2.5">
+            <ModuleChip className="mr-1" />
+            <h1 className="text-[1.75rem] font-black text-foreground tracking-tight leading-tight">
+              BD Dashboard
+            </h1>
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             Employee-wise acquisition funnel, activity and leaderboard.
           </p>

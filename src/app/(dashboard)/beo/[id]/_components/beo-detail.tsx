@@ -37,6 +37,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
+import { ModuleChip } from "@/components/layout/module-chip";
 import {
   updateBeo,
   setBeoStatus,
@@ -99,9 +100,15 @@ export function BeoDetailView({ beo, canWrite }: { beo: BeoDetail; canWrite: boo
           <Link href="/beo" className="inline-flex items-center gap-1 text-detail text-muted-foreground hover:text-foreground">
             <ArrowLeft className="size-3.5" /> Function sheets
           </Link>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-h2 font-medium leading-tight tracking-[-0.01em] text-foreground">{beo.beoNumber}</h1>
-            <StatusPill label={STATUS_LABEL[beo.status] ?? beo.status} hue={STATUS_HUE[beo.status] ?? "slate"} />
+          {/* The module chip leads the title row, as in PageHeader (top-aligned,
+              14px to the title, hidden below sm), so this record's title sits
+              where its list's title and the loading skeleton's do. */}
+          <div className="flex items-start gap-2.5">
+            <ModuleChip className="mr-1" />
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-h2 font-medium leading-tight tracking-[-0.01em] text-foreground">{beo.beoNumber}</h1>
+              <StatusPill label={STATUS_LABEL[beo.status] ?? beo.status} hue={STATUS_HUE[beo.status] ?? "slate"} />
+            </div>
           </div>
           <p className="text-body text-muted-foreground">
             {beo.eventName ?? "—"}

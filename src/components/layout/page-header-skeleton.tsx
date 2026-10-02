@@ -8,9 +8,10 @@ import { PAGE_HEADER_CLASSES as C } from "@/components/layout/page-header";
 // Built from PageHeader's own exported class strings (root, title column,
 // title row, chip spacing, meta row, action slot), so the placeholder and the
 // settled header cannot drift: the title box lands where the h1 will, at
-// every width. Every (dashboard) page shows a module chip at sm and above, so
-// one neutral chip placeholder fits every route; like the real chip it is
-// hidden below sm.
+// every width. Every PageHeader under (dashboard) shows a module chip at sm
+// and above (bespoke record headers render ModuleChip in their title row, bar
+// the few on the deferred list), so one neutral chip placeholder fits every
+// such route; like the real chip it is hidden below sm.
 //
 // Only reserve action pills where the route's settled header really has them;
 // a placeholder button that never arrives reads as jank.

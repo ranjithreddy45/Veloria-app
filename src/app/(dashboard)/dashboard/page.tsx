@@ -27,7 +27,7 @@ export default async function DashboardPage() {
   // The hub's shortcuts, in the order the owner approved. Their chip colours
   // come from the destination's module in src/config/modules.ts (the
   // dashboard's anchors: quotations indigo, payments cyan, site visits amber,
-  // slot availability pink); "New lead" is the page's primary action.
+  // availability pink); "New lead" is the page's primary action.
   //
   // Each pill shows only to someone who can actually open its destination,
   // under the same override-aware rule middleware applies (visibleActions):
@@ -38,14 +38,14 @@ export default async function DashboardPage() {
   //   check the static role matrix, so `when` repeats that check: an override
   //   that middleware honours would still be refused there.
   //
-  // Copy: the approved labels and hints in sentence case, except where the
-  // approved words promised something the destination does not do. /payments
-  // lists payments and records none, so "Record Payment" became "Payments"
-  // (owner decision) and its hint "Add client payment" became "Track
-  // collections". /availability shows free slots and blocks none, so "New
-  // Booking Hold" / "Block a venue slot" became its sidebar title, "Slot
-  // availability" / "See free venue slots" (awaiting the owner's sign-off).
-  // "Inquiry" is spelt "enquiry" (design spec R16).
+  // Copy: the approved labels and hints in sentence case. One rename is the
+  // owner's: /payments lists payments and records none, so "Record Payment"
+  // became "Payments" and its hint "Add client payment" became "Track
+  // collections". The 5th pill keeps its approved words, "New booking hold" /
+  // "Block a venue slot", although /availability only shows free slots and
+  // places no hold; renaming it to the destination's title is an open question
+  // for the owner, not a change made here. "Inquiry" is spelt "enquiry"
+  // (design spec R16).
   const quickActions = visibleActions<HubActionSpec>(session, [
     {
       href: "/leads/new",
@@ -75,8 +75,8 @@ export default async function DashboardPage() {
     },
     {
       href: "/availability",
-      label: "Slot availability",
-      hint: "See free venue slots",
+      label: "New booking hold",
+      hint: "Block a venue slot",
     },
   ]);
 

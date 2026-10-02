@@ -20,6 +20,7 @@ import { duplicatePackage, deletePackage, togglePackageStatus } from "@/actions/
 import { PACKAGE_TIER_COLORS } from "@/lib/constants";
 import { formatINR, formatDate } from "@/lib/utils";
 import { StatusBadge } from "@/components/shared/status-badge";
+import { ModuleChip } from "@/components/layout/module-chip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -151,24 +152,29 @@ export function PackageDetail({ eventPackage }: PackageDetailProps) {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
-                {eventPackage.name}
-              </h1>
-              <StatusBadge
-                status={eventPackage.tier}
-                colorMap={PACKAGE_TIER_COLORS}
-              />
-              <Badge
-                variant="outline"
-                className={
-                  isActive
-                    ? "border-green-200 bg-green-100 text-green-800"
-                    : "border-border bg-muted text-muted-foreground"
-                }
-              >
-                {isActive ? "Active" : "Inactive"}
-              </Badge>
+            {/* The module chip leads the title row, as in PageHeader (top-aligned,
+                14px to the title, hidden below sm). */}
+            <div className="flex items-start gap-2.5">
+              <ModuleChip className="mr-1" />
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+                  {eventPackage.name}
+                </h1>
+                <StatusBadge
+                  status={eventPackage.tier}
+                  colorMap={PACKAGE_TIER_COLORS}
+                />
+                <Badge
+                  variant="outline"
+                  className={
+                    isActive
+                      ? "border-green-200 bg-green-100 text-green-800"
+                      : "border-border bg-muted text-muted-foreground"
+                  }
+                >
+                  {isActive ? "Active" : "Inactive"}
+                </Badge>
+              </div>
             </div>
             {eventPackage.eventType && (
               <p className="text-muted-foreground mt-1 text-sm">
