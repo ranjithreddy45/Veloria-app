@@ -50,7 +50,14 @@ export default defineConfig({
   use: {
     baseURL,
     storageState,
-    trace: "on-first-retry",
+    // Failure evidence, kept for every failed attempt. "retain-on-failure"
+    // records a trace on each run and keeps it when that run fails, even if a
+    // retry then passes, so a flaky test (fails, then passes on retry) still
+    // leaves its failing run's trace. The old "on-first-retry" traced only the
+    // retry. Screenshots and video follow the same rule. CI uploads
+    // tests/e2e/.results and the HTML report as the `playwright-failures`
+    // artifact (.github/workflows/e2e.yml).
+    trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     actionTimeout: 15_000,

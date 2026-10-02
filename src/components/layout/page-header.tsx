@@ -30,6 +30,12 @@ import { ModuleChip, ModuleEyebrow } from "@/components/layout/module-chip";
 // title box sits under a one-line eyebrow, so a header without one made the
 // title jump 24px up when the page replaced its skeleton.
 //
+// The default eyebrow never just repeats the h1. ModuleEyebrow is handed the
+// title, and where the module's name equals it (/resources "Resources",
+// /people/payroll "Payroll") it names the module's sidebar section instead
+// ("Delivery & Ops", "People"); moduleEyebrowText in src/config/modules.ts
+// holds the rule. The text is still one short line.
+//
 // Colours: --primary is plum. Chip colours live only in src/lib/ui/hues.ts.
 // ============================================================
 
@@ -98,7 +104,8 @@ interface PageHeaderProps {
   /**
    * Small uppercase label rendered above the title (Linear-style eyebrow),
    * normally "Module · Section". Omitted, it is the module's name from
-   * src/config/modules.ts.
+   * src/config/modules.ts, or the module's sidebar section where that name
+   * equals `title`.
    */
   eyebrow?: React.ReactNode;
   /**
@@ -154,7 +161,7 @@ export function PageHeader({
         {eyebrow ? (
           <div className={C.eyebrow}>{eyebrow}</div>
         ) : (
-          <ModuleEyebrow module={moduleKey} className={C.eyebrow} />
+          <ModuleEyebrow module={moduleKey} title={title} className={C.eyebrow} />
         )}
         {/* The help "?" must not be pushed off-screen by a long title, so the
             title takes the min-w-0/wrap and the hint stays shrink-0. */}

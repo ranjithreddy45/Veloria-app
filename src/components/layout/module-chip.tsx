@@ -14,14 +14,17 @@
 //
 // ModuleEyebrow is the same lookup for PageHeader's eyebrow line: a page that
 // passes no `eyebrow` gets its module's name there (design spec R1: every
-// PageHeader has an eyebrow). That also keeps the title where the loading
-// skeletons expect it, under a one-line eyebrow.
+// PageHeader has an eyebrow). Where that name would only repeat the title
+// ("RESOURCES" over "Resources") it names the module's sidebar section
+// instead ("DELIVERY & OPS"); moduleEyebrowText in src/config/modules.ts
+// picks the text. Either way it is one short line, which keeps the title
+// where the loading skeletons expect it.
 // ============================================================
 
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { IconChip } from "@/components/ui/icon-chip";
-import { MODULES, isModuleKey, resolveModule, type ModuleKey } from "@/config/modules";
+import { MODULES, isModuleKey, moduleEyebrowText, resolveModule, type ModuleKey } from "@/config/modules";
 
 export interface ModuleChipProps {
   /** Force a module (e.g. a page outside its module's URL tree), or `false` for no chip. */
@@ -55,18 +58,24 @@ export function ModuleChip({ module: override, className }: ModuleChipProps) {
   );
 }
 
+export interface ModuleEyebrowProps extends ModuleChipProps {
+  /** The page title under the eyebrow, so the eyebrow never just repeats it. */
+  title?: string;
+}
+
 /**
  * PageHeader's default eyebrow: the module's name as src/config/modules.ts
- * spells it (the eyebrow class uppercases it on screen). Renders nothing
+ * spells it (the eyebrow class uppercases it on screen), or its sidebar
+ * section where the name equals `title` (moduleEyebrowText). Renders nothing
  * where the route has no module (the hub, the external portals) or the page
  * passes `module={false}`.
  */
-export function ModuleEyebrow({ module: override, className }: ModuleChipProps) {
+export function ModuleEyebrow({ module: override, title, className }: ModuleEyebrowProps) {
   const key = useModuleKey(override);
   if (!key) return null;
   return (
     <div data-slot="module-eyebrow" className={className}>
-      {MODULES[key].label}
+      {moduleEyebrowText(key, title)}
     </div>
   );
 }

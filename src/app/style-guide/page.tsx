@@ -7,6 +7,11 @@
 // fire, and the demo pills are plain buttons that navigate nowhere). Used for
 // visual QA across desktop / tablet / mobile and dark mode.
 //
+// It is also a test fixture: the header/skeleton pairs (HEADER_PAIRS) are
+// where tests/e2e/header-geometry.spec.ts checks that PageHeaderSkeleton's
+// title box lands where PageHeader's h1 does. The route is public (no
+// middleware gate), so that check needs no session and no database rows.
+//
 // Nothing here restates a colour: the chips and the module list are drawn
 // from src/config/modules.ts and src/lib/ui/hues.ts (through IconChip), so
 // this page cannot drift from the app.
@@ -22,6 +27,7 @@ import { IndianRupee, CalendarCheck, Users, Trophy, Target, Flame } from "lucide
 import { SegmentedControl, type SegmentOption } from "@/components/ui/segmented-control";
 import { StatusPill, type Hue } from "@/components/shared/status-pill";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 import { IconChip } from "@/components/ui/icon-chip";
 import { QuickActionButton, QuickActions } from "@/components/ui/quick-actions";
 import { MODULES, MODULE_KEYS } from "@/config/modules";
@@ -98,6 +104,92 @@ const CHIP_JOBS: ReadonlyArray<{
   },
 ];
 
+// Each PageHeader variant above the PageHeaderSkeleton a route's loading.tsx
+// draws for it. tests/e2e/header-geometry.spec.ts measures these pairs at
+// 1440px and 390px (the skeleton's title box must start where the h1 does,
+// left and top within 2px), so the ids and data attributes are its contract:
+// keep them, and add a pair there when you add one here.
+//
+// The two boxes of a pair are identical and stacked, so they are always the
+// same width. Side by side, a column at 1440px is too narrow for the
+// two-line pair's eyebrow to fit on one line, which is the state it has to
+// show from sm up.
+const PAIR_BOX = "rounded-2xl border border-border/60 bg-card/40 p-4";
+
+const HEADER_PAIRS: ReadonlyArray<{
+  id: string;
+  label: string;
+  header: React.ReactNode;
+  skeleton: React.ReactNode;
+}> = [
+  {
+    id: "eyebrow",
+    label: "Own eyebrow · no actions",
+    header: (
+      <PageHeader
+        title="Function sheets"
+        eyebrow="Event Operations · Sheets"
+        description="Banquet event orders for every confirmed function."
+        module="beo"
+      />
+    ),
+    skeleton: <PageHeaderSkeleton />,
+  },
+  {
+    id: "module-eyebrow",
+    label: "No eyebrow passed, so PageHeader's default from the module registry · no actions",
+    header: <PageHeader title="Invoices" description="GST invoices, balances and reminders." module="invoices" />,
+    skeleton: <PageHeaderSkeleton />,
+  },
+  {
+    id: "actions-meta",
+    label: "Action cluster and a meta row",
+    header: (
+      <PageHeader
+        title="Enquiries"
+        eyebrow="Sales & CRM · Enquiry"
+        description="Every walk-in, call and web enquiry before it becomes a lead."
+        module="contacts"
+        actions={
+          <QuickActions
+            leading={<QuickActionButton variant="primary" label="Add enquiry" hint="Log a walk-in" />}
+          />
+        }
+      >
+        <span className="text-detail text-muted-foreground">The meta row: links and notes under the description.</span>
+      </PageHeader>
+    ),
+    skeleton: <PageHeaderSkeleton actions={1} meta />,
+  },
+  {
+    // Two items that together overflow a phone column (308px here) while each
+    // fits in one, so the eyebrow is exactly two lines at 390px with any
+    // likely UI font (the body stack falls through to system-ui on Linux CI),
+    // and one line from sm up.
+    id: "two-line-eyebrow",
+    label: "Eyebrow of counts, two lines on a phone · action cluster",
+    header: (
+      <PageHeader
+        title="Bookings"
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span>Operations · Event calendar</span>
+            <span className="h-3 w-px bg-border" />
+            <span className="text-foreground/80">
+              <span className="font-semibold tabular-nums">128</span> total ·{" "}
+              <span className="font-semibold tabular-nums">96</span> confirmed
+            </span>
+          </div>
+        }
+        description="Every event across the pipeline, at a glance."
+        module="bookings"
+        actions={<QuickActions leading={<QuickActionButton variant="primary" label="Book a date" hint="Hold a slot" />} />}
+      />
+    ),
+    skeleton: <PageHeaderSkeleton actions={1} eyebrowLines={2} />,
+  },
+];
+
 type BoardCard = { id: string; title: string; when: string; pax: number; amount: string; tag?: string; tagHue?: Hue };
 const BOARD_COLUMNS: KanbanColumn<BoardCard>[] = [
   { id: "new", label: "New enquiry", hue: "blue", items: [
@@ -135,7 +227,7 @@ export default function StyleGuidePage() {
     <div className="mx-auto max-w-4xl space-y-10 p-6">
       <header>
         <h1 className="text-h2 font-semibold">Design foundation</h1>
-        <p className="text-copy text-muted-foreground">The page header, module chips, action pills and KPI tiles, plus the Projects kit (Workflow stepper and Readiness checklist).</p>
+        <p className="text-copy text-muted-foreground">The page header and its loading skeleton, module chips, action pills and KPI tiles, plus the Projects kit (Workflow stepper and Readiness checklist).</p>
       </header>
 
       <Section
@@ -185,6 +277,32 @@ export default function StyleGuidePage() {
               </div>
             )}
           />
+        </div>
+      </Section>
+
+      <Section
+        title="Loading skeleton — PageHeader over its PageHeaderSkeleton"
+        note={
+          <>
+            Each pair is a real PageHeader above the PageHeaderSkeleton that a route&rsquo;s{" "}
+            <code className="font-mono text-detail">loading.tsx</code> draws for it, in identical boxes. When the page
+            replaces the skeleton the title must not move, so the skeleton&rsquo;s title box starts where the h1 does at
+            every width: same left, same top.
+          </>
+        }
+      >
+        <div className="space-y-6">
+          {HEADER_PAIRS.map((pair) => (
+            <figure key={pair.id} data-header-pair={pair.id} className="space-y-2">
+              <figcaption className="text-meta font-medium text-muted-foreground">{pair.label}</figcaption>
+              <div data-pair-part="header" className={PAIR_BOX}>
+                {pair.header}
+              </div>
+              <div data-pair-part="skeleton" className={PAIR_BOX}>
+                {pair.skeleton}
+              </div>
+            </figure>
+          ))}
         </div>
       </Section>
 

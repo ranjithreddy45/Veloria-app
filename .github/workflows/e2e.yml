@@ -97,13 +97,23 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-      - name: Upload Playwright report and traces
-        if: failure()
+      # Failure evidence: the trace, screenshot and video of every failed
+      # attempt (playwright.config.ts keeps them: trace and video
+      # retain-on-failure, screenshot only-on-failure), plus the HTML report
+      # with the specs' JSON attachments. Uploaded on every run, not only a red
+      # one: a flaky test fails its first attempt and passes on retry, the job
+      # goes green, and that first attempt's trace is the only record of why.
+      # Both folders are hidden, and upload-artifact skips hidden files unless
+      # include-hidden-files is set; without it this step uploaded nothing
+      # ("No files were found with the provided path").
+      - name: Upload Playwright failure evidence (traces, screenshots, video, report)
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-failures
           path: |
-            tests/e2e/.report
             tests/e2e/.results
-          retention-days: 7
+            tests/e2e/.report
+          include-hidden-files: true
+          retention-days: 14
           if-no-files-found: ignore

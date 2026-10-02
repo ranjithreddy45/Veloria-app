@@ -1,11 +1,22 @@
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as Lucide from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
+import { APP_NAME } from "@/lib/constants";
 import { PROJECTS_MODULE_ENABLED } from "./feature-flags";
-import { MODULES, MODULE_KEYS, isModuleKey, resolveModule, type ModuleKey } from "./modules";
+import {
+  MODULES,
+  MODULE_KEYS,
+  MODULE_SECTIONS,
+  isModuleKey,
+  moduleEyebrowText,
+  resolveModule,
+  sameDisplayName,
+  type ModuleKey,
+} from "./modules";
 import { sidebarNavigation, type NavItem } from "./navigation";
 
 // ------------------------------------------------------------
@@ -275,5 +286,228 @@ describe("one module, one look (R3)", () => {
     expect(keysWithHue("red")).toEqual([]);
     const sparkles = glyphName(LUCIDE.Sparkles);
     expect(MODULE_KEYS.filter((k) => glyphName(MODULES[k].icon) === sparkles)).toEqual([]);
+  });
+});
+
+// ------------------------------------------------------------
+// Sidebar bands: app-sidebar.tsx's SECTIONS map (top-level nav href -> band).
+// ------------------------------------------------------------
+const SIDEBAR_FILE = fileURLToPath(new URL("../components/layout/app-sidebar.tsx", import.meta.url));
+
+function sidebarSections(): Map<string, string> {
+  const src = readFileSync(SIDEBAR_FILE, "utf8");
+  const block = src.match(/const SECTIONS: Record<string, string> = \{([\s\S]*?)\n\};/);
+  if (!block) throw new Error("app-sidebar.tsx: the SECTIONS map has moved; update sidebarSections()");
+  const entries = block[1].replace(/\/\/.*$/gm, "").matchAll(/"([^"]+)":\s*"([^"]+)"/g);
+  return new Map([...entries].map((m) => [m[1], m[2]] as [string, string]));
+}
+const SIDEBAR_SECTIONS = sidebarSections();
+
+/**
+ * The band each top-level sidebar row sits under, as the sidebar draws it: a
+ * band's header renders the first time the band appears in nav order, and a
+ * row without a SECTIONS entry sits under the last header drawn. Rows above
+ * the first band (the hub) have none.
+ */
+function bandsOfTopLevelRows(): Map<NavItem, string | undefined> {
+  const out = new Map<NavItem, string | undefined>();
+  let current: string | undefined;
+  for (const item of sidebarNavigation) {
+    current = SIDEBAR_SECTIONS.get(item.href) ?? current;
+    out.set(item, current);
+  }
+  return out;
+}
+const TOP_LEVEL_BANDS = bandsOfTopLevelRows();
+
+const inSubtree = (item: NavItem, href: string): boolean =>
+  item.href === href || (item.children ?? []).some((child) => inSubtree(child, href));
+
+/** The top-level row a module's nav entry lives in: its own row first, else the first row whose subtree holds it. */
+function topLevelRowOf(href: string): NavItem | undefined {
+  return sidebarNavigation.find((item) => item.href === href) ?? sidebarNavigation.find((item) => inSubtree(item, href));
+}
+
+/** Rows above the first band (My work, Team chat, Playbook) and modules outside the sidebar take this. */
+const UNBANDED_SECTION = "Workspace";
+
+// ------------------------------------------------------------
+// PageHeader call sites in (dashboard) page.tsx files.
+// ------------------------------------------------------------
+interface HeaderUse {
+  route: string;
+  /** The literal title, or null when it is an expression. */
+  title: string | null;
+  /** The literal `module` override: a key, `false`, or undefined. */
+  module: string | false | undefined;
+  /** An `eyebrow` prop (or a spread that may carry one) replaces the default. */
+  hasEyebrow: boolean;
+}
+
+function literalOf(init: ts.JsxAttributeValue | undefined): string | boolean | null {
+  if (!init) return true;
+  if (ts.isStringLiteral(init)) return init.text;
+  if (ts.isJsxExpression(init) && init.expression) {
+    const e = init.expression;
+    if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) return e.text;
+    if (e.kind === ts.SyntaxKind.FalseKeyword) return false;
+  }
+  return null;
+}
+
+function pageHeaderUses(): HeaderUse[] {
+  const uses: HeaderUse[] = [];
+  for (const file of pageFiles(path.join(APP_DIR, "(dashboard)"))) {
+    const src = readFileSync(file, "utf8");
+    if (!src.includes("<PageHeader")) continue;
+    const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+    const visit = (node: ts.Node) => {
+      if ((ts.isJsxSelfClosingElement(node) || ts.isJsxOpeningElement(node)) && node.tagName.getText(sf) === "PageHeader") {
+        const use: HeaderUse = { route: routeOf(file), title: null, module: undefined, hasEyebrow: false };
+        for (const attr of node.attributes.properties) {
+          if (!ts.isJsxAttribute(attr)) {
+            use.hasEyebrow = true; // {...props}: can't tell, so don't judge it
+            continue;
+          }
+          const name = attr.name.getText(sf);
+          const value = literalOf(attr.initializer);
+          if (name === "eyebrow") use.hasEyebrow = true;
+          if (name === "title" && typeof value === "string") use.title = value;
+          if (name === "module" && (typeof value === "string" || value === false)) use.module = value;
+        }
+        uses.push(use);
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
+  }
+  return uses;
+}
+
+describe("sections and the default eyebrow", () => {
+  it("MODULE_SECTIONS are the sidebar's bands, spelled and ordered as the sidebar has them", () => {
+    expect(SIDEBAR_SECTIONS.size).toBeGreaterThan(0);
+    expect([...MODULE_SECTIONS]).toEqual([...new Set(SIDEBAR_SECTIONS.values())]);
+  });
+
+  it("every module has a non-empty section", () => {
+    for (const key of MODULE_KEYS) {
+      const { section } = MODULES[key];
+      expect(typeof section === "string" && section.trim().length > 0, key).toBe(true);
+      expect(section.trim(), key).toBe(section);
+      expect(MODULE_SECTIONS as readonly string[], key).toContain(section);
+    }
+  });
+
+  it.each(MODULE_KEYS)("%s: section is the sidebar band it sits under", (key) => {
+    const { navHref, section } = MODULES[key];
+    const row = navHref ? topLevelRowOf(navHref) : undefined;
+    if (row) {
+      expect(section).toBe(TOP_LEVEL_BANDS.get(row) ?? UNBANDED_SECTION);
+    } else if (navHref && SIDEBAR_SECTIONS.has(navHref)) {
+      // A band a feature flag hides (Projects): the sidebar still files it.
+      expect(section).toBe(SIDEBAR_SECTIONS.get(navHref));
+    } else {
+      // Not in the sidebar at all (Notifications, from the header bell).
+      expect(section).toBe(UNBANDED_SECTION);
+    }
+  });
+
+  it("the People sub-modules share the People band", () => {
+    for (const key of ["people", "people-attendance", "people-leave", "people-payroll"] as const) {
+      expect(MODULES[key].section, key).toBe("People");
+    }
+  });
+
+  it.each<[string, string, boolean]>([
+    ["Team chat", "Team Chat", true],
+    ["Resources", "  resources ", true],
+    ["Time & attendance", "Time and Attendance", true],
+    ["Logistics & dispatch", "Logistics and dispatch", true],
+    ["Kitchen & F&B", "Kitchen and F and B", true],
+    ["Speed-to-lead", "Speed to Lead", true],
+    ["Leads", "Leads", true],
+    ["Leads", "Lead", false],
+    ["Leave", "Leave types", false],
+    ["Payroll", "Payroll settings", false],
+    ["Finance", "Financial reports", false],
+  ])("sameDisplayName(%j, %j) is %s", (a, b, expected) => {
+    expect(sameDisplayName(a, b)).toBe(expected);
+    expect(sameDisplayName(b, a)).toBe(expected);
+  });
+
+  it.each<[ModuleKey, string | null | undefined, string]>([
+    // The label, when it doesn't repeat the title
+    ["leads", "SLA War-Room", "Leads"],
+    ["people-leave", "Leave types", "Leave"],
+    ["settings", "Integrations", "Settings"],
+    ["resources", undefined, "Resources"],
+    ["resources", "", "Resources"],
+    // The section, when the label is the title
+    ["resources", "Resources", "Delivery & Ops"],
+    ["people-payroll", "Payroll", "People"],
+    ["people-leave", "Leave", "People"],
+    ["chat", "Team Chat", "Workspace"],
+    ["notifications", "Notifications", "Workspace"],
+    ["engagement", "engagement", "Sales & CRM"],
+    ["marketing", "Marketing", "Marketing & Insights"],
+    ["settings", "Settings", "System"],
+    // The app, when the label and the section both are the title
+    ["people", "People", APP_NAME],
+    ["catalog", "Catalog", APP_NAME],
+    ["finance", "Finance", APP_NAME],
+  ])("moduleEyebrowText(%s, %j) is %j", (key, title, expected) => {
+    expect(moduleEyebrowText(key, title)).toBe(expected);
+  });
+
+  it("never repeats the title, for any module and any title equal to its label or section", () => {
+    for (const key of MODULE_KEYS) {
+      for (const title of [MODULES[key].label, MODULES[key].section, MODULES[key].label.toUpperCase()]) {
+        const text = moduleEyebrowText(key, title);
+        expect(text.trim().length, `${key} / ${title}`).toBeGreaterThan(0);
+        expect(sameDisplayName(text, title), `${key} / "${title}" -> "${text}"`).toBe(false);
+      }
+    }
+  });
+
+  // The loading skeleton reserves one eyebrow line. 24 characters of 11px
+  // uppercase type is about 210px, inside the title column's 280px minimum.
+  it("is one short line (the skeleton reserves one eyebrow line)", () => {
+    for (const key of MODULE_KEYS) {
+      for (const text of [MODULES[key].label, MODULES[key].section, APP_NAME]) {
+        expect(text, key).not.toMatch(/\n/);
+        expect(text.length, `${key}: "${text}"`).toBeLessThanOrEqual(24);
+      }
+    }
+  });
+
+  describe("on the real pages", () => {
+    const uses = pageHeaderUses();
+    // The headers that show the default eyebrow: no `eyebrow`, a module, and a
+    // literal title to compare with.
+    const byDefault: { route: string; title: string; key: ModuleKey }[] = [];
+    for (const use of uses) {
+      if (use.hasEyebrow || use.module === false || use.title === null) continue;
+      const key = isModuleKey(use.module) ? use.module : resolveModule(use.route);
+      if (key) byDefault.push({ route: use.route, title: use.title, key });
+    }
+
+    it("finds the PageHeaders with a literal title and no eyebrow", () => {
+      expect(uses.length).toBeGreaterThan(250);
+      expect(byDefault.length).toBeGreaterThan(100);
+    });
+
+    it("finds the pages whose title is their module's label", () => {
+      const repeats = byDefault.filter((u) => sameDisplayName(MODULES[u.key].label, u.title)).map((u) => u.route);
+      // The cases that read "RESOURCES" over "Resources" before the fix.
+      expect(repeats).toEqual(expect.arrayContaining(["/resources", "/people/payroll", "/people/leave"]));
+    });
+
+    it("no default eyebrow repeats its page title", () => {
+      const repeated = byDefault
+        .map((u) => ({ route: u.route, title: u.title, eyebrow: moduleEyebrowText(u.key, u.title) }))
+        .filter((u) => sameDisplayName(u.eyebrow, u.title));
+      expect(repeated).toEqual([]);
+    });
   });
 });

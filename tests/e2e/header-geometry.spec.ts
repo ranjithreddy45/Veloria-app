@@ -1,12 +1,5 @@
-import { test, expect, type Locator, type Page, type Request } from "@playwright/test";
-import {
-  TOUR_SCREENS,
-  dismissTwoFactorBanner,
-  measurePageHeader,
-  measureSkeletonTitle,
-  settleLayout,
-  type PageHeaderGeometry,
-} from "./helpers";
+import { test, expect, type Page } from "@playwright/test";
+import { TOUR_SCREENS, measurePageHeader, settleLayout, type PageHeaderGeometry } from "./helpers";
 
 // ============================================================
 // Header geometry: the page-header rules, measured on real screens.
@@ -21,9 +14,10 @@ import {
 //             screen and no pill is clipped (focus ring included).
 //   390px   - no chip, the h1 starts at the 16px gutter, and every pill sits
 //             inside [16, 374].
-//   loading - on a client navigation to /bookings, /bd/dashboard, a package
-//             record and a function sheet, the skeleton's title box sits
-//             where the settled h1 lands, at 1440px and at 390px.
+//   loading - PageHeaderSkeleton's title box sits where PageHeader's h1
+//             lands, at 1440px and at 390px, measured on the header/skeleton
+//             pairs that /style-guide renders (no navigation timing; see the
+//             "Loading skeleton" section below).
 //
 // Routes: every visual-tour screen except /dashboard, which is the hub and
 // has its own header with no module chip (its pill row gets a 390px check of
@@ -224,212 +218,212 @@ test.describe("header geometry · 390", () => {
   });
 });
 
-/**
- * The loading check runs at both widths R15 names. Below md (768px, the
- * breakpoint in src/hooks/use-mobile.ts) the sidebar is an off-canvas sheet,
- * so the 390px run opens it from the header before reaching for its link.
- */
-const LOADING_VIEWPORTS = [
+// ------------------------------------------------------------
+// Loading skeleton (R15)
+// ------------------------------------------------------------
+//
+// R15: when a page replaces its loading skeleton, the title does not move.
+// PageHeaderSkeleton's title box must start where PageHeader's h1 lands, left
+// and top within 2px, at 1440px and at 390px.
+//
+// A skeleton is only on screen while a navigation waits for the server, and
+// catching one mid-navigation depends on when Next prefetches the route's
+// loading state, which CI does not hold still: the client-navigation version
+// of this check waited for a /bookings prefetch that never came and measured
+// nothing. So the property is checked where it is deterministic. /style-guide
+// renders each PageHeader variant above the PageHeaderSkeleton a route's
+// loading.tsx draws for it, in two identical boxes (HEADER_PAIRS in
+// src/app/style-guide/page.tsx). Both are the real components, laid out by the
+// same classes and the same viewport breakpoints as on a route, and each
+// position is taken relative to its own box. No prefetch, no network timing,
+// no seeded rows; /style-guide is public, so this runs signed out.
+//
+// What it does not cover: which props each route's loading.tsx passes
+// (bookings, leads, contacts and pipeline reserve a two-line phone eyebrow),
+// and the bespoke record skeletons (bd/dashboard, beo/[id], kitchen/[id],
+// packages/[packageId] and the like), which are drawn from their own headers.
+
+const SKELETON_VIEWPORTS = [
   { label: "1440", width: 1440, height: 900 },
   { label: "390", width: 390, height: 844 },
 ] as const;
-const SIDEBAR_SHEET_BELOW = 768;
+
+/** Tailwind's sm breakpoint: below it the chip is hidden and a count eyebrow may wrap. */
+const SM = 640;
+/** R15's tolerance between the skeleton's title box and the settled h1. */
+const TITLE_MATCH = 2;
+/** The eyebrow's height: one 11px line at line-height 1.45, or two plus the eyebrow row's 4px gap. */
+const EYEBROW_HEIGHT = { 1: 16, 2: 36 } as const;
 
 /**
- * The routes whose loading skeleton is checked, each reached by a client
- * navigation the way a person gets there:
+ * The pairs /style-guide must render, by `data-header-pair`, and the state
+ * each one exists to show, so a pair that stops showing it fails here rather
+ * than passing without testing anything:
  *
- *   /bookings          the list skeleton with the two-line phone eyebrow
- *                      (bookings/loading.tsx), from its sidebar link;
- *   /bd/dashboard      the bespoke BD header, which its loading.tsx draws for
- *                      real, from its sidebar link;
- *   a package record   the bespoke record header (packages/[packageId]/
- *                      loading.tsx), from a card on /packages;
- *   a function sheet   the bespoke BEO header (beo/[id]/loading.tsx), from a
- *                      row on /beo. The seed has no function sheets, so this
- *                      one is skipped on a fresh database.
- *
- * `sidebarGroup` is the sidebar group whose link to open; `fromPage` instead
- * names a page whose own link (the first that `link` matches) is clicked.
+ *   eyebrow           the page's own eyebrow, no action cluster;
+ *   module-eyebrow    no eyebrow passed, so PageHeader's default (ModuleEyebrow);
+ *   actions-meta      an action cluster and a meta row (rootWithActions, and
+ *                     PageHeaderSkeleton actions={1} meta);
+ *   two-line-eyebrow  an eyebrow of counts that is two lines below sm and one
+ *                     from sm up (eyebrowLines={2}), with an action cluster.
  */
-type LoadingCase = {
-  name: string;
-  /** The settled h1's accessible name, when it is fixed. */
-  heading?: string;
-} & (
-  | { sidebarGroup: string; href: string }
-  | { fromPage: string; link: string; emptyReason: string }
-);
-
-const LOADING_CASES: readonly LoadingCase[] = [
-  { name: "/bookings", heading: "Bookings", sidebarGroup: "Bookings", href: "/bookings" },
-  { name: "/bd/dashboard", heading: "BD Dashboard", sidebarGroup: "BD CRM", href: "/bd/dashboard" },
-  {
-    name: "a package record",
-    fromPage: "/packages",
-    link: 'a[href^="/packages/"]:not([href$="/edit"]):not([href="/packages/new"])',
-    emptyReason: "No package on /packages to open.",
-  },
-  {
-    name: "a function sheet",
-    fromPage: "/beo",
-    link: 'a[href^="/beo/"]',
-    emptyReason: "No function sheet on /beo to open (the seed creates none).",
-  },
+const SKELETON_PAIRS: readonly { id: string; actions: boolean; phoneEyebrowLines: 1 | 2 }[] = [
+  { id: "eyebrow", actions: false, phoneEyebrowLines: 1 },
+  { id: "module-eyebrow", actions: false, phoneEyebrowLines: 1 },
+  { id: "actions-meta", actions: true, phoneEyebrowLines: 1 },
+  { id: "two-line-eyebrow", actions: true, phoneEyebrowLines: 2 },
 ];
 
-for (const { label, width, height } of LOADING_VIEWPORTS) {
+type HeaderPairGeometry = {
+  id: string;
+  /** Widths of the pair's two boxes: the comparison only means something when they match. */
+  headerBoxWidth: number;
+  skeletonBoxWidth: number;
+  /** The h1, and the skeleton's title box, each relative to its own box. Null when missing. */
+  h1: { left: number; top: number } | null;
+  title: { left: number; top: number } | null;
+  /** Height of the header's eyebrow and of the skeleton's eyebrow placeholder (null when absent). */
+  headerEyebrow: number | null;
+  skeletonEyebrow: number | null;
+  /** Whether the module chip and the skeleton's chip placeholder are on screen. */
+  headerChip: boolean;
+  skeletonChip: boolean;
+  /** Pills on screen in the header's cluster, and pill placeholders in the skeleton's action slot. */
+  headerPills: number;
+  skeletonPills: number;
+  /** Each root's computed align-items: from sm up, flex-end without actions and center with them. */
+  headerAlign: string | null;
+  skeletonAlign: string | null;
+};
+
+/**
+ * Measure every header/skeleton pair on /style-guide. Runs IN THE PAGE:
+ * `page.evaluate(measureHeaderPairs)`. Self-contained, because Playwright
+ * serialises it; it may not call anything defined outside its own body.
+ *
+ * Both components nest root > title column > title row; the h1 (and the
+ * skeleton's title box, marked data-skeleton-part="title") sits in the title
+ * row after the chip, and the eyebrow is the row's previous sibling.
+ */
+function measureHeaderPairs(): HeaderPairGeometry[] {
+  const rendered = (el: Element | null | undefined): boolean => {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden";
+  };
+  const within = (el: Element | null | undefined, box: Element | null | undefined) => {
+    if (!el || !box) return null;
+    const r = el.getBoundingClientRect();
+    const b = box.getBoundingClientRect();
+    return { left: r.left - b.left, top: r.top - b.top };
+  };
+  const heightOf = (el: Element | null | undefined) => (el && rendered(el) ? el.getBoundingClientRect().height : null);
+  const widthOf = (el: Element | null | undefined) => (el ? el.getBoundingClientRect().width : 0);
+  const alignOf = (el: Element | null | undefined) => (el ? getComputedStyle(el).alignItems : null);
+
+  return Array.from(document.querySelectorAll("[data-header-pair]")).map((pair) => {
+    const headerBox = pair.querySelector(':scope > [data-pair-part="header"]');
+    const skeletonBox = pair.querySelector(':scope > [data-pair-part="skeleton"]');
+
+    const h1 = headerBox?.querySelector("h1") ?? null;
+    const headerRow = h1?.parentElement ?? null;
+    const headerRoot = headerRow?.parentElement?.parentElement ?? null;
+
+    const skeletonRoot = skeletonBox?.querySelector('[data-slot="page-header-skeleton"]') ?? null;
+    const title = skeletonRoot?.querySelector('[data-skeleton-part="title"]') ?? null;
+    const skeletonRow = title?.parentElement ?? null;
+    const skeletonColumn = skeletonRow?.parentElement ?? null;
+    // The pill placeholders are the slot after the title column, when there is one.
+    const slot = skeletonColumn?.parentElement === skeletonRoot ? (skeletonColumn?.nextElementSibling ?? null) : null;
+
+    return {
+      id: pair.getAttribute("data-header-pair") ?? "",
+      headerBoxWidth: widthOf(headerBox),
+      skeletonBoxWidth: widthOf(skeletonBox),
+      h1: within(h1, headerBox),
+      title: within(title, skeletonBox),
+      headerEyebrow: heightOf(headerRow?.previousElementSibling),
+      skeletonEyebrow: heightOf(skeletonRow?.previousElementSibling),
+      headerChip: rendered(headerRow?.querySelector(':scope > [data-slot="module-chip"]')),
+      skeletonChip: rendered(title?.previousElementSibling),
+      headerPills: Array.from(headerBox?.querySelectorAll('[data-slot="quick-action"]') ?? []).filter((el) => rendered(el)).length,
+      skeletonPills: slot ? Array.from(slot.children).filter((el) => rendered(el)).length : 0,
+      headerAlign: alignOf(headerRoot),
+      skeletonAlign: alignOf(skeletonRoot),
+    };
+  });
+}
+
+for (const { label, width, height } of SKELETON_VIEWPORTS) {
   test.describe(`header geometry · loading skeleton · ${label}`, () => {
-    test.use({ viewport: { width, height } });
+    // Signed out: /style-guide is public, and this way the check needs nothing
+    // from the shared admin session.
+    test.use({ viewport: { width, height }, storageState: { cookies: [], origins: [] } });
 
-    /** How long the navigation's RSC response is held back, so the skeleton stays up to be measured. */
-    const DELAY_MS = 1_500;
+    test("PageHeaderSkeleton's title box sits where PageHeader's h1 lands", async ({ page }) => {
+      const response = await page.goto("/style-guide", { waitUntil: "domcontentloaded" });
+      const status = response?.status() ?? 0;
+      expect(status, `/style-guide responded ${status}`).toBeLessThan(400);
+      expect(new URL(page.url()).pathname, "/style-guide redirected (it must stay public)").toBe("/style-guide");
 
-    for (const target of LOADING_CASES) {
-      test(`on ${target.name} the skeleton's title box sits where the settled h1 lands`, async ({ page }) => {
-        test.slow();
+      // The page is server-rendered whole, so once one pair is up they all are;
+      // which pairs are there is checked by id below, with a clearer message.
+      await expect(page.locator("[data-header-pair]").first()).toBeVisible({ timeout: 30_000 });
+      await page.waitForLoadState("load");
+      // Fonts loaded: the eyebrow's width decides whether it wraps.
+      await settleLayout(page);
 
-        // Next prefetches a route's loading state (everything down to its
-        // loading.tsx) when a link to it is on screen or hovered, in a
-        // production build only. Watch every such prefetch from the start,
-        // per path, because a link that is on screen as soon as the page
-        // loads (a package card) is prefetched before the test has found it,
-        // and a hover does not ask again for a route already cached. The click
-        // happens once the target's skeleton is on the client.
-        const isRsc = (url: URL) => url.searchParams.has("_rsc");
-        const isPrefetch = (req: Request) => req.headers()["next-router-prefetch"] !== undefined;
-        const prefetchPath = (req: Request): string | null => {
-          const url = new URL(req.url());
-          return isRsc(url) && isPrefetch(req) ? url.pathname : null;
-        };
-        const pending = new Map<Request, string>();
-        const prefetched = new Map<string, number>();
-        const lastActivity = new Map<string, number>();
-        page.on("request", (req) => {
-          const path = prefetchPath(req);
-          if (!path) return;
-          pending.set(req, path);
-          lastActivity.set(path, Date.now());
-        });
-        page.on("requestfinished", (req) => {
-          const path = pending.get(req);
-          if (!path) return;
-          pending.delete(req);
-          prefetched.set(path, (prefetched.get(path) ?? 0) + 1);
-          lastActivity.set(path, Date.now());
-        });
-        page.on("requestfailed", (req) => {
-          const path = pending.get(req);
-          if (!path) return;
-          pending.delete(req);
-          lastActivity.set(path, Date.now());
-        });
-
-        // Open the page the click starts from, and find the link.
-        const start = "fromPage" in target ? target.fromPage : "/dashboard";
-        await page.goto(start, { waitUntil: "domcontentloaded" });
-        await expect(page.locator("#main-content h1").first()).toBeVisible({ timeout: 30_000 });
-        await dismissTwoFactorBanner(page);
-
-        let link: Locator;
-        if ("sidebarGroup" in target) {
-          // On a phone the sidebar lives in a sheet; open it from the header's
-          // sidebar toggle. Clicking one of its links closes it again.
-          if (width < SIDEBAR_SHEET_BELOW) {
-            await page.getByRole("button", { name: "Toggle Sidebar" }).filter({ visible: true }).first().click();
-            await expect(page.locator('[data-sidebar="sidebar"][data-mobile="true"]')).toBeVisible();
-          }
-          // Off its own pages a sidebar group is collapsed; open it to reach
-          // the link.
-          const sidebar = page.locator('[data-sidebar="sidebar"]').filter({ visible: true }).first();
-          link = sidebar.locator(`a[href="${target.href}"]`).first();
-          if (!(await link.isVisible().catch(() => false))) {
-            await sidebar.getByRole("button", { name: target.sidebarGroup, exact: true }).click();
-          }
-        } else {
-          link = page.locator("#main-content").locator(target.link).filter({ visible: true }).first();
-          const found = await link.waitFor({ state: "visible", timeout: 10_000 }).then(
-            () => true,
-            () => false
-          );
-          test.skip(!found, target.emptyReason);
-        }
-        await expect(link).toBeVisible();
-        const href = await link.getAttribute("href");
-        expect(href, `${target.name}: the link has no href`).toBeTruthy();
-        const targetPath = new URL(href!, page.url()).pathname;
-        const targetPending = () => [...pending.values()].some((path) => path === targetPath);
-
-        // Hovering a link is a navigation intent: Next prefetches it straight
-        // away if it has not already.
-        await link.hover();
-
-        const ready = await expect
-          .poll(
-            () =>
-              (prefetched.get(targetPath) ?? 0) > 0 &&
-              !targetPending() &&
-              Date.now() - (lastActivity.get(targetPath) ?? 0) > 500,
-            {
-              timeout: 20_000,
-              intervals: [100, 250, 500],
-            }
-          )
-          .toBe(true)
-          .then(
-            () => true,
-            () => false
-          );
-        // `next dev` never prefetches, so there is no skeleton to catch there. In
-        // CI (a production build) a missing prefetch is a real failure.
-        test.skip(!ready && !process.env.CI, `The server did not prefetch ${targetPath}; run against a production build (next start).`);
-        expect(ready, `Next never finished prefetching ${targetPath}`).toBe(true);
-
-        // Hold back the navigation's own RSC request (never a prefetch), so the
-        // prefetched skeleton stays on screen while it is measured.
-        let held = 0;
-        await page.route(isRsc, async (route) => {
-          if (!isPrefetch(route.request())) {
-            held += 1;
-            await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
-          }
-          await route.continue();
-        });
-
-        await link.click();
-
-        const skeleton = page.locator('[data-slot="page-header-skeleton"]').filter({ visible: true }).first();
-        await expect(skeleton, `the ${target.name} loading skeleton never appeared`).toBeVisible({ timeout: DELAY_MS });
-        const skeletonTitle = await page.evaluate(measureSkeletonTitle);
-        expect(skeletonTitle, "no title box in the skeleton's title row").not.toBeNull();
-
-        await page.waitForURL((url) => url.pathname === targetPath);
-        await expect(page.locator('[data-slot="page-header-skeleton"]').filter({ visible: true })).toHaveCount(0, {
-          timeout: 30_000,
-        });
-        const h1 = target.heading
-          ? page.locator("#main-content").getByRole("heading", { level: 1, name: target.heading })
-          : page.locator("#main-content h1").filter({ visible: true }).first();
-        await expect(h1).toBeVisible({ timeout: 30_000 });
-        await settleLayout(page);
-        const settled = await h1.evaluate((el) => {
-          const r = el.getBoundingClientRect();
-          return { left: r.left, top: r.top };
-        });
-
-        expect(held, "the navigation's RSC request was never held back").toBeGreaterThan(0);
-        // R15: the title does not move when the page replaces the skeleton. On a
-        // phone the bookings eyebrow wraps to two lines, which the skeleton
-        // reserves (bookings/loading.tsx), so the top holds there too.
-        expect(
-          Math.abs(skeletonTitle!.left - settled.left),
-          `${label}px ${target.name}: skeleton title x ${px(skeletonTitle!.left)}, settled h1 x ${px(settled.left)}`
-        ).toBeLessThanOrEqual(2);
-        expect(
-          Math.abs(skeletonTitle!.top - settled.top),
-          `${label}px ${target.name}: skeleton title y ${px(skeletonTitle!.top)}, settled h1 y ${px(settled.top)}`
-        ).toBeLessThanOrEqual(2);
+      const measured = await page.evaluate(measureHeaderPairs);
+      await test.info().attach(`header-geometry-skeleton-${label}.json`, {
+        body: JSON.stringify(measured, null, 2),
+        contentType: "application/json",
       });
-    }
+      expect(
+        measured.map((m) => m.id).sort(),
+        "the header/skeleton pairs on /style-guide (HEADER_PAIRS there, SKELETON_PAIRS here)"
+      ).toEqual(SKELETON_PAIRS.map((p) => p.id).sort());
+
+      const phone = width < SM;
+      for (const pair of SKELETON_PAIRS) {
+        const m = measured.find((x) => x.id === pair.id);
+        if (!m) continue;
+        const at = `${pair.id} at ${label}px`;
+
+        // The two boxes are the same width, so the two layouts are comparable.
+        expect.soft(Math.abs(m.headerBoxWidth - m.skeletonBoxWidth), `${at}: header box ${px(m.headerBoxWidth)} wide, skeleton box ${px(m.skeletonBoxWidth)}`).toBeLessThanOrEqual(SAME_X);
+        expect.soft(m.h1, `${at}: no h1 in the PageHeader`).not.toBeNull();
+        expect.soft(m.title, `${at}: no data-skeleton-part="title" box in the PageHeaderSkeleton`).not.toBeNull();
+
+        // The pair shows the state it is there for. Chip: on screen from sm up,
+        // hidden below, in both.
+        expect.soft(m.headerChip, `${at}: the module chip should be ${phone ? "hidden" : "on screen"}`).toBe(!phone);
+        expect.soft(m.skeletonChip, `${at}: the skeleton's chip placeholder should be ${phone ? "hidden" : "on screen"}`).toBe(!phone);
+        // Eyebrow: one line, or two below sm for the count eyebrow.
+        const lines = phone ? pair.phoneEyebrowLines : 1;
+        expect.soft(m.headerEyebrow, `${at}: no eyebrow above the PageHeader's title row`).not.toBeNull();
+        if (m.headerEyebrow !== null) {
+          expect.soft(
+            Math.abs(m.headerEyebrow - EYEBROW_HEIGHT[lines]),
+            `${at}: the PageHeader eyebrow is ${px(m.headerEyebrow)} tall; ${lines} line${lines === 1 ? "" : "s"} is ${EYEBROW_HEIGHT[lines]}px`
+          ).toBeLessThanOrEqual(TITLE_MATCH);
+        }
+        // Actions: a cluster with a pill in the header exactly when the
+        // skeleton reserves one, and the two roots aligned the same way.
+        expect.soft(m.headerPills > 0, `${at}: ${m.headerPills} pill(s) in the PageHeader's cluster`).toBe(pair.actions);
+        expect.soft(m.skeletonPills > 0, `${at}: ${m.skeletonPills} pill placeholder(s) in the skeleton`).toBe(pair.actions);
+        expect.soft(m.skeletonAlign, `${at}: the skeleton root's align-items`).toBe(m.headerAlign);
+
+        // R15: the title box starts where the h1 does.
+        if (!m.h1 || !m.title) continue;
+        expect.soft(
+          Math.abs(m.title.left - m.h1.left),
+          `${at}: skeleton title x ${px(m.title.left)}, h1 x ${px(m.h1.left)} (from each box's left edge)`
+        ).toBeLessThanOrEqual(TITLE_MATCH);
+        expect.soft(
+          Math.abs(m.title.top - m.h1.top),
+          `${at}: skeleton title y ${px(m.title.top)}, h1 y ${px(m.h1.top)} (from each box's top; eyebrow ${m.skeletonEyebrow === null ? "none" : px(m.skeletonEyebrow)} in the skeleton, ${m.headerEyebrow === null ? "none" : px(m.headerEyebrow)} in the header)`
+        ).toBeLessThanOrEqual(TITLE_MATCH);
+      }
+    });
   });
 }
