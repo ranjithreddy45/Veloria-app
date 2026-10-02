@@ -12,18 +12,31 @@ import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 // breaks the promise, which reads as jank rather than speed.
 //
 // The header is PageHeaderSkeleton, built from the real header's own class
-// strings, including the module-chip placeholder. PageHeader takes its chip
+// strings, including the module-chip placeholder (PageHeader takes its chip
 // from the route, so every PageHeader under (dashboard) shows one at sm and
-// above, and so do the pages that draw their own title row (a function sheet,
-// a BD lead or contract, a package, the BD dashboard), which render
-// ModuleChip there. One neutral placeholder therefore fits those routes, and
-// the title no longer jumps when the page lands (bar the BD dashboard's own
-// 20px band padding, which it always had). The exceptions are the
-// bespoke headers still without a chip, on the deferred list: people/[id] and
-// projects/[id] put their title after an avatar or a back button, so they
-// need a loading.tsx of their own. It reserves no action pills: this
-// fallback cannot know which header has them, and a placeholder button that
-// never arrives is worse than none.
+// above). Its title box sits 24px down, under a 16px eyebrow placeholder and
+// the column's 8px gap, and 54px in from sm up (chip, mr-1, gap-2.5).
+//
+// What it matches, so the title does not move when the page arrives:
+//   - A PageHeader with a one-line eyebrow.
+// What it does NOT match, on the routes that still fall back to it:
+//   - A PageHeader with no eyebrow: the h1 lands 24px higher.
+//   - /beo/[id]: the page renders its Guest numbers panel (CoversPanel)
+//     above the header whenever the booking resolves, and that panel's
+//     height depends on the guest list, so no fixed placeholder can hold the
+//     h1's top there. Its title is also dropped 4px from sm up to centre on
+//     the chip.
+//   - people/[id] and projects/[id]: the title follows an avatar or a back
+//     button, and there is no module chip.
+//   Each of those needs a loading.tsx of its own, drawn from its real header.
+// The bespoke headers that have one: /bd/dashboard, /bd/leads/[leadId] (and
+// bd/leads/loading.tsx draws the same LeadDetailSkeleton on any path below
+// /bd/leads, for a lead opened from another module),
+// /bd/contracts/[contractId] and /packages/[packageId] (which also covers its
+// /edit form).
+//
+// It reserves no action pills: this fallback cannot know which header has
+// them, and a placeholder button that never arrives is worse than none.
 //
 // It also guessed at two side-by-side chart panels. Most routes here are a
 // header + stat tiles + a table, so that's the shape it holds now.

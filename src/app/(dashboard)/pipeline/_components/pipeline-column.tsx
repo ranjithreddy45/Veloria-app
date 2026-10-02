@@ -147,7 +147,12 @@ export function PipelineColumn({
         )}
       </div>
 
-      {/* Add Deal Button */}
+      {/* The page's create action. It lives here, not in the header, because a
+          deal is filed into THIS stage (AddDealDialog's stageId), the Pipeline
+          exception to design rule R6 recorded above the header cluster in
+          pipeline/page.tsx. Keep the label "New deal" in sentence case, and do
+          not add a header pill that repeats it (R8). Won and lost stages are
+          outcomes a deal is moved into, so they get no create. */}
       {!stage.isWonStage && !stage.isLostStage && (
         <div className="border-t border-border p-2">
           <Button

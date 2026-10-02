@@ -12,8 +12,9 @@ import { PageHeaderSkeleton } from "@/components/layout/page-header-skeleton";
 //
 // Only the route knows what its settled header shows, so each route sets its
 // action-slot placeholders with `headerActions` (none unless it passes a count),
-// `headerMeta` when the header has a meta row under the description, and
-// `headerEyebrowLines={2}` when its eyebrow of counts wraps on a phone. A
+// `headerMeta` when the header has a meta row under the description,
+// `headerEyebrowLines={2}` when its eyebrow of counts wraps on a phone, and
+// `headerEyebrow={false}` when its header has no eyebrow at all. A
 // placeholder button that never arrives points the eye at the wrong place.
 // The body stays generic: action pills live in the header, never in a row
 // inside the body.
@@ -38,6 +39,11 @@ interface HeaderSkeletonOptions {
    * wraps on a phone, so the title box keeps the settled h1's top there.
    */
   headerEyebrowLines?: 1 | 2;
+  /**
+   * The eyebrow placeholder. On by default; false for a header with no
+   * eyebrow (its title row comes first, so its h1 sits 24px higher).
+   */
+  headerEyebrow?: boolean;
 }
 
 export interface ListSkeletonProps extends HeaderSkeletonOptions {
@@ -51,10 +57,16 @@ export function ListSkeleton({
   headerActions = 0,
   headerMeta = false,
   headerEyebrowLines = 1,
+  headerEyebrow = true,
 }: ListSkeletonProps) {
   return (
     <div className="space-y-5">
-      <PageHeaderSkeleton actions={headerActions} meta={headerMeta} eyebrowLines={headerEyebrowLines} />
+      <PageHeaderSkeleton
+        actions={headerActions}
+        meta={headerMeta}
+        eyebrow={headerEyebrow}
+        eyebrowLines={headerEyebrowLines}
+      />
 
       {/* Filter bar */}
       <div className="flex items-center gap-3">
@@ -98,10 +110,16 @@ export function BoardSkeleton({
   headerActions = 0,
   headerMeta = false,
   headerEyebrowLines = 1,
+  headerEyebrow = true,
 }: BoardSkeletonProps) {
   return (
     <div className="space-y-5">
-      <PageHeaderSkeleton actions={headerActions} meta={headerMeta} eyebrowLines={headerEyebrowLines} />
+      <PageHeaderSkeleton
+        actions={headerActions}
+        meta={headerMeta}
+        eyebrow={headerEyebrow}
+        eyebrowLines={headerEyebrowLines}
+      />
       <div className="flex gap-4 overflow-hidden">
         {Array.from({ length: columns }).map((_, c) => (
           <div key={c} className="w-72 shrink-0 space-y-3">
@@ -137,10 +155,16 @@ export function FormSkeleton({
   headerActions = 0,
   headerMeta = false,
   headerEyebrowLines = 1,
+  headerEyebrow = true,
 }: FormSkeletonProps) {
   return (
     <div className="space-y-6">
-      <PageHeaderSkeleton actions={headerActions} meta={headerMeta} eyebrowLines={headerEyebrowLines} />
+      <PageHeaderSkeleton
+        actions={headerActions}
+        meta={headerMeta}
+        eyebrow={headerEyebrow}
+        eyebrowLines={headerEyebrowLines}
+      />
       <div className="mx-auto max-w-3xl space-y-6">
         {Array.from({ length: sections }).map((_, s) => (
           <Card key={s}>

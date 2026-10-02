@@ -24,10 +24,13 @@ export default async function DashboardPage() {
 
   const role = (session?.user?.role as string | undefined) ?? "";
 
-  // The hub's shortcuts, in the order the owner approved. Their chip colours
-  // come from the destination's module in src/config/modules.ts (the
-  // dashboard's anchors: quotations indigo, payments cyan, site visits amber,
-  // availability pink); "New lead" is the page's primary action.
+  // The hub's shortcuts, in the order the owner approved. Every chip is the
+  // destination's module chip from src/config/modules.ts (the dashboard's
+  // anchors: leads emerald, quotations indigo, payments cyan, site visits
+  // amber, availability pink). "New lead" is the page's primary action: the
+  // filled plum pill, whose inverse chip carries the leads glyph rather than a
+  // Plus, as each hub pill shows where it goes (owner decision 3;
+  // QuickActions `hub`).
   //
   // Each pill shows only to someone who can actually open its destination,
   // under the same override-aware rule middleware applies (visibleActions):
@@ -38,14 +41,19 @@ export default async function DashboardPage() {
   //   check the static role matrix, so `when` repeats that check: an override
   //   that middleware honours would still be refused there.
   //
-  // Copy: the approved labels and hints in sentence case. One rename is the
-  // owner's: /payments lists payments and records none, so "Record Payment"
-  // became "Payments" and its hint "Add client payment" became "Track
-  // collections". The 5th pill keeps its approved words, "New booking hold" /
-  // "Block a venue slot", although /availability only shows free slots and
-  // places no hold; renaming it to the destination's title is an open question
-  // for the owner, not a change made here. "Inquiry" is spelt "enquiry"
-  // (design spec R16).
+  // Copy: the approved labels and hints in sentence case, with three renames
+  // the owner decided so that no pill promises what its destination doesn't
+  // do (design spec R16). Each now names its destination, as the sidebar does,
+  // and keeps its position and hue:
+  // - "Record Payment" / "Add client payment" became "Payments" / "Track
+  //   collections": /payments lists payments and records none.
+  // - "Schedule visit" / "Site visit / tasting" became "Site visits" / "Tours
+  //   & tastings": staff don't schedule at /site-visits; prospects book their
+  //   own tours and tastings from the public scheduler.
+  // - "New booking hold" / "Block a venue slot" became "Slot availability" /
+  //   "See free slots": /availability shows which slots are free and places
+  //   no hold.
+  // "Inquiry" is spelt "enquiry" (R16).
   const quickActions = visibleActions<HubActionSpec>(session, [
     {
       href: "/leads/new",
@@ -69,14 +77,14 @@ export default async function DashboardPage() {
     },
     {
       href: "/site-visits",
-      label: "Schedule visit",
-      hint: "Site visit / tasting",
+      label: "Site visits",
+      hint: "Tours & tastings",
       when: hasPermission(role, "tastings:read"),
     },
     {
       href: "/availability",
-      label: "New booking hold",
-      hint: "Block a venue slot",
+      label: "Slot availability",
+      hint: "See free slots",
     },
   ]);
 

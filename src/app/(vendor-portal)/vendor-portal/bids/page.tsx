@@ -27,7 +27,7 @@ export default async function VendorBidsPage() {
     return (
       <div className="space-y-6">
         <PageHeader
-          eyebrow="Opportunities"
+          eyebrow="Quoting"
           title="Your bids"
           description="What you've quoted us, and where each one stands."
         />

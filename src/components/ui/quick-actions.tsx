@@ -21,6 +21,11 @@ import { MODULES, resolveModule, type ModuleKey } from "@/config/modules";
 //   sidebar's job. The /dashboard hub is the one exception (`hub`).
 // - A pill's chip is its DESTINATION's module chip, resolved from the href
 //   through src/config/modules.ts. Pages never pick a pill's icon or colour.
+//   The primary pill's inverse chip differs by context: on a landing it
+//   carries a Plus (R6; the destination is the page's own module, whose chip
+//   already sits in the header), while on the /dashboard hub it carries the
+//   destination's glyph like every other hub pill (owner decision 3), so the
+//   hub's "New lead" shows the leads glyph. With no module it falls back to Plus.
 // - Who sees a pill is decided by the page with visibleActions()
 //   (src/lib/permission-claims.ts), the same override-aware rule middleware
 //   uses. This file only renders what it is given (and drops `when: false`).
@@ -79,7 +84,10 @@ type ActionSpecFields = {
   permission?: Permission | null;
   /** false hides the pill (feature flag, module setup state). */
   when?: boolean;
-  /** The page's main create action: the filled plum pill with a Plus chip. */
+  /**
+   * The page's main create action: the filled plum pill. Its chip carries a
+   * Plus on a landing, and the destination's module glyph on the hub.
+   */
   primary?: boolean;
   /** Use this module's chip instead of the one resolved from `href`. */
   module?: ModuleKey;
@@ -90,7 +98,8 @@ export type QuickActionSpec = ActionSpecFields & { label: ActionLabel };
 
 /**
  * A /dashboard hub shortcut. The hub is not a module landing, so its pills may
- * name a destination ("Payments") and it may show more than three. Use only
+ * name a destination ("Payments") and it may show more than three, and a
+ * primary hub pill wears its destination's glyph instead of a Plus. Use only
  * with `<QuickActions hub …>`.
  */
 export type HubActionSpec = ActionSpecFields & { label: string };
@@ -161,6 +170,7 @@ function chipFor(moduleKey: ModuleKey | undefined, href: string | undefined) {
 function PillBody({
   primary,
   glyph,
+  primaryGlyph = Plus,
   hue,
   label,
   hint,
@@ -168,6 +178,8 @@ function PillBody({
 }: {
   primary: boolean;
   glyph: LucideIcon | React.ReactElement;
+  /** The glyph in a primary pill's inverse chip: Plus, except on the hub. */
+  primaryGlyph?: LucideIcon;
   hue: Hue;
   label: string;
   hint?: string;
@@ -176,7 +188,7 @@ function PillBody({
   return (
     <>
       {primary ? (
-        <IconChip icon={Plus} hue="brand" size="sm" tone="inverse" />
+        <IconChip icon={primaryGlyph} hue="brand" size="sm" tone="inverse" />
       ) : (
         <IconChip icon={glyph} hue={hue} size="sm" tone="solid" />
       )}
@@ -192,10 +204,13 @@ function PillBody({
   );
 }
 
-function PillLink({ action, hintId }: { action: HubActionSpec; hintId: string }) {
+function PillLink({ action, hintId, hub }: { action: HubActionSpec; hintId: string; hub: boolean }) {
   const primary = Boolean(action.primary);
   const mod = chipFor(action.module, action.href);
   const hue: Hue = mod?.hue ?? FALLBACK_HUE;
+  // On the hub every pill, the primary included, shows where it goes (owner
+  // decision 3). A landing's primary keeps R6's Plus.
+  const primaryGlyph: LucideIcon = hub && mod ? mod.icon : Plus;
 
   return (
     <Link
@@ -209,6 +224,7 @@ function PillLink({ action, hintId }: { action: HubActionSpec; hintId: string })
       <PillBody
         primary={primary}
         glyph={mod?.icon ?? FALLBACK_GLYPH}
+        primaryGlyph={primaryGlyph}
         hue={hue}
         label={action.label}
         hint={action.hint}
@@ -226,12 +242,13 @@ export interface QuickActionButtonProps
   extends Omit<React.ComponentPropsWithoutRef<"button">, "children"> {
   label: ActionLabel;
   hint?: string;
-  /** primary: the page's main create action (filled plum, Plus chip). */
+  /** primary: a landing's main create action (filled plum, Plus chip). */
   variant?: "primary" | "secondary";
   /**
    * Secondary only: the chip glyph (a Lucide icon or an element, e.g. a
-   * spinner while pending). Defaults to `module`'s glyph. The primary pill
-   * always shows a Plus.
+   * spinner while pending). Defaults to `module`'s glyph. A primary button
+   * pill always shows a Plus: it is a landing's create action (R6); the hub's
+   * destination-glyph primary is a link pill (PillLink).
    */
   icon?: LucideIcon | React.ReactElement;
   /** Secondary only: the module whose hue (and default glyph) the chip wears. */
@@ -344,7 +361,8 @@ export type QuickActionsProps =
       actions?: readonly HubActionSpec[];
       /**
        * The /dashboard hub only. It is not a module landing, so the landing
-       * limits (3 pills, verb labels) do not apply to its shortcuts.
+       * limits (3 pills, verb labels) do not apply to its shortcuts, and its
+       * primary shortcut wears its destination's glyph rather than a Plus.
        */
       hub: true;
     });
@@ -411,7 +429,7 @@ export function QuickActions(props: QuickActionsProps) {
       ))}
       {actions.map((action, i) => (
         <li key={`${action.href}|${action.label}`} className={ITEM}>
-          <PillLink action={action} hintId={hintIds[i]} />
+          <PillLink action={action} hintId={hintIds[i]} hub={hub} />
         </li>
       ))}
       {hasMore && <li className={ITEM}>{more}</li>}

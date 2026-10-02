@@ -54,14 +54,17 @@ export default async function BdDashboardPage({
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-4 border-b border-border">
         <div>
-          <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-muted-foreground mb-0.5">
+          <p className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-0.5">
             Business Development · Acquisition
           </p>
           {/* The module chip leads the title row, as in PageHeader (top-aligned,
-              14px to the title, hidden below sm). */}
+              14px to the title, hidden below sm). The h1 is text-h2 at
+              leading-tight, a 32.5px line, so from sm up it is dropped 4px to
+              centre that line on the 40px chip. bd/dashboard/loading.tsx
+              repeats this header; keep the two in step. */}
           <div className="flex items-start gap-2.5">
             <ModuleChip className="mr-1" />
-            <h1 className="text-[1.75rem] font-black text-foreground tracking-tight leading-tight">
+            <h1 className="text-h2 font-black text-foreground tracking-tight leading-tight sm:mt-1">
               BD Dashboard
             </h1>
           </div>

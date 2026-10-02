@@ -15,10 +15,12 @@ export const metadata: Metadata = { title: "Vendors & Packages" };
 // Vendors & Packages — Grand Module Root
 // Server component: fetch both lists, hand off to the client shell.
 //
-// No header action cluster here (the design rule's one exception): what
-// "create" means depends on the active tab, so VendorModule's tab toolbar owns
-// the single create control: "Add vendor" (VendorFormDialog) on Vendors,
-// "Create package" on Packages. Do not add header pills that repeat them.
+// No header action cluster here. Vendors is one of the design rule's two R6
+// exceptions (the other is /pipeline, whose stage-aware "New deal" lives in
+// the board columns; see pipeline/page.tsx): what "create" means depends on
+// the active tab, so VendorModule's tab toolbar owns the single create
+// control: "Add vendor" (VendorFormDialog) on Vendors, "Create package" on
+// Packages. Do not add header pills that repeat them.
 // ============================================================
 
 export default async function VendorsPage() {

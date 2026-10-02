@@ -101,11 +101,12 @@ export function BeoDetailView({ beo, canWrite }: { beo: BeoDetail; canWrite: boo
             <ArrowLeft className="size-3.5" /> Function sheets
           </Link>
           {/* The module chip leads the title row, as in PageHeader (top-aligned,
-              14px to the title, hidden below sm), so this record's title sits
-              where its list's title and the loading skeleton's do. */}
+              14px to the title, hidden below sm). The h1 is text-h2 at
+              leading-tight, a 32.5px line, so from sm up the title is dropped
+              4px to centre its first line on the 40px chip. */}
           <div className="flex items-start gap-2.5">
             <ModuleChip className="mr-1" />
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 sm:pt-1">
               <h1 className="text-h2 font-medium leading-tight tracking-[-0.01em] text-foreground">{beo.beoNumber}</h1>
               <StatusPill label={STATUS_LABEL[beo.status] ?? beo.status} hue={STATUS_HUE[beo.status] ?? "slate"} />
             </div>

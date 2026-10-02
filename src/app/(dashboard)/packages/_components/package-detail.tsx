@@ -152,11 +152,18 @@ export function PackageDetail({ eventPackage }: PackageDetailProps) {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            {/* The module chip leads the title row, as in PageHeader (top-aligned,
-                14px to the title, hidden below sm). */}
+            {/* The module chip leads the title row, as in PageHeader (14px to
+                the title, hidden below sm). PageHeader can top-align it because
+                its h1's first line is 39px tall; this h1 is text-2xl, a 32px
+                line, so from sm up the title block drops 4px (sm:pt-1) to put
+                that first line's centre exactly on the 40px chip's. Padding
+                rather than centring keeps it there when a long name wraps.
+                packages/[packageId]/loading.tsx repeats this markup, so keep
+                the two in step and the title does not move when the page
+                lands. */}
             <div className="flex items-start gap-2.5">
               <ModuleChip className="mr-1" />
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 sm:pt-1">
                 <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
                   {eventPackage.name}
                 </h1>

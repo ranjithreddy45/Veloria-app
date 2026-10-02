@@ -51,6 +51,28 @@ export default async function PipelinePage() {
   const canSyncLeads = sessionAllows(session, "pipeline:update") && hasPermission(role, "pipeline:update");
   const canScoreDeals = sessionAllows(session, "ai:admin") && hasPermission(role, "ai:admin");
 
+  // R6 exception (the second, after Vendors): this cluster has no primary pill.
+  // A deal is an existing lead placed INTO a stage, and AddDealDialog takes
+  // that stage from the column it is opened from, so the page's create is the
+  // stage-aware "New deal" at the foot of every open column
+  // (_components/pipeline-column.tsx). A header "New deal" would either repeat
+  // those buttons with the same label and dialog (R8: one action, once per
+  // page state) or have to pick a stage for the user and silently file every
+  // new deal under the first one. Vendors keeps its create in the tab toolbar
+  // because it depends on the tab; Pipeline keeps it in the columns because it
+  // depends on the stage. What is left are the two run-in-place verbs, both
+  // secondary and both wearing the Pipeline chip (loading.tsx reserves one
+  // pill to match). Do not add a header create pill without removing the
+  // column buttons.
+  const headerActions = (
+    <QuickActions
+      leading={[
+        canSyncLeads && <SyncLeadsButton key="sync-leads" />,
+        canScoreDeals && <ScoreAllDealsButton key="score-deals" />,
+      ]}
+    />
+  );
+
   return (
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-5">
       <PageHeader
@@ -105,14 +127,7 @@ export default async function PipelinePage() {
           </div>
         }
         description="Drag deals through stages — values and probability auto-update."
-        actions={
-          <QuickActions
-            leading={[
-              canSyncLeads && <SyncLeadsButton key="sync-leads" />,
-              canScoreDeals && <ScoreAllDealsButton key="score-deals" />,
-            ]}
-          />
-        }
+        actions={headerActions}
       />
 
       <div className="flex-1 overflow-hidden">

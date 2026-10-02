@@ -31,8 +31,8 @@ import {
 // ------------------------------------------------------------
 // The Enquiry page's two maintenance tools live here, not in the header's
 // meta row (design spec R6: maintenance tools go only in the More menu). Each
-// keeps the gate, confirm copy and server action of the button it replaces
-// (cleanup-empty-fb-button.tsx, enquiry-repair-button.tsx):
+// keeps the gate, confirm copy and server action of the header buttons it
+// replaced (since deleted):
 //
 // - Remove N empty Facebook leads (contacts:delete, only while some exist):
 //   soft-deletes "Facebook Lead" placeholders with no phone and no email.

@@ -125,11 +125,17 @@ export function ContractDetail({ contract, userRole }: { contract: ContractFull;
         </Link>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-1">
-            {/* The module chip leads the title row, as in PageHeader (top-aligned,
-                14px to the title, hidden below sm). */}
+            {/* The module chip leads the title row, as in PageHeader (14px to
+                the title, hidden below sm). PageHeader can top-align it because
+                its h1's first line is 39px tall; this h1 is text-title, a 27px
+                line, so from sm up the title block drops 6px (sm:pt-1.5) to put
+                that first line's centre on the 40px chip's (19.5px against
+                20px). Padding rather than centring keeps it there when a long
+                title wraps. ../loading.tsx repeats this markup, so keep the two
+                in step and the title does not move when the page lands. */}
             <div className="flex items-start gap-2.5">
               <ModuleChip className="mr-1" />
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:pt-1.5">
                 <h1 className="text-title font-semibold tracking-tight text-foreground">{contract.title}</h1>
                 <StatusPill label={ACQ_CONTRACT_LIFECYCLE_LABEL[contract.status as keyof typeof ACQ_CONTRACT_LIFECYCLE_LABEL] ?? contract.status} hue={STATUS_HUE[contract.status] ?? "slate"} size="xs" />
                 <span className="inline-flex items-center rounded-full border border-border bg-muted/40 px-2 py-0.5 text-meta font-medium text-muted-foreground">

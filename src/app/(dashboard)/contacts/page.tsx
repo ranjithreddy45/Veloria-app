@@ -206,13 +206,19 @@ export default async function ContactsPage({ searchParams }: ContactsPageProps) 
           discovered as a contradiction. Enquiries counts PEOPLE, Leads counts
           EVENTS, and the difference is exactly these repeat customers — which
           is good news, so it is worth naming rather than hiding.
+
+          While the filter is on, the link is a selected secondary (a plum
+          tint, not a plum fill): the filled plum belongs to the New contact
+          pill alone (R3), and this row sits right under it. aria-current marks
+          it as the active filter; aria-pressed is not allowed on a link.
         */}
         {(repeatCount > 0 || repeatOnly) && (
           <Link
             href={repeatOnly ? "/contacts" : "/contacts?repeat=1"}
+            aria-current={repeatOnly ? "true" : undefined}
             className={
               repeatOnly
-                ? "rounded-lg border border-primary bg-primary px-3 py-1.5 text-detail font-medium text-primary-foreground"
+                ? "rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-detail font-medium text-foreground hover:bg-primary/15"
                 : "rounded-lg border border-border bg-card px-3 py-1.5 text-detail text-foreground/80 hover:bg-muted"
             }
           >

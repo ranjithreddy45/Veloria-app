@@ -14,6 +14,7 @@
 
 import * as React from "react";
 import { Check, Inbox, ShieldAlert } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import { Donut } from "@/components/ui/donut";
 import { StatTile } from "@/components/ui/stat-tile";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -58,7 +59,7 @@ const MOCK_ITEMS = [
 function Section({ title, note, children }: { title: string; note?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="space-y-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{title}</h2>
+      <h2 className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground">{title}</h2>
       {note && <p className="max-w-2xl text-body leading-relaxed text-muted-foreground">{note}</p>}
       {children}
     </section>
@@ -86,7 +87,7 @@ const CHIP_JOBS: ReadonlyArray<{
   {
     job: "Action",
     spec: "Pill chip · sm 28px · solid",
-    rule: "Inside an action pill, showing the destination module's chip. The primary pill carries an inverse Plus chip instead.",
+    rule: "Inside an action pill, showing the destination module's chip. On a module landing the primary pill carries an inverse Plus chip instead; on the /dashboard hub it carries its destination's glyph in that inverse chip.",
     example: <IconChip icon={SITE_VISITS.icon} hue={SITE_VISITS.hue} size="sm" tone="solid" />,
   },
   {
@@ -133,8 +134,8 @@ export default function StyleGuidePage() {
   return (
     <div className="mx-auto max-w-4xl space-y-10 p-6">
       <header>
-        <h1 className="text-2xl font-semibold">Design foundation</h1>
-        <p className="text-sm text-muted-foreground">The page header, module chips, action pills and KPI tiles, plus the Projects kit (Workflow stepper and Readiness checklist).</p>
+        <h1 className="text-h2 font-semibold">Design foundation</h1>
+        <p className="text-copy text-muted-foreground">The page header, module chips, action pills and KPI tiles, plus the Projects kit (Workflow stepper and Readiness checklist).</p>
       </header>
 
       <Section
@@ -206,12 +207,12 @@ export default function StyleGuidePage() {
       >
         <div className="grid gap-3 sm:grid-cols-3">
           {CHIP_JOBS.map((c) => (
-            <div key={c.job} data-chip-job={c.job.toLowerCase()} className="space-y-2 rounded-xl border border-border bg-card p-4">
+            <Card key={c.job} data-chip-job={c.job.toLowerCase()} className="gap-2 p-4">
               <div className="flex h-10 items-center">{c.example}</div>
               <p className="text-copy font-semibold leading-tight text-foreground">{c.job}</p>
               <p className="text-meta font-medium text-muted-foreground">{c.spec}</p>
               <p className="text-body leading-relaxed text-muted-foreground">{c.rule}</p>
-            </div>
+            </Card>
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -230,27 +231,31 @@ export default function StyleGuidePage() {
           </>
         }
       >
-        <ul role="list" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {MODULE_KEYS.map((key) => {
-            const mod = MODULES[key];
-            return (
-              <li
-                key={key}
-                data-module={key}
-                data-hue={mod.hue}
-                className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border bg-card px-3 py-2"
-              >
-                <IconChip icon={mod.icon} hue={mod.hue} size="sm" tone="solid" />
-                <span className="min-w-0">
-                  <span className="block text-detail font-semibold leading-tight text-foreground">{mod.label}</span>
-                  <span className="block break-words text-meta leading-tight text-muted-foreground">
-                    {mod.hue} · {mod.prefixes.join(" ")}
+        {/* One Card panel holding plain list rows: a row has no border or fill
+            of its own, so it never reads as a (clickable) action pill. */}
+        <Card className="gap-0 p-2">
+          <ul role="list" aria-label="Module registry" className="grid gap-x-2 sm:grid-cols-2 lg:grid-cols-3">
+            {MODULE_KEYS.map((key) => {
+              const mod = MODULES[key];
+              return (
+                <li
+                  key={key}
+                  data-module={key}
+                  data-hue={mod.hue}
+                  className="flex min-w-0 items-center gap-2.5 px-2 py-2"
+                >
+                  <IconChip icon={mod.icon} hue={mod.hue} size="sm" tone="solid" />
+                  <span className="min-w-0">
+                    <span className="block text-detail font-semibold leading-tight text-foreground">{mod.label}</span>
+                    <span className="block break-words text-meta leading-tight text-muted-foreground">
+                      {mod.hue} · {mod.prefixes.join(" ")}
+                    </span>
                   </span>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
       </Section>
 
       <Section title="Donut · health bands">
@@ -308,8 +313,8 @@ export default function StyleGuidePage() {
 
       <Section title="EmptyState">
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border"><EmptyState tone="success" icon={<Check className="size-5" />} title="Nothing pending" description="Every standard has been signed off." /></div>
-          <div className="rounded-xl border"><EmptyState icon={<Inbox className="size-5" />} title="No items match this filter" /></div>
+          <Card className="gap-0 py-0"><EmptyState tone="success" icon={<Check className="size-5" />} title="Nothing pending" description="Every standard has been signed off." /></Card>
+          <Card className="gap-0 py-0"><EmptyState icon={<Inbox className="size-5" />} title="No items match this filter" /></Card>
         </div>
       </Section>
     </div>

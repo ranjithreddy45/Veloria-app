@@ -57,8 +57,9 @@ function changeTrend(changePercent: number): StatTileTrend {
 // The hub's pill row: every pill stays a visible pill at every width, and the
 // row wraps instead of clipping (owner decision). On a 390px phone the five
 // pills take three rows; the hub is the one header allowed more than R10's
-// two, as it is the one allowed destination labels (R6).
-const HUB_ROW = "xl:justify-end";
+// two, as it is the one allowed destination labels (R6). py-1 is the approved
+// row's own vertical padding, kept so the header's rhythm is unchanged.
+const HUB_ROW = "py-1 xl:justify-end";
 
 // The month the cash KPI covers: the current month in IST, which is the window
 // getDashboardFullData sums. Derived from the data's own timestamp so the
@@ -69,6 +70,28 @@ const IST_MONTH = new Intl.DateTimeFormat("en-IN", { month: "long", timeZone: "A
 // (StatTile's default steps up to 20px from sm), so a lakh figure fits a tile
 // in the five-across row at 1280px.
 const KPI_TILE = "sm:p-4";
+
+/**
+ * A money figure that may wrap only after a digit-group comma. The approved
+ * KPI row is five across from lg, and from 1024px to 1279px a tile is about
+ * 96px wide inside, narrower than a lakh figure at the tile's size. StatTile
+ * never truncates a value (a clipped figure is a wrong number), so the figure
+ * wraps there; the <wbr> after each comma makes it wrap as "₹12,45," / "000"
+ * rather than in the middle of a digit group.
+ */
+function breakAtGroups(figure: string): React.ReactNode {
+  const groups = figure.split(",");
+  return groups.map((group, i) => (
+    <React.Fragment key={i}>
+      {group}
+      {i < groups.length - 1 && (
+        <>
+          ,<wbr />
+        </>
+      )}
+    </React.Fragment>
+  ));
+}
 
 const FUNNEL_TRAPEZOIDS = [
   { stage: "NEW", path: "M 8 0 L 132 0 Q 136 0 135 4 L 126 21 Q 125 25 121 25 L 19 25 Q 15 25 14 21 L 5 4 Q 4 0 8 0 Z", defaultColor: "#6366f1" },
@@ -253,12 +276,14 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
       {/* ============================================================ */}
       {/* 2. TOP METRICS BAND: 5 KPI tiles in a row (the shared StatTile) */}
       {/* ============================================================ */}
-      {/* Five across only from xl: below that a tile is too narrow for a lakh
-          figure (₹12,45,000) and the value would wrap mid-number. */}
-      <section className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {/* The approved grid: five across from lg, as on the original dashboard.
+          From 1024px to 1279px a lakh figure is wider than a tile, so the
+          money values wrap at a digit-group comma (breakAtGroups) instead of
+          being cut off. */}
+      <section className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
         <StatTile
           label={`Cash collected · ${IST_MONTH.format(new Date(data.asOf))}`}
-          value={formattedKpiCurrency(data.kpis.cashCollected.amount)}
+          value={breakAtGroups(formattedKpiCurrency(data.kpis.cashCollected.amount))}
           accent="emerald"
           icon={<Wallet className="size-4" />}
           trend={changeTrend(data.kpis.cashCollected.changePercent)}
@@ -267,7 +292,7 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
 
         <StatTile
           label="Booked value · this month"
-          value={formattedKpiCurrency(data.kpis.bookedValue.amount)}
+          value={breakAtGroups(formattedKpiCurrency(data.kpis.bookedValue.amount))}
           accent="brand"
           icon={<Globe className="size-4" />}
           trend={changeTrend(data.kpis.bookedValue.changePercent)}
@@ -276,7 +301,7 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
 
         <StatTile
           label="Overdue"
-          value={formattedKpiCurrency(data.kpis.overdue.amount)}
+          value={breakAtGroups(formattedKpiCurrency(data.kpis.overdue.amount))}
           accent="rose"
           icon={<AlertCircle className="size-4" />}
           trend={{
