@@ -18,6 +18,8 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 
+import { joinedBy, musterRangeDays } from "@/lib/hr/muster-range";
+
 async function requireUser() {
   const session = await auth();
   if (!session?.user?.id) return null;
@@ -48,6 +50,8 @@ export type MusterStatus =
   | "PRESENT" | "ABSENT" | "HALF_DAY" | "WFH" | "ON_LEAVE" | "HOLIDAY" | "WEEKEND";
 
 export interface MusterRow {
+  /** The IST day this row is for (YYYY-MM-DD). One row per employee per day. */
+  date: string;
   employeeId: string;
   name: string;
   empCode: string;
@@ -70,12 +74,17 @@ export interface MusterRow {
 }
 
 export interface DailyMuster {
-  date: string; // YYYY-MM-DD (IST day)
+  date: string; // YYYY-MM-DD (IST day) — the From day; equals `to` for a single day
+  from: string;
+  to: string;
+  /** Number of days in the range (1 for a single day). */
+  days: number;
   rows: MusterRow[];
   /** True when at least one ACTIVE AttendanceSite has non-null lat AND lng. */
   geoEnabled: boolean;
   summary: {
-    headcount: number;
+    headcount: number; // distinct employees in the register
+    // Over a range the counts below are person-days, not people.
     present: number; // PRESENT + HALF_DAY (physically working / in office)
     absent: number; // explicit ABSENT + no record for the day
     wfh: number;
@@ -90,13 +99,22 @@ export interface DailyMuster {
  * the LEFT-JOIN we get by including a date-filtered `attendance` relation (take 1
  * on the @@unique([employeeId, date]) row) rather than querying records first.
  */
-export async function getDailyMuster(input: { date?: string }): Promise<DailyMuster | null> {
+export async function getDailyMuster(
+  input: { date?: string; from?: string; to?: string },
+): Promise<DailyMuster | null> {
   const u = await requireUser();
   if (!can(u?.role, "hr:read")) return null;
 
-  const dayStr = input.date && /^\d{4}-\d{2}-\d{2}$/.test(input.date) ? input.date : todayIstDateString();
-  const date = utcMidnightOf(dayStr);
-  if (!date) return null;
+  // A single day (`date`, the original contract) or a From → To range. With no
+  // input at all the register is today's.
+  const isDay = (v?: string): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const fromStr = isDay(input.from) ? input.from : isDay(input.date) ? input.date : todayIstDateString();
+  const toStr = isDay(input.to) ? input.to : fromStr;
+  const range = musterRangeDays(fromStr, toStr);
+  if (!range.ok) return null;
+  const from = utcMidnightOf(fromStr);
+  const to = utcMidnightOf(toStr);
+  if (!from || !to) return null;
 
   const employees = await prisma.employee.findMany({
     where: ROSTER_WHERE,
@@ -105,12 +123,14 @@ export async function getDailyMuster(input: { date?: string }): Promise<DailyMus
       empCode: true,
       firstName: true,
       lastName: true,
+      dateOfJoining: true,
       department: { select: { name: true } },
-      // LEFT JOIN: the day's record if any (0 or 1 by the unique constraint).
+      // LEFT JOIN: every record in the range (at most one per day by the
+      // @@unique([employeeId, date]) constraint). One query for the whole range.
       attendance: {
-        where: { date },
-        take: 1,
+        where: { date: { gte: from, lte: to } },
         select: {
+          date: true,
           status: true,
           checkInAt: true,
           checkOutAt: true,
@@ -138,31 +158,42 @@ export async function getDailyMuster(input: { date?: string }): Promise<DailyMus
   const siteNameById = new Map(sites.map((s) => [s.id, s.name]));
   const geoEnabled = sites.some((s) => s.isActive && s.lat != null && s.lng != null);
 
-  const rows: MusterRow[] = employees.map((e) => {
-    const rec = e.attendance[0] ?? null;
-    return {
-      employeeId: e.id,
-      name: `${e.firstName} ${e.lastName}`.trim(),
-      empCode: e.empCode,
-      department: e.department?.name ?? null,
-      status: (rec?.status ?? "ABSENT") as MusterStatus,
-      checkInAt: rec?.checkInAt ?? null,
-      checkOutAt: rec?.checkOutAt ?? null,
-      workedMinutes: rec?.workedMinutes ?? 0,
-      visitType: rec?.visitType ?? null,
-      flagged: rec?.flagged ?? false,
-      flagReason: rec?.flagReason ?? null,
-      isRegularized: rec?.isRegularized ?? false,
-      siteId: rec?.siteId ?? null,
-      siteName: rec?.siteId ? siteNameById.get(rec.siteId) ?? null : null,
-      locationVerified: rec?.locationVerified ?? null,
-      lat: rec?.checkInLat ?? null,
-      lng: rec?.checkInLng ?? null,
-    };
-  });
+  // Day by day, then the roster in name order — so a range reads as a run of
+  // daily registers. Days before an employee's joining date are skipped rather
+  // than shown as absences.
+  const rows: MusterRow[] = [];
+  const employeesSeen = new Set<string>();
+  for (const day of range.days) {
+    for (const e of employees) {
+      if (!joinedBy(e.dateOfJoining, day)) continue;
+      // @db.Date is UTC midnight of the IST day, so its ISO date is the day key.
+      const rec = e.attendance.find((a) => a.date.toISOString().slice(0, 10) === day) ?? null;
+      employeesSeen.add(e.id);
+      rows.push({
+        date: day,
+        employeeId: e.id,
+        name: `${e.firstName} ${e.lastName}`.trim(),
+        empCode: e.empCode,
+        department: e.department?.name ?? null,
+        status: (rec?.status ?? "ABSENT") as MusterStatus,
+        checkInAt: rec?.checkInAt ?? null,
+        checkOutAt: rec?.checkOutAt ?? null,
+        workedMinutes: rec?.workedMinutes ?? 0,
+        visitType: rec?.visitType ?? null,
+        flagged: rec?.flagged ?? false,
+        flagReason: rec?.flagReason ?? null,
+        isRegularized: rec?.isRegularized ?? false,
+        siteId: rec?.siteId ?? null,
+        siteName: rec?.siteId ? siteNameById.get(rec.siteId) ?? null : null,
+        locationVerified: rec?.locationVerified ?? null,
+        lat: rec?.checkInLat ?? null,
+        lng: rec?.checkInLng ?? null,
+      });
+    }
+  }
 
   const summary = {
-    headcount: rows.length,
+    headcount: employeesSeen.size,
     present: rows.filter((r) => r.status === "PRESENT" || r.status === "HALF_DAY").length,
     absent: rows.filter((r) => r.status === "ABSENT").length,
     wfh: rows.filter((r) => r.status === "WFH").length,
@@ -170,7 +201,7 @@ export async function getDailyMuster(input: { date?: string }): Promise<DailyMus
     flagged: rows.filter((r) => r.flagged).length,
   };
 
-  return { date: dayStr, rows, geoEnabled, summary };
+  return { date: fromStr, from: fromStr, to: toStr, days: range.days.length, rows, geoEnabled, summary };
 }
 
 // ============================================================

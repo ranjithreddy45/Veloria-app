@@ -43,7 +43,7 @@ export default async function AttendanceMusterPage() {
       <PageHeader
         eyebrow="Attendance"
         title="Muster / Register"
-        description="The organisation-wide attendance register. Pick a day to see who's present, absent, on leave or working from home — with check-in time and any flagged punches — or switch to the monthly grid."
+        description="The organisation-wide attendance register. Pick a day, or a From–To range of up to 31 days, to see who's present, absent, on leave or working from home — with check-in time and any flagged punches — or switch to the monthly grid."
       />
       <MusterView initialDate={date} initial={initial} initialFy={currentFy()} initialMonth={new Date().getMonth() + 1} canEdit={canEdit} canAdmin={canAdmin} />
     </div>
