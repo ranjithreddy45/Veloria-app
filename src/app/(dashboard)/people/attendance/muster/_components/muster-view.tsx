@@ -27,6 +27,7 @@ import {
   type DailyMuster, type MonthlyRegister, type MusterStatus,
 } from "@/actions/hr-attendance-register.actions";
 import { markAttendanceManually } from "@/actions/hr-attendance.actions";
+import { MAX_MUSTER_RANGE_DAYS, musterRangeDays } from "@/lib/hr/muster-range";
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -78,6 +79,13 @@ const CSV_CODE: Record<MusterStatus, string> = {
 };
 
 /** Zero-padded UTC-midnight day key for a register cell, e.g. "2026-07-09". */
+/** "Mon, 6 Oct" — the Date column of a range register. */
+function shortDay(dateStr: string): string {
+  return new Date(`${dateStr}T00:00:00.000Z`).toLocaleDateString("en-IN", {
+    weekday: "short", day: "numeric", month: "short", timeZone: "UTC",
+  });
+}
+
 function dayKey(year: number, month: number, day: number): string {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
@@ -177,19 +185,39 @@ export function MusterView({
 // Daily muster
 // ============================================================
 function DayView({ initialDate, initial, canAdmin }: { initialDate: string; initial: DailyMuster | null; canAdmin: boolean }) {
-  const [date, setDate] = React.useState(initialDate);
+  // From → To range. Both start on the same day, which is the single-day
+  // register exactly as it was before ranges existed.
+  const [from, setFrom] = React.useState(initialDate);
+  const [to, setTo] = React.useState(initialDate);
   const [muster, setMuster] = React.useState<DailyMuster | null>(initial);
   const [loading, setLoading] = React.useState(false);
   const [q, setQ] = React.useState("");
+  const isRange = from !== to;
 
-  async function onDate(next: string) {
-    if (!next) return;
-    setDate(next);
+  async function load(nextFrom: string, nextTo: string) {
+    if (!nextFrom || !nextTo) return;
+    const check = musterRangeDays(nextFrom, nextTo);
+    if (!check.ok) { toast.error(check.reason); return; }
     setLoading(true);
-    const data = await getDailyMuster({ date: next });
+    const data = await getDailyMuster({ from: nextFrom, to: nextTo });
     setLoading(false);
-    if (!data) { toast.error("Couldn't load the muster for that day."); return; }
+    if (!data) { toast.error("Couldn't load the muster for those dates."); return; }
     setMuster(data);
+  }
+
+  function onFrom(next: string) {
+    if (!next) return;
+    // Moving From past To drags To along, so the range never runs backwards.
+    const nextTo = to < next ? next : to;
+    setFrom(next);
+    setTo(nextTo);
+    void load(next, nextTo);
+  }
+
+  function onTo(next: string) {
+    if (!next) return;
+    setTo(next);
+    void load(from, next);
   }
 
   const rows = React.useMemo(() => {
@@ -208,11 +236,13 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
   function exportCsv() {
     if (!muster || muster.rows.length === 0) { toast.error("Nothing to export."); return; }
     const headers = [
+      ...(isRange ? ["Date"] : []),
       "Code", "Name", "Department", "Status",
       "Check-in (IST)", "Check-out (IST)", "Worked (hrs)", "Flagged",
       "Site", "Verified", "Lat", "Lng",
     ];
     const body = muster.rows.map((r) => [
+      ...(isRange ? [r.date] : []),
       r.empCode,
       r.name,
       r.department ?? "",
@@ -226,11 +256,14 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
       r.lat != null ? r.lat.toFixed(5) : "",
       r.lng != null ? r.lng.toFixed(5) : "",
     ]);
-    downloadCSV(`muster-daily-${date}.csv`, toCSV(headers, body));
+    downloadCSV(isRange ? `muster-daily-${from}_to_${to}.csv` : `muster-daily-${from}.csv`, toCSV(headers, body));
   }
 
   function openPrint() {
-    window.open(`/api/hr/muster?date=${encodeURIComponent(date)}`, "_blank", "noopener,noreferrer");
+    const qs = isRange
+      ? `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
+      : `date=${encodeURIComponent(from)}`;
+    window.open(`/api/hr/muster?${qs}`, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -240,11 +273,17 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
 
       {/* Controls */}
       <div className="flex flex-wrap items-end gap-3">
-        {/* w-48 + a 12rem-min search is 384px — wider than a 375px viewport — so
-         * the date picker goes full-width on a phone and the search sits below. */}
-        <div className="w-full sm:w-48">
-          <label className="mb-1 block text-detail font-medium text-muted-foreground">Day</label>
-          <Input type="date" value={date} onChange={(e) => onDate(e.target.value)} className="h-9" />
+        {/* The two pickers share a row on a phone and the search sits below, so
+         * nothing pushes the page wider than a 375px viewport. */}
+        <div className="grid w-full grid-cols-2 gap-3 sm:w-auto">
+          <div className="sm:w-44">
+            <label htmlFor="muster-from" className="mb-1 block text-detail font-medium text-muted-foreground">From</label>
+            <Input id="muster-from" type="date" value={from} onChange={(e) => onFrom(e.target.value)} className="h-9" />
+          </div>
+          <div className="sm:w-44">
+            <label htmlFor="muster-to" className="mb-1 block text-detail font-medium text-muted-foreground">To</label>
+            <Input id="muster-to" type="date" value={to} min={from} onChange={(e) => onTo(e.target.value)} className="h-9" />
+          </div>
         </div>
         <div className="w-full flex-1 sm:min-w-[12rem]">
           <label className="mb-1 block text-detail font-medium text-muted-foreground">Search</label>
@@ -264,16 +303,20 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
         </div>
       </div>
 
-      <p className="text-detail text-muted-foreground">{prettyDay(date)}</p>
+      <p className="text-detail text-muted-foreground">
+        {isRange
+          ? `${prettyDay(from)} – ${prettyDay(to)} · ${muster?.days ?? 0} days · up to ${MAX_MUSTER_RANGE_DAYS} at a time`
+          : prettyDay(from)}
+      </p>
 
       {/* Summary */}
       {s && (
         <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          <StatTile label="Headcount" value={s.headcount} accent="indigo" icon={<Users />} />
-          <StatTile label="Present" value={s.present} accent="emerald" icon={<CheckCircle2 />} />
-          <StatTile label="WFH" value={s.wfh} accent="cyan" icon={<Home />} />
-          <StatTile label="On leave" value={s.onLeave} accent="blue" icon={<Plane />} />
-          <StatTile label="Absent" value={s.absent} accent="rose" icon={<CircleSlash />} />
+          <StatTile label={isRange ? "Employees" : "Headcount"} value={s.headcount} accent="indigo" icon={<Users />} />
+          <StatTile label="Present" value={s.present} accent="emerald" icon={<CheckCircle2 />} sub={isRange ? "person-days" : undefined} />
+          <StatTile label="WFH" value={s.wfh} accent="cyan" icon={<Home />} sub={isRange ? "person-days" : undefined} />
+          <StatTile label="On leave" value={s.onLeave} accent="blue" icon={<Plane />} sub={isRange ? "person-days" : undefined} />
+          <StatTile label="Absent" value={s.absent} accent="rose" icon={<CircleSlash />} sub={isRange ? "person-days" : undefined} />
           <StatTile label="Flagged" value={s.flagged} accent="amber" icon={<AlertTriangle />} sub="needs review" />
         </div>
       )}
@@ -292,6 +335,7 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
           <Table>
             <TableHeader>
               <TableRow>
+                {isRange && <TableHead>Date</TableHead>}
                 <TableHead>Employee</TableHead>
                 <TableHead>Department</TableHead>
                 <TableHead>Status</TableHead>
@@ -306,7 +350,10 @@ function DayView({ initialDate, initial, canAdmin }: { initialDate: string; init
               {rows.map((r) => {
                 const meta = STATUS_META[r.status] ?? STATUS_META.ABSENT;
                 return (
-                  <TableRow key={r.employeeId}>
+                  <TableRow key={`${r.date}:${r.employeeId}`}>
+                    {isRange && (
+                      <TableCell className="whitespace-nowrap tabular-nums text-detail text-muted-foreground">{shortDay(r.date)}</TableCell>
+                    )}
                     <TableCell>
                       <div className="font-medium">{r.name}</div>
                       <div className="font-mono text-meta text-muted-foreground">{r.empCode}</div>

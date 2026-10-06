@@ -1,6 +1,7 @@
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { COMPANY_LEGAL_LINE, COMPANY_ADDRESS, COMPANY_GSTIN } from "@/lib/constants";
+import { MAX_MUSTER_RANGE_DAYS } from "@/lib/hr/muster-range";
 import {
   getDailyMuster, getMonthlyRegister,
   type MusterStatus,
@@ -12,6 +13,7 @@ export const runtime = "nodejs";
 // Attendance Muster — branded, print-to-PDF report.
 //
 // GET /api/hr/muster?date=YYYY-MM-DD          → the daily muster
+// GET /api/hr/muster?from=YYYY-MM-DD&to=YYYY-MM-DD → the daily muster over a range (≤ 31 days)
 // GET /api/hr/muster?fy=2025-26&month=7       → the monthly register grid
 //
 // AUTH: the request must carry a signed-in session (401 otherwise) whose role
@@ -134,15 +136,28 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const dateParam = url.searchParams.get("date");
+  const fromParam = url.searchParams.get("from");
+  const toParam = url.searchParams.get("to");
   const fyParam = url.searchParams.get("fy");
   const monthParam = url.searchParams.get("month");
 
-  // ---- Daily muster ----
-  if (dateParam) {
-    const muster = await getDailyMuster({ date: dateParam });
-    if (!muster) return new Response("Muster not available for that day.", { status: 404 });
+  // ---- Daily muster (one day, or a From → To range) ----
+  if (dateParam || fromParam) {
+    const muster = fromParam
+      ? await getDailyMuster({ from: fromParam, to: toParam ?? fromParam })
+      : await getDailyMuster({ date: dateParam ?? undefined });
+    if (!muster) {
+      return new Response(
+        `Muster not available for those dates (a range can be at most ${MAX_MUSTER_RANGE_DAYS} days).`,
+        { status: 404 },
+      );
+    }
+    const isRange = muster.from !== muster.to;
+    const span = isRange ? `${prettyDay(muster.from)} – ${prettyDay(muster.to)}` : prettyDay(muster.from);
+    const fileKey = isRange ? `${muster.from}_to_${muster.to}` : muster.from;
 
     const rows = muster.rows.map((r) => `<tr>
+      ${isRange ? `<td class="mono">${esc(r.date)}</td>` : ""}
       <td class="mono">${esc(r.empCode)}</td>
       <td>${esc(r.name)}</td>
       <td class="muted">${esc(r.department ?? "—")}</td>
@@ -155,9 +170,10 @@ export async function GET(req: Request) {
 
     const s = muster.summary;
     const inner = `
-      <h2>Daily muster · ${esc(prettyDay(muster.date))}</h2>
+      <h2>Daily muster · ${esc(span)}${isRange ? ` · ${muster.days} days` : ""}</h2>
       <p class="legend">
-        <span class="item"><strong>Headcount</strong> ${s.headcount}</span>
+        <span class="item"><strong>${isRange ? "Employees" : "Headcount"}</strong> ${s.headcount}</span>${isRange ? `
+        <span class="item muted">counts below are person-days</span>` : ""}
         <span class="item"><strong>Present</strong> ${s.present}</span>
         <span class="item"><strong>WFH</strong> ${s.wfh}</span>
         <span class="item"><strong>On leave</strong> ${s.onLeave}</span>
@@ -166,15 +182,15 @@ export async function GET(req: Request) {
       </p>
       <table>
         <thead><tr>
-          <th>Code</th><th>Employee</th><th>Department</th><th class="c">Status</th>
+          ${isRange ? "<th>Date</th>" : ""}<th>Code</th><th>Employee</th><th>Department</th><th class="c">Status</th>
           <th class="c">Check-in</th><th class="c">Check-out</th><th class="r">Worked</th><th class="c">Flag</th>
         </tr></thead>
-        <tbody>${rows || `<tr><td colspan="8" class="muted">No employees on the roster.</td></tr>`}</tbody>
+        <tbody>${rows || `<tr><td colspan="${isRange ? 9 : 8}" class="muted">No employees on the roster.</td></tr>`}</tbody>
       </table>`;
 
     return htmlResponse(
-      pageShell(`Muster — ${muster.date}`, prettyDay(muster.date), inner),
-      `Muster-${muster.date}`,
+      pageShell(`Muster — ${fileKey}`, span, inner),
+      `Muster-${fileKey}`,
     );
   }
 
@@ -226,5 +242,5 @@ export async function GET(req: Request) {
     );
   }
 
-  return new Response("Provide ?date=YYYY-MM-DD or ?fy=YYYY-YY&month=M.", { status: 400 });
+  return new Response("Provide ?date=YYYY-MM-DD, ?from=YYYY-MM-DD&to=YYYY-MM-DD, or ?fy=YYYY-YY&month=M.", { status: 400 });
 }
