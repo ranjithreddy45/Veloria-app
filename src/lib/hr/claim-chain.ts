@@ -222,9 +222,12 @@ export function canActOnStage(
   if (u.id === claimantUserId) return { ok: false, onBehalf: false, error: "You can't approve your own claim." };
   if (u.superAdmin) {
     const decidedElsewhere = chain.some((st, j) => j !== idx && st.decidedById === u.id);
-    const after = chain.map((st, j) => (j === idx ? { ...st, decidedById: u.id } : st));
+    // Would u be the only approver of a later stage who hasn't approved yet?
+    // (Checked on the raw pool: eligibleApproverIds' never-strand fallback
+    // would otherwise hide that the others are used up.)
+    const decided = new Set(chain.flatMap((st) => (st.decidedById ? [st.decidedById] : [])));
     const neededLater = chain.some(
-      (st, j) => j > idx && !st.decidedAt && st.approverIds.includes(u.id) && eligibleApproverIds(after, j).every((id) => id === u.id),
+      (st, j) => j > idx && !st.decidedAt && st.approverIds.includes(u.id) && st.approverIds.filter((id) => !decided.has(id)).every((id) => id === u.id),
     );
     if (decidedElsewhere || neededLater) {
       return { ok: false, onBehalf: false, error: `You hold another approval on this claim, so you can't also step in for ${holder}.` };

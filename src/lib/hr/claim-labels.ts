@@ -47,6 +47,7 @@ export const CLAIM_EVENT_LABEL: Record<string, string> = {
   APPROVED: "Approved",
   REJECTED: "Rejected",
   PAY_RUN_SCHEDULED: "Scheduled on a pay run",
+  PAY_RUN_UNSCHEDULED: "Taken off the pay run",
   PAID: "Paid",
   WITHDRAWN: "Withdrawn by employee",
 };

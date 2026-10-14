@@ -160,7 +160,7 @@ const AWAITING: string[] = [...AWAITING_STATUSES];
  */
 function trackerFields(state: ClaimChainState) {
   const st = state.stageIndex != null ? eligibleStage(state.chain, state.stageIndex) : undefined;
-  const next = state.stageIndex != null ? state.chain[state.stageIndex + 1] : undefined;
+  const next = state.stageIndex != null ? eligibleStage(state.chain, state.stageIndex + 1) : undefined;
   return {
     status: state.status,
     stageIndex: state.stageIndex,
@@ -1008,7 +1008,8 @@ async function trailStages(claim: {
   if (chain) {
     const at = claim.stageIndex;
     return chain.map((st, i) => {
-      const holder = stageHolder(st);
+      // Named as the notices and queues name it: who may act on it now.
+      const holder = stageHolder(st.decidedAt ? st : eligibleStage(chain, i));
       const done = !!st.decidedAt && !(claim.status === "REJECTED" && i === at);
       let state: ClaimTrailStage["state"] = done ? "done" : "waiting";
       // A rejection is recorded on the stage; a withdrawal is not (it shows in History).

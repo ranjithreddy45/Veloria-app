@@ -11,7 +11,7 @@ import { resolveStatConfig } from "@/lib/hr/stat-config";
 /** Round to paise. Money must never carry float dust into a Decimal column. */
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 import { sendEmail } from "@/lib/email";
-import { releaseUnpaidRunClaims, settleRunReimbursements } from "@/lib/hr/claim-workflow";
+import { normaliseOldComputePaid, releaseUnpaidRunClaims, settleRunReimbursements } from "@/lib/hr/claim-workflow";
 import { postWithinTx, fyForDate } from "@/lib/finance/ledger";
 import { FIN_ACCOUNT_CODES } from "@/lib/finance/coa-seed";
 
@@ -514,10 +514,12 @@ export async function lockPayrollRun(runId: string): Promise<Result<{ id: string
   if (run.status !== "DRAFT") return { success: false, error: "Only a draft run can be locked." };
   if (run.headcount < 1) return { success: false, error: "Compute payslips before locking the run." };
 
-  await prisma.hrPayrollRun.update({
-    where: { id: runId },
+  // Guarded flip: two clicks at once lock (and release/notify) only once.
+  const locked = await prisma.hrPayrollRun.updateMany({
+    where: { id: runId, status: "DRAFT" },
     data: { status: "LOCKED", lockedAt: new Date() },
   });
+  if (locked.count === 0) return { success: false, error: "This run was already locked." };
   // Reimbursements: claims an earlier version of the code marked PAID when
   // computing go back to APPROVED (paid when the run is paid), and claims
   // scheduled on this month that did not make it onto the payslips are
@@ -542,6 +544,9 @@ export async function markPayrollPaid(runId: string): Promise<Result<{ id: strin
   if (!run) return { success: false, error: "Payroll run not found." };
   if (run.status !== "LOCKED") return { success: false, error: "Lock the run before marking it paid." };
 
+  // Claims an older version marked PAID at compute go back to APPROVED while
+  // the run is still LOCKED, so settling below pays, logs and notifies them.
+  await normaliseOldComputePaid([runId]);
   // Guarded flip: two clicks at once settle the run's claims only once.
   const flipped = await prisma.hrPayrollRun.updateMany({ where: { id: runId, status: "LOCKED" }, data: { status: "PAID" } });
   if (flipped.count === 0) return { success: false, error: "This run was already marked paid." };

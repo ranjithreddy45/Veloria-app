@@ -182,3 +182,16 @@ describe("production scenarios", () => {
     expect(c[2].approverIds).not.toContain("u-venkat");
   });
 });
+
+describe("stand-in with few Super Admins", () => {
+  it("can't stand in when the stand-in would be the only fresh approver left later", () => {
+    const st = (ids: string[], decidedById?: string): ChainStage => ({
+      type: "USER", label: "x", role: "x", approverIds: ids, approverNames: ids, fallback: false,
+      decidedById: decidedById ?? null, decidedAt: decidedById ? "2026-10-14T10:00:00.000Z" : null,
+    });
+    // [R/Y] → [V] → [R/Y]; R approved stage 0, so Y is the only fresh approver for the last stage.
+    const chain = [st(["r", "y"], "r"), st(["v"]), st(["r", "y"])];
+    expect(canActOnStage({ id: "y", superAdmin: true }, chain, 1, "claimant").ok).toBe(false);
+    expect(canActOnStage({ id: "v", superAdmin: true }, chain, 1, "claimant")).toMatchObject({ ok: true, onBehalf: false });
+  });
+});

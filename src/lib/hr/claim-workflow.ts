@@ -352,7 +352,6 @@ export function describeClaim(c: { title: string; amount: number | string; emplo
  * cron backstop) after a partial failure finishes the job without repeats.
  */
 export async function settleRunReimbursements(runId: string, actor: { id: string | null; name: string | null }): Promise<number> {
-  await normaliseOldComputePaid([runId]);
   const run = await prisma.hrPayrollRun.findUnique({ where: { id: runId }, select: { fy: true, month: true } });
   const claims = await prisma.hrReimbursementClaim.findMany({
     where: { runId, status: "APPROVED" },
@@ -402,9 +401,12 @@ export async function settleRunReimbursements(runId: string, actor: { id: string
  * (runId set, no paymentRef — a hand payment never sets runId) on a run not yet
  * paid go back to APPROVED, so they are paid, logged and notified with the run.
  */
-async function normaliseOldComputePaid(runIds: string[]): Promise<void> {
-  if (runIds.length === 0) return;
-  const unpaid = await prisma.hrPayrollRun.findMany({ where: { id: { in: runIds }, status: { in: ["DRAFT", "LOCKED"] } }, select: { id: true } });
+export async function normaliseOldComputePaid(runIds?: string[]): Promise<void> {
+  if (runIds && runIds.length === 0) return;
+  const unpaid = await prisma.hrPayrollRun.findMany({
+    where: { ...(runIds ? { id: { in: runIds } } : {}), status: { in: ["DRAFT", "LOCKED"] } },
+    select: { id: true },
+  });
   if (unpaid.length === 0) return;
   await prisma.hrReimbursementClaim.updateMany({
     where: { runId: { in: unpaid.map((r) => r.id) }, status: "PAID", paymentRef: null },
@@ -422,19 +424,26 @@ export async function releaseUnpaidRunClaims(runId: string, actor: { id: string 
   await normaliseOldComputePaid([runId]);
   const run = await prisma.hrPayrollRun.findUnique({ where: { id: runId }, select: { fy: true, month: true, entityId: true } });
   if (!run) return 0;
-  const stranded = await prisma.hrReimbursementClaim.findMany({
+  const candidates = await prisma.hrReimbursementClaim.findMany({
     where: { entityId: run.entityId, status: "APPROVED", runId: null, payFy: run.fy, payMonth: run.month },
-    select: { id: true, title: true, amount: true, employeeId: true },
+    select: { id: true },
   });
+  // Each claim released with its own guarded update; only the ones this call
+  // actually changed are logged and counted (a concurrent reschedule, payment,
+  // compute tag or second lock leaves the row alone).
+  const stranded: string[] = [];
+  for (const c of candidates) {
+    const r = await prisma.hrReimbursementClaim.updateMany({
+      where: { id: c.id, status: "APPROVED", runId: null, payFy: run.fy, payMonth: run.month },
+      data: { payFy: null, payMonth: null },
+    });
+    if (r.count === 1) stranded.push(c.id);
+  }
   if (stranded.length === 0) return 0;
-  await prisma.hrReimbursementClaim.updateMany({
-    where: { id: { in: stranded.map((c) => c.id) }, status: "APPROVED", runId: null },
-    data: { payFy: null, payMonth: null },
-  });
   try {
     await prisma.hrClaimEvent.createMany({
-      data: stranded.map((c) => ({
-        claimId: c.id, action: "PAY_RUN_SCHEDULED", fromStatus: "APPROVED", toStatus: "APPROVED", actorId: actor.id, actorName: actor.name,
+      data: stranded.map((id) => ({
+        claimId: id, action: "PAY_RUN_UNSCHEDULED", fromStatus: "APPROVED", toStatus: "APPROVED", actorId: actor.id, actorName: actor.name,
         note: `Not on the ${run.month}/${run.fy} payroll when it was locked — needs a later pay run or a direct payment`,
       })),
     });
@@ -445,9 +454,26 @@ export async function releaseUnpaidRunClaims(runId: string, actor: { id: string 
     title: "Reimbursements need rescheduling",
     body: `${stranded.length} approved claim${stranded.length === 1 ? " was" : "s were"} scheduled on the ${run.month}/${run.fy} payroll but not on its payslips when it was locked. Pick a later month or record a direct payment.`,
     actionUrl: "/finance/reimbursements",
-    claimId: stranded[0].id,
+    claimId: stranded[0],
   });
   return stranded.length;
+}
+
+/**
+ * Backstop (frequent cron) for frozen runs: claims scheduled on a LOCKED or
+ * PAID run's month but not on it (a schedule racing the lock, a failed release
+ * at lock, runs frozen before this code) are un-scheduled and Finance told.
+ */
+export async function releaseFrozenRunClaims(): Promise<{ released: number }> {
+  const frozen = await prisma.hrPayrollRun.findMany({ where: { status: { in: ["LOCKED", "PAID"] } }, select: { id: true, fy: true, month: true, entityId: true } });
+  let released = 0;
+  for (const run of frozen) {
+    const any = await prisma.hrReimbursementClaim.count({
+      where: { entityId: run.entityId, status: "APPROVED", runId: null, payFy: run.fy, payMonth: run.month },
+    });
+    if (any > 0) released += await releaseUnpaidRunClaims(run.id, { id: null, name: "System" });
+  }
+  return { released };
 }
 
 /** Backstop (frequent cron): settle approved claims whose payroll run is already PAID. */
