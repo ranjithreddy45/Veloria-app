@@ -144,7 +144,8 @@ async function employeeBrief(employeeId: string) {
 /** Fields every chain-aware read needs from a claim. */
 const CHAIN_FIELDS = {
   id: true, employeeId: true, status: true, category: true, title: true, amount: true,
-  approvalChain: true, stageIndex: true,
+  approvalChain: true, stageIndex: true, updatedAt: true,
+  level1ById: true, level1At: true, level1Note: true, level2ById: true, level2At: true, level2Note: true,
 } as const;
 
 const AWAITING: string[] = [...AWAITING_STATUSES];
@@ -159,6 +160,9 @@ function trackerFields(state: ClaimChainState) {
   const next = state.stageIndex != null ? state.chain[state.stageIndex + 1] : undefined;
   return {
     status: state.status,
+    stageIndex: state.stageIndex,
+    /** Echoed back with a decision, so a stale screen can't act on a claim that has moved. */
+    version: state.updatedAt ? state.updatedAt.toISOString() : null,
     stage: st?.label ?? null,
     /** "Final approval with Amrutha" — where an approval here sends it; null at the last stage. */
     nextStep: next ? `${next.label.toLowerCase()} with ${stageHolder(next)}` : null,
@@ -343,13 +347,29 @@ export async function cancelMyReimbursement(id: string): Promise<Result<{ id: st
   const me = await myEmployee(u.id);
   if (!me) return { success: false, error: "No employee record." };
 
-  const before = await prisma.hrReimbursementClaim.findFirst({ where: { id, employeeId: me.id }, select: { status: true } });
+  const before = await prisma.hrReimbursementClaim.findFirst({ where: { id, employeeId: me.id }, select: CHAIN_FIELDS });
+  if (!before) return { success: false, error: "Claim not found." };
   const claimed = await prisma.hrReimbursementClaim.updateMany({
     where: { id, employeeId: me.id, status: { in: AWAITING } },
     data: { status: "REJECTED", decisionNote: "Withdrawn by employee" },
   });
   if (claimed.count === 0) return { success: false, error: "Only a claim still awaiting approval can be withdrawn." };
-  await recordClaimEvent(id, "WITHDRAWN", { from: before?.status, to: "REJECTED", actorId: u.id, actorName: u.name ?? null });
+  await recordClaimEvent(id, "WITHDRAWN", { from: before.status, to: "REJECTED", actorId: u.id, actorName: u.name ?? null });
+
+  // The approver it was waiting on is told it is gone, and the employee gets
+  // the same confirmation as for every other status change.
+  const chain = parseChain(before.approvalChain);
+  const stage = chain && before.stageIndex != null ? chain[before.stageIndex] : undefined;
+  if (stage) {
+    await notifyClaimStep(await usersByIds(stage.approverIds), {
+      title: "Reimbursement claim withdrawn",
+      body: `${describeClaim({ title: before.title, amount: Number(before.amount), employeeName: `${me.firstName} ${me.lastName}`.trim() })} was withdrawn by the employee at ${stage.label.toLowerCase()}. No action is needed.`,
+      actionUrl: "/me/approvals",
+      claimId: id,
+    });
+  }
+  await notifyOwner(me.id, id, "Reimbursement claim withdrawn",
+    `You withdrew your claim "${before.title}"${stage ? ` at ${stage.label.toLowerCase()}` : ""}. Status: Withdrawn — it will not be paid.`);
   revalidateAll();
   return { success: true, data: { id } };
 }
@@ -404,17 +424,41 @@ export async function reimbursementStats() {
 export interface DecideReimbursementInput {
   decision: "APPROVED" | "REJECTED";
   note?: string;
+  /** The stage the approver was shown (0-based). A mismatch means the claim moved. */
+  expectedStage?: number | null;
+  /** The claim's version (updatedAt) the approver was shown. */
+  version?: string | null;
+}
+
+/** Did the screen the approver acted from show the claim as it is now? */
+function staleError(state: ClaimChainState, expected: { expectedStage?: number | null; version?: string | null }) {
+  const moved =
+    (expected.expectedStage != null && expected.expectedStage !== state.stageIndex) ||
+    (!!expected.version && !!state.updatedAt && expected.version !== state.updatedAt.toISOString());
+  return moved ? "This claim has changed since you opened it — refresh to see where it is now." : null;
 }
 
 /**
  * May this user decide the claim at its current stage? The stage's approvers
  * may; a Super Admin may step in for them (recorded as such), but never on
- * their own claim — unless they are the only possible approver at all.
+ * their own claim. Nobody gives two of the same claim's approvals — unless
+ * they are the only approver this stage has.
  */
-function canActOnStage(u: { id: string; role?: string }, stage: ChainStage, claimantUserId: string | null) {
-  if (stage.approverIds.includes(u.id)) return { ok: true as const, onBehalf: false };
-  if (isSuperAdmin(u.role) && u.id !== claimantUserId) return { ok: true as const, onBehalf: true };
-  return { ok: false as const, onBehalf: false };
+function canActOnStage(
+  u: { id: string; role?: string },
+  chain: ChainStage[],
+  idx: number,
+  claimantUserId: string | null,
+): { ok: boolean; onBehalf: boolean; error?: string } {
+  const stage = chain[idx];
+  const soleApprover = stage.approverIds.length === 1 && stage.approverIds[0] === u.id;
+  if (chain.slice(0, idx).some((st) => st.decidedById === u.id) && !soleApprover) {
+    return { ok: false, onBehalf: false, error: `You already gave an earlier approval on this claim; ${stage.label.toLowerCase()} is for ${stageHolder(stage)}.` };
+  }
+  if (stage.approverIds.includes(u.id)) return { ok: true, onBehalf: false };
+  if (u.id === claimantUserId) return { ok: false, onBehalf: false, error: "You can't approve your own claim." };
+  if (isSuperAdmin(u.role)) return { ok: true, onBehalf: true };
+  return { ok: false, onBehalf: false, error: `This claim is waiting for ${stageHolder(stage)} (${stage.label.toLowerCase()}).` };
 }
 
 /**
@@ -440,16 +484,12 @@ export async function decideReimbursement(
   const stage = idx != null ? state.chain[idx] : undefined;
   if (idx == null || !stage) return { success: false, error: "This claim's approval route could not be worked out — ask HR to check the approvers page." };
 
+  const stale = staleError(state, input);
+  if (stale) return { success: false, error: stale };
+
   const emp = await employeeBrief(claim.employeeId);
-  const access = canActOnStage(u, stage, emp.userId);
-  if (!access.ok) {
-    return {
-      success: false,
-      error: emp.userId === u.id
-        ? "You can't approve your own claim."
-        : `This claim is waiting for ${stageHolder(stage)} (${stage.label.toLowerCase()}).`,
-    };
-  }
+  const access = canActOnStage(u, state.chain, idx, emp.userId);
+  if (!access.ok) return { success: false, error: access.error ?? "Insufficient permissions" };
 
   const note = input.note?.trim() || null;
   const now = new Date();
@@ -468,7 +508,7 @@ export async function decideReimbursement(
 
   if (input.decision === "REJECTED") {
     const upd = await prisma.hrReimbursementClaim.updateMany({
-      where: { id, status: state.status, stageIndex: idx },
+      where: { id, status: state.status, stageIndex: idx, ...(state.updatedAt ? { updatedAt: state.updatedAt } : {}) },
       data: {
         status: "REJECTED", decidedById: u.id, decidedAt: now, decisionNote: note,
         approvalChain: chainAfter as unknown as Prisma.InputJsonValue, ...levelCols,
@@ -491,7 +531,7 @@ export async function decideReimbursement(
   const nextIdx = last ? idx : idx + 1;
   const nextStatus = last ? "APPROVED" : statusForStage(nextIdx);
   const upd = await prisma.hrReimbursementClaim.updateMany({
-    where: { id, status: state.status, stageIndex: idx },
+    where: { id, status: state.status, stageIndex: idx, ...(state.updatedAt ? { updatedAt: state.updatedAt } : {}) },
     data: {
       status: nextStatus,
       stageIndex: nextIdx,
@@ -577,7 +617,11 @@ export async function listMyApprovals() {
 }
 
 /** Send a claim back to the employee for missing information. */
-export async function requestClaimInfo(claimId: string, note: string): Promise<Result<{ id: string }>> {
+export async function requestClaimInfo(
+  claimId: string,
+  note: string,
+  expected: { expectedStage?: number | null; version?: string | null } = {},
+): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!u?.id) return { success: false, error: "Not signed in." };
 
@@ -591,6 +635,8 @@ export async function requestClaimInfo(claimId: string, note: string): Promise<R
   }
   const state = await ensureClaimChain(claim);
   const stage = state.stageIndex != null ? state.chain[state.stageIndex] : undefined;
+  const stale = staleError(state, expected);
+  if (stale) return { success: false, error: stale };
 
   // HR, the current stage's approver, or an admin may send it back.
   if (!can(u.role, "hr:payroll") && !isSuperAdmin(u.role) && !stage?.approverIds.includes(u.id)) {
@@ -598,7 +644,10 @@ export async function requestClaimInfo(claimId: string, note: string): Promise<R
   }
 
   const upd = await prisma.hrReimbursementClaim.updateMany({
-    where: { id: claimId, status: state.status },
+    where: {
+      id: claimId, status: state.status, stageIndex: state.stageIndex,
+      ...(state.updatedAt ? { updatedAt: state.updatedAt } : {}),
+    },
     data: { status: "NEEDS_INFO", decisionNote: reason },
   });
   if (upd.count === 0) return { success: false, error: "This claim was already decided." };
@@ -631,20 +680,29 @@ export async function listFinanceReimbursements() {
     select: { id: true, firstName: true, lastName: true, empCode: true, department: { select: { name: true } } },
   });
   const byId = new Map(emps.map((e) => [e.id, e]));
-  const approverIds = Array.from(new Set(rows.flatMap((r) => [r.level1ById, r.level2ById]).filter(Boolean) as string[]));
+  const approverIds = Array.from(new Set(rows.flatMap((r) => [r.level1ById, r.level2ById, r.level3ById]).filter(Boolean) as string[]));
   const approvers = approverIds.length
     ? await prisma.user.findMany({ where: { id: { in: approverIds } }, select: { id: true, name: true } })
     : [];
   const nameOf = (id: string | null) => (id ? approvers.find((a) => a.id === id)?.name ?? "—" : null);
   return rows.map((r) => {
     const e = byId.get(r.employeeId);
+    // Every approval the claim received, in order — from its chain, or from the
+    // level columns for claims decided before chains existed.
+    const chain = parseChain(r.approvalChain);
+    const approvals = chain
+      ? chain.filter((st) => st.decidedAt).map((st) => ({ label: st.label, by: st.decidedByName ?? "—", at: st.decidedAt as string | Date | null }))
+      : [
+          { label: "1st approval", by: nameOf(r.level1ById), at: r.level1At },
+          { label: "2nd approval", by: nameOf(r.level2ById), at: r.level2At },
+          { label: "Final approval", by: nameOf(r.level3ById), at: r.level3At },
+        ].filter((a) => a.at).map((a) => ({ label: a.label, by: a.by ?? "—", at: a.at as string | Date | null }));
     return {
       ...serialize(r),
       empCode: e?.empCode ?? "—",
       name: `${e?.firstName ?? ""} ${e?.lastName ?? ""}`.trim() || "Unknown",
       department: e?.department?.name ?? null,
-      level1By: nameOf(r.level1ById),
-      level2By: nameOf(r.level2ById),
+      approvals,
     };
   });
 }
@@ -663,10 +721,12 @@ export async function scheduleReimbursementPayment(
   if (!Number.isInteger(payMonth) || payMonth < 1 || payMonth > 12) return { success: false, error: "Pick the month of the pay run." };
 
   const upd = await prisma.hrReimbursementClaim.updateMany({
-    where: { id, status: "APPROVED" },
+    where: { id, status: "APPROVED", runId: null },
     data: { payFy, payMonth, taxable: !!input.taxable },
   });
-  if (upd.count === 0) return { success: false, error: "Only a fully approved, unpaid claim can be scheduled." };
+  if (upd.count === 0) {
+    return { success: false, error: "Only a fully approved, unpaid claim that isn't already on a computed payroll can be scheduled." };
+  }
   await recordClaimEvent(id, "PAY_RUN_SCHEDULED", {
     from: "APPROVED", to: "APPROVED", actorId: u.id, actorName: u.name ?? null,
     note: `Scheduled on the ${payMonth}/${payFy} pay run${input.taxable ? " (taxable)" : ""}`,
@@ -684,16 +744,18 @@ export async function markReimbursementPaid(
   if (!u?.id) return { success: false, error: "Not signed in." };
   if (!canFinance(u.role)) return { success: false, error: "Not authorized." };
 
-  const claim = await prisma.hrReimbursementClaim.findUnique({ where: { id }, select: { status: true, employeeId: true, title: true } });
+  const claim = await prisma.hrReimbursementClaim.findUnique({ where: { id }, select: { status: true, employeeId: true, title: true, runId: true } });
   if (!claim) return { success: false, error: "Claim not found." };
   if (claim.status !== "APPROVED") return { success: false, error: "Only a fully approved, unpaid claim can be marked paid." };
+  // On a computed payroll it is paid with that run; paying it here too would pay it twice.
+  if (claim.runId) return { success: false, error: "This claim is on a computed payroll run — it is marked paid when that run is paid." };
 
   const paidAt = input.paidOn ? new Date(input.paidOn) : new Date();
   if (Number.isNaN(paidAt.getTime())) return { success: false, error: "Pick a valid payment date." };
   const reference = input.reference?.trim() || null;
 
   const upd = await prisma.hrReimbursementClaim.updateMany({
-    where: { id, status: "APPROVED" },
+    where: { id, status: "APPROVED", runId: null },
     data: { status: "PAID", paidAt, paymentRef: reference },
   });
   if (upd.count === 0) return { success: false, error: "This claim was already paid." };
@@ -922,10 +984,11 @@ export interface ClaimTrailStage {
  */
 async function trailStages(claim: {
   status: string; stageIndex: number | null; approvalChain: Prisma.JsonValue | null; decisionNote: string | null;
+  decidedAt: Date | null;
   level1ById: string | null; level1At: Date | null; level1Note: string | null;
   level2ById: string | null; level2At: Date | null; level2Note: string | null;
   level3ById: string | null; level3At: Date | null; level3Note: string | null;
-}): Promise<ClaimTrailStage[]> {
+}, returnedBy: string | null): Promise<ClaimTrailStage[]> {
   const chain = parseChain(claim.approvalChain);
   if (chain) {
     const at = claim.stageIndex;
@@ -942,26 +1005,35 @@ async function trailStages(claim: {
         role: st.role && st.role !== holder ? st.role : null,
         holder,
         state,
-        by: st.decidedByName ?? null,
+        // Who actually sent it back (HR or an admin may, not only the holder).
+        by: state === "returned" ? returnedBy : st.decidedByName ?? null,
         at: st.decidedAt ?? null,
         note: state === "returned" ? claim.decisionNote : st.note ?? null,
       };
     });
   }
+  // Pre-chain claims: only the decisions actually recorded. The old flow wrote
+  // the level columns on a rejection too, at the same instant as decidedAt, so
+  // the stage carrying that timestamp is the one that rejected it.
   const ids = [claim.level1ById, claim.level2ById, claim.level3ById].filter(Boolean) as string[];
   const users = await usersByIds(ids);
   const nameOf = (id: string | null) => (id ? users.find((x) => x.id === id)?.name ?? "—" : null);
-  const legacy: ClaimTrailStage[] = [];
-  const push = (label: string, by: string | null, at: Date | null, note: string | null) =>
-    legacy.push({ label, role: null, holder: nameOf(by) ?? "—", state: at ? "done" : "waiting", by: nameOf(by), at, note });
-  push("1st approval", claim.level1ById, claim.level1At, claim.level1Note);
-  if (claim.level2At) push("2nd approval", claim.level2ById, claim.level2At, claim.level2Note);
-  push("Final approval", claim.level3ById, claim.level3At, claim.level3Note);
-  if (claim.status === "REJECTED") {
-    const open = legacy.find((st) => st.state === "waiting");
-    if (open) open.state = "rejected";
-  }
-  return legacy;
+  const rejectedAt = claim.status === "REJECTED" && claim.decidedAt ? claim.decidedAt.getTime() : null;
+  return [
+    { label: "1st approval", by: claim.level1ById, at: claim.level1At, note: claim.level1Note },
+    { label: "2nd approval", by: claim.level2ById, at: claim.level2At, note: claim.level2Note },
+    { label: "Final approval", by: claim.level3ById, at: claim.level3At, note: claim.level3Note },
+  ]
+    .filter((l) => l.at)
+    .map((l) => ({
+      label: l.label,
+      role: null,
+      holder: nameOf(l.by) ?? "—",
+      state: rejectedAt != null && l.at!.getTime() === rejectedAt ? ("rejected" as const) : ("done" as const),
+      by: nameOf(l.by),
+      at: l.at,
+      note: l.note,
+    }));
 }
 
 /** Attachments + full history for one claim. */
@@ -974,10 +1046,10 @@ export async function getClaimDetail(claimId: string) {
     select: {
       id: true, employeeId: true, status: true, title: true, amount: true,
       category: true, claimDate: true, note: true, decisionNote: true, billUrl: true,
-      approvalChain: true, stageIndex: true,
+      approvalChain: true, stageIndex: true, updatedAt: true, decidedAt: true,
       level1ById: true, level1At: true, level1Note: true, level2ById: true, level2At: true, level2Note: true,
       level3ById: true, level3At: true, level3Note: true,
-      payFy: true, payMonth: true, paidAt: true, paymentRef: true,
+      payFy: true, payMonth: true, paidAt: true, paymentRef: true, runId: true,
       attachments: {
         orderBy: { createdAt: "asc" },
         select: { id: true, fileName: true, mimeType: true, sizeBytes: true, createdAt: true },
@@ -1002,7 +1074,7 @@ export async function getClaimDetail(claimId: string) {
       // chain snapshot is shown through `stages`.
       id: claim.id, employeeId: claim.employeeId, title: claim.title, category: claim.category,
       claimDate: claim.claimDate, note: claim.note, decisionNote: claim.decisionNote,
-      payFy: claim.payFy, payMonth: claim.payMonth, paidAt: claim.paidAt, paymentRef: claim.paymentRef,
+      payFy: claim.payFy, payMonth: claim.payMonth, paidAt: claim.paidAt, paymentRef: claim.paymentRef, runId: claim.runId,
       attachments: claim.attachments, events: claim.events,
       amount: Number(claim.amount),
       hasLegacyBill: !!claim.billUrl,
@@ -1010,7 +1082,7 @@ export async function getClaimDetail(claimId: string) {
       employeeName: emp.name,
       empCode: emp.empCode,
       ...trackerFields(state),
-      stages: await trailStages(claim),
+      stages: await trailStages(claim, [...claim.events].reverse().find((e) => e.action === "INFO_REQUESTED")?.actorName ?? null),
     },
   };
 }

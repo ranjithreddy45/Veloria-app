@@ -50,7 +50,7 @@ export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
   );
 
   function decide(r: ReimbursementRow, m: ClaimDecisionMode) {
-    setTarget({ id: r.id, title: r.title, amount: r.amount, name: r.name, empCode: r.empCode, category: r.category, stage: r.stage, nextStep: r.nextStep });
+    setTarget({ id: r.id, title: r.title, amount: r.amount, name: r.name, empCode: r.empCode, category: r.category, stage: r.stage, nextStep: r.nextStep, expectedStage: r.stageIndex, version: r.version });
     setMode(m);
   }
   function close() {

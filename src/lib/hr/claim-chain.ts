@@ -133,18 +133,24 @@ const nameOf = (p: Person) => p.name ?? p.email;
 
 /**
  * Turn stage specs into a chain, applying the self-approval rule. A stage's
- * approvers are its candidates minus the claimant; if that leaves nobody, the
- * Super Admins minus the claimant; if that still leaves nobody, the candidates
- * as they are, so the claim is never stranded.
+ * approvers are its candidates minus the claimant. If that leaves nobody, the
+ * Super Admins minus the claimant AND minus anyone who approves another stage
+ * of this chain (so one person never holds two of a claim's approvals); then
+ * the Super Admins minus the claimant; and only then the candidates as they
+ * are, so the claim is never stranded.
  */
 export function buildChain(specs: StageSpec[], ctx: { claimantUserId: string | null; superAdmins: Person[] }): ChainStage[] {
-  const total = Math.min(specs.length, MAX_STAGES);
-  return specs.slice(0, MAX_STAGES).map((spec, i) => {
-    const notClaimant = (p: Person) => p.id !== ctx.claimantUserId;
-    let people = spec.candidates.filter(notClaimant);
+  const used = specs.slice(0, MAX_STAGES);
+  const total = used.length;
+  const notClaimant = (p: Person) => p.id !== ctx.claimantUserId;
+  const primary = used.map((spec) => spec.candidates.filter(notClaimant));
+  return used.map((spec, i) => {
+    let people = primary[i];
     let fallback = false;
     if (people.length === 0) {
-      people = ctx.superAdmins.filter(notClaimant);
+      const elsewhere = new Set(primary.flatMap((ps, j) => (j === i ? [] : ps.map((p) => p.id))));
+      people = ctx.superAdmins.filter((p) => notClaimant(p) && !elsewhere.has(p.id));
+      if (people.length === 0) people = ctx.superAdmins.filter(notClaimant);
       fallback = true;
     }
     if (people.length === 0) {

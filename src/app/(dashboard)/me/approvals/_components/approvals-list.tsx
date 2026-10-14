@@ -22,7 +22,7 @@ export function ApprovalsList({ rows }: { rows: Row[] }) {
   const [trailId, setTrailId] = React.useState<string | null>(null);
 
   function decide(r: Row, m: ClaimDecisionMode) {
-    setTarget({ id: r.id, title: r.title, amount: r.amount, name: r.name, empCode: r.empCode, category: r.category, stage: r.stage, nextStep: r.nextStep });
+    setTarget({ id: r.id, title: r.title, amount: r.amount, name: r.name, empCode: r.empCode, category: r.category, stage: r.stage, nextStep: r.nextStep, expectedStage: r.stageIndex, version: r.version });
     setMode(m);
   }
 

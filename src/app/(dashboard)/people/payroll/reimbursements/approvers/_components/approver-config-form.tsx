@@ -207,8 +207,11 @@ function RoutesCard({ config, kind }: { config: Config; kind: "EMPLOYEE" | "TEAM
           <p className="text-detail text-muted-foreground">None yet.</p>
         ) : (
           <div className="divide-y rounded-lg border">
+            {/* Keyed on the saved stages: a save elsewhere on the page refreshes the
+              * data but must not wipe this row's unsaved edits; only a change to
+              * THIS route's saved stages remounts it. */}
             {routes.map((r) => (
-              <RouteRow key={r.id} config={config} kind={kind} subject={empById.get(r.subjectEmployeeId)} subjectId={r.subjectEmployeeId} route={r} />
+              <RouteRow key={`${r.id}:${JSON.stringify(r.stages)}`} config={config} kind={kind} subject={empById.get(r.subjectEmployeeId)} subjectId={r.subjectEmployeeId} route={r} />
             ))}
             {adding.map((id) => (
               <RouteRow
@@ -260,7 +263,6 @@ function RouteRow({
   const saved = route?.stages ?? [];
   const [stages, setStages] = React.useState<(RouteStage | null)[]>(route ? saved : initial ?? []);
   const [busy, setBusy] = React.useState<"save" | "remove" | null>(null);
-  React.useEffect(() => { if (route) setStages(route.stages); }, [route]);
 
   const dirty = !route || JSON.stringify(stages) !== JSON.stringify(saved);
   const complete = stages.length > 0 && stages.every(Boolean);

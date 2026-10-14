@@ -55,9 +55,19 @@ describe("buildChain", () => {
     ];
     const c = buildChain(specs, { claimantUserId: "u-amrutha", superAdmins: supers });
     expect(c[2].approverIds).not.toContain("u-amrutha");
-    expect(c[2].approverNames).toEqual(["Venkat", "Ranjith"]);
+    // Venkat already holds the 2nd approval, so the fallback leaves him out.
+    expect(c[2].approverNames).toEqual(["Ranjith"]);
     expect(c[2].fallback).toBe(true);
     expect(c[2].label).toBe("Final approval");
+  });
+
+  it("uses an approver from another stage only when no other Super Admin exists", () => {
+    const specs: StageSpec[] = [
+      { type: "USER", role: "Venkat", candidates: [venkat] },
+      { type: "FINANCE", role: "Finance", candidates: [amrutha] },
+    ];
+    const c = buildChain(specs, { claimantUserId: "u-amrutha", superAdmins: [venkat] });
+    expect(c[1].approverNames).toEqual(["Venkat"]);
   });
 
   it("routes a manager-less stage to the Super Admins rather than skipping it", () => {

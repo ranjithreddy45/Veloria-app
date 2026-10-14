@@ -171,49 +171,80 @@ export interface ClaimChainState {
   stageIndex: number | null;
   /** The status the claim now carries (attaching a chain can renumber it). */
   status: string;
+  /** The row's updatedAt after any attach — the version a decision must match. */
+  updatedAt: Date | null;
 }
 
 type ChainClaim = {
   id: string; employeeId: string; status: string; category: string; title: string;
   amount: Prisma.Decimal | number; approvalChain: Prisma.JsonValue | null; stageIndex: number | null;
+  updatedAt?: Date | null;
+  level1ById?: string | null; level1At?: Date | null; level1Note?: string | null;
+  level2ById?: string | null; level2At?: Date | null; level2Note?: string | null;
 };
 
 /**
- * The claim's chain. A claim raised before chains existed gets one now, at
- * the stage its old status stood for, and the new stage's approvers and the
- * employee are told where it is. Claimed with a guarded update, so two
- * requests attaching at once notify only once.
+ * The claim's chain. A claim raised before chains existed gets one now. It
+ * starts at the 1st stage; an approval it already has under the old rules is
+ * carried over only when that approver also holds the same stage of the new
+ * chain — so no stage is ever passed without a recorded decision. The
+ * approvers of the stage it lands on and the employee are told where it is.
+ * Claimed with a guarded update, so two requests attaching at once notify
+ * only once.
  */
 export async function ensureClaimChain(claim: ChainClaim): Promise<ClaimChainState> {
   const awaiting = stageForStatus(claim.status);
   const stored = parseChain(claim.approvalChain);
   if (stored) {
-    return { chain: stored, stageIndex: awaiting == null ? null : claim.stageIndex ?? awaiting, status: claim.status };
+    return {
+      chain: stored,
+      stageIndex: awaiting == null ? null : claim.stageIndex ?? awaiting,
+      status: claim.status,
+      updatedAt: claim.updatedAt ?? null,
+    };
   }
-  if (awaiting == null) return { chain: [], stageIndex: null, status: claim.status };
+  if (awaiting == null) return { chain: [], stageIndex: null, status: claim.status, updatedAt: claim.updatedAt ?? null };
 
   const chain = await resolveClaimChain(claim.employeeId, claim.category);
-  const stageIndex = Math.min(awaiting, chain.length - 1);
+  const legacy = [
+    { by: claim.level1ById ?? null, at: claim.level1At ?? null, note: claim.level1Note ?? null },
+    { by: claim.level2ById ?? null, at: claim.level2At ?? null, note: claim.level2Note ?? null },
+  ];
+  const legacyNames = await usersByIds(legacy.flatMap((l) => (l.by ? [l.by] : [])));
+  let stageIndex = 0;
+  for (let i = 0; i < Math.min(awaiting, chain.length - 1, legacy.length); i++) {
+    const l = legacy[i];
+    if (!l.by || !l.at || !chain[i].approverIds.includes(l.by)) break;
+    const who = legacyNames.find((x) => x.id === l.by);
+    chain[i] = { ...chain[i], decidedById: l.by, decidedByName: who ? who.name ?? who.email : null, decidedAt: l.at.toISOString(), note: l.note };
+    stageIndex = i + 1;
+  }
   const status = statusForStage(stageIndex);
   const won = await prisma.hrReimbursementClaim.updateMany({
     where: { id: claim.id, status: claim.status, stageIndex: null },
     data: { approvalChain: chain as unknown as Prisma.InputJsonValue, stageIndex, status },
   });
+  const fresh = await prisma.hrReimbursementClaim.findUnique({
+    where: { id: claim.id },
+    select: { status: true, approvalChain: true, stageIndex: true, updatedAt: true },
+  });
   if (won.count === 0) {
-    const fresh = await prisma.hrReimbursementClaim.findUnique({
-      where: { id: claim.id },
-      select: { status: true, approvalChain: true, stageIndex: true },
-    });
     const c = parseChain(fresh?.approvalChain ?? null) ?? [];
     const idx = fresh ? stageForStatus(fresh.status) : null;
-    return { chain: c, stageIndex: idx == null ? null : fresh?.stageIndex ?? idx, status: fresh?.status ?? claim.status };
+    return {
+      chain: c,
+      stageIndex: idx == null ? null : fresh?.stageIndex ?? idx,
+      status: fresh?.status ?? claim.status,
+      updatedAt: fresh?.updatedAt ?? null,
+    };
   }
 
+  const carried = stageIndex > 0 ? ` Earlier approval${stageIndex === 1 ? "" : "s"} carried over: ${stageIndex}.` : "";
   try {
     await prisma.hrClaimEvent.create({
       data: {
         claimId: claim.id, action: "ROUTED", fromStatus: claim.status, toStatus: status,
-        note: `Moved to the approval route ${chainSummary(chain)}; now at ${chain[stageIndex].label.toLowerCase()}.`,
+        note: `Moved to the approval route ${chainSummary(chain)}; now at ${chain[stageIndex].label.toLowerCase()}.${carried}`,
       },
     });
   } catch (e) {
@@ -238,14 +269,17 @@ export async function ensureClaimChain(claim: ChainClaim): Promise<ClaimChainSta
     actionUrl: "/me/reimbursements",
     claimId: claim.id,
   });
-  return { chain, stageIndex, status };
+  return { chain, stageIndex, status, updatedAt: fresh?.updatedAt ?? null };
 }
 
 /** Backstop (frequent cron): give every in-flight claim without a chain one. */
 export async function attachMissingClaimChains(): Promise<{ attached: number }> {
   const rows = await prisma.hrReimbursementClaim.findMany({
     where: { status: { in: [...AWAITING_STATUSES] }, stageIndex: null },
-    select: { id: true, employeeId: true, status: true, category: true, title: true, amount: true, approvalChain: true, stageIndex: true },
+    select: {
+      id: true, employeeId: true, status: true, category: true, title: true, amount: true, approvalChain: true, stageIndex: true,
+      updatedAt: true, level1ById: true, level1At: true, level1Note: true, level2ById: true, level2At: true, level2Note: true,
+    },
     take: 200,
   });
   let attached = 0;
@@ -301,4 +335,47 @@ export async function notifyClaimStep(
 
 export function describeClaim(c: { title: string; amount: number | string; employeeName: string }) {
   return `${c.employeeName} — ${c.title} (${inr(Number(c.amount))})`;
+}
+
+/**
+ * A payroll run was marked paid: every approved claim it carries becomes PAID
+ * now — not when the run was computed, which is before any money moves. Each
+ * gets a PAID event and the employee is told.
+ */
+export async function settleRunReimbursements(runId: string, actor: { id: string; name: string | null }): Promise<number> {
+  const claims = await prisma.hrReimbursementClaim.findMany({
+    where: { runId, status: "APPROVED" },
+    select: { id: true, employeeId: true, title: true, payFy: true, payMonth: true },
+  });
+  if (claims.length === 0) return 0;
+  const paidAt = new Date();
+  const ids = claims.map((c) => c.id);
+  await prisma.hrReimbursementClaim.updateMany({ where: { id: { in: ids }, status: "APPROVED", runId }, data: { status: "PAID", paidAt } });
+  try {
+    await prisma.hrClaimEvent.createMany({
+      data: claims.map((c) => ({
+        claimId: c.id, action: "PAID", fromStatus: "APPROVED", toStatus: "PAID", actorId: actor.id, actorName: actor.name,
+        note: `Paid with the ${c.payMonth}/${c.payFy} payroll`,
+      })),
+    });
+  } catch (e) {
+    console.error("[CLAIM_EVENT] PAID (payroll)", runId, e);
+  }
+  const emps = await prisma.employee.findMany({
+    where: { id: { in: Array.from(new Set(claims.map((c) => c.employeeId))) } },
+    select: { id: true, userId: true },
+  });
+  const owners = await usersByIds(emps.flatMap((e) => (e.userId ? [e.userId] : [])));
+  for (const c of claims) {
+    const userId = emps.find((e) => e.id === c.employeeId)?.userId;
+    const owner = owners.find((o) => o.id === userId);
+    if (!owner) continue;
+    await notifyClaimStep([owner], {
+      title: "Reimbursement paid",
+      body: `Your claim "${c.title}" was paid with the ${c.payMonth}/${c.payFy} payroll. Status: Paid — this claim is complete.`,
+      actionUrl: "/me/reimbursements",
+      claimId: c.id,
+    });
+  }
+  return claims.length;
 }

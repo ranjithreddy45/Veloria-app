@@ -31,6 +31,9 @@ export interface ClaimDecisionTarget {
   stage?: string | null;
   /** Where approving sends it ("final approval with Amrutha"); null at the last stage. */
   nextStep?: string | null;
+  /** The stage (0-based) and version this screen showed — sent back so a stale screen can't act. */
+  expectedStage?: number | null;
+  version?: string | null;
 }
 
 const inr = (n: number) =>
@@ -65,9 +68,10 @@ export function ClaimDecisionDialog({
       return;
     }
     setBusy(true);
+    const expected = { expectedStage: claim.expectedStage ?? null, version: claim.version ?? null };
     const res = sendingBack
-      ? await requestClaimInfo(claim.id, note.trim())
-      : await decideReimbursement(claim.id, { decision: mode, note: note.trim() || undefined });
+      ? await requestClaimInfo(claim.id, note.trim(), expected)
+      : await decideReimbursement(claim.id, { decision: mode, note: note.trim() || undefined, ...expected });
     setBusy(false);
     if (!res.success) { toast.error(res.error); return; }
     if (sendingBack) toast.success("Sent back to the employee for more information.");

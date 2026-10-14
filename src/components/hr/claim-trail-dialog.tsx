@@ -99,7 +99,7 @@ export function ClaimTrailDialog({
           who:
             st.state === "done" ? `${st.by ?? st.holder} · ${when(st.at!)}` :
             st.state === "rejected" ? `Rejected by ${st.by ?? st.holder}${st.at ? ` · ${when(st.at)}` : ""}` :
-            st.state === "returned" ? `Sent back to the employee by ${st.holder}` :
+            st.state === "returned" ? `Sent back to the employee${st.by ? ` by ${st.by}` : ""}` :
             st.state === "current" ? `Waiting: ${st.holder}${st.role ? ` (${st.role})` : ""}` :
             `${st.holder}${st.role ? ` (${st.role})` : ""}`,
           state: st.state,
@@ -110,7 +110,8 @@ export function ClaimTrailDialog({
           who: detail.paidAt
             ? `Paid · ${when(detail.paidAt)}`
             : detail.status === "APPROVED"
-              ? detail.payFy ? `Waiting: Finance · pay run ${detail.payMonth}/${detail.payFy}` : "Waiting: Finance"
+              ? detail.runId ? `Waiting: paid when the ${detail.payMonth}/${detail.payFy} payroll is paid`
+              : detail.payFy ? `Waiting: Finance · pay run ${detail.payMonth}/${detail.payFy}` : "Waiting: Finance"
               : "Finance",
           state: detail.paidAt ? "done" : detail.status === "APPROVED" ? "current" : "waiting",
           note: detail.paymentRef ? `Ref ${detail.paymentRef}` : null,

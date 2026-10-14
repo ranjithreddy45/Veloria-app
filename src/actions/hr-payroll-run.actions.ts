@@ -11,6 +11,7 @@ import { resolveStatConfig } from "@/lib/hr/stat-config";
 /** Round to paise. Money must never carry float dust into a Decimal column. */
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 import { sendEmail } from "@/lib/email";
+import { settleRunReimbursements } from "@/lib/hr/claim-workflow";
 import { postWithinTx, fyForDate } from "@/lib/finance/ledger";
 import { FIN_ACCOUNT_CODES } from "@/lib/finance/coa-seed";
 
@@ -275,14 +276,18 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
   }
 
   // ---- Approved reimbursements to be paid in THIS run's month ----
-  // Same idempotent shape as arrears: APPROVED (awaiting pay) OR already PAID by
-  // this run, so a re-compute folds them identically instead of dropping them.
+  // Computing only TAGS a claim with this run (runId); it stays APPROVED until
+  // the run is marked paid (markPayrollPaid → settleRunReimbursements), because
+  // computing a draft moves no money. A re-compute first releases this run's
+  // tags, then re-tags whatever it pays, so a dropped employee's claim is not
+  // left pointing at a run that will not pay it.
+  await prisma.hrReimbursementClaim.updateMany({ where: { runId, status: "APPROVED" }, data: { runId: null } });
   const reimbursements = await prisma.hrReimbursementClaim.findMany({
     where: {
       payFy: run.fy,
       payMonth: run.month,
       employeeId: { in: employees.map((e) => e.id) },
-      OR: [{ status: "APPROVED" }, { status: "PAID", runId }],
+      OR: [{ status: "APPROVED", runId: null }, { status: "PAID", runId }],
     },
     select: { id: true, employeeId: true, amount: true, taxable: true },
   });
@@ -365,11 +370,11 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         });
       }
 
-      // Stamp the reimbursements disbursed in this run (same idempotent shape).
+      // Tag the reimbursements this run will pay; they become PAID with the run.
       if (empReimb.length > 0) {
         await tx.hrReimbursementClaim.updateMany({
-          where: { id: { in: empReimb.map((r) => r.id) } },
-          data: { status: "PAID", runId, paidAt: new Date() },
+          where: { id: { in: empReimb.map((r) => r.id) }, status: "APPROVED" },
+          data: { runId },
         });
       }
 
@@ -525,8 +530,17 @@ export async function markPayrollPaid(runId: string): Promise<Result<{ id: strin
   if (run.status !== "LOCKED") return { success: false, error: "Lock the run before marking it paid." };
 
   await prisma.hrPayrollRun.update({ where: { id: runId }, data: { status: "PAID" } });
+  // The reimbursements this run carries are paid now — stamped, logged, and
+  // each employee told. Best-effort: the run itself is already paid.
+  try {
+    await settleRunReimbursements(runId, { id: u!.id, name: u!.name ?? null });
+  } catch (e) {
+    console.error("[PAYROLL_REIMB_SETTLE]", runId, e);
+  }
   revalidatePath("/people/payroll");
   revalidatePath(`/people/payroll/${runId}`);
+  revalidatePath("/me/reimbursements");
+  revalidatePath("/finance/reimbursements");
   return { success: true, data: { id: runId } };
 }
 
