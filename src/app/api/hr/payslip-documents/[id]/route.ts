@@ -33,7 +33,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const userId = session?.user?.id;
   if (!userId) {
     // A link opened from a notification or a bookmark after the session lapsed.
-    return Response.redirect(new URL("/sign-in?callbackUrl=/me/payslips", request.url), 302);
+    // Relative Location on purpose: behind the proxy request.url is the
+    // internal origin (http://localhost:3010), so an absolute URL built from it
+    // sent people to an address their browser cannot reach.
+    return new Response(null, { status: 302, headers: { ...PRIVATE, Location: "/sign-in?callbackUrl=/me/payslips" } });
   }
 
   const { id } = await params;
