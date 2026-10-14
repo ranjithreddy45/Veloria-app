@@ -18,7 +18,7 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { computeQuotation, type QuotationInput, type QuotationResult } from "@/lib/sales/quotation-calc";
+import { quotationResultFor, type QuotationInput, type QuotationResult } from "@/lib/sales/quotation-calc";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import {
   approveSalesQuotation,
@@ -130,7 +130,8 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, redu
   const [sendTo, setSendTo] = useState(quote.clientEmail ?? quote.contact?.email ?? "");
 
   const isDraft = quote.status === "DRAFT";
-  const result: QuotationResult = quote.outputsJson ?? computeQuotation(quote.inputsJson);
+  // Frozen snapshot only while approved; otherwise what is being edited.
+  const result: QuotationResult = quotationResultFor(quote);
 
   async function run(fn: () => Promise<{ success: boolean; error?: string }>, ok: string) {
     setBusy(true);

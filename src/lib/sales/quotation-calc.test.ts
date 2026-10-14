@@ -8,6 +8,7 @@ import {
   PAYMENT_TERMS_LABEL,
   validateQuotationInput,
   QUOTE_CATALOG,
+  quotationResultFor,
   type QuotationInput,
 } from "./quotation-calc";
 
@@ -398,5 +399,41 @@ describe("computePackageLine — revised (negotiated) unit price", () => {
     expect(r.gross).toBe(6000); // 600 × 10
     expect(r.lineDiscount).toBe(600); // 10% of 6000
     expect(r.amount).toBe(5400);
+  });
+});
+
+describe("quotationResultFor — which breakdown a quotation shows", () => {
+  const base: QuotationInput = {
+    guestCount: 100,
+    foodMode: "WITH_FOOD",
+    activityIds: [],
+    packageLines: [
+      { vendorPackageId: "collar", name: "Collar Mic", category: "hall", unitPrice: 500, qty: 6 },
+      { vendorPackageId: "hand", name: "Hand Mic", category: "hall", unitPrice: 500, qty: 6 },
+    ],
+  };
+  // What was approved before the quote was reopened: 3 mics less ₹500.
+  const stale = computeQuotation({
+    ...base,
+    packageLines: [{ vendorPackageId: "collar", name: "Collar Mic + Mic", category: "hall", unitPrice: 500, qty: 3, discountType: "AMOUNT", discountValue: 500 }],
+  });
+
+  it("shows what is being edited on a reopened quote, not the old approved snapshot", () => {
+    for (const status of ["DRAFT", "PENDING_APPROVAL", "REJECTED"]) {
+      const r = quotationResultFor({ status, outputsJson: stale, inputsJson: base });
+      const mics = r.lines.filter((l) => /Mic/.test(l.particulars));
+      expect(mics.map((l) => l.amount)).toEqual([3000, 3000]);
+      expect(r.lineDiscountsTotal).toBe(0);
+    }
+  });
+
+  it("shows the frozen snapshot while the quote is approved, sent or converted", () => {
+    for (const status of ["APPROVED", "SENT", "CONVERTED"]) {
+      expect(quotationResultFor({ status, outputsJson: stale, inputsJson: base })).toBe(stale);
+    }
+  });
+
+  it("computes when an approved quote somehow has no snapshot", () => {
+    expect(quotationResultFor({ status: "APPROVED", outputsJson: null, inputsJson: base }).lineDiscountsTotal).toBe(0);
   });
 });
