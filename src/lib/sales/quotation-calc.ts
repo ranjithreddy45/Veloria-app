@@ -617,3 +617,19 @@ export function validateQuotationInput(i: Partial<QuotationInput>): string[] {
   }
   return errs;
 }
+
+/** Statuses whose stored outputsJson is the quotation's current approved snapshot. */
+export const FROZEN_QUOTE_STATUSES: ReadonlySet<string> = new Set(["APPROVED", "SENT", "CONVERTED"]);
+
+/**
+ * The breakdown a quotation shows on internal screens. Approval freezes
+ * outputsJson, so while the quote IS approved that snapshot is the truth. A
+ * reopened quote keeps its last approved snapshot (the customer's link keeps
+ * showing what was approved), but while it is being edited or re-reviewed the
+ * team must see what is being edited — showing the old snapshot made a reopened
+ * quote look unchanged (VG-Q-00171: edited to 6 + 6 mics, still shown as
+ * "₹500 × 3 − ₹500" and rejected round after round).
+ */
+export function quotationResultFor(q: { status: string; outputsJson: QuotationResult | null | undefined; inputsJson: QuotationInput }): QuotationResult {
+  return (FROZEN_QUOTE_STATUSES.has(q.status) ? q.outputsJson : null) ?? computeQuotation(q.inputsJson);
+}
