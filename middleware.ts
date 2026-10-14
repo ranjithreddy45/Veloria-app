@@ -185,6 +185,11 @@ export default auth((req) => {
     }
   }
 
+  // The customer app (/app) is for customers; a venue owner belongs in their portal.
+  if (role === "VENUE_OWNER" && (pathname === "/app" || pathname.startsWith("/app/"))) {
+    return NextResponse.redirect(new URL("/venue-portal", nextUrl));
+  }
+
   // Role-based access control for the venue-owner portal
   const isVenuePortalRoute = pathname === "/venue-portal" || pathname.startsWith("/venue-portal/");
   if (isVenuePortalRoute) {

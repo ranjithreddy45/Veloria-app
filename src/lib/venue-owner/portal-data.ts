@@ -29,6 +29,7 @@ import {
   istMonthKey,
   istToday,
   lastMonths,
+  ownerOccasion,
   slotLabel,
 } from "./buckets";
 
@@ -89,20 +90,46 @@ export function selectVenues(scope: VenuePortalScope, requested: string | null |
 }
 
 /**
- * A lead belongs to a venue when it names that venue as preferred, or has a
- * quotation for it. (Most ad leads arrive with no venue at all; they cannot be
- * attributed to anyone's venue and are not counted.)
+ * A lead belongs to a venue when it names that venue as preferred, has a
+ * quotation for it, or its deal was booked there. (Most ad leads arrive with
+ * no venue at all; they cannot be attributed to anyone's venue and are not
+ * counted.)
  */
 function venueLeads(venueIds: string[]): Prisma.LeadWhereInput {
   return {
     deletedAt: null,
-    OR: [{ preferredVenueId: { in: venueIds } }, { salesQuotations: { some: { venueId: { in: venueIds } } } }],
+    OR: [
+      { preferredVenueId: { in: venueIds } },
+      { salesQuotations: { some: { venueId: { in: venueIds } } } },
+      { deal: { is: { booking: { is: { venueId: { in: venueIds } } } } } },
+    ],
   };
 }
 
-/** Converted = won, or its quotation for this venue went through to a booking. */
-function convertedLeads(venueIds: string[]): Prisma.LeadWhereInput {
-  return { OR: [{ status: "WON" }, { salesQuotations: { some: { venueId: { in: venueIds }, status: "CONVERTED" } } }] };
+/**
+ * The bookings that count as a conversion at these venues: confirmed or later
+ * (advance paid), with the leads they came from. A lead reaches a booking by
+ * one of three paths — its deal, a quotation whose slot was blocked, or a
+ * public date hold — and only a booking AT THESE VENUES counts, so a lead won
+ * elsewhere is never a conversion here. Quotation status CONVERTED is not used:
+ * it means "advance invoice raised", which can stay unpaid, and one-tap
+ * bookings never set it.
+ */
+async function bookedLeadIds(venueIds: string[]): Promise<Set<string>> {
+  const booked = await prisma.booking.findMany({
+    where: { venueId: { in: venueIds }, status: { in: [...BOOKED] } },
+    select: { id: true, deal: { select: { leadId: true } } },
+  });
+  const ids = booked.map((b) => b.id);
+  const leadIds = new Set(booked.flatMap((b) => (b.deal?.leadId ? [b.deal.leadId] : [])));
+  if (ids.length === 0) return leadIds;
+  const [quotes, holds] = await Promise.all([
+    prisma.salesQuotation.findMany({ where: { bookingId: { in: ids }, leadId: { not: null } }, select: { leadId: true } }),
+    prisma.publicHold.findMany({ where: { bookingId: { in: ids }, leadId: { not: null } }, select: { leadId: true } }),
+  ]);
+  for (const q of quotes) if (q.leadId) leadIds.add(q.leadId);
+  for (const h of holds) if (h.leadId) leadIds.add(h.leadId);
+  return leadIds;
 }
 
 export interface VenueDashboard {
@@ -130,9 +157,19 @@ export async function getVenueDashboard(
   const trendFrom = istMonthInstants(months[0].year, months[0].month).start;
   const trendFromDate = dbMonthDates(months[0].year, months[0].month).start;
 
+  const convertedIds = [...(await bookedLeadIds(venueIds))];
+  // A lead booked here is this venue's lead even if it never named the venue.
+  const inScope: Prisma.LeadWhereInput = convertedIds.length
+    ? { OR: [venueLeads(venueIds), { id: { in: convertedIds }, deletedAt: null }] }
+    : venueLeads(venueIds);
+
   const [leads, converted, bookings, upcomingEvents, heldRows, trendLeads, trendBookings] = await Promise.all([
-    prisma.lead.count({ where: { AND: [venueLeads(venueIds), ...(createdAt ? [{ createdAt }] : [])] } }),
-    prisma.lead.count({ where: { AND: [venueLeads(venueIds), convertedLeads(venueIds), ...(createdAt ? [{ createdAt }] : [])] } }),
+    prisma.lead.count({ where: { AND: [inScope, ...(createdAt ? [{ createdAt }] : [])] } }),
+    // Converted leads of this cohort; a converted lead is attributed to the
+    // venue by its booking even if it never named the venue.
+    convertedIds.length
+      ? prisma.lead.count({ where: { AND: [{ deletedAt: null }, { id: { in: convertedIds } }, ...(createdAt ? [{ createdAt }] : [])] } })
+      : Promise.resolve(0),
     prisma.booking.count({ where: { venueId: { in: venueIds }, status: { in: [...BOOKED] }, ...(eventDate ? { date: eventDate } : {}) } }),
     prisma.booking.count({ where: { venueId: { in: venueIds }, status: { in: ["CONFIRMED", "IN_PROGRESS"] }, date: { gte: today } } }),
     // ids are used only to drop lapsed holds; they never leave this function.
@@ -140,13 +177,10 @@ export async function getVenueDashboard(
       where: { venueId: { in: venueIds }, status: { in: [...HELD] }, date: { gte: today } },
       select: { id: true, status: true, holdExpiresAt: true },
     }),
+    // id is used only to look up conversion; it never leaves this function.
     prisma.lead.findMany({
-      where: { AND: [venueLeads(venueIds), { createdAt: { gte: trendFrom } }] },
-      select: {
-        createdAt: true,
-        status: true,
-        salesQuotations: { where: { venueId: { in: venueIds }, status: "CONVERTED" }, select: { status: true }, take: 1 },
-      },
+      where: { AND: [inScope, { createdAt: { gte: trendFrom } }] },
+      select: { id: true, createdAt: true },
     }),
     prisma.booking.findMany({
       where: { venueId: { in: venueIds }, status: { in: [...BOOKED] }, date: { gte: trendFromDate } },
@@ -157,11 +191,12 @@ export async function getVenueDashboard(
   const lapsed = await findLapsedHoldIds(heldRows, now);
   const trend = months.map((m) => ({ key: m.key, label: m.label, leads: 0, converted: 0, bookings: 0 }));
   const byKey = new Map(trend.map((t) => [t.key, t]));
+  const convertedSet = new Set(convertedIds);
   for (const l of trendLeads) {
     const t = byKey.get(istMonthKey(l.createdAt));
     if (!t) continue;
     t.leads++;
-    if (l.status === "WON" || l.salesQuotations.length > 0) t.converted++;
+    if (convertedSet.has(l.id)) t.converted++;
   }
   for (const b of trendBookings) {
     const t = byKey.get(dbDateKey(b.date).slice(0, 7));
@@ -217,6 +252,8 @@ export async function getVenueCalendar(venueIds: string[], venues: OwnerVenue[],
   const bookingWindow = dbMonthDates(year, month);
 
   const [leads, bookingRows] = await Promise.all([
+    // id / booking links are used only to drop leads already booked and to
+    // name the venue; none of them leaves this function.
     prisma.lead.findMany({
       where: {
         AND: [
@@ -225,7 +262,16 @@ export async function getVenueCalendar(venueIds: string[], venues: OwnerVenue[],
           { status: { notIn: ["WON", "LOST"] } },
         ],
       },
-      select: { eventDate: true, slot: true, eventType: true, guestCount: true, preferredVenueId: true },
+      select: {
+        id: true,
+        eventDate: true,
+        slot: true,
+        eventType: true,
+        guestCount: true,
+        preferredVenueId: true,
+        salesQuotations: { select: { venueId: true, bookingId: true }, orderBy: { createdAt: "desc" } },
+        deal: { select: { booking: { select: { id: true } } } },
+      },
     }),
     prisma.booking.findMany({
       where: { venueId: { in: venueIds }, status: { not: "CANCELLED" }, date: { gte: bookingWindow.start, lt: bookingWindow.end } },
@@ -236,6 +282,24 @@ export async function getVenueCalendar(venueIds: string[], venues: OwnerVenue[],
 
   const lapsed = await findLapsedHoldIds(bookingRows, now);
   const day = (key: string) => (days[key] ??= { leads: 0, bookings: 0, holds: 0, items: [] });
+
+  // An open lead whose booking already exists (not cancelled, not a lapsed
+  // hold) is shown once — as the booking — not again as an enquiry.
+  const linked = new Map<string, string[]>();
+  for (const l of leads) {
+    const ids = [...l.salesQuotations.flatMap((q) => (q.bookingId ? [q.bookingId] : [])), ...(l.deal?.booking ? [l.deal.booking.id] : [])];
+    if (ids.length) linked.set(l.id, ids);
+  }
+  const linkedIds = [...new Set([...linked.values()].flat())];
+  const liveLinked = new Set<string>();
+  if (linkedIds.length) {
+    const rows = await prisma.booking.findMany({
+      where: { id: { in: linkedIds }, status: { not: "CANCELLED" } },
+      select: { id: true, status: true, holdExpiresAt: true },
+    });
+    const lapsedLinked = await findLapsedHoldIds(rows, now);
+    for (const r of rows) if (!lapsedLinked.has(r.id)) liveLinked.add(r.id);
+  }
 
   for (const b of bookingRows) {
     if (lapsed.has(b.id)) continue;
@@ -251,22 +315,29 @@ export async function getVenueCalendar(venueIds: string[], venues: OwnerVenue[],
     d.items.push({
       kind: held ? "hold" : "booking",
       slot: slotLabel(b.timeSlot),
-      eventType: b.eventType || null,
+      eventType: ownerOccasion(b.eventType),
       guests: b.guestCount || null,
       venue: showVenue ? names.get(b.venueId) ?? null : null,
     });
   }
   for (const l of leads) {
     if (!l.eventDate) continue;
+    if ((linked.get(l.id) ?? []).some((id) => liveLinked.has(id))) continue;
     const d = day(istDayKey(l.eventDate));
     d.leads++;
     totals.leads++;
+    // The in-scope venue it belongs to: its preferred venue, else its latest
+    // quotation's venue.
+    const venueId =
+      l.preferredVenueId && names.has(l.preferredVenueId)
+        ? l.preferredVenueId
+        : l.salesQuotations.find((q) => q.venueId && names.has(q.venueId))?.venueId ?? null;
     d.items.push({
       kind: "lead",
       slot: slotLabel(l.slot),
-      eventType: l.eventType || null,
+      eventType: ownerOccasion(l.eventType),
       guests: l.guestCount ?? null,
-      venue: showVenue && l.preferredVenueId ? names.get(l.preferredVenueId) ?? null : null,
+      venue: showVenue && venueId ? names.get(venueId) ?? null : null,
     });
   }
   const order = { booking: 0, hold: 1, lead: 2 } as const;

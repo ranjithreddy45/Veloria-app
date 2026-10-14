@@ -220,7 +220,7 @@ async function customerLogins(
     prisma.customerLink.findMany({ where: { contactId }, select: { userId: true } }),
     contact?.email
       ? prisma.user.findMany({
-          where: { email: contact.email, emailVerified: { not: null }, isActive: true },
+          where: { email: contact.email, emailVerified: { not: null }, isActive: true, role: { not: "VENUE_OWNER" } },
           select: { id: true },
         })
       : Promise.resolve([] as { id: string }[]),

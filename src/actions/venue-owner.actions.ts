@@ -466,7 +466,10 @@ export async function acceptVenueOwnerInvite(input: {
       if (!(await consumeVenueOwnerInvite(owner.id, token, tx))) return false;
       const { count } = await tx.user.updateMany({
         where: { id: owner.id, role: "VENUE_OWNER", hashedPassword: null },
-        data: { hashedPassword, isActive: true, emailVerified: new Date() },
+        // emailVerified deliberately NOT set: the link is shared by hand, so
+        // using it proves nothing about the mailbox — and a verified email is
+        // what links a login to customer Contacts (portal-identity.ts).
+        data: { hashedPassword, isActive: true },
       });
       if (count !== 1) throw new Error("VENUE_OWNER_ALREADY_ACTIVATED");
       return true;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { conversionPct, dbDateKey, istDayKey, istMonthInstants, lastMonths, periodRange, slotLabel } from "./buckets";
+import { conversionPct, dbDateKey, istDayKey, istMonthInstants, lastMonths, ownerOccasion, periodRange, slotLabel } from "./buckets";
 
 describe("venue portal date keys", () => {
   it("keys a manual (IST-midnight) lead and a web (UTC-midnight) lead on the same India day", () => {
@@ -41,9 +41,18 @@ describe("labels and rates", () => {
     expect(conversionPct(0, 0)).toBe(0);
     expect(conversionPct(3, 1)).toBe(33);
   });
-  it("names slots", () => {
+  it("names slots and drops free text", () => {
     expect(slotLabel("FULL_DAY")).toBe("Full day");
     expect(slotLabel("Dinner")).toBe("Dinner");
     expect(slotLabel(null)).toBeNull();
+    expect(slotLabel("call Ravi after 6")).toBeNull();
+  });
+  it("shows only an occasion category, never the typed text", () => {
+    expect(ownerOccasion("Aarav's 1st birthday")).toBe("Birthday");
+    expect(ownerOccasion("Sharma-Verma Reception")).toBe("Reception");
+    expect(ownerOccasion("WEDDING")).toBe("Wedding");
+    expect(ownerOccasion("Annriversary")).toBe("Anniversary");
+    expect(ownerOccasion("Priya & Karthik")).toBe("Event");
+    expect(ownerOccasion("  ")).toBeNull();
   });
 });

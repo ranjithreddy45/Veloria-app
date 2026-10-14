@@ -65,7 +65,9 @@ export async function getUsers(params?: {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
-      role: { not: "CLIENT" }, // Exclude portal users from admin view
+      // Exclude customer portal users and venue owners (managed under Settings →
+      // Venue owners) — this list also feeds staff pickers.
+      role: { notIn: ["CLIENT", "VENUE_OWNER"] },
     };
 
     if (params?.search) {

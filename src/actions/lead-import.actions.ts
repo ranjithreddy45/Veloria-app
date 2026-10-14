@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
 import { revalidatePath } from "next/cache";
+import { INTERNAL_ROLES } from "@/lib/roles";
 import {
   stampsForStatus,
   validateLeadStatusChange,
@@ -94,7 +95,9 @@ export async function importSalesLeads(
     // Pre-load venues + active users once for name resolution.
     const [venues, users] = await Promise.all([
       prisma.venue.findMany({ select: { id: true, name: true } }),
-      prisma.user.findMany({ where: { isActive: true }, select: { id: true, name: true } }),
+      // Staff only: an external login (customer, vendor, venue owner) must never
+      // be made a lead's owner by a fuzzy name match.
+      prisma.user.findMany({ where: { isActive: true, role: { in: [...INTERNAL_ROLES] } }, select: { id: true, name: true } }),
     ]);
     const resolveVenue = (hall?: string): string | null => {
       const h = (hall ?? "").trim().toLowerCase();

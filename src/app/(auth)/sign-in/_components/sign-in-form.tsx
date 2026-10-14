@@ -80,7 +80,7 @@ export default function SignInForm({ googleEnabled = false }: { googleEnabled?: 
       if (result?.success) {
         // Full page load so the client session (sidebar name, role and
         // role-gated menu) is read fresh for the signed-in user.
-        window.location.assign("redirectTo" in result ? result.redirectTo : "/dashboard");
+        window.location.assign("redirectTo" in result ? result.redirectTo : "/");
         return;
       }
       if (result && !result.success) {
@@ -142,13 +142,13 @@ export default function SignInForm({ googleEnabled = false }: { googleEnabled?: 
         phone,
         code,
         redirect: false,
-        callbackUrl: "/dashboard",
+        callbackUrl: "/",
       });
       if (!res || res.error) {
         toast.error("Invalid or expired code. Please try again.");
         return;
       }
-      router.push(res.url || "/dashboard");
+      router.push(res.url || "/");
     } catch {
       toast.error("Sign-in failed — please try again.");
     } finally {
@@ -175,7 +175,7 @@ export default function SignInForm({ googleEnabled = false }: { googleEnabled?: 
             className="sheen-sweep relative h-10 w-full gap-2 overflow-hidden rounded-lg border-border bg-background text-body font-medium transition-colors hover:bg-muted/60"
             type="button"
             disabled={isPending}
-            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+            onClick={() => signIn("google", { callbackUrl: "/" })}
           >
             <Chrome className="size-4" />
             Continue with Google

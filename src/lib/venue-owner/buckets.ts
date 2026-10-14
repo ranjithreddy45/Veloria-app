@@ -103,8 +103,40 @@ const BOOKING_SLOT: Record<string, string> = {
   FULL_DAY: "Full day",
 };
 
-/** A readable slot for a booking's TimeSlot or a lead's "Lunch" / "Dinner". */
+const LEAD_SLOT: Record<string, string> = { lunch: "Lunch", dinner: "Dinner", morning: "Morning", evening: "Evening", "full day": "Full day" };
+
+/**
+ * A readable slot for a booking's TimeSlot or a lead's "Lunch" / "Dinner".
+ * Anything else (imported free text) is dropped, never shown as typed.
+ */
 export function slotLabel(raw: string | null | undefined): string | null {
   if (!raw) return null;
-  return BOOKING_SLOT[raw] ?? raw;
+  return BOOKING_SLOT[raw] ?? LEAD_SLOT[raw.trim().toLowerCase()] ?? null;
+}
+
+/**
+ * Occasion categories an owner may see. Booking.eventType and Lead.eventType
+ * are FREE TEXT (the public hold form, the quotation's Occasion box, ad-form
+ * answers) and can carry a name — "Aarav's 1st birthday", "Sharma–Verma
+ * Reception" — so the owner gets only the category word found in it, or a
+ * plain "Event".
+ */
+const OCCASIONS: [RegExp, string][] = [
+  [/wedding|marriage|muhurtham|kalyanam/, "Wedding"],
+  [/reception/, "Reception"],
+  [/engagement|nischitartham|ring ceremony/, "Engagement"],
+  [/sangeet|mehendi|mehndi|haldi|cocktail/, "Pre-wedding"],
+  [/birthday|b'?day/, "Birthday"],
+  [/anniv|annriversary/, "Anniversary"],
+  [/baby ?shower|seemantham|godh bharai|valaikappu/, "Baby shower"],
+  [/naming|namakaran|cradle|thread ceremony|upanayan|housewarming|griha|puja|pooja/, "Ceremony"],
+  [/corporate|conference|meeting|seminar|offsite|launch|award|agm|team/, "Corporate"],
+  [/get.?together|reunion|alumni|party|celebration|kitty/, "Get-together"],
+];
+
+export function ownerOccasion(raw: string | null | undefined): string | null {
+  if (!raw || !raw.trim()) return null;
+  const s = raw.toLowerCase();
+  for (const [re, label] of OCCASIONS) if (re.test(s)) return label;
+  return "Event";
 }

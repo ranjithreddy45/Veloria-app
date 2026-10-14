@@ -154,12 +154,13 @@ export function OwnerDashboardView({
           <CardContent>
             <ul className="space-y-3 text-body leading-relaxed text-muted-foreground">
               <li>
-                <span className="font-medium text-foreground">Leads</span> count when the enquiry names this venue or has
-                a quotation for it. Many enquiries (for example from ads) arrive without a venue and are not counted here.
+                <span className="font-medium text-foreground">Leads</span> count when the enquiry names this venue, has
+                a quotation for it, or was booked here. Many enquiries (for example from ads) arrive without a venue and
+                are not counted here.
               </li>
               <li>
-                <span className="font-medium text-foreground">Converted</span> means the enquiry was won, or its
-                quotation for this venue became a booking.
+                <span className="font-medium text-foreground">Converted</span> means the enquiry became a confirmed
+                booking (advance paid) at this venue.
               </li>
               <li>
                 <span className="font-medium text-foreground">Bookings</span> are confirmed events (advance paid),
