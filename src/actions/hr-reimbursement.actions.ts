@@ -32,6 +32,7 @@ import { AWAITING_STATUSES } from "@/lib/hr/claim-labels";
 import { isEmployeeRouteScope } from "@/lib/hr/claim-routing";
 import {
   MAX_STAGES,
+  canActOnStage,
   chainSummary,
   eligibleApproverIds,
   eligibleStage,
@@ -455,34 +456,9 @@ function staleError(state: ClaimChainState, expected: { expectedStage?: number |
   return moved ? "This claim has changed since you opened it — refresh to see where it is now." : null;
 }
 
-/**
- * May this user decide the claim at its current stage? Its eligible approvers
- * may (eligibleApproverIds: nobody gives two approvals on one claim unless no
- * one else is left). A Super Admin may step in for them — recorded as such —
- * but never on their own claim, and never on a claim where they hold or gave
- * another approval.
- */
-function canActOnStage(
-  u: { id: string; role?: string },
-  chain: ChainStage[],
-  idx: number,
-  claimantUserId: string | null,
-): { ok: boolean; onBehalf: boolean; error?: string } {
-  const stage = chain[idx];
-  const holder = stageHolder(eligibleStage(chain, idx));
-  if (eligibleApproverIds(chain, idx).includes(u.id)) return { ok: true, onBehalf: false };
-  if (stage.approverIds.includes(u.id)) {
-    return { ok: false, onBehalf: false, error: `You already gave an earlier approval on this claim; ${stage.label.toLowerCase()} is for ${holder}.` };
-  }
-  if (u.id === claimantUserId) return { ok: false, onBehalf: false, error: "You can't approve your own claim." };
-  if (isSuperAdmin(u.role)) {
-    const elsewhere = chain.some((st, j) => j !== idx && (st.approverIds.includes(u.id) || st.decidedById === u.id));
-    if (elsewhere) {
-      return { ok: false, onBehalf: false, error: `You hold another approval on this claim, so you can't also step in for ${holder}.` };
-    }
-    return { ok: true, onBehalf: true };
-  }
-  return { ok: false, onBehalf: false, error: `This claim is waiting for ${holder} (${stage.label.toLowerCase()}).` };
+/** canActOnStage (claim-chain.ts) for a signed-in user. */
+function canAct(u: { id: string; role?: string }, chain: ChainStage[], idx: number, claimantUserId: string | null) {
+  return canActOnStage({ id: u.id, superAdmin: isSuperAdmin(u.role) }, chain, idx, claimantUserId);
 }
 
 /**
@@ -512,7 +488,7 @@ export async function decideReimbursement(
   if (stale) return { success: false, error: stale };
 
   const emp = await employeeBrief(claim.employeeId);
-  const access = canActOnStage(u, state.chain, idx, emp.userId);
+  const access = canAct(u, state.chain, idx, emp.userId);
   if (!access.ok) return { success: false, error: access.error ?? "Insufficient permissions" };
 
   const note = input.note?.trim() || null;
@@ -750,6 +726,14 @@ export async function scheduleReimbursementPayment(
   const payMonth = Number(input.payMonth);
   if (!payFy || !/^\d{4}-\d{2}$/.test(payFy)) return { success: false, error: "Pick the financial year of the pay run." };
   if (!Number.isInteger(payMonth) || payMonth < 1 || payMonth > 12) return { success: false, error: "Pick the month of the pay run." };
+  // A locked or paid run is frozen: a claim scheduled onto it would never be paid.
+  const frozen = await prisma.hrPayrollRun.findFirst({
+    where: { entityId: ENTITY_ID, fy: payFy, month: payMonth, status: { in: ["LOCKED", "PAID"] } },
+    select: { status: true },
+  });
+  if (frozen) {
+    return { success: false, error: `That month's payroll is already ${frozen.status.toLowerCase()} — pick a later month, or record a direct payment.` };
+  }
 
   const upd = await prisma.hrReimbursementClaim.updateMany({
     where: { id, status: "APPROVED", runId: null },

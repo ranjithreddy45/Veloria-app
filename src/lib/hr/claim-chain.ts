@@ -133,7 +133,8 @@ const nameOf = (p: Person) => p.name ?? p.email;
 
 /**
  * Turn stage specs into a chain, applying the self-approval rule. A stage's
- * approvers are its candidates minus the claimant. If that leaves nobody, the
+ * approvers are its candidates minus the claimant and minus anyone already
+ * approving an earlier stage. If that leaves nobody, the
  * Super Admins minus the claimant AND minus anyone who approves another stage
  * of this chain (so one person never holds two of a claim's approvals); then
  * the Super Admins minus the claimant; and only then the candidates as they
@@ -143,7 +144,13 @@ export function buildChain(specs: StageSpec[], ctx: { claimantUserId: string | n
   const used = specs.slice(0, MAX_STAGES);
   const total = used.length;
   const notClaimant = (p: Person) => p.id !== ctx.claimantUserId;
-  const primary = used.map((spec) => spec.candidates.filter(notClaimant));
+  // A later stage never repeats someone who already approves an earlier one
+  // (e.g. Finance falling back to HR when HR is also the 1st approver).
+  const primary: Person[][] = [];
+  for (const spec of used) {
+    const earlier = new Set(primary.flat().map((p) => p.id));
+    primary.push(spec.candidates.filter((p) => notClaimant(p) && !earlier.has(p.id)));
+  }
   return used.map((spec, i) => {
     let people = primary[i];
     let fallback = false;
@@ -189,6 +196,42 @@ export function eligibleStage(chain: ChainStage[], idx: number): ChainStage | un
   const ids = eligibleApproverIds(chain, idx);
   const names = stage.approverIds.flatMap((id, i) => (ids.includes(id) ? [stage.approverNames[i] ?? id] : []));
   return { ...stage, approverIds: ids, approverNames: names };
+}
+
+/**
+ * May this user decide the claim at its current stage? Its eligible approvers
+ * may (eligibleApproverIds: nobody gives two approvals on one claim unless no
+ * one else is left). A Super Admin may step in for them — recorded as such —
+ * but never on their own claim, never after giving another approval on it,
+ * and never when they are the only one left for a later stage (stepping in
+ * would then make them give that approval too). Merely being one of several
+ * in a later stage's pool does not bar them.
+ */
+export function canActOnStage(
+  u: { id: string; superAdmin: boolean },
+  chain: ChainStage[],
+  idx: number,
+  claimantUserId: string | null,
+): { ok: boolean; onBehalf: boolean; error?: string } {
+  const stage = chain[idx];
+  const holder = stageHolder(eligibleStage(chain, idx));
+  if (eligibleApproverIds(chain, idx).includes(u.id)) return { ok: true, onBehalf: false };
+  if (stage.approverIds.includes(u.id)) {
+    return { ok: false, onBehalf: false, error: `You already gave an earlier approval on this claim; ${stage.label.toLowerCase()} is for ${holder}.` };
+  }
+  if (u.id === claimantUserId) return { ok: false, onBehalf: false, error: "You can't approve your own claim." };
+  if (u.superAdmin) {
+    const decidedElsewhere = chain.some((st, j) => j !== idx && st.decidedById === u.id);
+    const after = chain.map((st, j) => (j === idx ? { ...st, decidedById: u.id } : st));
+    const neededLater = chain.some(
+      (st, j) => j > idx && !st.decidedAt && st.approverIds.includes(u.id) && eligibleApproverIds(after, j).every((id) => id === u.id),
+    );
+    if (decidedElsewhere || neededLater) {
+      return { ok: false, onBehalf: false, error: `You hold another approval on this claim, so you can't also step in for ${holder}.` };
+    }
+    return { ok: true, onBehalf: true };
+  }
+  return { ok: false, onBehalf: false, error: `This claim is waiting for ${holder} (${stage.label.toLowerCase()}).` };
 }
 
 /** "Venkat" or "Venkat / Ranjith". */

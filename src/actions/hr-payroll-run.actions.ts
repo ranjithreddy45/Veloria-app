@@ -11,7 +11,7 @@ import { resolveStatConfig } from "@/lib/hr/stat-config";
 /** Round to paise. Money must never carry float dust into a Decimal column. */
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 import { sendEmail } from "@/lib/email";
-import { settleRunReimbursements } from "@/lib/hr/claim-workflow";
+import { releaseUnpaidRunClaims, settleRunReimbursements } from "@/lib/hr/claim-workflow";
 import { postWithinTx, fyForDate } from "@/lib/finance/ledger";
 import { FIN_ACCOUNT_CODES } from "@/lib/finance/coa-seed";
 
@@ -330,9 +330,13 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
       const candidateIds = reimbByEmp.get(emp.id) ?? [];
       let empReimb: { id: string; amount: Prisma.Decimal; taxable: boolean }[] = [];
       if (candidateIds.length > 0) {
-        await tx.hrReimbursementClaim.updateMany({ where: { id: { in: candidateIds }, status: "APPROVED", runId: null }, data: { runId } });
+        // Month re-checked: a claim Finance moved to another month meanwhile is skipped.
+        await tx.hrReimbursementClaim.updateMany({
+          where: { id: { in: candidateIds }, status: "APPROVED", runId: null, payFy: run.fy, payMonth: run.month },
+          data: { runId },
+        });
         empReimb = await tx.hrReimbursementClaim.findMany({
-          where: { id: { in: candidateIds }, status: "APPROVED", runId },
+          where: { id: { in: candidateIds }, status: "APPROVED", runId, payFy: run.fy, payMonth: run.month },
           select: { id: true, amount: true, taxable: true },
         });
       }
@@ -514,6 +518,15 @@ export async function lockPayrollRun(runId: string): Promise<Result<{ id: string
     where: { id: runId },
     data: { status: "LOCKED", lockedAt: new Date() },
   });
+  // Reimbursements: claims an earlier version of the code marked PAID when
+  // computing go back to APPROVED (paid when the run is paid), and claims
+  // scheduled on this month that did not make it onto the payslips are
+  // un-scheduled — a locked run will never pay them — with Finance told.
+  try {
+    await releaseUnpaidRunClaims(runId, { id: u!.id, name: u!.name ?? null });
+  } catch (e) {
+    console.error("[PAYROLL_LOCK_REIMB]", runId, e);
+  }
   // Payslips are final once locked — notify employees their payslip is ready.
   await deliverPayslipEmails(runId);
   revalidatePath("/people/payroll");

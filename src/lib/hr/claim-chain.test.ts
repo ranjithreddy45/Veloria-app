@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildChain, eligibleApproverIds, eligibleStage, parseChain, parseRouteStages, pickRoute, stageForStatus, stageLabel, statusForStage,
+  buildChain, canActOnStage, eligibleApproverIds, eligibleStage, parseChain, parseRouteStages, pickRoute, stageForStatus, stageLabel, statusForStage,
   type ChainStage, type RouteRow, type StageSpec,
 } from "./claim-chain";
 
@@ -117,5 +117,68 @@ describe("eligibleApproverIds", () => {
   it("never strands a stage: if every approver already approved earlier, they may still act", () => {
     const chain = [st(["ranjith"], "ranjith"), st(["venkat"], "venkat"), st(["venkat", "ranjith"])];
     expect(eligibleApproverIds(chain, 2)).toEqual(["venkat", "ranjith"]);
+  });
+});
+
+describe("production scenarios", () => {
+  const yomi = P("u-yomi", "Yomi");
+  const sourav = P("u-sourav", "Sourav");
+  const supers = [venkat, ranjith, yomi, sourav];
+  const hrVenkatFinance = (claimant: string) =>
+    buildChain(
+      [
+        { type: "USER", role: "HR", candidates: [meghana] },
+        { type: "USER", role: "Venkat", candidates: [venkat] },
+        { type: "FINANCE", role: "Finance", candidates: [amrutha] },
+      ],
+      { claimantUserId: claimant, superAdmins: supers },
+    );
+  const decide = (chain: ReturnType<typeof buildChain>, idx: number, by: string) =>
+    chain.map((st, i) => (i === idx ? { ...st, decidedById: by, decidedAt: "2026-10-14T10:00:00.000Z" } : st));
+  const sa = (id: string) => ({ id, superAdmin: true });
+
+  it("Amrutha's own claim: final approval goes to the other Super Admins, never Venkat", () => {
+    const c = hrVenkatFinance("u-amrutha");
+    expect(c[2].approverIds.sort()).toEqual(["u-ranjith", "u-sourav", "u-yomi"]);
+  });
+
+  it("a Super Admin in a later pool may stand in for an absent HR approver", () => {
+    const c = hrVenkatFinance("u-amrutha");
+    expect(canActOnStage(sa("u-yomi"), c, 0, "u-amrutha")).toMatchObject({ ok: true, onBehalf: true });
+  });
+
+  it("Venkat can't stand in at HR when he alone holds the next stage (he'd give two approvals)", () => {
+    const c = hrVenkatFinance("u-dilkash");
+    expect(canActOnStage(sa("u-venkat"), c, 0, "u-dilkash").ok).toBe(false);
+  });
+
+  it("whoever stood in at one stage can't approve another", () => {
+    let c = hrVenkatFinance("u-amrutha");
+    c = decide(c, 0, "u-yomi");
+    expect(canActOnStage(sa("u-yomi"), c, 1, "u-amrutha").ok).toBe(false);
+    c = decide(c, 1, "u-venkat");
+    // Yomi stood in at HR, so the final approval is for Ranjith or Sourav only.
+    expect(eligibleApproverIds(c, 2).sort()).toEqual(["u-ranjith", "u-sourav"]);
+    expect(canActOnStage(sa("u-yomi"), c, 2, "u-amrutha").ok).toBe(false);
+    expect(canActOnStage(sa("u-sourav"), c, 2, "u-amrutha")).toMatchObject({ ok: true, onBehalf: false });
+  });
+
+  it("nobody approves their own claim, Super Admin or not", () => {
+    const c = hrVenkatFinance("u-ranjith");
+    expect(canActOnStage(sa("u-ranjith"), c, 0, "u-ranjith")).toMatchObject({ ok: false, error: "You can't approve your own claim." });
+    expect(canActOnStage({ id: "u-x", superAdmin: false }, c, 0, "u-ranjith").ok).toBe(false);
+  });
+
+  it("Finance falling back to HR never makes HR approve twice", () => {
+    const c = buildChain(
+      [
+        { type: "USER", role: "HR", candidates: [meghana] },
+        { type: "USER", role: "Venkat", candidates: [venkat] },
+        { type: "FINANCE", role: "Finance", candidates: [meghana] },
+      ],
+      { claimantUserId: "u-dilkash", superAdmins: supers },
+    );
+    expect(c[2].approverIds).not.toContain("u-meghana");
+    expect(c[2].approverIds).not.toContain("u-venkat");
   });
 });

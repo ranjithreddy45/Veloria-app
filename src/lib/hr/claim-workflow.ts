@@ -51,6 +51,8 @@ export interface ResolvedApprovers {
   /** Third-level approver for Finance. */
   level3: ApproverUser[];
   level1Configured: boolean;
+  /** True when level1 is the configured (active) approver, not the Super Admin stand-in. */
+  level1FromRule: boolean;
   level2Configured: boolean;
 }
 
@@ -77,6 +79,7 @@ export async function resolveClaimApprovers(
   const byId = new Map(users.map((u) => [u.id, u]));
 
   let level1 = picked.l1 && byId.get(picked.l1.userId) ? [byId.get(picked.l1.userId)!] : [];
+  const level1FromRule = level1.length > 0;
   if (level1.length === 0) {
     level1 = await prisma.user.findMany({
       where: { role: "SUPER_ADMIN", isActive: true },
@@ -87,7 +90,7 @@ export async function resolveClaimApprovers(
   const level3 =
     picked.l3 && byId.get(picked.l3.userId) ? [byId.get(picked.l3.userId)!] : await financeRecipients();
 
-  return { level1, level2, level3, level1Configured: !!picked.l1, level2Configured: !!picked.l2 };
+  return { level1, level2, level3, level1Configured: !!picked.l1, level1FromRule, level2Configured: !!picked.l2 };
 }
 
 /** The users Finance-side notifications go to: FINANCE role, else hr:payroll holders. */
@@ -160,7 +163,10 @@ export async function resolveClaimChain(employeeId: string, category?: string | 
   // id: null — the old per-employee level rules ("EMP:<id>") are superseded by
   // routes, so the default chain must not pick them up.
   const a = await resolveClaimApprovers({ id: null, departmentId: emp?.departmentId ?? null }, category ?? undefined);
-  const specs: StageSpec[] = [{ type: "DEFAULT", role: a.level1Configured ? "1st approver" : "Super Admin", candidates: a.level1 }];
+  // An unconfigured (or inactive) 1st approver resolves to every Super Admin;
+  // pass none instead so buildChain's fallback leaves out the claimant AND the
+  // later stages' approvers, rather than listing them twice.
+  const specs: StageSpec[] = [{ type: "DEFAULT", role: "1st approver", candidates: a.level1FromRule ? a.level1 : [] }];
   if (a.level2.length) specs.push({ type: "DEFAULT", role: "2nd approver", candidates: a.level2 });
   specs.push({ type: "FINANCE", role: "Finance", candidates: a.level3 });
   return buildChain(specs, ctx);
@@ -346,11 +352,14 @@ export function describeClaim(c: { title: string; amount: number | string; emplo
  * cron backstop) after a partial failure finishes the job without repeats.
  */
 export async function settleRunReimbursements(runId: string, actor: { id: string | null; name: string | null }): Promise<number> {
+  await normaliseOldComputePaid([runId]);
+  const run = await prisma.hrPayrollRun.findUnique({ where: { id: runId }, select: { fy: true, month: true } });
   const claims = await prisma.hrReimbursementClaim.findMany({
     where: { runId, status: "APPROVED" },
-    select: { id: true, employeeId: true, title: true, payFy: true, payMonth: true },
+    select: { id: true, employeeId: true, title: true },
   });
-  if (claims.length === 0) return 0;
+  if (claims.length === 0 || !run) return 0;
+  const payroll = `${run.month}/${run.fy}`;
   const emps = await prisma.employee.findMany({
     where: { id: { in: Array.from(new Set(claims.map((c) => c.employeeId))) } },
     select: { id: true, userId: true },
@@ -368,7 +377,7 @@ export async function settleRunReimbursements(runId: string, actor: { id: string
       await prisma.hrClaimEvent.create({
         data: {
           claimId: c.id, action: "PAID", fromStatus: "APPROVED", toStatus: "PAID",
-          actorId: actor.id, actorName: actor.name, note: `Paid with the ${c.payMonth}/${c.payFy} payroll`,
+          actorId: actor.id, actorName: actor.name, note: `Paid with the ${payroll} payroll`,
         },
       });
     } catch (e) {
@@ -379,13 +388,66 @@ export async function settleRunReimbursements(runId: string, actor: { id: string
     if (owner) {
       await notifyClaimStep([owner], {
         title: "Reimbursement paid",
-        body: `Your claim "${c.title}" was paid with the ${c.payMonth}/${c.payFy} payroll. Status: Paid — this claim is complete.`,
+        body: `Your claim "${c.title}" was paid with the ${payroll} payroll. Status: Paid — this claim is complete.`,
         actionUrl: "/me/reimbursements",
         claimId: c.id,
       });
     }
   }
   return settled;
+}
+
+/**
+ * Claims an earlier version of computePayrollRun stamped PAID at compute time
+ * (runId set, no paymentRef — a hand payment never sets runId) on a run not yet
+ * paid go back to APPROVED, so they are paid, logged and notified with the run.
+ */
+async function normaliseOldComputePaid(runIds: string[]): Promise<void> {
+  if (runIds.length === 0) return;
+  const unpaid = await prisma.hrPayrollRun.findMany({ where: { id: { in: runIds }, status: { in: ["DRAFT", "LOCKED"] } }, select: { id: true } });
+  if (unpaid.length === 0) return;
+  await prisma.hrReimbursementClaim.updateMany({
+    where: { runId: { in: unpaid.map((r) => r.id) }, status: "PAID", paymentRef: null },
+    data: { status: "APPROVED", paidAt: null },
+  });
+}
+
+/**
+ * A run was locked. Claims scheduled on its month that are not on its payslips
+ * (the employee had no salary structure, or the run was not recomputed after
+ * scheduling) would never be paid by it: un-schedule them, log why, and tell
+ * Finance so they can pick a later month or pay directly.
+ */
+export async function releaseUnpaidRunClaims(runId: string, actor: { id: string | null; name: string | null }): Promise<number> {
+  await normaliseOldComputePaid([runId]);
+  const run = await prisma.hrPayrollRun.findUnique({ where: { id: runId }, select: { fy: true, month: true, entityId: true } });
+  if (!run) return 0;
+  const stranded = await prisma.hrReimbursementClaim.findMany({
+    where: { entityId: run.entityId, status: "APPROVED", runId: null, payFy: run.fy, payMonth: run.month },
+    select: { id: true, title: true, amount: true, employeeId: true },
+  });
+  if (stranded.length === 0) return 0;
+  await prisma.hrReimbursementClaim.updateMany({
+    where: { id: { in: stranded.map((c) => c.id) }, status: "APPROVED", runId: null },
+    data: { payFy: null, payMonth: null },
+  });
+  try {
+    await prisma.hrClaimEvent.createMany({
+      data: stranded.map((c) => ({
+        claimId: c.id, action: "PAY_RUN_SCHEDULED", fromStatus: "APPROVED", toStatus: "APPROVED", actorId: actor.id, actorName: actor.name,
+        note: `Not on the ${run.month}/${run.fy} payroll when it was locked — needs a later pay run or a direct payment`,
+      })),
+    });
+  } catch (e) {
+    console.error("[CLAIM_EVENT] unscheduled at lock", runId, e);
+  }
+  await notifyClaimStep(await financeRecipients(), {
+    title: "Reimbursements need rescheduling",
+    body: `${stranded.length} approved claim${stranded.length === 1 ? " was" : "s were"} scheduled on the ${run.month}/${run.fy} payroll but not on its payslips when it was locked. Pick a later month or record a direct payment.`,
+    actionUrl: "/finance/reimbursements",
+    claimId: stranded[0].id,
+  });
+  return stranded.length;
 }
 
 /** Backstop (frequent cron): settle approved claims whose payroll run is already PAID. */
