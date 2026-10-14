@@ -168,6 +168,29 @@ export function buildChain(specs: StageSpec[], ctx: { claimantUserId: string | n
   });
 }
 
+/**
+ * Who may act at stage `idx` now: its approvers minus anyone who already gave
+ * an earlier approval on this claim — so one person never gives two — unless
+ * that leaves nobody, in which case its approvers as they are (a claim must
+ * never be stranded). The claimant is already kept out by buildChain.
+ */
+export function eligibleApproverIds(chain: ChainStage[], idx: number): string[] {
+  const stage = chain[idx];
+  if (!stage) return [];
+  const earlier = new Set(chain.slice(0, idx).flatMap((st) => (st.decidedById ? [st.decidedById] : [])));
+  const eligible = stage.approverIds.filter((id) => !earlier.has(id));
+  return eligible.length ? eligible : stage.approverIds;
+}
+
+/** Stage `idx` narrowed to the approvers who may act on it now (for queues, notices, "with …"). */
+export function eligibleStage(chain: ChainStage[], idx: number): ChainStage | undefined {
+  const stage = chain[idx];
+  if (!stage) return undefined;
+  const ids = eligibleApproverIds(chain, idx);
+  const names = stage.approverIds.flatMap((id, i) => (ids.includes(id) ? [stage.approverNames[i] ?? id] : []));
+  return { ...stage, approverIds: ids, approverNames: names };
+}
+
 /** "Venkat" or "Venkat / Ranjith". */
 export function stageHolder(stage: ChainStage | undefined): string {
   return stage?.approverNames.join(" / ") || "the approver";

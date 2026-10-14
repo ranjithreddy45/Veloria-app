@@ -18,6 +18,7 @@ import { sendEmail } from "@/lib/email";
 import {
   buildChain,
   chainSummary,
+  eligibleStage,
   parseChain,
   parseRouteStages,
   pickRoute,
@@ -255,7 +256,7 @@ export async function ensureClaimChain(claim: ChainClaim): Promise<ClaimChainSta
     select: { firstName: true, lastName: true, userId: true },
   });
   const employeeName = `${emp?.firstName ?? ""} ${emp?.lastName ?? ""}`.trim() || "An employee";
-  const stage = chain[stageIndex];
+  const stage = eligibleStage(chain, stageIndex)!;
   await notifyClaimStep(await usersByIds(stage.approverIds), {
     title: "Reimbursement claim awaiting your approval",
     body: `${describeClaim({ title: claim.title, amount: Number(claim.amount), employeeName })} needs your ${stage.label.toLowerCase()}.`,
@@ -340,42 +341,64 @@ export function describeClaim(c: { title: string; amount: number | string; emplo
 /**
  * A payroll run was marked paid: every approved claim it carries becomes PAID
  * now — not when the run was computed, which is before any money moves. Each
- * gets a PAID event and the employee is told.
+ * gets a PAID event and the employee is told. Idempotent: a claim is logged
+ * and notified only by the call that actually flipped it, so a retry (or the
+ * cron backstop) after a partial failure finishes the job without repeats.
  */
-export async function settleRunReimbursements(runId: string, actor: { id: string; name: string | null }): Promise<number> {
+export async function settleRunReimbursements(runId: string, actor: { id: string | null; name: string | null }): Promise<number> {
   const claims = await prisma.hrReimbursementClaim.findMany({
     where: { runId, status: "APPROVED" },
     select: { id: true, employeeId: true, title: true, payFy: true, payMonth: true },
   });
   if (claims.length === 0) return 0;
-  const paidAt = new Date();
-  const ids = claims.map((c) => c.id);
-  await prisma.hrReimbursementClaim.updateMany({ where: { id: { in: ids }, status: "APPROVED", runId }, data: { status: "PAID", paidAt } });
-  try {
-    await prisma.hrClaimEvent.createMany({
-      data: claims.map((c) => ({
-        claimId: c.id, action: "PAID", fromStatus: "APPROVED", toStatus: "PAID", actorId: actor.id, actorName: actor.name,
-        note: `Paid with the ${c.payMonth}/${c.payFy} payroll`,
-      })),
-    });
-  } catch (e) {
-    console.error("[CLAIM_EVENT] PAID (payroll)", runId, e);
-  }
   const emps = await prisma.employee.findMany({
     where: { id: { in: Array.from(new Set(claims.map((c) => c.employeeId))) } },
     select: { id: true, userId: true },
   });
   const owners = await usersByIds(emps.flatMap((e) => (e.userId ? [e.userId] : [])));
+  let settled = 0;
   for (const c of claims) {
+    const flipped = await prisma.hrReimbursementClaim.updateMany({
+      where: { id: c.id, status: "APPROVED", runId },
+      data: { status: "PAID", paidAt: new Date() },
+    });
+    if (flipped.count === 0) continue;
+    settled++;
+    try {
+      await prisma.hrClaimEvent.create({
+        data: {
+          claimId: c.id, action: "PAID", fromStatus: "APPROVED", toStatus: "PAID",
+          actorId: actor.id, actorName: actor.name, note: `Paid with the ${c.payMonth}/${c.payFy} payroll`,
+        },
+      });
+    } catch (e) {
+      console.error("[CLAIM_EVENT] PAID (payroll)", c.id, e);
+    }
     const userId = emps.find((e) => e.id === c.employeeId)?.userId;
     const owner = owners.find((o) => o.id === userId);
-    if (!owner) continue;
-    await notifyClaimStep([owner], {
-      title: "Reimbursement paid",
-      body: `Your claim "${c.title}" was paid with the ${c.payMonth}/${c.payFy} payroll. Status: Paid — this claim is complete.`,
-      actionUrl: "/me/reimbursements",
-      claimId: c.id,
-    });
+    if (owner) {
+      await notifyClaimStep([owner], {
+        title: "Reimbursement paid",
+        body: `Your claim "${c.title}" was paid with the ${c.payMonth}/${c.payFy} payroll. Status: Paid — this claim is complete.`,
+        actionUrl: "/me/reimbursements",
+        claimId: c.id,
+      });
+    }
   }
-  return claims.length;
+  return settled;
+}
+
+/** Backstop (frequent cron): settle approved claims whose payroll run is already PAID. */
+export async function settlePaidRunClaims(): Promise<{ settled: number }> {
+  const tagged = await prisma.hrReimbursementClaim.findMany({
+    where: { status: "APPROVED", runId: { not: null } },
+    select: { runId: true },
+    distinct: ["runId"],
+  });
+  const runIds = tagged.flatMap((t) => (t.runId ? [t.runId] : []));
+  if (runIds.length === 0) return { settled: 0 };
+  const paidRuns = await prisma.hrPayrollRun.findMany({ where: { id: { in: runIds }, status: "PAID" }, select: { id: true } });
+  let settled = 0;
+  for (const r of paidRuns) settled += await settleRunReimbursements(r.id, { id: null, name: "System" });
+  return { settled };
 }

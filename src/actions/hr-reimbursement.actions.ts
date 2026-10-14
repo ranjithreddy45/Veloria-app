@@ -33,6 +33,8 @@ import { isEmployeeRouteScope } from "@/lib/hr/claim-routing";
 import {
   MAX_STAGES,
   chainSummary,
+  eligibleApproverIds,
+  eligibleStage,
   parseChain,
   parseRouteStages,
   stageHolder,
@@ -156,7 +158,7 @@ const AWAITING: string[] = [...AWAITING_STATUSES];
  * employee is told always matches who can actually act.
  */
 function trackerFields(state: ClaimChainState) {
-  const st = state.stageIndex != null ? state.chain[state.stageIndex] : undefined;
+  const st = state.stageIndex != null ? eligibleStage(state.chain, state.stageIndex) : undefined;
   const next = state.stageIndex != null ? state.chain[state.stageIndex + 1] : undefined;
   return {
     status: state.status,
@@ -170,6 +172,17 @@ function trackerFields(state: ClaimChainState) {
     statusLabel: st ? `Awaiting ${st.label.toLowerCase()}` : null,
     route: state.chain.length ? chainSummary(state.chain) : null,
   };
+}
+
+/**
+ * The row as of `state`. Attaching a chain to a pre-chain claim (or a change
+ * racing the list) can move the row after the list read it; then the amount
+ * and title shown must come from a fresh read, never from the stale one beside
+ * a newer version — or an approver could approve an amount they never saw.
+ */
+async function freshRow<T extends { id: string; updatedAt: Date }>(r: T, state: ClaimChainState, reread: () => Promise<T | null>): Promise<T> {
+  if (!state.updatedAt || state.updatedAt.getTime() === r.updatedAt.getTime()) return r;
+  return (await reread()) ?? r;
 }
 
 /**
@@ -335,7 +348,8 @@ export async function listMyReimbursements() {
   for (const r of rows) {
     // Where the claim is now and who holds it, for the employee's tracker.
     const state = await ensureClaimChain(r);
-    out.push({ ...serialize(r), ...trackerFields(state) });
+    const row = await freshRow(r, state, () => prisma.hrReimbursementClaim.findUnique({ where: { id: r.id } }));
+    out.push({ ...serialize(row), ...trackerFields(state) });
   }
   return out;
 }
@@ -349,17 +363,19 @@ export async function cancelMyReimbursement(id: string): Promise<Result<{ id: st
 
   const before = await prisma.hrReimbursementClaim.findFirst({ where: { id, employeeId: me.id }, select: CHAIN_FIELDS });
   if (!before) return { success: false, error: "Claim not found." };
+  if (!AWAITING.includes(before.status)) return { success: false, error: "Only a claim still awaiting approval can be withdrawn." };
+  // Pinned to the state read, so the notice below goes to the stage it was really at.
   const claimed = await prisma.hrReimbursementClaim.updateMany({
-    where: { id, employeeId: me.id, status: { in: AWAITING } },
+    where: { id, employeeId: me.id, status: before.status, stageIndex: before.stageIndex, updatedAt: before.updatedAt },
     data: { status: "REJECTED", decisionNote: "Withdrawn by employee" },
   });
-  if (claimed.count === 0) return { success: false, error: "Only a claim still awaiting approval can be withdrawn." };
+  if (claimed.count === 0) return { success: false, error: "This claim just changed — refresh and try again." };
   await recordClaimEvent(id, "WITHDRAWN", { from: before.status, to: "REJECTED", actorId: u.id, actorName: u.name ?? null });
 
   // The approver it was waiting on is told it is gone, and the employee gets
   // the same confirmation as for every other status change.
   const chain = parseChain(before.approvalChain);
-  const stage = chain && before.stageIndex != null ? chain[before.stageIndex] : undefined;
+  const stage = chain && before.stageIndex != null ? eligibleStage(chain, before.stageIndex) : undefined;
   if (stage) {
     await notifyClaimStep(await usersByIds(stage.approverIds), {
       title: "Reimbursement claim withdrawn",
@@ -393,8 +409,9 @@ export async function listReimbursements(filter?: { status?: string }) {
   for (const r of rows) {
     const e = byId.get(r.employeeId);
     const state = await ensureClaimChain(r);
+    const row = await freshRow(r, state, () => prisma.hrReimbursementClaim.findUnique({ where: { id: r.id } }));
     out.push({
-      ...serialize(r),
+      ...serialize(row),
       ...trackerFields(state),
       empCode: e?.empCode ?? "—",
       name: `${e?.firstName ?? ""} ${e?.lastName ?? ""}`.trim() || "Unknown",
@@ -439,10 +456,11 @@ function staleError(state: ClaimChainState, expected: { expectedStage?: number |
 }
 
 /**
- * May this user decide the claim at its current stage? The stage's approvers
- * may; a Super Admin may step in for them (recorded as such), but never on
- * their own claim. Nobody gives two of the same claim's approvals — unless
- * they are the only approver this stage has.
+ * May this user decide the claim at its current stage? Its eligible approvers
+ * may (eligibleApproverIds: nobody gives two approvals on one claim unless no
+ * one else is left). A Super Admin may step in for them — recorded as such —
+ * but never on their own claim, and never on a claim where they hold or gave
+ * another approval.
  */
 function canActOnStage(
   u: { id: string; role?: string },
@@ -451,14 +469,20 @@ function canActOnStage(
   claimantUserId: string | null,
 ): { ok: boolean; onBehalf: boolean; error?: string } {
   const stage = chain[idx];
-  const soleApprover = stage.approverIds.length === 1 && stage.approverIds[0] === u.id;
-  if (chain.slice(0, idx).some((st) => st.decidedById === u.id) && !soleApprover) {
-    return { ok: false, onBehalf: false, error: `You already gave an earlier approval on this claim; ${stage.label.toLowerCase()} is for ${stageHolder(stage)}.` };
+  const holder = stageHolder(eligibleStage(chain, idx));
+  if (eligibleApproverIds(chain, idx).includes(u.id)) return { ok: true, onBehalf: false };
+  if (stage.approverIds.includes(u.id)) {
+    return { ok: false, onBehalf: false, error: `You already gave an earlier approval on this claim; ${stage.label.toLowerCase()} is for ${holder}.` };
   }
-  if (stage.approverIds.includes(u.id)) return { ok: true, onBehalf: false };
   if (u.id === claimantUserId) return { ok: false, onBehalf: false, error: "You can't approve your own claim." };
-  if (isSuperAdmin(u.role)) return { ok: true, onBehalf: true };
-  return { ok: false, onBehalf: false, error: `This claim is waiting for ${stageHolder(stage)} (${stage.label.toLowerCase()}).` };
+  if (isSuperAdmin(u.role)) {
+    const elsewhere = chain.some((st, j) => j !== idx && (st.approverIds.includes(u.id) || st.decidedById === u.id));
+    if (elsewhere) {
+      return { ok: false, onBehalf: false, error: `You hold another approval on this claim, so you can't also step in for ${holder}.` };
+    }
+    return { ok: true, onBehalf: true };
+  }
+  return { ok: false, onBehalf: false, error: `This claim is waiting for ${holder} (${stage.label.toLowerCase()}).` };
 }
 
 /**
@@ -496,7 +520,7 @@ export async function decideReimbursement(
   const actor = u.name ?? "the approver";
   const summary = describeClaim({ title: claim.title, amount: Number(claim.amount), employeeName: emp.name });
   const last = idx === state.chain.length - 1;
-  const onBehalf = access.onBehalf ? ` (Super Admin, for ${stageHolder(stage)})` : "";
+  const onBehalf = access.onBehalf ? ` (Super Admin, for ${stageHolder(eligibleStage(state.chain, idx))})` : "";
   const decided: ChainStage = { ...stage, decidedById: u.id, decidedByName: u.name ?? null, decidedAt: now.toISOString(), note };
   const chainAfter = state.chain.map((st, i) => (i === idx ? decided : st));
   // The legacy level columns keep their old meaning: 1st, 2nd, and final.
@@ -547,7 +571,9 @@ export async function decideReimbursement(
   });
 
   if (!last) {
-    const next = state.chain[nextIdx];
+    // The next stage's approvers as of now — without anyone who has just
+    // approved an earlier stage — so the notice goes to who can actually act.
+    const next = eligibleStage(chainAfter, nextIdx)!;
     await notifyOwner(claim.employeeId, id, `Claim approved at ${stage.label.toLowerCase()}`,
       `Your claim "${claim.title}" was approved by ${actor} (${stage.label.toLowerCase()}). Status: Pending — ${next.label} with ${stageHolder(next)}.`);
     await notifyClaimStep(await usersByIds(next.approverIds), {
@@ -597,17 +623,18 @@ export async function listMyApprovals() {
   for (const r of rows) {
     const state = await ensureClaimChain(r);
     const idx = state.stageIndex;
-    const stage = idx != null ? state.chain[idx] : undefined;
-    if (!stage || !stage.approverIds.includes(u.id)) continue;
+    if (idx == null || !state.chain[idx] || !eligibleApproverIds(state.chain, idx).includes(u.id)) continue;
+    const row = await freshRow(r, state, () =>
+      prisma.hrReimbursementClaim.findUnique({ where: { id: r.id }, include: { _count: { select: { attachments: true } } } }));
     const e = byId.get(r.employeeId);
-    const previous = idx != null && idx > 0 ? state.chain[idx - 1] : undefined;
+    const previous = idx > 0 ? state.chain[idx - 1] : undefined;
     out.push({
-      ...serialize(r),
+      ...serialize(row),
       ...trackerFields(state),
       stageNumber: (idx ?? 0) + 1,
       stageCount: state.chain.length,
       previousApproval: previous?.decidedAt ? { label: previous.label, by: previous.decidedByName, at: previous.decidedAt } : null,
-      attachmentCount: r._count.attachments + (r.billUrl ? 1 : 0),
+      attachmentCount: row._count.attachments + (row.billUrl ? 1 : 0),
       empCode: e?.empCode ?? "—",
       name: `${e?.firstName ?? ""} ${e?.lastName ?? ""}`.trim() || "Unknown",
       department: e?.department?.name ?? null,
@@ -639,7 +666,8 @@ export async function requestClaimInfo(
   if (stale) return { success: false, error: stale };
 
   // HR, the current stage's approver, or an admin may send it back.
-  if (!can(u.role, "hr:payroll") && !isSuperAdmin(u.role) && !stage?.approverIds.includes(u.id)) {
+  const mayAct = state.stageIndex != null && eligibleApproverIds(state.chain, state.stageIndex).includes(u.id);
+  if (!can(u.role, "hr:payroll") && !isSuperAdmin(u.role) && !mayAct) {
     return { success: false, error: "Insufficient permissions" };
   }
 
@@ -680,7 +708,7 @@ export async function listFinanceReimbursements() {
     select: { id: true, firstName: true, lastName: true, empCode: true, department: { select: { name: true } } },
   });
   const byId = new Map(emps.map((e) => [e.id, e]));
-  const approverIds = Array.from(new Set(rows.flatMap((r) => [r.level1ById, r.level2ById, r.level3ById]).filter(Boolean) as string[]));
+  const approverIds = Array.from(new Set(rows.flatMap((r) => [r.level1ById, r.level2ById, r.level3ById, r.decidedById]).filter(Boolean) as string[]));
   const approvers = approverIds.length
     ? await prisma.user.findMany({ where: { id: { in: approverIds } }, select: { id: true, name: true } })
     : [];
@@ -697,6 +725,9 @@ export async function listFinanceReimbursements() {
           { label: "2nd approval", by: nameOf(r.level2ById), at: r.level2At },
           { label: "Final approval", by: nameOf(r.level3ById), at: r.level3At },
         ].filter((a) => a.at).map((a) => ({ label: a.label, by: a.by ?? "—", at: a.at as string | Date | null }));
+    if (!chain && approvals.length === 0 && r.decidedAt) {
+      approvals.push({ label: "Approved", by: nameOf(r.decidedById) ?? "—", at: r.decidedAt });
+    }
     return {
       ...serialize(r),
       empCode: e?.empCode ?? "—",
@@ -984,7 +1015,7 @@ export interface ClaimTrailStage {
  */
 async function trailStages(claim: {
   status: string; stageIndex: number | null; approvalChain: Prisma.JsonValue | null; decisionNote: string | null;
-  decidedAt: Date | null;
+  decidedAt: Date | null; decidedById: string | null;
   level1ById: string | null; level1At: Date | null; level1Note: string | null;
   level2ById: string | null; level2At: Date | null; level2Note: string | null;
   level3ById: string | null; level3At: Date | null; level3Note: string | null;
@@ -1015,11 +1046,11 @@ async function trailStages(claim: {
   // Pre-chain claims: only the decisions actually recorded. The old flow wrote
   // the level columns on a rejection too, at the same instant as decidedAt, so
   // the stage carrying that timestamp is the one that rejected it.
-  const ids = [claim.level1ById, claim.level2ById, claim.level3ById].filter(Boolean) as string[];
+  const ids = [claim.level1ById, claim.level2ById, claim.level3ById, claim.decidedById].filter(Boolean) as string[];
   const users = await usersByIds(ids);
   const nameOf = (id: string | null) => (id ? users.find((x) => x.id === id)?.name ?? "—" : null);
   const rejectedAt = claim.status === "REJECTED" && claim.decidedAt ? claim.decidedAt.getTime() : null;
-  return [
+  const recorded = [
     { label: "1st approval", by: claim.level1ById, at: claim.level1At, note: claim.level1Note },
     { label: "2nd approval", by: claim.level2ById, at: claim.level2At, note: claim.level2Note },
     { label: "Final approval", by: claim.level3ById, at: claim.level3At, note: claim.level3Note },
@@ -1034,6 +1065,21 @@ async function trailStages(claim: {
       at: l.at,
       note: l.note,
     }));
+  // The original single-step flow recorded only decidedBy/decidedAt — show that
+  // decision rather than nothing (a withdrawal has no decider and is in History).
+  const decisionShown = claim.decidedAt != null && recorded.some((st) => st.at!.getTime() === claim.decidedAt!.getTime());
+  if (!decisionShown && claim.decidedAt && claim.decidedById) {
+    recorded.push({
+      label: "Decision",
+      role: null,
+      holder: nameOf(claim.decidedById) ?? "—",
+      state: claim.status === "REJECTED" ? ("rejected" as const) : ("done" as const),
+      by: nameOf(claim.decidedById),
+      at: claim.decidedAt,
+      note: claim.decisionNote,
+    });
+  }
+  return recorded;
 }
 
 /** Attachments + full history for one claim. */
@@ -1046,7 +1092,7 @@ export async function getClaimDetail(claimId: string) {
     select: {
       id: true, employeeId: true, status: true, title: true, amount: true,
       category: true, claimDate: true, note: true, decisionNote: true, billUrl: true,
-      approvalChain: true, stageIndex: true, updatedAt: true, decidedAt: true,
+      approvalChain: true, stageIndex: true, updatedAt: true, decidedAt: true, decidedById: true,
       level1ById: true, level1At: true, level1Note: true, level2ById: true, level2At: true, level2Note: true,
       level3ById: true, level3At: true, level3Note: true,
       payFy: true, payMonth: true, paidAt: true, paymentRef: true, runId: true,
@@ -1172,6 +1218,9 @@ export async function addClaimAttachments(
     })),
   });
 
+  // Evidence changed: bump the claim's version so an approver's open screen
+  // (showing the old bills) can't approve it without refreshing.
+  await prisma.hrReimbursementClaim.update({ where: { id: claimId }, data: { updatedAt: new Date() } });
   await recordClaimEvent(claimId, "EDITED", {
     from: claim.status, to: claim.status, actorId: u.id, actorName: u.name ?? null,
     note: `Added ${files.length} attachment${files.length === 1 ? "" : "s"}`,
@@ -1201,6 +1250,7 @@ export async function removeClaimAttachment(attachmentId: string): Promise<Resul
   }
 
   await prisma.hrClaimAttachment.delete({ where: { id: attachmentId } });
+  await prisma.hrReimbursementClaim.update({ where: { id: att.claimId }, data: { updatedAt: new Date() } });
   await recordClaimEvent(att.claimId, "EDITED", {
     from: att.claim.status, to: att.claim.status, actorId: u.id, actorName: u.name ?? null,
     note: `Removed attachment ${att.fileName}`,

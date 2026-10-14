@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import { attachMissingClaimChains } from "@/lib/hr/claim-workflow";
+import { attachMissingClaimChains, settlePaidRunClaims } from "@/lib/hr/claim-workflow";
 
 // Backstop for reimbursement approval chains: any claim still awaiting
 // approval without a chain (raised before chains existed) gets one, and its
 // approvers and the employee are told where it is. Normally a claim gets its
 // chain when submitted or the first time a list shows it; this makes sure
-// nobody waits on a screen being opened. Registered in the FREQUENT lane.
+// nobody waits on a screen being opened. Also settles approved claims whose
+// payroll run is already paid (if settling failed when the run was marked
+// paid). Registered in the FREQUENT lane.
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   const expected = `Bearer ${process.env.CRON_SECRET}`;
@@ -18,6 +20,7 @@ export async function GET(request: Request) {
   ) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const result = await attachMissingClaimChains();
-  return NextResponse.json({ success: true, ...result });
+  const routed = await attachMissingClaimChains();
+  const paid = await settlePaidRunClaims();
+  return NextResponse.json({ success: true, ...routed, ...paid });
 }

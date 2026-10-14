@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildChain, parseChain, parseRouteStages, pickRoute, stageForStatus, stageLabel, statusForStage,
-  type RouteRow, type StageSpec,
+  buildChain, eligibleApproverIds, eligibleStage, parseChain, parseRouteStages, pickRoute, stageForStatus, stageLabel, statusForStage,
+  type ChainStage, type RouteRow, type StageSpec,
 } from "./claim-chain";
 
 const P = (id: string, name: string) => ({ id, name, email: `${id}@x.in` });
@@ -102,5 +102,20 @@ describe("stages and statuses", () => {
       .toEqual([{ type: "MANAGER" }, { type: "USER", userId: "u" }]);
     expect(parseChain(null)).toBeNull();
     expect(parseChain([{ label: "1st approval", approverIds: ["a"], approverNames: ["A"] }])?.[0].approverIds).toEqual(["a"]);
+  });
+});
+
+describe("eligibleApproverIds", () => {
+  const st = (ids: string[], decidedById?: string): ChainStage => ({
+    type: "USER", label: "x", role: "x", approverIds: ids, approverNames: ids.map((i) => i.toUpperCase()), fallback: false, decidedById: decidedById ?? null,
+  });
+  it("drops whoever gave an earlier approval", () => {
+    const chain = [st(["venkat", "ranjith"], "venkat"), st(["venkat", "ranjith"])];
+    expect(eligibleApproverIds(chain, 1)).toEqual(["ranjith"]);
+    expect(eligibleStage(chain, 1)?.approverNames).toEqual(["RANJITH"]);
+  });
+  it("never strands a stage: if every approver already approved earlier, they may still act", () => {
+    const chain = [st(["ranjith"], "ranjith"), st(["venkat"], "venkat"), st(["venkat", "ranjith"])];
+    expect(eligibleApproverIds(chain, 2)).toEqual(["venkat", "ranjith"]);
   });
 });
