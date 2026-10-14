@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import type { TaskStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isStaffRole } from "@/lib/roles";
 import {
   pickThread,
   requestEntries,
@@ -143,7 +144,8 @@ export async function resolveTeamOwner(
 ): Promise<string | null> {
   if (input.assignedToId) {
     const u = await db.user.findUnique({ where: { id: input.assignedToId }, select: { isActive: true, role: true } });
-    if (u?.isActive && u.role !== "CLIENT" && u.role !== "VENDOR") return input.assignedToId;
+    // Only an active staff member (allowlist) owns a conversation.
+    if (u?.isActive && isStaffRole(u.role)) return input.assignedToId;
   }
   if (input.bookingId) {
     const [op, booking] = await Promise.all([

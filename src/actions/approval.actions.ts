@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -127,6 +128,10 @@ export async function getApprovalRules(): Promise<
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
     }
+    // Internal configuration (who approves what): staff only.
+    if (!isStaffRole(session.user.role)) {
+      return { success: false as const, error: "Unauthorized" };
+    }
 
     const rules = await prisma.approvalRule.findMany({
       orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
@@ -154,6 +159,9 @@ export async function getApprovalRule(
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
     }
+    if (!isStaffRole(session.user.role)) {
+      return { success: false as const, error: "Unauthorized" };
+    }
 
     const rule = await prisma.approvalRule.findUnique({
       where: { id },
@@ -174,6 +182,18 @@ export async function getApprovalRule(
   }
 }
 
+
+/**
+ * A USER step must name an active staff member — never a customer, vendor or
+ * venue-owner login, who would then see the request (and its money snapshot).
+ */
+async function nonStaffApprover(steps: { approverType: string; approverId: string }[]): Promise<string | null> {
+  const ids = steps.filter((s) => s.approverType === "USER").map((s) => s.approverId);
+  if (ids.length === 0) return null;
+  const users = await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, role: true, isActive: true } });
+  const ok = new Set(users.filter((u) => u.isActive && isStaffRole(u.role)).map((u) => u.id));
+  return ids.find((id) => !ok.has(id)) ?? null;
+}
 export async function createApprovalRule(
   input: ApprovalRuleInput,
   chainSteps: ApprovalChainStepInput[]
@@ -205,6 +225,9 @@ export async function createApprovalRule(
 
     const data = parsed.data;
     const steps = stepsParsed.data;
+    if (await nonStaffApprover(steps)) {
+      return { success: false as const, error: "Each named approver must be an active staff member." };
+    }
 
     const rule = await prisma.$transaction(async (tx) => {
       const created = await tx.approvalRule.create({
@@ -280,6 +303,9 @@ export async function updateApprovalRule(
 
     const data = parsed.data;
     const steps = stepsParsed.data;
+    if (await nonStaffApprover(steps)) {
+      return { success: false as const, error: "Each named approver must be an active staff member." };
+    }
 
     const rule = await prisma.$transaction(async (tx) => {
       // Delete existing chain steps
@@ -408,7 +434,7 @@ export async function getMyPendingApprovals(): Promise<
 > {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -544,7 +570,7 @@ export async function getApprovalRequest(
 > {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -647,7 +673,7 @@ export async function approveRequest(
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -808,7 +834,7 @@ export async function rejectRequest(
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -912,7 +938,7 @@ export async function delegateRequest(
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
     const session = await auth();
-    if (!session?.user?.id) {
+    if (!session?.user?.id || !isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -935,10 +961,13 @@ export async function delegateRequest(
 
     const delegatedUser = await prisma.user.findUnique({
       where: { id: delegateToUserId },
-      select: { id: true },
+      select: { id: true, role: true, isActive: true },
     });
     if (!delegatedUser) {
       return { success: false as const, error: "User not found" };
+    }
+    if (!delegatedUser.isActive || !isStaffRole(delegatedUser.role)) {
+      return { success: false as const, error: "Approvals can only be delegated to an active staff member." };
     }
 
     const request = await prisma.approvalRequest.findUnique({
@@ -1068,6 +1097,12 @@ export async function getApprovalHistory(params?: {
   try {
     const session = await auth();
     if (!session?.user?.id) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    // Every request in the company (submitters, amounts, decisions) for the
+    // /approvals history tabs — open to any staff member, as that route is,
+    // and to nobody outside the company.
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 

@@ -32,6 +32,7 @@ import {
   type TwoFactorStatus,
 } from "@/lib/security/two-factor-login";
 import { isTwoFactorRequiredForRole } from "@/lib/security/two-factor-policy";
+import { homeForRole } from "@/lib/roles";
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -299,10 +300,4 @@ export async function completeTwoFactorChallenge(
     console.error("[2FA_CHALLENGE_ERROR]", error);
     return { success: false, error: "Couldn't verify the code. Please try again." };
   }
-}
-
-function homeForRole(role: string | undefined): string {
-  if (role === "CLIENT") return "/portal";
-  if (role === "VENDOR") return "/vendor-portal";
-  return "/dashboard";
 }

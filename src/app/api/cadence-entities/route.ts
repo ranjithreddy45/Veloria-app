@@ -1,12 +1,23 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
+import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 
 export async function POST(request: Request) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // Resolves lead/contact ids to customer names and emails for the cadence
+    // enrollments table — staff with the cadence permission only (the same
+    // settings:read every cadence action checks).
+    if (
+      !isStaffRole(session.user.role) ||
+      !hasPermission(session.user.role, "settings:read")
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();

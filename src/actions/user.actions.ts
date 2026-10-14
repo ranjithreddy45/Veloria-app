@@ -8,6 +8,7 @@ import bcryptjs from "bcryptjs";
 import { randomInt } from "crypto";
 import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
+import { INTERNAL_ROLES } from "@/lib/roles";
 
 // Roles that may be assigned to internal users via this admin surface.
 // Excludes CLIENT/VENDOR (portal identities, provisioned through other flows).
@@ -48,6 +49,8 @@ export async function getUsers(params?: {
   role?: string;
   page?: number;
   limit?: number;
+  /** Staff logins only — for pickers (approvers, delegates, commissions). */
+  staffOnly?: boolean;
 }) {
   try {
     const session = await auth();
@@ -65,7 +68,10 @@ export async function getUsers(params?: {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
-      role: { not: "CLIENT" }, // Exclude portal users from admin view
+      // The admin list shows every login except customer portal users (so a
+      // venue owner's password can still be reset here); pickers pass
+      // staffOnly so no external login can be chosen as an approver etc.
+      role: params?.staffOnly ? { in: [...INTERNAL_ROLES] } : { not: "CLIENT" },
     };
 
     if (params?.search) {

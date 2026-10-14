@@ -98,6 +98,11 @@ describe("decideOtpLogin: who a verified code signs in", () => {
     expect(d).toMatchObject({ kind: "EXISTING_USER", linkContactId: null });
   });
 
+  it("never links a venue owner's login to a customer's contact by phone", () => {
+    const d = decideOtpLogin(facts({ users: [user("u1", "VENUE_OWNER")], contacts: [contact("c1")] }));
+    expect(d).toMatchObject({ kind: "EXISTING_USER", userId: "u1", linkContactId: null });
+  });
+
   it("creates a customer login for exactly one contact with a booking, lead or quotation", () => {
     expect(decideOtpLogin(facts({ contacts: [contact("c1"), contact("c2", false)] }))).toEqual({
       kind: "NEW_CUSTOMER",
@@ -297,8 +302,12 @@ describe("decideStaffGrant: Give access by phone", () => {
     });
   });
 
-  it("refuses team logins, duplicate logins and switched-off logins", () => {
+  it("refuses team logins, venue-owner logins, duplicate logins and switched-off logins", () => {
     expect(decideStaffGrant([user("u1", "SALES_HEAD")]).kind).toBe("REFUSE");
+    expect(decideStaffGrant([user("u1", "VENUE_OWNER")])).toEqual({
+      kind: "REFUSE",
+      error: "This number belongs to a venue owner's login. Customer access can only go to a customer login.",
+    });
     expect(decideStaffGrant([user("u1"), user("u2")]).kind).toBe("REFUSE");
     expect(decideStaffGrant([user("u1")], true).kind).toBe("REFUSE");
     expect(decideStaffGrant([user("u1", "CLIENT", false)]).kind).toBe("REFUSE");

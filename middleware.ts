@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import authConfig from "./auth.config";
 import { NextResponse } from "next/server";
 import { routePermission, hasPermission } from "@/lib/permissions";
+import { INTERNAL_ROLES } from "@/lib/roles";
 
 /**
  * Use the edge-safe authConfig (no Prisma, no bcryptjs) for middleware.
@@ -9,36 +10,8 @@ import { routePermission, hasPermission } from "@/lib/permissions";
  */
 const { auth } = NextAuth(authConfig);
 
-/**
- * Internal roles that can access the dashboard and internal CRM routes.
- */
-const INTERNAL_ROLES = [
-  "SUPER_ADMIN",
-  "ADMIN",
-  "SALES_EXEC",
-  "SALES_HEAD",
-  "EVENT_COORDINATOR",
-  "FINANCE",
-  "STAFF",
-  // BD / Acquisition CRM roles
-  "BD_EXECUTIVE",
-  "BD_HEAD",
-  "OPERATIONS",
-  "OPERATIONS_HEAD",
-  "PROPERTY_MANAGER",
-  "LEGAL",
-  // Projects team
-  "PROJECTS_EXEC",
-  "PROJECTS_HEAD",
-  // Design team
-  "DESIGN_EXEC",
-  "DESIGN_HEAD",
-  // HR / People (shared identity)
-  "HR_MANAGER",
-  "HR_EXECUTIVE",
-  "AUDITOR",
-  "MARKETING",
-] as const;
+// Internal (staff) roles live in src/lib/roles.ts, shared with every
+// server-side "is this staff?" check.
 
 /**
  * Roles allowed to access the client portal.
@@ -49,6 +22,11 @@ const PORTAL_ROLES = ["CLIENT", "SUPER_ADMIN", "ADMIN"] as const;
  * Roles allowed to access the vendor portal.
  */
 const VENDOR_PORTAL_ROLES = ["VENDOR", "SUPER_ADMIN", "ADMIN"] as const;
+
+/**
+ * Roles allowed into the venue-owner portal. Admins may preview it.
+ */
+const VENUE_PORTAL_ROLES = ["VENUE_OWNER", "SUPER_ADMIN", "ADMIN"] as const;
 
 /**
  * Route prefixes that require internal roles.
@@ -203,6 +181,20 @@ export default auth((req) => {
   if (isVendorPortalRoute) {
     if (!user) return signInRedirect();
     if (!role || !(VENDOR_PORTAL_ROLES as readonly string[]).includes(role)) {
+      return NextResponse.redirect(new URL("/not-authorized", nextUrl));
+    }
+  }
+
+  // The customer app (/app) is for customers; a venue owner belongs in their portal.
+  if (role === "VENUE_OWNER" && (pathname === "/app" || pathname.startsWith("/app/"))) {
+    return NextResponse.redirect(new URL("/venue-portal", nextUrl));
+  }
+
+  // Role-based access control for the venue-owner portal
+  const isVenuePortalRoute = pathname === "/venue-portal" || pathname.startsWith("/venue-portal/");
+  if (isVenuePortalRoute) {
+    if (!user) return signInRedirect();
+    if (!role || !(VENUE_PORTAL_ROLES as readonly string[]).includes(role)) {
       return NextResponse.redirect(new URL("/not-authorized", nextUrl));
     }
   }

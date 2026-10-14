@@ -106,6 +106,7 @@ const ROLE_LABELS: Record<string, string> = {
   HR_EXECUTIVE: "HR Exec",
   MARKETING: "Marketing",
   AUDITOR: "Auditor",
+  VENUE_OWNER: "Venue owner",
 };
 
 const ROLE_COLORS: Record<string, string> = {

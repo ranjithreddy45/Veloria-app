@@ -267,6 +267,10 @@ export type Permission =
   | "vendor-portal:access"
   | "vendor-portal:bids"
   | "vendor-portal:payouts"
+  // Venue Owner portal (/venue-portal): counts for the owner's own venues only
+  | "venue-portal:access"
+  // Settings → Venue owners: invite owner logins and choose their venues
+  | "venue-owners:manage"
   // Phase 12: System Infrastructure
   | "documents:read"
   | "documents:create"
@@ -537,6 +541,8 @@ export const ALL_PERMISSIONS: Permission[] = [
   "vendor-portal:access",
   "vendor-portal:bids",
   "vendor-portal:payouts",
+  "venue-portal:access",
+  "venue-owners:manage",
   "portal:access",
   "portal:bookings",
   "portal:invoices",
@@ -814,6 +820,8 @@ const ADMIN_PERMISSIONS: Permission[] = [
     "franchise:payout:approve",
     "ai:use",
     "ai:admin",
+    "venue-portal:access",
+    "venue-owners:manage",
 ];
 
 export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
@@ -1081,6 +1089,11 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     "vendor-portal:payouts",
   ],
 
+  // External property owner: the venue portal and nothing else. Deliberately
+  // NOT bookings:read / leads:read — those unlock staff actions that return
+  // customer names, and host-scope.ts treats a bookings:read holder as staff.
+  VENUE_OWNER: ["venue-portal:access"],
+
   // ---- BD / Acquisition CRM roles ----
   // Server-side BD authorization is enforced by acqCan() (src/lib/acq/rbac.ts);
   // these grants make the BD CRM nav + pages reachable for the right people.
@@ -1333,6 +1346,7 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/concierge", permission: "bookings:read" }, // team inbox for customer-app conversations
   { prefix: "/settings/business-contact", permission: "settings:venues" }, // customer-app contact details
   { prefix: "/settings/customer-content", permission: "settings:venues" }, // customer-app policies + FAQs
+  { prefix: "/settings/venue-owners", permission: "venue-owners:manage" },
   { prefix: "/settings", permission: "settings:read" },
 ];
 

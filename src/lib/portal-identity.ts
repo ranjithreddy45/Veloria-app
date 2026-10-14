@@ -41,7 +41,7 @@ export async function resolvePortalContactIds(
   const [user, links] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true, emailVerified: true },
+      select: { email: true, emailVerified: true, role: true },
     }),
     prisma.customerLink.findMany({
       where: { userId },
@@ -50,6 +50,9 @@ export async function resolvePortalContactIds(
   ]);
 
   if (!user) return { verified: false, email: null, contactIds: [] };
+  // A venue owner is never a customer: whatever their email or links, they
+  // must not resolve to customer Contacts (bookings, invoices, payments).
+  if (user.role === "VENUE_OWNER") return { verified: false, email: null, contactIds: [] };
 
   const emailVerified = !!user.email && !!user.emailVerified;
 

@@ -19,6 +19,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 import { dataUrlBytes } from "@/lib/hr/claim-attachments";
 import { notifyAwait } from "@/lib/notify";
 import { MONTH_NAMES } from "@/lib/hr/payslip-feed";
@@ -37,14 +38,15 @@ async function requireUser() {
 }
 
 /**
- * Employees may read their OWN payslips; HR may read and write any. A portal
- * (CLIENT/VENDOR) login is never treated as the employee, even if an employee
- * record got linked to it — same rule as /api/hr/payslip-documents/[id].
+ * Employees may read their OWN payslips; HR may read and write any. Only a
+ * staff login (allowlist, src/lib/roles.ts) is ever either: an external login
+ * (customer, vendor, venue owner) is never treated as the employee, even if an
+ * employee record got linked to it — same rule as
+ * /api/hr/payslip-documents/[id].
  */
 async function scope(userId: string, role: string | undefined, employeeId: string) {
-  const isHr = !!role && hasPermission(role, "hr:payroll");
-  if (isHr) return { read: true, write: true };
-  if (role === "CLIENT" || role === "VENDOR") return { read: false, write: false };
+  if (!role || !isStaffRole(role)) return { read: false, write: false };
+  if (hasPermission(role, "hr:payroll")) return { read: true, write: true };
   const me = await prisma.employee.findFirst({
     where: { userId, deletedAt: null },
     select: { id: true },

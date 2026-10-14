@@ -51,9 +51,12 @@ beforeEach(() => {
 });
 
 describe("staffCan: the team's effective permissions", () => {
-  it("never treats a customer or vendor login as staff, whatever its session carries", () => {
+  it("never treats a customer, vendor or venue-owner login as staff, whatever its session carries", () => {
     expect(staffCan({ role: "CLIENT", perms: ["*"] }, "bookings:read")).toBe(false);
     expect(staffCan({ role: "VENDOR", perms: ["bookings:read"] }, "bookings:read")).toBe(false);
+    expect(staffCan({ role: "VENUE_OWNER", perms: ["*"] }, "bookings:read")).toBe(false);
+    expect(staffCan({ role: "VENUE_OWNER", perms: null }, "venue-portal:access")).toBe(false);
+    expect(staffCan({ role: "SOME_FUTURE_ROLE", perms: ["*"] }, "bookings:read")).toBe(false);
     expect(staffCan({ role: null, perms: ["*"] }, "bookings:read")).toBe(false);
     expect(staffCan(null, "bookings:read")).toBe(false);
   });
@@ -74,10 +77,12 @@ describe("staffCan: the team's effective permissions", () => {
     expect(staffCan({ role: "MARKETING", perms: ["*"] }, "invoices:read")).toBe(true);
   });
 
-  it("a team role is any login but a customer's or a vendor's, and says nothing about access", () => {
+  it("a team role is a staff role by allowlist, and says nothing about access", () => {
     expect(isTeamRole("MARKETING")).toBe(true);
     expect(isTeamRole("CLIENT")).toBe(false);
     expect(isTeamRole("VENDOR")).toBe(false);
+    expect(isTeamRole("VENUE_OWNER")).toBe(false);
+    expect(isTeamRole("SOME_FUTURE_ROLE")).toBe(false);
     expect(isTeamRole(null)).toBe(false);
     expect(isStaffUser({ role: "MARKETING", perms: [] })).toBe(false);
   });
@@ -137,6 +142,14 @@ describe("staff preview", () => {
   it("is never a customer's, whatever the session carries", async () => {
     signIn({ role: "CLIENT", perms: ["*"] });
     expect(await getHostScope("b1")).toMatchObject({ preview: false, booking: null });
+    expect(db.booking.findFirst).not.toHaveBeenCalled();
+  });
+
+  it("is never a venue owner's: an owner is external, not staff", async () => {
+    signIn({ role: "VENUE_OWNER", perms: ["*"] });
+    expect(await getHostScope("b1")).toMatchObject({ preview: false, bookings: [], booking: null });
+    expect(await canSeeBooking("b1")).toBe(false);
+    expect(db.booking.findMany).not.toHaveBeenCalled();
     expect(db.booking.findFirst).not.toHaveBeenCalled();
   });
 });

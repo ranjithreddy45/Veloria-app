@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Building2, SettingsIcon } from "lucide-react";
+import { auth } from "@/../auth";
+import { sessionAllows } from "@/lib/permission-claims";
 import {
   Card,
   CardContent,
@@ -11,7 +13,10 @@ import { SettingsHub } from "./_components/settings-hub";
 
 export const metadata: Metadata = { title: "Settings" };
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const session = await auth();
+  const canManageVenueOwners = sessionAllows(session, "venue-owners:manage");
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -39,7 +44,7 @@ export default function SettingsPage() {
       </Card>
 
       {/* Categorized, searchable setup hub */}
-      <SettingsHub />
+      <SettingsHub canManageVenueOwners={canManageVenueOwners} />
 
       {/* Developer / Admin tools */}
       <Card className="border-dashed">

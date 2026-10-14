@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { auth } from "@/../auth";
+import { homeForRole } from "@/lib/roles";
 import TwoFactorChallengeForm from "./_components/two-factor-challenge-form";
 
 export const metadata: Metadata = { title: "Two-factor authentication" };
@@ -18,13 +19,7 @@ export default async function TwoFactorPage() {
 
   if (!user?.id) redirect("/sign-in");
   if (!user.twoFactorPending) {
-    redirect(
-      user.role === "CLIENT"
-        ? "/portal"
-        : user.role === "VENDOR"
-          ? "/vendor-portal"
-          : "/dashboard"
-    );
+    redirect(homeForRole(user.role));
   }
 
   return <TwoFactorChallengeForm email={user.email ?? ""} />;

@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { clientIpOfHeaders } from "@/lib/hr/geo";
+import { isStaffRole } from "@/lib/roles";
 import { razorpayKeyId, razorpayKeySecret } from "@/lib/payments/razorpay-creds";
 import { HOLD_FACTS_SELECT } from "@/lib/holds/lapsed-hold";
 import {
@@ -77,11 +78,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // IDOR guard: a portal customer (non-staff) may only pay an invoice that
-    // belongs to one of THEIR contacts. Staff roles may pay any invoice.
-    const role = (session.user as { role?: string }).role;
-    const isStaff = !!role && role !== "CLIENT";
-    if (!isStaff) {
+    // IDOR guard: staff (by allowlist) may pay any invoice; a portal customer
+    // (CLIENT) only one that belongs to one of THEIR contacts. Every other
+    // login — a vendor, a venue owner — has no invoices of its own and gets
+    // the same "not found" (this used to treat any role but CLIENT as staff).
+    const role = session.user.role;
+    if (!isStaffRole(role)) {
+      if (role !== "CLIENT") {
+        return NextResponse.json({ success: false, error: "Invoice not found" }, { status: 404 });
+      }
       const u = await prisma.user.findUnique({
         where: { id: session.user.id as string },
         select: { email: true },

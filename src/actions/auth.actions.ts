@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { signIn } from "@/../auth";
 import { signUpSchema, signInSchema, forgotPasswordSchema, resetPasswordSchema } from "@/schemas/auth.schema";
 import { AuthError } from "next-auth";
+import { homeForRole } from "@/lib/roles";
 import {
   twoFactorErrorCode,
   twoFactorErrorMessage,
@@ -109,11 +110,7 @@ export async function signInAction(formData: FormData) {
       where: { email: parsed.data.email.toLowerCase() },
       select: { role: true },
     });
-    const redirectTo = user?.role === "CLIENT"
-      ? "/portal"
-      : user?.role === "VENDOR"
-        ? "/vendor-portal"
-        : "/dashboard";
+    const redirectTo = homeForRole(user?.role);
 
     // `redirect: false` signs in (sets the session cookie) without a
     // server-side redirect. The form then does a full page load to

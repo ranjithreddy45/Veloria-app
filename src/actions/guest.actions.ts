@@ -2,6 +2,7 @@
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { recalcGuestListTotals as recalculateGuestListTotals } from "@/lib/guests/totals";
 import { revalidatePath } from "next/cache";
@@ -25,6 +26,11 @@ export async function getGuestList(bookingId: string) {
   try {
     const session = await auth();
     if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    // Staff only: any booking's guest names and phones by id. Hosts manage
+    // their own guests through the scoped portal-guest actions instead.
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -489,6 +495,9 @@ export async function getCheckInStats(guestListId: string) {
   try {
     const session = await auth();
     if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 

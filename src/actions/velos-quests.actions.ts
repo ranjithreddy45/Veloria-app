@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { awardVelos } from "@/lib/velos/award";
 import { VELOS_TUNING } from "@/lib/velos/config";
 import { isValidCronSecret } from "@/lib/cron-auth";
+import { INTERNAL_ROLES } from "@/lib/roles";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -140,7 +141,7 @@ export async function runSlumpCatch(cronSecret?: string): Promise<{ created: num
 
   // Active staff who have any ledger history.
   const users = await prisma.user.findMany({
-    where: { isActive: true, role: { notIn: ["CLIENT", "VENDOR"] }, velosLedger: { some: {} } },
+    where: { isActive: true, role: { in: [...INTERNAL_ROLES] }, velosLedger: { some: {} } },
     select: { id: true },
   });
 
@@ -195,7 +196,7 @@ export async function settleTeamQuests(cronSecret?: string): Promise<{ settled: 
     const progress = await teamProgress(q.metric, q.startsAt, q.endsAt);
     if (progress < q.targetCount) continue;
     if (q.rewardPoints > 0) {
-      const members = await prisma.user.findMany({ where: { isActive: true, role: { notIn: ["CLIENT", "VENDOR"] } }, select: { id: true } });
+      const members = await prisma.user.findMany({ where: { isActive: true, role: { in: [...INTERNAL_ROLES] } }, select: { id: true } });
       for (const m of members) {
         await awardVelos(prisma, { userId: m.id, eventType: "quest_reward", entityType: "quest", entityId: q.id, pointsOverride: q.rewardPoints, keySuffix: m.id, note: q.title });
       }

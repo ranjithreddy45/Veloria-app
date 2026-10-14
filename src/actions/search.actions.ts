@@ -4,6 +4,7 @@ import type { Prisma } from "@prisma/client";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { acqHasAnyAccess } from "@/lib/acq/rbac";
+import { isStaffRole } from "@/lib/roles";
 
 // ============================================================
 // Global Search Types
@@ -79,6 +80,13 @@ export async function globalSearch(
   try {
     const session = await auth();
     if (!session?.user) {
+      return { success: false, data: [], error: "Unauthorized" };
+    }
+    // Staff only: the palette searches every customer, booking and invoice.
+    // A server action is callable from any page, so the staff-shell gate on
+    // the palette itself is not enough to keep a customer, vendor or venue
+    // owner out.
+    if (!isStaffRole(session.user.role)) {
       return { success: false, data: [], error: "Unauthorized" };
     }
 

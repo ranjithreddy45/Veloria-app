@@ -20,6 +20,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
+import { INTERNAL_ROLES } from "@/lib/roles";
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 import { readFileValueAsDataUrl, storeIncomingFile } from "@/lib/storage/data-url";
 import {
@@ -795,7 +796,7 @@ export async function getReimbursementApproverConfig() {
     prisma.hrReimbursementRoute.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.department.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.user.findMany({
-      where: { isActive: true, role: { notIn: ["CLIENT", "VENDOR"] } },
+      where: { isActive: true, role: { in: [...INTERNAL_ROLES] } },
       orderBy: { name: "asc" },
       select: { id: true, name: true, email: true, role: true },
     }),
@@ -900,7 +901,7 @@ export async function setReimbursementRoute(input: {
   if (Array.isArray(input.stages) && stages.length !== input.stages.length) return { success: false, error: "Pick an approver for every stage." };
   const named = stages.flatMap((st) => (st.type === "USER" ? [st.userId] : []));
   if (named.length) {
-    const ok = await prisma.user.count({ where: { id: { in: named }, isActive: true, role: { notIn: ["CLIENT", "VENDOR"] } } });
+    const ok = await prisma.user.count({ where: { id: { in: named }, isActive: true, role: { in: [...INTERNAL_ROLES] } } });
     if (ok !== new Set(named).size) return { success: false, error: "Every named approver must be an active staff login." };
   }
 

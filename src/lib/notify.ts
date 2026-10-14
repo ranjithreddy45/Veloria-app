@@ -37,25 +37,39 @@ function pushMirror(params: NotifyParams): Promise<void> {
 }
 
 /**
+ * Venue owners get no app notifications at all. Their portal shows counts
+ * only, and nearly every notification names a customer, a lead or an amount —
+ * so a stray assignment, mention or approval must never reach one. One small
+ * lookup per notification is the price of not trusting every call site.
+ */
+async function deliverable(userId: string): Promise<boolean> {
+  try {
+    const u = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    return !!u && u.role !== "VENUE_OWNER";
+  } catch {
+    return true;
+  }
+}
+
+function writeNotification(params: NotifyParams) {
+  return prisma.notification.create({
+    data: {
+      userId: params.userId,
+      type: params.type,
+      title: params.title,
+      message: params.message,
+      actionUrl: params.actionUrl || null,
+      metadata: params.metadata ?? Prisma.JsonNull,
+    },
+  });
+}
+
+/**
  * Fire-and-forget notification. Writes directly to DB (no revalidatePath).
  * Errors are swallowed and logged so this never breaks the main flow.
  */
 export function notify(params: NotifyParams): void {
-  prisma.notification
-    .create({
-      data: {
-        userId: params.userId,
-        type: params.type,
-        title: params.title,
-        message: params.message,
-        actionUrl: params.actionUrl || null,
-        metadata: params.metadata ?? Prisma.JsonNull,
-      },
-    })
-    .then(() => pushMirror(params))
-    .catch((err) => {
-      console.error("[NOTIFY_ERROR]", err);
-    });
+  void notifyAwait(params);
 }
 
 /**
@@ -64,20 +78,14 @@ export function notify(params: NotifyParams): void {
  * instead of risking the fire-and-forget write being dropped.
  */
 export function notifyAwait(params: NotifyParams): Promise<void> {
-  return prisma.notification
-    .create({
-      data: {
-        userId: params.userId,
-        type: params.type,
-        title: params.title,
-        message: params.message,
-        actionUrl: params.actionUrl || null,
-        metadata: params.metadata ?? Prisma.JsonNull,
-      },
+  return deliverable(params.userId)
+    .then(async (ok) => {
+      if (!ok) return;
+      await writeNotification(params);
+      // Awaited here on purpose: in a serverless cron/webhook a detached push
+      // would be dropped when the function freezes. Each request is time-boxed.
+      await pushMirror(params);
     })
-    // Awaited here on purpose: in a serverless cron/webhook a detached push
-    // would be dropped when the function freezes. Each request is time-boxed.
-    .then(() => pushMirror(params))
     .catch((err) => {
       console.error("[NOTIFY_ERROR]", err);
     });

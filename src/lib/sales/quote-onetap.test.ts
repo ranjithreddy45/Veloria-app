@@ -44,7 +44,7 @@ const h = vi.hoisted(() => ({
 vi.mock("@/lib/prisma", () => ({ prisma: h.db }));
 vi.mock("@/lib/ops-alert", () => ({ reportSystemFailure: h.reportSystemFailure }));
 vi.mock("@/lib/notify", () => ({ notifyAwait: h.notifyAwait }));
-vi.mock("@/actions/booking.actions", () => ({ generateBookingNumber: h.generateBookingNumber }));
+vi.mock("@/lib/sales/booking-number", () => ({ generateBookingNumber: h.generateBookingNumber }));
 vi.mock("@/lib/sales/confirm-booking", () => ({ maybeConfirmBookingOnPayment: h.maybeConfirm }));
 vi.mock("@/lib/lead-capture", () => ({ getSystemUserId: async () => "sys-admin" }));
 vi.mock("@/lib/holds/release-lapsed-holds", async (importOriginal) => ({

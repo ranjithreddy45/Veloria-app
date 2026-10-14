@@ -172,7 +172,7 @@ describe("POST /api/payments/create-order and holds", () => {
   });
 
   it("staff paying through this route are refused the same way", async () => {
-    authMock.mockResolvedValue({ user: { id: "u-staff", role: "ACCOUNTANT" } });
+    authMock.mockResolvedValue({ user: { id: "u-staff", role: "FINANCE" } });
     db.invoice.findUnique.mockResolvedValueOnce(invoiceWith(lapsedHold));
 
     const res = await order();
@@ -238,7 +238,7 @@ describe("POST /api/payments/create-order and cancelled bookings", () => {
   });
 
   it("staff paying through this route are refused the same way", async () => {
-    authMock.mockResolvedValue({ user: { id: "u-staff", role: "ACCOUNTANT" } });
+    authMock.mockResolvedValue({ user: { id: "u-staff", role: "FINANCE" } });
     db.invoice.findUnique.mockResolvedValueOnce(invoiceWith(cancelledBooking));
 
     const res = await order();
@@ -247,4 +247,33 @@ describe("POST /api/payments/create-order and cancelled bookings", () => {
     expect(await res.json()).toEqual({ success: false, error: CANCELLED_BOOKING_CHECKOUT_ERROR });
     expect(ordersCreate).not.toHaveBeenCalled();
   });
+});
+
+describe("POST /api/payments/create-order: who counts as staff", () => {
+  it("a staff role pays any invoice without the customer ownership lookup", async () => {
+    authMock.mockResolvedValue({ user: { id: "u-staff", role: "FINANCE" } });
+    db.invoice.findUnique.mockResolvedValueOnce(invoiceWith(null));
+
+    const res = await order();
+
+    expect(res.status).toBe(200);
+    expect(db.contact.findMany).not.toHaveBeenCalled();
+    expect(ordersCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["VENDOR", "VENUE_OWNER", "SOMETHING_NEW"])(
+    "a %s login is not staff and has no invoices: 'not found', before any lookup or the gateway",
+    async (role) => {
+      authMock.mockResolvedValue({ user: { id: "u-ext", role } });
+      db.invoice.findUnique.mockResolvedValueOnce(invoiceWith(null));
+
+      const res = await order();
+
+      expect(res.status).toBe(404);
+      expect(await res.json()).toEqual({ success: false, error: "Invoice not found" });
+      expect(db.contact.findMany).not.toHaveBeenCalled();
+      expect(ordersCreate).not.toHaveBeenCalled();
+      expect(db.payment.create).not.toHaveBeenCalled();
+    }
+  );
 });

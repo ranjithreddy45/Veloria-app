@@ -34,7 +34,7 @@ import {
 import { SLOT_LABEL, plannerSlotToEnum, type TimeSlotEnum } from "@/lib/sales/slot";
 import { utcDayRange } from "@/lib/sales/slot-util";
 import { reportSystemFailure } from "@/lib/ops-alert";
-import { generateBookingNumber } from "@/actions/booking.actions";
+import { generateBookingNumber } from "@/lib/sales/booking-number";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { getSystemUserId } from "@/lib/lead-capture";
 import { findLapsedHoldIds, releaseLapsedHoldsForSlot } from "@/lib/holds/release-lapsed-holds";

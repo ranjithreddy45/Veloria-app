@@ -15,6 +15,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
+import { INTERNAL_ROLES } from "@/lib/roles";
 import { notifyAwait } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
@@ -422,8 +423,9 @@ export async function reassignSiteVisit(
           venue: { select: { name: true } },
         },
       }),
+      // A team member: staff by allowlist, never an external login.
       prisma.user.findFirst({
-        where: { id: userId, isActive: true },
+        where: { id: userId, isActive: true, role: { in: [...INTERNAL_ROLES] } },
         select: { id: true, name: true },
       }),
     ]);
@@ -625,9 +627,9 @@ export async function scheduleSiteVisitForLead(
       venueName = venue.name;
     }
 
-    // (3) Host rep must be a real active user.
+    // (3) Host rep must be a real active staff member (never an external login).
     const host = await prisma.user.findFirst({
-      where: { id: p.assignedToId, isActive: true },
+      where: { id: p.assignedToId, isActive: true, role: { in: [...INTERNAL_ROLES] } },
       select: { id: true, name: true },
     });
     if (!host) return { success: false, error: "That host rep isn't available." };

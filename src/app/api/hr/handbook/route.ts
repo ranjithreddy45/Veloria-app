@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { getStorageDriver, ObjectNotFoundError, parseStorageRef } from "@/lib/storage";
+import { isStaffRole } from "@/lib/roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/hr/handbook — stream the current Employee Handbook PDF.
- * Any signed-in user may read it (the handbook exists to be read by every
- * staff member); managing it is gated in handbook.actions (hr:write).
+ * Any signed-in staff member may read it (the handbook exists to be read by
+ * every staff member) — never a customer, vendor or venue owner; managing it
+ * is gated in handbook.actions (hr:write).
  *
  * The Document row holds either the legacy inline data-URL or, once object
  * storage is on, an `s3://<bucket>/<key>` ref — both are served here.
@@ -18,6 +20,9 @@ export async function GET() {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Sign in to read the handbook." }, { status: 401 });
+  }
+  if (!isStaffRole(session.user.role)) {
+    return NextResponse.json({ error: "No handbook is published." }, { status: 404 });
   }
 
   const doc = await prisma.document.findFirst({

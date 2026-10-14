@@ -10,7 +10,8 @@
 //               route permissions: SUPER_ADMIN and ADMIN always; otherwise the
 //               effective, override-aware permissions baked into the session
 //               (auth.ts), or the role's defaults when the session carries
-//               none. Customer and vendor logins are never staff.
+//               none. Customer, vendor and venue-owner logins are never
+//               staff (staff is an allowlist: src/lib/roles.ts).
 //   CUSTOMER    a signed-in login whose verified contacts (getVerifiedContactIds
 //               in src/lib/portal-identity.ts) include the quotation's contact.
 //   SHARE_LINK  ?token= equal, compared in constant time, to the /q/<token>
@@ -23,13 +24,12 @@
 
 import { createHash, timingSafeEqual } from "crypto";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 
 /** The permission the team's /quotations pages require (ROUTE_PERMISSIONS in src/lib/permissions.ts). */
 export const QUOTATION_PDF_STAFF_PERMISSION = "quotes:read";
 
 const ADMIN_ROLES: ReadonlySet<string> = new Set(["SUPER_ADMIN", "ADMIN"]);
-/** External logins. Every other role is a team role (middleware.ts INTERNAL_ROLES). */
-const EXTERNAL_ROLES: ReadonlySet<string> = new Set(["CLIENT", "VENDOR"]);
 /** Share tokens are base64url (quote-share / quote-tiers). Anything else is ignored unread. */
 const SHARE_TOKEN_RE = /^[A-Za-z0-9_-]{16,128}$/;
 
@@ -65,7 +65,9 @@ export type QuotationPdfAccess =
 
 /** A team login that may read quotations, resolved as middleware.ts resolves route permissions. */
 export function staffMayReadQuotations(viewer: QuotationPdfViewer | null): boolean {
-  if (!viewer?.role || EXTERNAL_ROLES.has(viewer.role)) return false;
+  // Team roles by allowlist (src/lib/roles.ts INTERNAL_ROLES, the list
+  // middleware uses): an external or unknown role is never staff.
+  if (!viewer?.role || !isStaffRole(viewer.role)) return false;
   if (ADMIN_ROLES.has(viewer.role)) return true;
   const perms = viewer.perms;
   return perms

@@ -31,7 +31,7 @@ const { db, mocks } = vi.hoisted(() => {
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 vi.mock("@/lib/ops-alert", () => ({ reportSystemFailure: mocks.reportSystemFailure }));
 vi.mock("@/actions/public-hold.actions", () => ({ publicConfiguratorSlotFree: mocks.publicConfiguratorSlotFree }));
-vi.mock("@/actions/booking.actions", () => ({ generateBookingNumber: mocks.generateBookingNumber }));
+vi.mock("@/lib/sales/booking-number", () => ({ generateBookingNumber: mocks.generateBookingNumber }));
 vi.mock("@/lib/sales/confirm-booking", () => ({ maybeConfirmBookingOnPayment: mocks.maybeConfirmBookingOnPayment }));
 vi.mock("@/lib/lead-capture", () => ({ getSystemUserId: mocks.getSystemUserId }));
 vi.mock("@/lib/holds/release-lapsed-holds", () => ({ releaseLapsedHoldsForSlot: mocks.releaseLapsedHoldsForSlot }));
