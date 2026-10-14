@@ -11,6 +11,7 @@ import {
 } from "@/actions/rep-availability.actions";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
+import { isStaffRole } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -106,8 +107,8 @@ export function AvailabilityToggle() {
     toast.success(`You're now ${STATUS_META[res.data.status as Status].label}`);
   }
 
-  // Hide entirely for non-internal users (no availability row concept).
-  if (!user?.id || user.role === "CLIENT") return null;
+  // Hide entirely for non-staff users (no availability row concept).
+  if (!user?.id || !isStaffRole(user.role)) return null;
 
   const meta = STATUS_META[status];
 

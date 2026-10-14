@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -127,6 +128,10 @@ export async function getApprovalRules(): Promise<
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
     }
+    // Internal configuration (who approves what): staff only.
+    if (!isStaffRole(session.user.role)) {
+      return { success: false as const, error: "Unauthorized" };
+    }
 
     const rules = await prisma.approvalRule.findMany({
       orderBy: [{ priority: "asc" }, { createdAt: "desc" }],
@@ -152,6 +157,9 @@ export async function getApprovalRule(
   try {
     const session = await auth();
     if (!session?.user?.id) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -1068,6 +1076,12 @@ export async function getApprovalHistory(params?: {
   try {
     const session = await auth();
     if (!session?.user?.id) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    // Every request in the company (submitters, amounts, decisions) for the
+    // /approvals history tabs — open to any staff member, as that route is,
+    // and to nobody outside the company.
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 

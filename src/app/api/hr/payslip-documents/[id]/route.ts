@@ -1,6 +1,7 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { sessionAllows } from "@/lib/permission-claims";
+import { isStaffRole } from "@/lib/roles";
 import { readFileValueBytes } from "@/lib/storage/data-url";
 
 // ============================================================
@@ -8,18 +9,16 @@ import { readFileValueBytes } from "@/lib/storage/data-url";
 // Opens inline (view) or, with ?download=1, as a download.
 //
 // AUTH: HR (hr:payroll, override-aware like middleware) or the employee the
-// payslip belongs to, signed in with a STAFF login — a customer/vendor portal
-// account that ended up linked to an employee record (auto-link by email)
-// must not get salary documents. Same rule as hr-payslip-doc.actions.ts. A
+// payslip belongs to, signed in with a STAFF login (allowlist,
+// src/lib/roles.ts) — a customer, vendor or venue-owner account that ended up
+// linked to an employee record (auto-link by email) must not get salary
+// documents, nor may a permission override on an external role open them. Same rule as hr-payslip-doc.actions.ts. A
 // real URL rather than a data-URL handed to the browser, so it opens on phones
 // and isn't eaten by a pop-up blocker.
 // ============================================================
 
 /** Only what upsertPayslipDocument accepts; anything else is served as a download. */
 const SAFE_INLINE = new Set(["application/pdf", "image/jpeg", "image/png", "image/webp"]);
-
-/** Portal logins: never treated as the employee, whatever Employee.userId says. */
-const PORTAL_ROLES = new Set(["CLIENT", "VENDOR"]);
 
 const PRIVATE = {
   "Cache-Control": "private, no-store",
@@ -47,12 +46,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   });
   if (!doc) return new Response("Payslip not found.", { status: 404, headers: PRIVATE });
 
-  const isHr = sessionAllows(session, "hr:payroll");
+  // External logins: never HR and never the employee, whatever Employee.userId says.
+  const isStaff = isStaffRole(session?.user?.role);
+  const isHr = isStaff && sessionAllows(session, "hr:payroll");
   if (!isHr) {
-    const role = session?.user?.role ?? "";
-    const me = PORTAL_ROLES.has(role)
-      ? null
-      : await prisma.employee.findFirst({ where: { userId, deletedAt: null }, select: { id: true } });
+    const me = isStaff
+      ? await prisma.employee.findFirst({ where: { userId, deletedAt: null }, select: { id: true } })
+      : null;
     if (!me || me.id !== doc.employeeId) {
       return new Response("You are not allowed to view this payslip.", { status: 403, headers: PRIVATE });
     }

@@ -5,6 +5,7 @@ import type { Prisma } from "@prisma/client";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 import { logActivity } from "@/lib/activity-logger";
 import { notifyCustomer } from "@/lib/customer-notify";
 import { CUSTOMER_REQUEST_STATUS_LABEL, customerLabel } from "@/lib/customer-app/status-labels";
@@ -44,12 +45,11 @@ type Staff = { id: string; role: string; perms: string[] | null };
 
 class ReviewRefused extends Error {}
 
-const EXTERNAL_ROLES = new Set(["CLIENT", "VENDOR"]);
-
 async function staff(): Promise<Staff | null> {
   const session = await auth();
   const u = session?.user as { id?: string; role?: string; perms?: string[] } | undefined;
-  if (!u?.id || !u.role || EXTERNAL_ROLES.has(u.role)) return null;
+  // Staff by allowlist: customers, vendors and venue owners never review.
+  if (!u?.id || !u.role || !isStaffRole(u.role)) return null;
   return { id: u.id, role: u.role, perms: Array.isArray(u.perms) ? u.perms : null };
 }
 

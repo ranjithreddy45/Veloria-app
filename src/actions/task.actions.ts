@@ -2,6 +2,7 @@
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { INTERNAL_ROLES } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { taskSchema, type TaskInput } from "@/schemas/task.schema";
@@ -781,10 +782,12 @@ export async function getTeamMembers() {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    // Assignable teammates: staff by allowlist ("not CLIENT" also offered
+    // vendors and venue owners).
     const members = await prisma.user.findMany({
       where: {
         isActive: true,
-        role: { not: "CLIENT" },
+        role: { in: [...INTERNAL_ROLES] },
       },
       select: { id: true, name: true, email: true, image: true },
       orderBy: { name: "asc" },

@@ -3,6 +3,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { getStorageDriver, isValidObjectKey, ObjectNotFoundError } from "@/lib/storage";
 import { readS3Config } from "@/lib/storage/s3";
+import { isStaffRole } from "@/lib/roles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,15 +13,24 @@ export const dynamic = "force-dynamic";
  *
  * File columns that were moved out of Postgres hold `s3://<bucket>/<key>`;
  * the display boundary turns that into this URL so the browser never sees a
- * bucket hostname or a presigned link. Any signed-in user may read (the same
- * rule as the inline data-URLs these replace, which any page could embed);
- * per-record access is enforced where the ref is handed out, not here, and
- * keys are unguessable (cuid-style ids).
+ * bucket hostname or a presigned link. Per-record access is enforced where the
+ * ref is handed out, not here, and keys are unguessable (cuid-style ids).
+ *
+ * Staff only. Every object written today comes from a staff flow (lead and BD
+ * photos, BD attachments, HR claim bills, the employee handbook) and no
+ * customer, vendor or venue-owner page is ever handed one of these URLs, so an
+ * external login has nothing legitimate to fetch here. A future
+ * customer-facing file needs its own route scoped to that customer, not a
+ * wider gate on this one.
  */
 export async function GET(_req: Request, { params }: { params: Promise<{ key: string[] }> }) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!isStaffRole(session.user.role)) {
+    // Same answer as a missing key: an external login learns nothing.
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
   const { key: parts } = await params;

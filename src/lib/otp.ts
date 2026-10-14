@@ -202,9 +202,17 @@ export type OtpDecision =
   | { kind: "NEW_CUSTOMER"; linkContactId: string | null; collaboratorIds: string[] }
   | { kind: "REFUSE"; reason: OtpRefusal };
 
+/**
+ * The logins a customer's Contact may ever be linked to by phone (OTP sign-in,
+ * the team's "give access by phone") and whose number is canonicalised.
+ * Deliberately NOT every external role: a venue owner (VENUE_OWNER) is outside
+ * the company but sees only counts for their venues, so linking a customer's
+ * contact to their login would hand them that customer's bookings. Team logins
+ * are never linked either.
+ */
 const CUSTOMER_ROLES = new Set(["CLIENT", "VENDOR"]);
 
-/** External logins (customers, vendors). Every other role is a team login. */
+/** Customer-side logins (customers, vendors). Team logins and venue owners are not. */
 export function isCustomerRole(role: string | null | undefined): boolean {
   return !!role && CUSTOMER_ROLES.has(role);
 }
@@ -263,6 +271,7 @@ export function decideOtpLogin(facts: OtpFacts): OtpDecision {
       // Team logins never pick up a customer's contact by phone: a staff
       // member's own number typed onto a lead must not turn their host view
       // into that customer's. The team can link one deliberately (STAFF).
+      // Venue owners never do either (CUSTOMER_ROLES).
       linkContactId: isCustomerRole(user.role) ? singleContactId : null,
       collaboratorIds: openInvites(facts.collaborators, user.id),
     };
@@ -348,7 +357,10 @@ export function decideStaffGrant(users: OtpUserFact[], truncated = false): Staff
     if (!isCustomerRole(active[0].role)) {
       return {
         kind: "REFUSE",
-        error: "This number belongs to a team member's login. Customer access can only go to a customer login.",
+        error:
+          active[0].role === "VENUE_OWNER"
+            ? "This number belongs to a venue owner's login. Customer access can only go to a customer login."
+            : "This number belongs to a team member's login. Customer access can only go to a customer login.",
       };
     }
     return { kind: "LINK_EXISTING", userId: active[0].id };

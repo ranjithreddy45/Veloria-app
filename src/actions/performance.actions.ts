@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
+import { INTERNAL_ROLES } from "@/lib/roles";
 
 // ============================================================
 // Types
@@ -86,11 +87,11 @@ export async function getTeamPerformance(params?: {
     // queries rather than their sum. allLeads is computed via groupBy so we
     // count totals per user in the DB instead of pulling every lead row.
     const [users, wonLeads, leadTotals, bookings] = await Promise.all([
-      // Get all active internal users (not CLIENT / VENDOR)
+      // Get all active internal users (staff by allowlist)
       prisma.user.findMany({
         where: {
           isActive: true,
-          role: { notIn: ["CLIENT", "VENDOR"] },
+          role: { in: [...INTERNAL_ROLES] },
         },
         select: { id: true, name: true, role: true },
       }),
@@ -367,7 +368,7 @@ export async function getLeaderboard(params?: {
     const users = await prisma.user.findMany({
       where: {
         isActive: true,
-        role: { notIn: ["CLIENT", "VENDOR"] },
+        role: { in: [...INTERNAL_ROLES] },
       },
       select: { id: true, name: true, role: true },
     });
@@ -600,7 +601,7 @@ export async function getTeamMembers() {
     const users = await prisma.user.findMany({
       where: {
         isActive: true,
-        role: { notIn: ["CLIENT", "VENDOR"] },
+        role: { in: [...INTERNAL_ROLES] },
       },
       select: { id: true, name: true, role: true },
       orderBy: { name: "asc" },

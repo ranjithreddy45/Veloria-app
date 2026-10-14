@@ -4,6 +4,7 @@ import { MessagesSquare } from "lucide-react";
 import { auth } from "@/../auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { hasPermission } from "@/lib/permissions";
+import { homeForRole, isExternalRole, isStaffRole } from "@/lib/roles";
 import { listConciergeThreads, type InboxAssigneeFilter, type InboxStatusFilter } from "@/actions/concierge-inbox.actions";
 import { ConciergeInbox } from "./_components/concierge-inbox";
 
@@ -25,7 +26,11 @@ export default async function ConciergeInboxPage({
   if (!session?.user) redirect("/sign-in?callbackUrl=%2Fconcierge");
   const user = session.user as { role?: string; perms?: unknown };
   const role = user.role ?? "";
-  if (role === "CLIENT" || role === "VENDOR") redirect("/app");
+  // A customer has their own concierge in the customer app; any other outside
+  // login (vendor, venue owner) goes to its own portal. Staff is an allowlist.
+  if (role === "CLIENT") redirect("/app");
+  if (isExternalRole(role)) redirect(homeForRole(role));
+  if (!isStaffRole(role)) redirect("/not-authorized");
   const perms = Array.isArray(user.perms) ? (user.perms as string[]) : null;
   const allowed =
     role === "SUPER_ADMIN" ||

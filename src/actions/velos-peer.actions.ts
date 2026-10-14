@@ -5,12 +5,14 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { awardVelos } from "@/lib/velos/award";
 import { VELOS_TUNING } from "@/lib/velos/config";
+import { INTERNAL_ROLES, isStaffRole } from "@/lib/roles";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
+/** Kudos are a staff feature: an external login (customer, vendor, venue owner) gets nothing. */
 async function requireUser() {
   const session = await auth();
-  if (!session?.user?.id) return null;
+  if (!session?.user?.id || !isStaffRole(session.user.role)) return null;
   return session.user as { id: string; role?: string; name?: string | null };
 }
 
@@ -31,7 +33,7 @@ export async function giveKudos(toUserId: string, note: string): Promise<Result<
   if (toUserId === u.id) return { success: false, error: "You can’t give kudos to yourself." };
   if (!note?.trim()) return { success: false, error: "Add a short note — what did they do?" };
 
-  const target = await prisma.user.findUnique({ where: { id: toUserId }, select: { id: true } });
+  const target = await prisma.user.findFirst({ where: { id: toUserId, role: { in: [...INTERNAL_ROLES] } }, select: { id: true } });
   if (!target) return { success: false, error: "Teammate not found." };
 
   const givenThisWeek = await prisma.kudos.count({ where: { fromUserId: u.id, createdAt: { gte: startOfIsoWeekUtc() } } });
@@ -73,7 +75,7 @@ export async function getTeammates() {
     where: {
       id: { not: u.id },
       isActive: true,
-      role: { notIn: ["CLIENT", "VENDOR"] },
+      role: { in: [...INTERNAL_ROLES] },
     },
     select: { id: true, name: true, image: true },
     orderBy: { name: "asc" },

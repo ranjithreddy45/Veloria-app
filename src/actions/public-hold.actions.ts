@@ -34,7 +34,7 @@ import { notify } from "@/lib/notify";
 import { captureLeadFromExternal, getSystemUserId } from "@/lib/lead-capture";
 // Pure re-exports requested centrally (sharedEditsNeeded): identical UTC-day
 // math + booking-number allocation as the internal engine — do NOT fork.
-import { generateBookingNumber } from "@/actions/booking.actions";
+import { generateBookingNumber } from "@/lib/sales/booking-number";
 import { utcDayRange } from "@/lib/sales/slot-util";
 import { SLOT_LABEL, plannerSlotToEnum } from "@/lib/sales/slot";
 import {

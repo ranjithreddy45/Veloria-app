@@ -5,6 +5,7 @@ import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { utcDayRange } from "@/lib/sales/slot-util";
+import { generateBookingNumber } from "@/lib/sales/booking-number";
 import { SLOT_LABEL } from "@/lib/sales/slot";
 import { bookingBalance } from "@/lib/finance/issued-invoices";
 // Lapsed holds: ONE decision shared with the availability board, the customer's
@@ -39,40 +40,8 @@ import { awardVelos } from "@/lib/velos/award";
 import { after } from "next/server";
 import { format } from "date-fns";
 
-// ============================================================
-// Helper: Generate Booking Number (VG-YYYY-NNNN)
-// ============================================================
-
-export async function generateBookingNumber(): Promise<string> {
-  const year = new Date().getFullYear();
-  const prefix = `VG-${year}-`;
-
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const lastBooking = await prisma.booking.findFirst({
-      where: { bookingNumber: { startsWith: prefix } },
-      orderBy: { bookingNumber: "desc" },
-      select: { bookingNumber: true },
-    });
-
-    let nextNumber = 1;
-    if (lastBooking) {
-      const lastNum = parseInt(lastBooking.bookingNumber.split("-").pop() || "0", 10);
-      nextNumber = lastNum + 1;
-    }
-
-    const number = `${prefix}${String(nextNumber + attempt).padStart(4, "0")}`;
-
-    // Check uniqueness to avoid TOCTOU race condition
-    const existing = await prisma.booking.findFirst({
-      where: { bookingNumber: number },
-    });
-
-    if (!existing) return number;
-  }
-
-  // Fallback: use timestamp-based unique number
-  return `VG-${Date.now()}`;
-}
+// Booking numbers come from src/lib/sales/booking-number.ts — plain server
+// code, so the generator is not itself a callable server action.
 
 // formatINR is in @/lib/utils
 

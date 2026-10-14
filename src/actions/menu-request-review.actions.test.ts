@@ -91,4 +91,14 @@ describe("menu request decisions", () => {
     expect(await declineMenuRequest("r1", "Not available")).toEqual({ success: false, error: "Insufficient permissions" });
     expect(notifyCustomer).not.toHaveBeenCalled();
   });
+
+  it.each(["CLIENT", "VENDOR", "VENUE_OWNER"])(
+    "are refused to a %s login even if its session claims every permission",
+    async (role) => {
+      authMock.mockResolvedValue({ user: { id: "x1", role, perms: COORDINATOR.perms } });
+      expect(await declineMenuRequest("r1", "Not available")).toEqual({ success: false, error: "Unauthorized" });
+      expect(db.menuSelectionRequest.findUnique).not.toHaveBeenCalled();
+      expect(notifyCustomer).not.toHaveBeenCalled();
+    }
+  );
 });

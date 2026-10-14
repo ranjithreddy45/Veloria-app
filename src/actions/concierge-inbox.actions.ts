@@ -4,6 +4,7 @@ import { UserRole } from "@prisma/client";
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 import { logActivity } from "@/lib/activity-logger";
 import { notify } from "@/lib/notify";
 import {
@@ -69,7 +70,8 @@ async function teamUser(): Promise<TeamUser | null> {
 }
 
 function can(u: TeamUser, permission: string): boolean {
-  if (!u.role || u.role === "CLIENT" || u.role === "VENDOR") return false;
+  // Staff by allowlist: customers, vendors and venue owners never.
+  if (!isStaffRole(u.role)) return false;
   if (u.role === "SUPER_ADMIN" || u.role === "ADMIN") return true;
   return u.perms ? u.perms.includes("*") || u.perms.includes(permission) : hasPermission(u.role, permission);
 }
@@ -462,7 +464,7 @@ export async function getConciergeAssignees(): Promise<Result<AssigneeOption[]>>
   if (!u) return UNAUTHORIZED;
   if (!canRead(u)) return NO_READ;
   const roles = (Object.values(UserRole) as UserRole[]).filter(
-    (r) => r !== "CLIENT" && r !== "VENDOR" && hasPermission(r, READ) && WRITE.some((p) => hasPermission(r, p))
+    (r) => isStaffRole(r) && hasPermission(r, READ) && WRITE.some((p) => hasPermission(r, p))
   );
   const rows = await prisma.user.findMany({
     where: { isActive: true, role: { in: roles } },
@@ -581,7 +583,7 @@ export async function assignConciergeThread(
       where: { id: nextId },
       select: { name: true, email: true, isActive: true, role: true },
     });
-    if (!person || !person.isActive || person.role === "CLIENT" || person.role === "VENDOR" || !hasPermission(person.role, READ)) {
+    if (!person || !person.isActive || !isStaffRole(person.role) || !hasPermission(person.role, READ)) {
       return { success: false, error: "Choose an active team member who can see bookings." };
     }
     assigneeName = person.name ?? person.email;

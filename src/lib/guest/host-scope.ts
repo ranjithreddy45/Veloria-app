@@ -2,6 +2,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { getVerifiedContactIds } from "@/lib/portal-identity";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 
 // ============================================================
 // Signed-in guest app: who is the customer, and which bookings may they see?
@@ -75,20 +76,24 @@ export interface HostScope {
   collaboratorRoles?: Record<string, CollaboratorRole>;
 }
 
-const EXTERNAL_ROLES = new Set(["CLIENT", "VENDOR"]);
 const ADMIN_ROLES = new Set(["SUPER_ADMIN", "ADMIN"]);
 
-/** A team login (any role except CLIENT and VENDOR), whatever its permissions. Not an access check. */
+/**
+ * A team login (a staff role by allowlist, src/lib/roles.ts), whatever its
+ * permissions. Not an access check. Customers, vendors and venue owners are
+ * never team, and neither is a role the allowlist doesn't know.
+ */
 export function isTeamRole(role: string | null | undefined): boolean {
-  return !!role && !EXTERNAL_ROLES.has(role);
+  return isStaffRole(role);
 }
 
 /**
  * May this signed-in user do `permission` on the team side? The rule
- * middleware, the concierge inbox and menu-request review apply: CLIENT and
- * VENDOR never; SUPER_ADMIN and ADMIN always; anyone else by the session's
- * effective permissions (so an override in Settings → Roles counts, either
- * way), or by the role's defaults when the session carries none.
+ * middleware, the concierge inbox and menu-request review apply: external
+ * logins (CLIENT, VENDOR, VENUE_OWNER) never; SUPER_ADMIN and ADMIN always;
+ * anyone else by the session's effective permissions (so an override in
+ * Settings → Roles counts, either way), or by the role's defaults when the
+ * session carries none.
  */
 export function staffCan(user: Pick<HostUser, "role" | "perms"> | null | undefined, permission: string): boolean {
   const role = user?.role;

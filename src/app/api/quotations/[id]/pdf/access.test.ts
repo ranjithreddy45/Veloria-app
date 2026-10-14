@@ -58,9 +58,12 @@ describe("staffMayReadQuotations — resolved like middleware.ts", () => {
     expect(staffMayReadQuotations({ role: WITHOUT })).toBe(false);
   });
 
-  it("never treats a customer or vendor login, or a missing role, as staff", () => {
+  it("never treats a customer, vendor or venue-owner login, an unknown role, or a missing role, as staff", () => {
     expect(staffMayReadQuotations({ role: "CLIENT", perms: ["quotes:read"] })).toBe(false);
     expect(staffMayReadQuotations({ role: "VENDOR", perms: ["quotes:read"] })).toBe(false);
+    expect(staffMayReadQuotations({ role: "VENUE_OWNER", perms: ["quotes:read"] })).toBe(false);
+    expect(staffMayReadQuotations({ role: "VENUE_OWNER" })).toBe(false);
+    expect(staffMayReadQuotations({ role: "SOME_FUTURE_ROLE", perms: ["quotes:read"] })).toBe(false);
     expect(staffMayReadQuotations({ role: null, perms: ["quotes:read"] })).toBe(false);
     expect(staffMayReadQuotations({ role: undefined })).toBe(false);
     expect(staffMayReadQuotations(null)).toBe(false);
