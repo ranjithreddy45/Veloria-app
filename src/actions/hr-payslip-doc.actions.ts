@@ -36,10 +36,15 @@ async function requireUser() {
   return session.user as { id: string; role?: string; name?: string | null };
 }
 
-/** Employees may read their OWN payslips; HR may read and write any. */
+/**
+ * Employees may read their OWN payslips; HR may read and write any. A portal
+ * (CLIENT/VENDOR) login is never treated as the employee, even if an employee
+ * record got linked to it — same rule as /api/hr/payslip-documents/[id].
+ */
 async function scope(userId: string, role: string | undefined, employeeId: string) {
   const isHr = !!role && hasPermission(role, "hr:payroll");
   if (isHr) return { read: true, write: true };
+  if (role === "CLIENT" || role === "VENDOR") return { read: false, write: false };
   const me = await prisma.employee.findFirst({
     where: { userId, deletedAt: null },
     select: { id: true },

@@ -111,9 +111,9 @@ export default async function MyPayslipsPage() {
             <Card key={m.key} className="gap-4 p-5 transition-shadow hover:shadow-card-hover">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="truncate text-copy font-semibold tracking-[-0.01em]">{m.computed?.run.label || m.label}</div>
+                  <div className="truncate text-copy font-semibold tracking-[-0.01em]">{m.label}</div>
                   <div className="numeric mt-0.5 text-detail text-muted-foreground">
-                    {m.computed ? `FY ${m.computed.run.fy}` : "Uploaded by HR"}
+                    {m.computed ? `FY ${m.computed.run.fy}${m.uploaded ? " · also uploaded by HR" : ""}` : "Uploaded by HR"}
                   </div>
                 </div>
                 {m.computed ? (

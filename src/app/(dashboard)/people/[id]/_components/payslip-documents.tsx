@@ -113,13 +113,6 @@ export function PayslipDocuments({
     }
   }
 
-  function view(id: string) {
-    // A real (auth-checked) URL: opens on phones and survives pop-up blockers,
-    // unlike writing a data-URL into a blank window.
-    const w = window.open(`/api/hr/payslip-documents/${id}`, "_blank", "noopener");
-    if (!w) window.location.href = `/api/hr/payslip-documents/${id}`;
-  }
-
   async function remove(id: string, label: string) {
     if (!window.confirm(`Delete the ${label} payslip? This cannot be undone.`)) return;
     const res = await removePayslipDocument(id);
@@ -209,9 +202,14 @@ export function PayslipDocuments({
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Button variant="outline" size="sm" className="h-8" onClick={() => view(d.id)}>
-                    <Download className="mr-1.5 size-3.5" />
-                    View
+                  {/* A real (auth-checked) URL in a new tab: opens on phones and
+                    * survives pop-up blockers, unlike a data-URL written into a
+                    * blank window. */}
+                  <Button asChild variant="outline" size="sm" className="h-8">
+                    <a href={`/api/hr/payslip-documents/${d.id}`} target="_blank" rel="noopener noreferrer">
+                      <Download className="mr-1.5 size-3.5" />
+                      View
+                    </a>
                   </Button>
                   {canManage && (
                     <Button
