@@ -936,6 +936,13 @@ export const sidebarNavigation: NavItem[] = [
       },
       { title: "Privacy & Consent", href: "/settings/privacy", icon: "ShieldCheck", permissions: ["users:manage-roles"] },
       {
+        // Owner logins for the venue portal: lead / booking counts only.
+        title: "Venue Owners",
+        href: "/settings/venue-owners",
+        icon: "Building2",
+        permissions: ["venue-owners:manage"],
+      },
+      {
         title: "Email Templates",
         href: "/settings/email-templates",
         icon: "Mail",
