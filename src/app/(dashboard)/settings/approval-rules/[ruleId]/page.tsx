@@ -37,7 +37,7 @@ export default async function ApprovalRuleDetailPage({
     rule = result.data;
   }
 
-  const usersResult = await getUsers({ limit: 100 });
+  const usersResult = await getUsers({ limit: 100, staffOnly: true });
   const users = usersResult.success ? usersResult.data.users : [];
 
   return (

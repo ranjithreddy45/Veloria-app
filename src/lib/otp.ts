@@ -273,7 +273,9 @@ export function decideOtpLogin(facts: OtpFacts): OtpDecision {
       // into that customer's. The team can link one deliberately (STAFF).
       // Venue owners never do either (CUSTOMER_ROLES).
       linkContactId: isCustomerRole(user.role) ? singleContactId : null,
-      collaboratorIds: openInvites(facts.collaborators, user.id),
+      // Nor does a venue owner join a customer's booking by phone: that would
+      // hand them the host's booking, invoice and notifications.
+      collaboratorIds: user.role === "VENUE_OWNER" ? [] : openInvites(facts.collaborators, user.id),
     };
   }
 

@@ -63,7 +63,7 @@ export function ApprovalDecisionForm({ requestId }: ApprovalDecisionFormProps) {
 
   async function loadUsers() {
     if (usersLoaded) return;
-    const result = await getUsers({ limit: 100 });
+    const result = await getUsers({ limit: 100, staffOnly: true });
     if (result.success) {
       setUsers(result.data.users);
     }

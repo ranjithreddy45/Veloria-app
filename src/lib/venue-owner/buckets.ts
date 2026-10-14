@@ -122,16 +122,19 @@ export function slotLabel(raw: string | null | undefined): string | null {
  * plain "Event".
  */
 const OCCASIONS: [RegExp, string][] = [
-  [/wedding|marriage|muhurtham|kalyanam/, "Wedding"],
+  // Most specific first: "Wedding Anniversary" is an anniversary, "Wedding
+  // Reception" a reception, "Pre-Wedding Shoot" a pre-wedding event.
+  [/anniv|annriversary/, "Anniversary"],
+  [/pre.?wedding|sangeet|mehendi|mehndi|mehandi|haldi/, "Pre-wedding"],
   [/reception/, "Reception"],
   [/engagement|nischitartham|ring ceremony/, "Engagement"],
-  [/sangeet|mehendi|mehndi|haldi|cocktail/, "Pre-wedding"],
+  [/wedding|marriage|muhurtham|kalyanam/, "Wedding"],
   [/birthday|b'?day/, "Birthday"],
-  [/anniv|annriversary/, "Anniversary"],
   [/baby ?shower|seemantham|godh bharai|valaikappu/, "Baby shower"],
   [/naming|namakaran|cradle|thread ceremony|upanayan|housewarming|griha|puja|pooja/, "Ceremony"],
   [/corporate|conference|meeting|seminar|offsite|launch|award|agm|team/, "Corporate"],
-  [/get.?together|reunion|alumni|party|celebration|kitty/, "Get-together"],
+  [/get.?together|reunion|alumni/, "Get-together"],
+  [/party|celebration|kitty|cocktail|bachelor|fresher|new year/, "Party"],
 ];
 
 export function ownerOccasion(raw: string | null | undefined): string | null {

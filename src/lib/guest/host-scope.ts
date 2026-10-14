@@ -142,10 +142,13 @@ export async function getHostScope(bookingId?: string): Promise<HostScope | null
     getVerifiedContactIds(user.id),
     // Only rows a WhatsApp-verified sign-in bound to THIS login (see
     // completeOtpLogin in src/lib/otp.ts). INVITED and REVOKED rows grant nothing.
-    prisma.bookingCollaborator.findMany({
-      where: { userId: user.id, status: "ACTIVE" },
-      select: { bookingId: true, role: true },
-    }),
+    // A venue owner is never a host, whatever rows exist.
+    user.role === "VENUE_OWNER"
+      ? Promise.resolve([] as { bookingId: string; role: string }[])
+      : prisma.bookingCollaborator.findMany({
+          where: { userId: user.id, status: "ACTIVE" },
+          select: { bookingId: true, role: true },
+        }),
   ]);
   let contactIds = verifiedContactIds;
   let preview = false;

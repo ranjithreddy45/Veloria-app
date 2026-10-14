@@ -285,9 +285,20 @@ export async function getVenueCalendar(venueIds: string[], venues: OwnerVenue[],
 
   // An open lead whose booking already exists (not cancelled, not a lapsed
   // hold) is shown once — as the booking — not again as an enquiry.
+  // Same three paths as bookedLeadIds: deal, quotation, public date hold.
+  const holds = leads.length
+    ? await prisma.publicHold.findMany({
+        where: { leadId: { in: leads.map((l) => l.id) }, bookingId: { not: null } },
+        select: { leadId: true, bookingId: true },
+      })
+    : [];
   const linked = new Map<string, string[]>();
   for (const l of leads) {
-    const ids = [...l.salesQuotations.flatMap((q) => (q.bookingId ? [q.bookingId] : [])), ...(l.deal?.booking ? [l.deal.booking.id] : [])];
+    const ids = [
+      ...l.salesQuotations.flatMap((q) => (q.bookingId ? [q.bookingId] : [])),
+      ...(l.deal?.booking ? [l.deal.booking.id] : []),
+      ...holds.flatMap((h) => (h.leadId === l.id && h.bookingId ? [h.bookingId] : [])),
+    ];
     if (ids.length) linked.set(l.id, ids);
   }
   const linkedIds = [...new Set([...linked.values()].flat())];

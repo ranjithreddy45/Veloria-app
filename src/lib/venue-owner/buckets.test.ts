@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { EVENT_TYPES } from "@/lib/constants";
 import { conversionPct, dbDateKey, istDayKey, istMonthInstants, lastMonths, ownerOccasion, periodRange, slotLabel } from "./buckets";
 
 describe("venue portal date keys", () => {
@@ -54,5 +55,18 @@ describe("labels and rates", () => {
     expect(ownerOccasion("Annriversary")).toBe("Anniversary");
     expect(ownerOccasion("Priya & Karthik")).toBe("Event");
     expect(ownerOccasion("  ")).toBeNull();
+  });
+  it("labels every standard event type with the right category", () => {
+    const expected: Record<string, string> = {
+      Anniversary: "Anniversary", "Baby Shower": "Baby shower", "Bachelor Party": "Party", "Birthday Party": "Birthday",
+      "Cocktail Party": "Party", Conference: "Corporate", "Corporate Event": "Corporate", "Corporate Party": "Corporate",
+      Engagement: "Engagement", "Fresher Party": "Party", "Get-together": "Get-together", Haldi: "Pre-wedding",
+      "Kids Party": "Party", Mehandi: "Pre-wedding", "Naming Ceremony": "Ceremony", "New Year Party": "Party",
+      "Pre-Wedding Shoot": "Pre-wedding", Reception: "Reception", Sangeet: "Pre-wedding", Seminar: "Corporate",
+      "Team Outing": "Corporate", Wedding: "Wedding", Other: "Event",
+    };
+    for (const t of EVENT_TYPES) expect([t, ownerOccasion(t)]).toEqual([t, expected[t]]);
+    expect(ownerOccasion("Wedding Anniversary")).toBe("Anniversary");
+    expect(ownerOccasion("Wedding Reception")).toBe("Reception");
   });
 });

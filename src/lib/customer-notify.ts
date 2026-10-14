@@ -229,7 +229,15 @@ async function customerLogins(
       : Promise.resolve([] as { userId: string | null }[]),
   ]);
   const contactUserIds = uniqueIds([...links.map((l) => l.userId), ...verified.map((u) => u.id)]);
-  return { contactUserIds, allUserIds: uniqueIds([...contactUserIds, ...collaborators.map((c) => c.userId)]) };
+  // Customer notices never reach a venue-owner login, however it got here.
+  const candidates = uniqueIds([...contactUserIds, ...collaborators.map((c) => c.userId)]);
+  const owners = candidates.length
+    ? new Set((await prisma.user.findMany({ where: { id: { in: candidates }, role: "VENUE_OWNER" }, select: { id: true } })).map((u) => u.id))
+    : new Set<string>();
+  return {
+    contactUserIds: contactUserIds.filter((id) => !owners.has(id)),
+    allUserIds: candidates.filter((id) => !owners.has(id)),
+  };
 }
 
 /** One notification row per sign-in; returns the sign-ins whose row was actually saved. */

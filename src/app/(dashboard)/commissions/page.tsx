@@ -29,7 +29,7 @@ export default async function CommissionsPage() {
     await Promise.all([
       getCommissionEntries(),
       getCommissionRules(),
-      getUsers({ limit: 200 }),
+      getUsers({ limit: 200, staffOnly: true }),
       getBookings({ limit: 200 }),
     ]);
 
