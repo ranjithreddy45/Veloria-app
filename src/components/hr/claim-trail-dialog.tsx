@@ -92,9 +92,12 @@ export function ClaimTrailDialog({
 
   const steps = detail
     ? [
-        { label: "1st-level approval", by: detail.level1Name, at: detail.level1At, note: detail.level1Note },
-        { label: "2nd-level approval", by: detail.level2Name ?? "Not required", at: detail.level2At, note: detail.level2Note, optional: !detail.level2Name },
-        { label: "Finance payment", by: detail.paidAt ? "Finance" : detail.payFy ? `Pay run ${detail.payMonth}/${detail.payFy}` : null, at: detail.paidAt, note: detail.paymentRef ? `Ref ${detail.paymentRef}` : null },
+        { label: "1st approval", by: detail.level1Name, at: detail.level1At, note: detail.level1Note },
+        { label: "2nd approval", by: detail.level2Name ?? "Not required", at: detail.level2At, note: detail.level2Note, optional: !detail.level2Name },
+        // The final approval was missing from this tracker, so an employee could
+        // never see that their claim was waiting on (or cleared by) Finance.
+        { label: "Final approval", by: detail.level3Name, at: detail.level3At, note: detail.level3Note },
+        { label: "Payment", by: detail.paidAt ? "Finance" : detail.payFy ? `Pay run ${detail.payMonth}/${detail.payFy}` : null, at: detail.paidAt, note: detail.paymentRef ? `Ref ${detail.paymentRef}` : null },
       ]
     : [];
 

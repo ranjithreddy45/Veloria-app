@@ -5809,6 +5809,9 @@ model Employee {
 
   employmentType     EmploymentType  @default(FULL_TIME)
   dateOfJoining      DateTime?
+  /// Monthly fuel reimbursement limit in rupees; null = no cap. Set per person
+  /// from HR → Payroll → Reimbursement approvers (standard ₹5,500 ≈ 50 litres).
+  fuelMonthlyCap     Decimal?  @db.Decimal(12, 2)
   dateOfExit         DateTime?
   workLocation       String? // legacy free-text label; the site assignment below resolves the geofence
   // Assigned attendance sites — a check-in is accepted if it matches ANY of these

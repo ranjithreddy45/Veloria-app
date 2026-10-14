@@ -23,6 +23,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import type { AttendanceStatus } from "@prisma/client";
+import { ATTENDANCE_BASIS_DAYS, attendancePct, attendedDays } from "@/lib/hr/attendance-basis";
 
 // ------------------------------------------------------------
 // Guards & shared helpers
@@ -92,6 +93,10 @@ export interface MonthlySummaryRow {
   weekend: number;
   recordedDays: number;
   workedMinutes: number;
+  /** Present + WFH + half of each half-day. */
+  attendedDays: number;
+  /** attendedDays out of the fixed 30-day month (reports basis), %. */
+  attendancePct: number;
 }
 
 export interface MonthlySummary {
@@ -99,6 +104,8 @@ export interface MonthlySummary {
   month: number; // 1-12
   year: number;
   daysInMonth: number;
+  /** The fixed month used for attendance % (30), whatever the month's length. */
+  basisDays: number;
   rows: MonthlySummaryRow[];
   totals: {
     headcount: number;
@@ -108,6 +115,8 @@ export interface MonthlySummary {
     wfh: number;
     onLeave: number;
     workedMinutes: number;
+    /** Mean attendance % across the roster, on the 30-day basis. */
+    avgAttendancePct: number;
   };
 }
 
@@ -162,6 +171,8 @@ export async function getMonthlySummary(input: {
       weekend: 0,
       recordedDays: 0,
       workedMinutes: 0,
+      attendedDays: 0,
+      attendancePct: 0,
     });
   }
   for (const r of records) {
@@ -181,6 +192,10 @@ export async function getMonthlySummary(input: {
   }
 
   const rows = [...acc.values()];
+  for (const r of rows) {
+    r.attendedDays = attendedDays(r);
+    r.attendancePct = attendancePct(r.attendedDays);
+  }
   const totals = rows.reduce(
     (t, r) => {
       t.present += r.present;
@@ -191,10 +206,13 @@ export async function getMonthlySummary(input: {
       t.workedMinutes += r.workedMinutes;
       return t;
     },
-    { headcount: rows.length, present: 0, absent: 0, halfDay: 0, wfh: 0, onLeave: 0, workedMinutes: 0 },
+    { headcount: rows.length, present: 0, absent: 0, halfDay: 0, wfh: 0, onLeave: 0, workedMinutes: 0, avgAttendancePct: 0 },
   );
+  totals.avgAttendancePct = rows.length
+    ? Math.round((rows.reduce((n, r) => n + r.attendancePct, 0) / rows.length) * 10) / 10
+    : 0;
 
-  return { fy: input.fy, month, year, daysInMonth, rows, totals };
+  return { fy: input.fy, month, year, daysInMonth, basisDays: ATTENDANCE_BASIS_DAYS, rows, totals };
 }
 
 // ============================================================

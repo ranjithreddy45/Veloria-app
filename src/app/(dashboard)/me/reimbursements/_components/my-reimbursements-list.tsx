@@ -29,6 +29,10 @@ export interface ReimbursementClaim {
   payMonth: number | null;
   paidAt: Date | string | null;
   createdAt: Date | string;
+  /** The stage the claim is waiting at ("2nd approval"), or null once decided. */
+  stage?: string | null;
+  /** Who holds it at that stage. */
+  awaitingName?: string | null;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -54,6 +58,12 @@ const STATUS: Record<string, { variant: "warning" | "success" | "destructive" | 
     variant: "secondary",
     label: "Awaiting 2nd approval",
     className: "bg-violet-500/12 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300",
+  },
+  // Without this entry the badge printed the raw code "PENDING_L3".
+  PENDING_L3: {
+    variant: "secondary",
+    label: "Awaiting final approval",
+    className: "bg-fuchsia-500/12 text-fuchsia-700 dark:bg-fuchsia-400/15 dark:text-fuchsia-300",
   },
   // The ball is with the EMPLOYEE here, not HR — labelled so it reads as an
   // action to take rather than another queue to wait in.
@@ -155,6 +165,9 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
                   <TableCell className="numeric text-right text-body font-medium">{INR.format(c.amount)}</TableCell>
                   <TableCell>
                     <StatusBadge status={c.status} />
+                    {c.stage && c.awaitingName && (
+                      <div className="mt-1 text-meta text-muted-foreground">With {c.awaitingName}</div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5">

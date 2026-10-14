@@ -1,11 +1,11 @@
 // ============================================================
 // Reimbursement approval workflow — the rules in one place.
 // ------------------------------------------------------------
-// Flow: employee submits → LEVEL 1 (first-level validation, one approver for
-// the whole company) → LEVEL 2 (second-level, resolved from the employee's
-// department; optional "ALL" fallback) → APPROVED (visible to Finance, who
-// schedules it on a pay run or records a direct payment) → PAID.
-// Finance never sees a claim before both approvals are complete.
+// Flow: employee submits → 1st approval → 2nd approval (skipped when none is
+// configured) → final approval (Finance, unless the employee has a named final
+// approver) → APPROVED (Finance schedules it on a pay run or records a direct
+// payment) → PAID. A per-employee route (see ./claim-routing.ts) can fix the
+// whole chain for one person; everyone else follows the default rules.
 //
 // Plain lib (not "use server") so labels/helpers can be shared with client
 // components; the DB-touching helpers are only ever called from actions.
@@ -24,6 +24,7 @@ export {
   awaitingLevel,
 } from "./claim-labels";
 import { AWAITING_STATUSES } from "./claim-labels";
+import { pickApproverRules } from "./claim-routing";
 
 export type ApproverUser = { id: string; name: string | null; email: string };
 
@@ -41,44 +42,37 @@ export interface ResolvedApprovers {
 const userSelect = { id: true, name: true, email: true } as const;
 
 /**
- * Who must approve a claim from this employee. Department-specific level-2
- * rules win over the "ALL" fallback. With no level-1 rule configured, the
- * active SUPER_ADMINs stand in so a claim can never be orphaned.
+ * Who must approve a claim from this employee. A per-employee route (scope
+ * "EMP:<id>") wins at its level; otherwise the event pool (level 1, EVENT
+ * claims), the department rule (level 2) and the "ALL" defaults apply. With no
+ * level-1 rule the active SUPER_ADMINs stand in, so a claim is never orphaned;
+ * with no per-employee final approver, Finance makes the final approval.
  */
 export async function resolveClaimApprovers(
-  employee: { departmentId: string | null },
+  employee: { id?: string | null; departmentId: string | null },
   category?: string
 ): Promise<ResolvedApprovers> {
-  const rules = await prisma.hrReimbursementApprover.findMany();
-  
-  let l1Rule = rules.find((r) => r.level === 1 && r.scope === "ALL");
-  if (category === "EVENT") {
-    const eventL1 = rules.find((r) => r.level === 1 && r.scope === "CATEGORY_EVENT");
-    if (eventL1) l1Rule = eventL1;
-  }
-  
-  const l2Rule =
-    (employee.departmentId && rules.find((r) => r.level === 2 && r.scope === employee.departmentId)) ||
-    rules.find((r) => r.level === 2 && r.scope === "ALL") ||
-    null;
+  const rules = await prisma.hrReimbursementApprover.findMany({ select: { level: true, scope: true, userId: true } });
+  const picked = pickApproverRules(rules, employee, category);
 
-  const ids = [l1Rule?.userId, l2Rule?.userId].filter(Boolean) as string[];
+  const ids = [picked.l1?.userId, picked.l2?.userId, picked.l3?.userId].filter(Boolean) as string[];
   const users = ids.length
     ? await prisma.user.findMany({ where: { id: { in: ids }, isActive: true }, select: userSelect })
     : [];
   const byId = new Map(users.map((u) => [u.id, u]));
 
-  let level1 = l1Rule && byId.get(l1Rule.userId) ? [byId.get(l1Rule.userId)!] : [];
+  let level1 = picked.l1 && byId.get(picked.l1.userId) ? [byId.get(picked.l1.userId)!] : [];
   if (level1.length === 0) {
     level1 = await prisma.user.findMany({
       where: { role: "SUPER_ADMIN", isActive: true },
       select: userSelect,
     });
   }
-  const level2 = l2Rule && byId.get(l2Rule.userId) ? [byId.get(l2Rule.userId)!] : [];
-  const level3 = await financeRecipients();
+  const level2 = picked.l2 && byId.get(picked.l2.userId) ? [byId.get(picked.l2.userId)!] : [];
+  const level3 =
+    picked.l3 && byId.get(picked.l3.userId) ? [byId.get(picked.l3.userId)!] : await financeRecipients();
 
-  return { level1, level2, level3, level1Configured: !!l1Rule, level2Configured: !!l2Rule };
+  return { level1, level2, level3, level1Configured: !!picked.l1, level2Configured: !!picked.l2 };
 }
 
 /** The users Finance-side notifications go to: FINANCE role, else hr:payroll holders. */

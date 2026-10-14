@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
+import { ATTENDANCE_BASIS_DAYS, attendancePct, attendedDays } from "@/lib/hr/attendance-basis";
 
 async function requireUser() {
   const session = await auth();
@@ -70,11 +71,19 @@ export async function getHrAnalytics(filters: AnalyticsFilters = {}) {
   if (filters.businessVerticalId) exitWhere.businessVerticalId = filters.businessVerticalId;
   const exits = await prisma.employee.count({ where: exitWhere });
 
-  // Attendance this month: present-ish records / total records.
-  const [attTotal, attPresent] = await Promise.all([
-    prisma.attendanceRecord.count({ where: { date: { gte: monthStart } } }),
-    prisma.attendanceRecord.count({ where: { date: { gte: monthStart }, status: { in: ["PRESENT", "WFH"] } } }),
-  ]);
+  // Attendance this month on the reports' fixed 30-day basis: days attended per
+  // current employee (present + WFH + half of each half-day) out of 30. It used
+  // to be present records / all records, a ratio that moved with however many
+  // records happened to exist rather than with the month.
+  const attByStatus = await prisma.attendanceRecord.groupBy({
+    by: ["status"],
+    where: { date: { gte: monthStart, lt: nextMonthStart }, employee: base },
+    _count: { _all: true },
+  });
+  const attCount = (st: string) => attByStatus.find((r) => r.status === st)?._count._all ?? 0;
+  const attTotal = attByStatus.reduce((n, r) => n + r._count._all, 0);
+  const attendedPersonDays = attendedDays({ present: attCount("PRESENT"), wfh: attCount("WFH"), halfDay: attCount("HALF_DAY") });
+  const attendedPerPerson = total > 0 ? Math.round((attendedPersonDays / total) * 10) / 10 : 0;
 
   // Leave taken (approved) this year, by type.
   const leaveApproved = await prisma.leaveRequest.groupBy({
@@ -151,7 +160,13 @@ export async function getHrAnalytics(filters: AnalyticsFilters = {}) {
     byVertical: byVerticalRaw.map((r) => ({ name: r.businessVerticalId ? verticalName.get(r.businessVerticalId) ?? "—" : "Unassigned", value: r._count._all })),
     byDepartment: byDeptRaw.map((r) => ({ name: r.departmentId ? deptName.get(r.departmentId) ?? "—" : "Unassigned", value: r._count._all })).sort((a, b) => b.value - a.value),
     byType: byTypeRaw.map((r) => ({ name: typeLabels[r.employmentType] ?? r.employmentType, value: r._count._all })),
-    attendance: { totalRecords: attTotal, presentPct: attTotal ? Math.round((attPresent / attTotal) * 100) : null },
+    attendance: {
+      totalRecords: attTotal,
+      // Of a fixed 30-day month; a month in progress reads low until it ends.
+      presentPct: total > 0 && attTotal > 0 ? Math.round(attendancePct(attendedPerPerson)) : null,
+      attendedPerPerson,
+      basisDays: ATTENDANCE_BASIS_DAYS,
+    },
     leave: { pending: pendingLeave, byType: leaveApproved.map((r) => ({ name: leaveTypes.find((t) => t.id === r.leaveTypeId)?.code ?? "—", value: r._sum.days ?? 0 })) },
     appraisal: appraisalCompletion,
     cycleName: activeCycle?.name ?? null,
