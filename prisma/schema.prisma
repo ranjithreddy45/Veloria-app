@@ -40,6 +40,10 @@ enum UserRole {
   AUDITOR
   // Marketing team — campaigns, attribution analytics, creative assets
   MARKETING
+  // External: a property owner whose venue(s) Veloria Grand runs. Sees ONLY
+  // the venue portal (/venue-portal) — lead and booking COUNTS for the venues
+  // in VenueOwnerAccess; never contact details or money. Not a staff role.
+  VENUE_OWNER
 }
 
 enum ContactType {
@@ -345,8 +349,11 @@ model User {
   phone                   String?
   role                    UserRole  @default(CLIENT)
   isActive                Boolean   @default(true)
+  /// Legacy, never used by any code. Venue-owner access is VenueOwnerAccess.
   isVenueOwner            Boolean   @default(false)
+  /// Legacy, never used by any code. Venue-owner access is VenueOwnerAccess.
   ownedVenueIds           String[]
+  venueOwnerAccess        VenueOwnerAccess[] @relation("VenueOwnerAccessUser")
   // User notification preferences (per-event-type email/SMS toggles).
   // Shape: Array<{ key: string; emailEnabled: boolean; smsEnabled: boolean }>
   // Null = use system defaults.
@@ -769,6 +776,7 @@ model Lead {
   bookingUploadStatus UploadStatus @default(PENDING) // Booking Confirmed conversion
   bookingUploadedAt   DateTime?
 
+  @@index([preferredVenueId]) // venue portal: leads per venue
   @@index([status])
   @@index([assignedToId])
   @@index([source])
@@ -934,6 +942,24 @@ model Venue {
   revenueSharePayouts RevenueSharePayout[] @relation("VenueRevenueSharePayouts")
   otaChannels         OtaChannel[]         @relation("VenueOtaChannels")
   siteVisits          SiteVisitBooking[]   @relation("VenueSiteVisits")
+  ownerAccess         VenueOwnerAccess[]   @relation("VenueOwnerAccessVenue")
+}
+
+/// Which venues a VENUE_OWNER login may see in the venue portal (/venue-portal).
+/// The portal shows COUNTS only — never contact details or money. Managed by
+/// admins at Settings → Venue owners; removing a row removes that venue from
+/// the owner's portal at once.
+model VenueOwnerAccess {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("VenueOwnerAccessUser", fields: [userId], references: [id], onDelete: Cascade)
+  venueId     String
+  venue       Venue    @relation("VenueOwnerAccessVenue", fields: [venueId], references: [id], onDelete: Cascade)
+  grantedById String?
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, venueId])
+  @@index([venueId])
 }
 
 model Booking {

@@ -1,4 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
+import { homeForRole } from "@/lib/roles";
 import type { UserRole } from "@prisma/client";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
@@ -142,13 +143,7 @@ const authConfig: NextAuthConfig = {
       // Redirect logged-in users away from auth pages
       if (isOnAuthPage && isLoggedIn) {
         const role = (auth.user as { role?: string }).role;
-        const redirectTo =
-          role === "CLIENT"
-            ? "/portal"
-            : role === "VENDOR"
-              ? "/vendor-portal"
-              : "/dashboard";
-        return Response.redirect(new URL(redirectTo, nextUrl));
+        return Response.redirect(new URL(homeForRole(role), nextUrl));
       }
 
       // Require authentication for protected routes

@@ -251,7 +251,7 @@ export function isModuleKey(value: unknown): value is ModuleKey {
 }
 
 /** Routes that never show a module chip: the hub and the external portals. */
-const NO_MODULE_PREFIXES = ["/dashboard", "/portal", "/vendor-portal"] as const;
+const NO_MODULE_PREFIXES = ["/dashboard", "/portal", "/vendor-portal", "/venue-portal"] as const;
 
 // Every (prefix, module) pair, longest prefix first, so the first match wins.
 const PREFIX_INDEX: ReadonlyArray<{ prefix: string; key: ModuleKey }> = MODULE_KEYS.flatMap((key) =>

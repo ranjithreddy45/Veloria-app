@@ -93,7 +93,7 @@ describe("resolveModule: every page belongs to a module", () => {
   });
 
   it("gives the external portals no module", () => {
-    const portalRoutes = [...routesIn("(portal)"), ...routesIn("(vendor-portal)")];
+    const portalRoutes = [...routesIn("(portal)"), ...routesIn("(vendor-portal)"), ...routesIn("(venue-portal)")];
     expect(portalRoutes.length).toBeGreaterThan(0);
     expect(portalRoutes.filter((r) => resolveModule(r) !== null)).toEqual([]);
   });
@@ -150,6 +150,7 @@ describe("resolveModule: matching rules", () => {
     ["/dashboard", null],
     ["/dashboard?tab=1", null],
     ["/vendor-portal/bids", null],
+    ["/venue-portal/calendar", null],
     ["/", null],
     ["/no-such-module", null],
     ["", null],
@@ -178,7 +179,7 @@ describe("registry shape", () => {
         expect(prefix, key).toMatch(/^\/[a-z0-9-]+(\/[a-z0-9-]+)*$/);
         expect(seen.get(prefix), `${prefix} is claimed twice`).toBeUndefined();
         seen.set(prefix, key);
-        for (const reserved of ["/dashboard", "/portal", "/vendor-portal"]) {
+        for (const reserved of ["/dashboard", "/portal", "/vendor-portal", "/venue-portal"]) {
           expect(prefix === reserved || prefix.startsWith(reserved + "/"), prefix).toBe(false);
         }
       }

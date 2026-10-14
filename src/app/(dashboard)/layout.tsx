@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/../auth";
+import { homeForRole, isExternalRole, isStaffRole } from "@/lib/roles";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { AppHeader } from "@/components/layout/app-header";
@@ -18,9 +19,15 @@ export default async function DashboardLayout({
     redirect("/sign-in");
   }
 
-  // Redirect clients to portal
-  if (session.user.role === "CLIENT") {
-    redirect("/portal");
+  // The staff shell (sidebar, header search, chat) is for staff only. Customers,
+  // vendors and venue owners go to their own portal; several (dashboard) pages
+  // are not role-gated by middleware, so this is the line that keeps an
+  // external login out of the staff UI.
+  if (isExternalRole(session.user.role)) {
+    redirect(homeForRole(session.user.role));
+  }
+  if (!isStaffRole(session.user.role)) {
+    redirect("/not-authorized");
   }
 
   return (
