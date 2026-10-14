@@ -2,6 +2,8 @@
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { sessionAllows } from "@/lib/permission-claims";
+import { isStaffRole } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { webformSchema, type WebformInput } from "@/schemas/webform.schema";
@@ -37,6 +39,10 @@ export async function getWebforms(params?: {
   try {
     const session = await auth();
     if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    // Staff only (form config is internal; the public form reads by slug).
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -101,6 +107,9 @@ export async function getWebform(id: string) {
   try {
     const session = await auth();
     if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -405,6 +414,11 @@ export async function getSubmissions(
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
     }
+    // Submissions are people's names, phones and messages: staff who may open
+    // /settings/webforms (settings:read, override-aware like middleware).
+    if (!isStaffRole(session.user.role) || !sessionAllows(session, "settings:read")) {
+      return { success: false as const, error: "Unauthorized" };
+    }
 
     const page = params?.page ?? 1;
     const limit = params?.limit ?? 50;
@@ -450,6 +464,9 @@ export async function getSubmissionStats(webformId: string) {
   try {
     const session = await auth();
     if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    if (!isStaffRole(session.user.role) || !sessionAllows(session, "settings:read")) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -515,6 +532,9 @@ export async function generateEmbedCode(webformId: string) {
   try {
     const session = await auth();
     if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 

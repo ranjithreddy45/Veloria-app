@@ -4,6 +4,7 @@ import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
+import { INTERNAL_ROLES, isStaffRole } from "@/lib/roles";
 
 // ============================================================
 // Activity Log Types
@@ -37,6 +38,11 @@ export async function getActivityLogs(params?: {
   try {
     const session = await auth();
     if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    // The team feed is staff-wide by design — and staff only: it names
+    // customers, amounts and who changed what.
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -112,9 +118,9 @@ export async function getActivityLogs(params?: {
 // Get Activity for a Single Entity (read-only, for detail timelines)
 // ============================================================
 // Returns the newest-first activity log for one entity (e.g. a Task or a
-// Deal), with the actor resolved to a name. Any authenticated user may read
-// it — the app is a single-company ERP where staff-wide visibility is
-// by-design. Read-only; never mutates.
+// Deal), with the actor resolved to a name. Any staff member may read it —
+// the app is a single-company ERP where staff-wide visibility is by-design —
+// but no customer, vendor or venue owner. Read-only; never mutates.
 
 export async function getEntityActivity(
   entityType: string,
@@ -124,6 +130,9 @@ export async function getEntityActivity(
   try {
     const session = await auth();
     if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -169,9 +178,13 @@ export async function getTeamUsers() {
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
     }
+    if (!isStaffRole(session.user.role)) {
+      return { success: false as const, error: "Unauthorized" };
+    }
 
+    // Staff by allowlist ("not CLIENT" listed vendors and venue owners too).
     const users = await prisma.user.findMany({
-      where: { role: { not: "CLIENT" } },
+      where: { role: { in: [...INTERNAL_ROLES] } },
       select: { id: true, name: true, email: true },
       orderBy: { name: "asc" },
     });

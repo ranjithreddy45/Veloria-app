@@ -2,6 +2,7 @@
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { serialize, type Serialized } from "@/lib/utils";
 import { COLLECTIBLE_INVOICE_STATUSES } from "@/lib/finance/issued-invoices";
@@ -805,6 +806,12 @@ export async function getHallOccupancyForDate(dateISO: string) {
 export async function getEventsForDate(dateISO: string) {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Unauthorized" };
+  // The same gate as the dashboard it feeds (getDashboardFullData). Event
+  // names carry customer names, so "signed in" is not enough.
+  const role = session.user.role;
+  if (!isStaffRole(role) || !hasPermission(role, "dashboard:read")) {
+    return { success: false, error: "Unauthorized" };
+  }
 
   const parts = dateISO.split("-").map(Number);
   const yyyy = parts[0] || new Date().getFullYear();

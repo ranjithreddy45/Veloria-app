@@ -11,6 +11,7 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
+import { INTERNAL_ROLES } from "@/lib/roles";
 import { notifyAwait } from "@/lib/notify";
 import { revalidatePath } from "next/cache";
 
@@ -69,6 +70,13 @@ export async function scheduleCrmTask(input: {
   const due = new Date(input.dueDate);
   if (Number.isNaN(due.getTime())) return { success: false, error: "Pick a valid date/time." };
   const assigneeId = input.assigneeId || u.id;
+  // Untrusted input: only an active staff member may be handed the task. A
+  // customer, vendor or venue owner would otherwise receive a notification
+  // carrying the lead's title (usually the customer's name).
+  if (assigneeId !== u.id) {
+    const ok = await prisma.user.count({ where: { id: assigneeId, isActive: true, role: { in: [...INTERNAL_ROLES] } } });
+    if (!ok) return { success: false, error: "Pick a team member to assign this to." };
+  }
 
   const task = await prisma.task.create({
     data: {
@@ -96,7 +104,14 @@ export async function scheduleCrmTask(input: {
   // Show-around: notify the tagged internal team members (owner invite handled by UI/email).
   if (input.taskType === "SHOW_AROUND" && input.metadata?.inviteeIds?.length) {
     // Dedupe + cap to bound the number of notification writes per request.
-    const invitees = [...new Set(input.metadata.inviteeIds.filter((x) => typeof x === "string" && x))].slice(0, 50);
+    const requested = [...new Set(input.metadata.inviteeIds.filter((x) => typeof x === "string" && x))].slice(0, 50);
+    // Internal team only, as the picker offers.
+    const invitees = (
+      await prisma.user.findMany({
+        where: { id: { in: requested }, isActive: true, role: { in: [...INTERNAL_ROLES] } },
+        select: { id: true },
+      })
+    ).map((x) => x.id);
     for (const uid of invitees) {
       if (uid === u.id) continue;
       notifications.push(
@@ -214,7 +229,9 @@ export async function getCrmScheduleOptions(): Promise<Result<CrmScheduleOptions
     return { success: false, error: "Insufficient permissions" };
   }
   const [users, owners] = await Promise.all([
-    prisma.user.findMany({ where: { isActive: true }, select: { id: true, name: true, role: true }, orderBy: { name: "asc" }, take: 300 }),
+    // Assignable people are staff by allowlist — never a customer, vendor or
+    // venue owner login.
+    prisma.user.findMany({ where: { isActive: true, role: { in: [...INTERNAL_ROLES] } }, select: { id: true, name: true, role: true }, orderBy: { name: "asc" }, take: 300 }),
     prisma.hallOwner.findMany({ select: { id: true, ownerName: true }, orderBy: { ownerName: "asc" }, take: 300 }).catch(() => []),
   ]);
   return { success: true, data: { users, owners: owners.map((o) => ({ id: o.id, name: o.ownerName })) } };

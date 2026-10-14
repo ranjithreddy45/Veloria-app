@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
+import { INTERNAL_ROLES } from "@/lib/roles";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -107,7 +108,7 @@ export async function listOkrOwners(): Promise<{ id: string; name: string }[]> {
   const u = await requireUser();
   if (!u?.id || !can(u.role, "hr:read") || !isManager(u.role)) return [];
   const users = await prisma.user.findMany({
-    where: { isActive: true, role: { notIn: ["CLIENT", "VENDOR"] } },
+    where: { isActive: true, role: { in: [...INTERNAL_ROLES] } },
     select: { id: true, name: true, email: true },
     orderBy: { name: "asc" },
   });

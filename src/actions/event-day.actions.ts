@@ -2,6 +2,7 @@
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { INTERNAL_ROLES, isStaffRole } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
@@ -26,6 +27,10 @@ export async function getTimeline(bookingId: string) {
   try {
     const session = await auth();
     if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    // Staff only: any booking's run-of-show (and the staff assigned to it) by id.
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -528,11 +533,16 @@ export async function getStaffForAssignment() {
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
     }
+    if (!isStaffRole(session.user.role)) {
+      return { success: false as const, error: "Unauthorized" };
+    }
 
+    // Staff by allowlist: "not CLIENT" listed vendors and venue owners as
+    // assignable crew.
     const staff = await prisma.user.findMany({
       where: {
         isActive: true,
-        role: { not: "CLIENT" },
+        role: { in: [...INTERNAL_ROLES] },
       },
       select: { id: true, name: true, email: true, image: true },
       orderBy: { name: "asc" },

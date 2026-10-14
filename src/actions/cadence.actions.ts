@@ -2,6 +2,7 @@
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -898,6 +899,15 @@ export async function getEnrollments(filters?: {
     const session = await auth();
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
+    }
+    // Same gate as every other cadence action. Enrollments name the leads and
+    // contacts being worked, so "signed in" alone would let a customer, vendor
+    // or venue owner list them by calling this action directly.
+    if (
+      !isStaffRole(session.user.role) ||
+      !hasPermission(session.user.role, "settings:read")
+    ) {
+      return { success: false as const, error: "Forbidden" };
     }
 
     const page = filters?.page ?? 1;

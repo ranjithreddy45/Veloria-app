@@ -11,6 +11,7 @@ import {
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 import {
   generateDemandForecast,
   generateVenueHeatmap,
@@ -68,6 +69,10 @@ export async function getBudgetById(id: string) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+    // Budgets are revenue targets: staff with budget:read only, like getBudgets.
+    if (!isStaffRole(session.user.role) || !hasPermission(session.user.role, "budget:read")) {
+      return { success: false as const, error: "Forbidden" };
     }
 
     const budget = await prisma.budget.findUnique({
@@ -413,6 +418,10 @@ export async function getBudgetVsActual(year: number) {
     const session = await auth();
     if (!session?.user) {
       return { success: false as const, error: "Unauthorized" };
+    }
+    // Budget targets against collected revenue: staff with budget:read only.
+    if (!isStaffRole(session.user.role) || !hasPermission(session.user.role, "budget:read")) {
+      return { success: false as const, error: "Forbidden" };
     }
 
     // Get all budgets for the year

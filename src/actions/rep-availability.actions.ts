@@ -2,6 +2,7 @@
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
@@ -64,7 +65,9 @@ export interface RoutingDecisionData {
 }
 
 // ------------------------------------------------------------
-// Self-service (authenticated internal user, own row only)
+// Self-service (authenticated internal user, own row only). Internal means
+// a staff role by allowlist (src/lib/roles.ts) — not "anyone but CLIENT",
+// which let vendor and venue-owner logins put themselves on the routing board.
 // ------------------------------------------------------------
 
 export async function setMyAvailability(
@@ -75,7 +78,7 @@ export async function setMyAvailability(
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
     }
-    if (session.user.role === "CLIENT") {
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -113,7 +116,7 @@ export async function updateMyRoutingSkills(
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
     }
-    if (session.user.role === "CLIENT") {
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -164,7 +167,7 @@ export async function getMyAvailability(): Promise<Result<RepAvailabilityData>> 
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
     }
-    if (session.user.role === "CLIENT") {
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
@@ -189,7 +192,7 @@ export async function touchMyHeartbeat(): Promise<Result<{ status: string }>> {
     if (!session?.user?.id) {
       return { success: false as const, error: "Unauthorized" };
     }
-    if (session.user.role === "CLIENT") {
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Insufficient permissions" };
     }
     const row = await touchRepHeartbeat(session.user.id);

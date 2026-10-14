@@ -3,21 +3,22 @@
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { INTERNAL_ROLES, isStaffRole } from "@/lib/roles";
 
 // ============================================================
 // Internal team chat — channels + DMs between staff.
-// Available to ALL internal staff (everyone except CLIENT / VENDOR).
+// Available to ALL internal staff (src/lib/roles.ts INTERNAL_ROLES) and to
+// nobody outside the company: customers, vendors and venue owners can neither
+// use it nor be added to it.
 // ============================================================
 
-const EXTERNAL_ROLES = new Set(["CLIENT", "VENDOR"]);
-function isInternal(role?: string | null): boolean {
-  return !!role && !EXTERNAL_ROLES.has(role);
-}
+/** Staff by allowlist, for the user queries below. */
+const STAFF_ROLE_FILTER = { in: [...INTERNAL_ROLES] };
 
 async function requireStaff() {
   const session = await auth();
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  if (!session?.user?.id || !isInternal(role)) return null;
+  const role = session?.user?.role;
+  if (!session?.user?.id || !isStaffRole(role)) return null;
   return { id: session.user.id as string, name: session.user.name ?? "", role: role as string };
 }
 
@@ -39,7 +40,7 @@ export async function listChatUsers() {
   const me = await requireStaff();
   if (!me) return { success: false as const, error: "Unauthorized" };
   const users = await prisma.user.findMany({
-    where: { isActive: true, id: { not: me.id }, role: { notIn: ["CLIENT", "VENDOR"] } },
+    where: { isActive: true, id: { not: me.id }, role: STAFF_ROLE_FILTER },
     select: { id: true, name: true, email: true, image: true, role: true },
     orderBy: { name: "asc" },
   });
@@ -124,7 +125,7 @@ export async function getOrCreateDirectChannel(otherUserId: string) {
   if (otherUserId === me.id) return { success: false as const, error: "Can't DM yourself" };
 
   const other = await prisma.user.findFirst({
-    where: { id: otherUserId, isActive: true, role: { notIn: ["CLIENT", "VENDOR"] } },
+    where: { id: otherUserId, isActive: true, role: STAFF_ROLE_FILTER },
     select: { id: true },
   });
   if (!other) return { success: false as const, error: "User not found" };
@@ -154,7 +155,7 @@ export async function createGroupChannel(name: string, memberIds: string[]) {
 
   // Only real internal users, always include the creator, de-dupe.
   const valid = await prisma.user.findMany({
-    where: { id: { in: memberIds }, isActive: true, role: { notIn: ["CLIENT", "VENDOR"] } },
+    where: { id: { in: memberIds }, isActive: true, role: STAFF_ROLE_FILTER },
     select: { id: true },
   });
   const ids = Array.from(new Set([me.id, ...valid.map((u) => u.id)]));

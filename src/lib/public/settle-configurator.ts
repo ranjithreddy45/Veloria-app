@@ -21,7 +21,7 @@ import { reportSystemFailure } from "@/lib/ops-alert";
 import { publicConfiguratorSlotFree } from "@/actions/public-hold.actions";
 import { utcDayRange } from "@/lib/sales/slot-util";
 import { plannerSlotToEnum } from "@/lib/sales/slot";
-import { generateBookingNumber } from "@/actions/booking.actions";
+import { generateBookingNumber } from "@/lib/sales/booking-number";
 import { maybeConfirmBookingOnPayment } from "@/lib/sales/confirm-booking";
 import { getSystemUserId } from "@/lib/lead-capture";
 import { releaseLapsedHoldsForSlot } from "@/lib/holds/release-lapsed-holds";

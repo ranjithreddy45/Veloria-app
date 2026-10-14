@@ -2,6 +2,7 @@
 
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import {
@@ -33,6 +34,10 @@ export async function getOperation(bookingId: string) {
   try {
     const session = await auth();
     if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    // Staff only: any booking's ops plan, crew and vendor contacts by id.
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
@@ -708,6 +713,9 @@ export async function getStaffUsers() {
   try {
     const session = await auth();
     if (!session?.user) {
+      return { success: false as const, error: "Unauthorized" };
+    }
+    if (!isStaffRole(session.user.role)) {
       return { success: false as const, error: "Unauthorized" };
     }
 
