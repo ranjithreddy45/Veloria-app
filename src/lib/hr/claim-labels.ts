@@ -8,7 +8,8 @@ import type { Hue } from "@/components/shared/status-pill";
 export const CLAIM_STATUS_LABEL: Record<string, string> = {
   PENDING: "Awaiting 1st approval",
   PENDING_L2: "Awaiting 2nd approval",
-  PENDING_L3: "Awaiting final approval",
+  PENDING_L3: "Awaiting 3rd approval",
+  PENDING_L4: "Awaiting 4th approval",
   NEEDS_INFO: "Sent back",
   APPROVED: "Approved",
   REJECTED: "Rejected",
@@ -23,6 +24,7 @@ export const CLAIM_STATUS_HUE: Record<string, Hue> = {
   PENDING: "amber",
   PENDING_L2: "violet",
   PENDING_L3: "pink",
+  PENDING_L4: "blue",
   NEEDS_INFO: "orange",
   APPROVED: "indigo",
   REJECTED: "rose",
@@ -39,6 +41,9 @@ export const CLAIM_EVENT_LABEL: Record<string, string> = {
   LEVEL2_APPROVED: "2nd-level approval",
   LEVEL3_APPROVED: "Final approval",
   LEVEL2_SKIPPED: "2nd-level approval not required",
+  // Approval chains (claim-chain.ts): the note names the stage.
+  STAGE_APPROVED: "Approved",
+  ROUTED: "Approval route set",
   APPROVED: "Approved",
   REJECTED: "Rejected",
   PAY_RUN_SCHEDULED: "Scheduled on a pay run",
@@ -46,22 +51,16 @@ export const CLAIM_EVENT_LABEL: Record<string, string> = {
   WITHDRAWN: "Withdrawn by employee",
 };
 
-/** Statuses where an approver's decision is still outstanding. */
-export const AWAITING_STATUSES = ["PENDING", "PENDING_L2", "PENDING_L3"] as const;
+/** Statuses where an approver's decision is still outstanding (one per chain stage). */
+export const AWAITING_STATUSES = ["PENDING", "PENDING_L2", "PENDING_L3", "PENDING_L4"] as const;
 /** Statuses the employee may still edit or withdraw. */
-export const EDITABLE_BY_EMPLOYEE = ["PENDING", "PENDING_L2", "PENDING_L3", "NEEDS_INFO"] as const;
+export const EDITABLE_BY_EMPLOYEE = ["PENDING", "PENDING_L2", "PENDING_L3", "PENDING_L4", "NEEDS_INFO"] as const;
 
-/** Which approval level is currently waiting on a decision. */
-export function awaitingLevel(status: string): 1 | 2 | 3 | null {
+/** Which stage (1-based) is currently waiting on a decision. */
+export function awaitingLevel(status: string): 1 | 2 | 3 | 4 | null {
   if (status === "PENDING") return 1;
   if (status === "PENDING_L2") return 2;
   if (status === "PENDING_L3") return 3;
+  if (status === "PENDING_L4") return 4;
   return null;
 }
-
-/** The approval stage a level stands for, as people say it. */
-export const CLAIM_STAGE_LABEL: Record<1 | 2 | 3, string> = {
-  1: "1st approval",
-  2: "2nd approval",
-  3: "Final approval",
-};

@@ -33,6 +33,8 @@ export interface ReimbursementClaim {
   stage?: string | null;
   /** Who holds it at that stage. */
   awaitingName?: string | null;
+  /** "Awaiting final approval" — the stage in words, from the claim's own route. */
+  statusLabel?: string | null;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -62,8 +64,13 @@ const STATUS: Record<string, { variant: "warning" | "success" | "destructive" | 
   // Without this entry the badge printed the raw code "PENDING_L3".
   PENDING_L3: {
     variant: "secondary",
-    label: "Awaiting final approval",
+    label: "Awaiting 3rd approval",
     className: "bg-fuchsia-500/12 text-fuchsia-700 dark:bg-fuchsia-400/15 dark:text-fuchsia-300",
+  },
+  PENDING_L4: {
+    variant: "secondary",
+    label: "Awaiting 4th approval",
+    className: "bg-sky-500/12 text-sky-700 dark:bg-sky-400/15 dark:text-sky-300",
   },
   // The ball is with the EMPLOYEE here, not HR — labelled so it reads as an
   // action to take rather than another queue to wait in.
@@ -77,10 +84,12 @@ const STATUS: Record<string, { variant: "warning" | "success" | "destructive" | 
   REJECTED: { variant: "destructive", label: "Rejected" },
 };
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, label }: { status: string; label?: string | null }) {
   const s = STATUS[status] ?? { variant: "secondary" as const, label: status };
-  return <Badge variant={s.variant} className={s.className}>{s.label}</Badge>;
+  return <Badge variant={s.variant} className={s.className}>{label ?? s.label}</Badge>;
 }
+
+const AWAITING = ["PENDING", "PENDING_L2", "PENDING_L3", "PENDING_L4"];
 
 export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] }) {
   // The claim currently being fixed, or null. Held here rather than per-row so
@@ -121,7 +130,7 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
           </TableHeader>
           <TableBody className="[&_td]:py-3.5">
             {claims.map((c) => {
-              const label = STATUS[c.status]?.label ?? c.status;
+              const label = c.statusLabel ?? STATUS[c.status]?.label ?? c.status;
               return (
                 <TableRow key={c.id}>
                   {/* TableCell is whitespace-nowrap by default, so a long note or
@@ -138,7 +147,7 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
                     {c.note && <div className="text-detail break-words text-muted-foreground">{c.note}</div>}
                     {c.status === "NEEDS_INFO" && c.decisionNote && (
                       <div className="mt-0.5 text-detail break-words text-warning">
-                        HR asked for: {c.decisionNote}
+                        Asked for: {c.decisionNote}
                       </div>
                     )}
                     {c.status === "REJECTED" && c.decisionNote && (
@@ -164,14 +173,14 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
                   <TableCell className="numeric text-detail text-muted-foreground whitespace-nowrap">{formatDate(c.claimDate)}</TableCell>
                   <TableCell className="numeric text-right text-body font-medium">{INR.format(c.amount)}</TableCell>
                   <TableCell>
-                    <StatusBadge status={c.status} />
+                    <StatusBadge status={c.status} label={c.statusLabel} />
                     {c.stage && c.awaitingName && (
                       <div className="mt-1 text-meta text-muted-foreground">With {c.awaitingName}</div>
                     )}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5">
-                    {(c.status === "PENDING" || c.status === "PENDING_L2") && <WithdrawButton id={c.id} label={label} />}
+                    {AWAITING.includes(c.status) && <WithdrawButton id={c.id} label={label} />}
                     <Button
                       variant="ghost"
                       size="sm"

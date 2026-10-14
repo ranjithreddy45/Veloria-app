@@ -29,7 +29,7 @@ export default async function ReimbursementApproversPage() {
         accent="emerald"
         eyebrow="Payroll · Workflow"
         title="Reimbursement approvers"
-        description="Who approves expense claims. Every claim goes to the first-level approver, then the second-level approver for the employee's department, then the final approver (Finance), and only then to payment. A per-employee route below can fix the whole chain for a named person, and set their monthly fuel cap. Approvers are notified when a claim reaches them, and the employee is told at every step."
+        description="Who approves expense claims, in order. A claim follows its claimant's named-person route if there is one, otherwise their manager's team route, otherwise the default route — one stage at a time, never skipping one, and only then to payment. Nobody approves their own claim. Approvers are notified when a claim reaches them, and the employee is told at every step."
       />
       <ApproverConfigForm config={cfg.data} />
     </div>

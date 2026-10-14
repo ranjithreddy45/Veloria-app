@@ -90,14 +90,31 @@ export function ClaimTrailDialog({
     } finally { setOpening(null); }
   }
 
-  const steps = detail
+  // Every stage of the claim's route, then payment — each with who, when and
+  // any note, and the stage it is waiting at marked.
+  const steps: { label: string; who: string; state: string; note: string | null }[] = detail
     ? [
-        { label: "1st approval", by: detail.level1Name, at: detail.level1At, note: detail.level1Note },
-        { label: "2nd approval", by: detail.level2Name ?? "Not required", at: detail.level2At, note: detail.level2Note, optional: !detail.level2Name },
-        // The final approval was missing from this tracker, so an employee could
-        // never see that their claim was waiting on (or cleared by) Finance.
-        { label: "Final approval", by: detail.level3Name, at: detail.level3At, note: detail.level3Note },
-        { label: "Payment", by: detail.paidAt ? "Finance" : detail.payFy ? `Pay run ${detail.payMonth}/${detail.payFy}` : null, at: detail.paidAt, note: detail.paymentRef ? `Ref ${detail.paymentRef}` : null },
+        ...detail.stages.map((st) => ({
+          label: st.label,
+          who:
+            st.state === "done" ? `${st.by ?? st.holder} · ${when(st.at!)}` :
+            st.state === "rejected" ? `Rejected by ${st.by ?? st.holder}${st.at ? ` · ${when(st.at)}` : ""}` :
+            st.state === "returned" ? `Sent back to the employee by ${st.holder}` :
+            st.state === "current" ? `Waiting: ${st.holder}${st.role ? ` (${st.role})` : ""}` :
+            `${st.holder}${st.role ? ` (${st.role})` : ""}`,
+          state: st.state,
+          note: st.note,
+        })),
+        {
+          label: "Payment",
+          who: detail.paidAt
+            ? `Paid · ${when(detail.paidAt)}`
+            : detail.status === "APPROVED"
+              ? detail.payFy ? `Waiting: Finance · pay run ${detail.payMonth}/${detail.payFy}` : "Waiting: Finance"
+              : "Finance",
+          state: detail.paidAt ? "done" : detail.status === "APPROVED" ? "current" : "waiting",
+          note: detail.paymentRef ? `Ref ${detail.paymentRef}` : null,
+        },
       ]
     : [];
 
@@ -132,27 +149,32 @@ export function ClaimTrailDialog({
                 </div>
                 <div className="text-right">
                   <div className="text-copy font-semibold tabular-nums">{inr(detail.amount)}</div>
-                  <StatusPill label={CLAIM_STATUS_LABEL[detail.status] ?? detail.status} hue={CLAIM_STATUS_HUE[detail.status] ?? "slate"} size="xs" />
+                  <StatusPill label={detail.statusLabel ?? CLAIM_STATUS_LABEL[detail.status] ?? detail.status} hue={CLAIM_STATUS_HUE[detail.status] ?? "slate"} size="xs" />
                 </div>
               </div>
             </div>
 
-            {/* Where it stands — the three gates at a glance */}
-            <ol className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {steps.map((s, i) => {
-                const done = !!s.at;
-                return (
-                  <li key={s.label} className={cn("rounded-lg border px-3 py-2", done ? "border-emerald-500/30 bg-emerald-500/5" : s.optional ? "border-dashed" : "")}>
-                    <div className="text-meta font-medium uppercase tracking-wide text-muted-foreground">Step {i + 1}</div>
-                    <div className="text-detail font-medium">{s.label}</div>
-                    <div className="text-meta text-muted-foreground">
-                      {done ? `${s.by ?? "—"} · ${when(s.at!)}` : s.by ? `Waiting: ${s.by}` : "Pending"}
-                    </div>
-                    {s.note && <div className="mt-0.5 text-meta text-foreground/80">{s.note}</div>}
-                  </li>
-                );
-              })}
+            {/* Where it stands — every stage of its route at a glance */}
+            <ol className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {steps.map((s, i) => (
+                <li
+                  key={`${s.label}-${i}`}
+                  className={cn(
+                    "rounded-lg border px-3 py-2",
+                    s.state === "done" && "border-emerald-500/30 bg-emerald-500/5",
+                    s.state === "current" && "border-amber-500/40 bg-amber-500/5",
+                    s.state === "rejected" && "border-rose-500/30 bg-rose-500/5",
+                    s.state === "returned" && "border-orange-500/30 bg-orange-500/5",
+                  )}
+                >
+                  <div className="text-meta font-medium uppercase tracking-wide text-muted-foreground">Step {i + 1}</div>
+                  <div className="text-detail font-medium">{s.label}</div>
+                  <div className="text-meta text-muted-foreground">{s.who}</div>
+                  {s.note && <div className="mt-0.5 text-meta text-foreground/80">{s.note}</div>}
+                </li>
+              ))}
             </ol>
+            {detail.route && <p className="text-meta text-muted-foreground">Route: {detail.route} → Payment</p>}
 
             {/* Bills */}
             <div className="space-y-1.5">

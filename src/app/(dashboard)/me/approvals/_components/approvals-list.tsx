@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { StatusPill } from "@/components/shared/status-pill";
 import { ClaimDecisionDialog, type ClaimDecisionMode, type ClaimDecisionTarget } from "@/components/hr/claim-decision-dialog";
 import { ClaimTrailDialog } from "@/components/hr/claim-trail-dialog";
+import { CLAIM_STATUS_HUE } from "@/lib/hr/claim-labels";
 import type { listMyApprovals } from "@/actions/hr-reimbursement.actions";
 
 type Row = Awaited<ReturnType<typeof listMyApprovals>>[number];
@@ -21,7 +22,7 @@ export function ApprovalsList({ rows }: { rows: Row[] }) {
   const [trailId, setTrailId] = React.useState<string | null>(null);
 
   function decide(r: Row, m: ClaimDecisionMode) {
-    setTarget({ id: r.id, title: r.title, amount: r.amount, name: r.name, empCode: r.empCode, category: r.category, level: r.level });
+    setTarget({ id: r.id, title: r.title, amount: r.amount, name: r.name, empCode: r.empCode, category: r.category, stage: r.stage, nextStep: r.nextStep });
     setMode(m);
   }
 
@@ -80,10 +81,13 @@ export function ApprovalsList({ rows }: { rows: Row[] }) {
                   </Button>
                 </TableCell>
                 <TableCell>
-                  <StatusPill label={r.level === 1 ? "1st-level" : "2nd-level"} hue={r.level === 1 ? "amber" : "violet"} size="xs" />
-                  {r.level === 2 && r.level1At && (
-                    <div className="mt-0.5 text-meta text-muted-foreground">
-                      1st approved {new Date(r.level1At).toLocaleDateString("en-IN")}
+                  <StatusPill label={r.stage ?? "Approval"} hue={CLAIM_STATUS_HUE[r.status] ?? "amber"} size="xs" />
+                  <div className="mt-0.5 text-meta text-muted-foreground">
+                    Stage {r.stageNumber} of {r.stageCount}
+                  </div>
+                  {r.previousApproval && (
+                    <div className="text-meta text-muted-foreground">
+                      {r.previousApproval.label} by {r.previousApproval.by ?? "—"} · {new Date(r.previousApproval.at).toLocaleDateString("en-IN")}
                     </div>
                   )}
                 </TableCell>

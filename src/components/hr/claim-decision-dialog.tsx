@@ -13,7 +13,7 @@ import {
 import { decideReimbursement, requestClaimInfo } from "@/actions/hr-reimbursement.actions";
 
 // ============================================================
-// Approve / send back / reject — one dialog for both approval levels. The
+// Approve / send back / reject — one dialog for every approval stage. The
 // pay-run choice no longer lives here: approvers approve the CLAIM; Finance
 // decides HOW it is paid once every approval is in.
 // ============================================================
@@ -27,8 +27,10 @@ export interface ClaimDecisionTarget {
   name: string;
   empCode: string;
   category: string;
-  /** 1 or 2 — which approval this decision is. */
-  level?: number | null;
+  /** The stage this decision is ("1st approval", "Final approval"). */
+  stage?: string | null;
+  /** Where approving sends it ("final approval with Amrutha"); null at the last stage. */
+  nextStep?: string | null;
 }
 
 const inr = (n: number) =>
@@ -54,7 +56,7 @@ export function ClaimDecisionDialog({
   const open = claim !== null && mode !== null;
   const approving = mode === "APPROVED";
   const sendingBack = mode === "NEEDS_INFO";
-  const levelWord = claim?.level === 3 ? "Finance" : claim?.level === 2 ? "second-level" : claim?.level === 1 ? "first-level" : "";
+  const stageWord = claim?.stage ? claim.stage.toLowerCase() : "approval";
 
   async function submit() {
     if (!claim || !mode) return;
@@ -70,11 +72,10 @@ export function ClaimDecisionDialog({
     if (!res.success) { toast.error(res.error); return; }
     if (sendingBack) toast.success("Sent back to the employee for more information.");
     else if (approving) {
-      const next = "data" in res && res.data && "status" in res.data ? res.data.status : "";
+      const d = res.data as { nextStage?: string | null; nextHolder?: string | null };
       toast.success(
-        next === "PENDING_L2" ? "Approved — sent for second-level approval." :
-        next === "PENDING_L3" ? "Approved — sent for final approval." :
-        "Approved — ready for payment scheduling."
+        d.nextStage ? `Approved — sent to ${d.nextHolder ?? "the next approver"} for ${d.nextStage.toLowerCase()}.` :
+        "Approved — with Finance for payment."
       );
     } else toast.success("Claim rejected.");
     onClose();
@@ -86,17 +87,15 @@ export function ClaimDecisionDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {sendingBack ? "Ask for more information" : approving ? `Give ${levelWord} approval` : "Reject claim"}
+            {sendingBack ? "Ask for more information" : approving ? (stageWord === "approval" ? "Approve claim" : `Give ${stageWord}`) : "Reject claim"}
           </DialogTitle>
           <DialogDescription>
             {sendingBack
-              ? "The claim goes back to the employee with your note and returns to first-level approval once they update it."
+              ? "The claim goes back to the employee with your note and starts again from the 1st approval once they update it."
               : approving
-                ? claim?.level === 1
-                  ? "After your approval the claim goes to the second-level approver for the employee's team (or straight to Finance if none is set)."
-                  : claim?.level === 2
-                    ? "After your approval the claim goes to Finance for final approval."
-                    : "After your approval the claim is fully approved and can be scheduled for payment."
+                ? claim?.nextStep
+                  ? `After your approval the claim moves to ${claim.nextStep}.`
+                  : "This is the last approval: the claim is then fully approved and goes to Finance for payment."
                 : "Rejecting closes this claim without payment. The employee can see your reason."}
           </DialogDescription>
         </DialogHeader>
