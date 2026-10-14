@@ -20,6 +20,8 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { hasPermission } from "@/lib/permissions";
 import { dataUrlBytes } from "@/lib/hr/claim-attachments";
+import { notifyAwait } from "@/lib/notify";
+import { MONTH_NAMES } from "@/lib/hr/payslip-feed";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -134,7 +136,7 @@ export async function upsertPayslipDocument(input: {
 
   const employee = await prisma.employee.findFirst({
     where: { id: input.employeeId, deletedAt: null },
-    select: { id: true },
+    select: { id: true, userId: true },
   });
   if (!employee) return { success: false, error: "Employee not found." };
 
@@ -169,8 +171,25 @@ export async function upsertPayslipDocument(input: {
     select: { id: true },
   });
 
+  // The employee is told it is there (in-app; email is not configured) and
+  // their My Payslips page is refreshed. Best-effort: the upload has landed.
+  const monthLabel = `${MONTH_NAMES[input.month - 1]} ${input.year}`;
+  if (employee.userId) {
+    try {
+      await notifyAwait({
+        userId: employee.userId,
+        type: "SYSTEM",
+        title: existing ? `Your payslip for ${monthLabel} was updated` : `Your payslip for ${monthLabel} is available`,
+        message: "Open My Payslips to view or download it.",
+        actionUrl: "/me/payslips",
+        metadata: { payslipDocumentId: row.id },
+      });
+    } catch (e) {
+      console.error("[PAYSLIP_DOC_NOTIFY]", row.id, e);
+    }
+  }
   revalidatePath(`/people/${input.employeeId}`);
-  revalidatePath("/people/my/payslips");
+  revalidatePath("/me/payslips");
   return { success: true, data: { id: row.id, replaced: !!existing } };
 }
 
@@ -187,6 +206,6 @@ export async function removePayslipDocument(id: string): Promise<Result<{ id: st
 
   await prisma.hrPayslipDocument.delete({ where: { id } });
   revalidatePath(`/people/${doc.employeeId}`);
-  revalidatePath("/people/my/payslips");
+  revalidatePath("/me/payslips");
   return { success: true, data: { id } };
 }

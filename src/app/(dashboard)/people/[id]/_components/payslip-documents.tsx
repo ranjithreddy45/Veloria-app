@@ -11,7 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  upsertPayslipDocument, removePayslipDocument, getPayslipDocument,
+  upsertPayslipDocument, removePayslipDocument,
 } from "@/actions/hr-payslip-doc.actions";
 
 // ============================================================
@@ -113,25 +113,11 @@ export function PayslipDocuments({
     }
   }
 
-  async function view(id: string) {
-    const res = await getPayslipDocument(id);
-    if (!res.success) {
-      toast.error(res.error);
-      return;
-    }
-    // Open from the data-URL rather than a fetch: the bytes are already here,
-    // and there is no public URL to link to.
-    const w = window.open();
-    if (!w) {
-      toast.error("Allow pop-ups to view the payslip.");
-      return;
-    }
-    w.document.write(
-      res.data.mimeType === "application/pdf"
-        ? `<iframe src="${res.data.data}" style="border:0;width:100%;height:100vh"></iframe>`
-        : `<img src="${res.data.data}" style="max-width:100%" alt="${res.data.fileName}" />`
-    );
-    w.document.title = res.data.fileName;
+  function view(id: string) {
+    // A real (auth-checked) URL: opens on phones and survives pop-up blockers,
+    // unlike writing a data-URL into a blank window.
+    const w = window.open(`/api/hr/payslip-documents/${id}`, "_blank", "noopener");
+    if (!w) window.location.href = `/api/hr/payslip-documents/${id}`;
   }
 
   async function remove(id: string, label: string) {

@@ -116,7 +116,7 @@ export function RunDetail({ run }: { run: RunView }) {
             label="Lock"
             icon={<Lock className="size-4" />}
             title="Lock this payroll run?"
-            description="Locking freezes all payslips — you won’t be able to recompute afterwards. Continue?"
+            description="Locking freezes all payslips — you won’t be able to recompute afterwards — and publishes them: each employee is notified and can view and download theirs under My Payslips. Continue?"
             action="Lock run"
             busy={busy === "lock"}
             disabled={busy !== null}
