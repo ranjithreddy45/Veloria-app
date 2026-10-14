@@ -366,9 +366,12 @@ export async function settleRunReimbursements(runId: string, actor: { id: string
   const owners = await usersByIds(emps.flatMap((e) => (e.userId ? [e.userId] : [])));
   let settled = 0;
   for (const c of claims) {
+    // paymentRef marks it as paid BY the run, so normaliseOldComputePaid (which
+    // only reverts reference-less PAID rows) can never mistake it for an
+    // old-code compute stamp and pay/notify it twice.
     const flipped = await prisma.hrReimbursementClaim.updateMany({
       where: { id: c.id, status: "APPROVED", runId },
-      data: { status: "PAID", paidAt: new Date() },
+      data: { status: "PAID", paidAt: new Date(), paymentRef: `Payroll ${payroll}` },
     });
     if (flipped.count === 0) continue;
     settled++;
