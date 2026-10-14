@@ -11,6 +11,7 @@ import { resolveStatConfig } from "@/lib/hr/stat-config";
 /** Round to paise. Money must never carry float dust into a Decimal column. */
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 import { sendEmail } from "@/lib/email";
+import { notifyAwait } from "@/lib/notify";
 import { normaliseOldComputePaid, releaseUnpaidRunClaims, settleRunReimbursements } from "@/lib/hr/claim-workflow";
 import { postWithinTx, fyForDate } from "@/lib/finance/ledger";
 import { FIN_ACCOUNT_CODES } from "@/lib/finance/coa-seed";
@@ -29,6 +30,24 @@ async function deliverPayslipEmails(runId: string): Promise<void> {
       select: { label: true, payslips: { select: { employeeId: true, net: true } } },
     });
     if (!run || run.payslips.length === 0) return;
+    // In-app first: email is best-effort (and not configured in production), so
+    // the notification is what actually tells an employee their payslip is in.
+    const linked = await prisma.employee.findMany({
+      where: { id: { in: run.payslips.map((p) => p.employeeId) }, userId: { not: null } },
+      select: { userId: true },
+    });
+    await Promise.allSettled(
+      linked.map((e) =>
+        notifyAwait({
+          userId: e.userId!,
+          type: "SYSTEM",
+          title: `Your payslip for ${run.label} is ready`,
+          message: "Open My Payslips to view or download it.",
+          actionUrl: "/me/payslips",
+          metadata: { payrollRunId: runId },
+        }),
+      ),
+    );
     const emps = await prisma.employee.findMany({
       where: { id: { in: run.payslips.map((p) => p.employeeId) }, workEmail: { not: null } },
       select: { id: true, firstName: true, workEmail: true },
@@ -45,7 +64,7 @@ async function deliverPayslipEmails(runId: string): Promise<void> {
           html: `<div style="font-family:system-ui,sans-serif;font-size:14px;color:#111;line-height:1.55">
             <p>Hi ${e.firstName || "there"},</p>
             <p>Your payslip for <strong>${run.label}</strong> is now available — net pay <strong>${inr(Number(p.net))}</strong>.</p>
-            <p><a href="${base}/people/my/payslips" style="color:#7c3aed">View & download your payslip →</a></p>
+            <p><a href="${base}/me/payslips" style="color:#7c3aed">View & download your payslip →</a></p>
           </div>`,
         });
       }),

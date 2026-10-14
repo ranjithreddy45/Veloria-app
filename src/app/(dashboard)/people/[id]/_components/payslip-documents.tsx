@@ -11,7 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  upsertPayslipDocument, removePayslipDocument, getPayslipDocument,
+  upsertPayslipDocument, removePayslipDocument,
 } from "@/actions/hr-payslip-doc.actions";
 
 // ============================================================
@@ -113,27 +113,6 @@ export function PayslipDocuments({
     }
   }
 
-  async function view(id: string) {
-    const res = await getPayslipDocument(id);
-    if (!res.success) {
-      toast.error(res.error);
-      return;
-    }
-    // Open from the data-URL rather than a fetch: the bytes are already here,
-    // and there is no public URL to link to.
-    const w = window.open();
-    if (!w) {
-      toast.error("Allow pop-ups to view the payslip.");
-      return;
-    }
-    w.document.write(
-      res.data.mimeType === "application/pdf"
-        ? `<iframe src="${res.data.data}" style="border:0;width:100%;height:100vh"></iframe>`
-        : `<img src="${res.data.data}" style="max-width:100%" alt="${res.data.fileName}" />`
-    );
-    w.document.title = res.data.fileName;
-  }
-
   async function remove(id: string, label: string) {
     if (!window.confirm(`Delete the ${label} payslip? This cannot be undone.`)) return;
     const res = await removePayslipDocument(id);
@@ -223,9 +202,14 @@ export function PayslipDocuments({
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <Button variant="outline" size="sm" className="h-8" onClick={() => view(d.id)}>
-                    <Download className="mr-1.5 size-3.5" />
-                    View
+                  {/* A real (auth-checked) URL in a new tab: opens on phones and
+                    * survives pop-up blockers, unlike a data-URL written into a
+                    * blank window. */}
+                  <Button asChild variant="outline" size="sm" className="h-8">
+                    <a href={`/api/hr/payslip-documents/${d.id}`} target="_blank" rel="noopener noreferrer">
+                      <Download className="mr-1.5 size-3.5" />
+                      View
+                    </a>
                   </Button>
                   {canManage && (
                     <Button
