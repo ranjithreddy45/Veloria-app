@@ -103,9 +103,10 @@ test.describe("HR — reimbursement claim & approval", () => {
       await page.goto("/me/reimbursements");
       await expect(row()).toBeVisible();
       await expect(row()).not.toContainText("Awaiting 1st approval");
-      // Second-level rule configured → "Awaiting 2nd approval"; otherwise
-      // it goes straight to Finance.
-      await expect(row()).toContainText(/Awaiting 2nd approval|Approved · with Finance/);
+      // Second-level rule configured → "Awaiting 2nd approval"; otherwise the
+      // claim skips to the final approval (Finance). It never jumps straight to
+      // "Approved" any more: the final approval is a stage of its own.
+      await expect(row()).toContainText(/Awaiting 2nd approval|Awaiting final approval/);
     });
 
     await test.step("cleanup: withdraw while still withdrawable", async () => {

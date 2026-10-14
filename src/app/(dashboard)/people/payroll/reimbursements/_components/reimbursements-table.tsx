@@ -24,6 +24,7 @@ const FILTERS = [
   { v: "ALL", label: "All" },
   { v: "PENDING", label: "Awaiting 1st approval" },
   { v: "PENDING_L2", label: "Awaiting 2nd approval" },
+  { v: "PENDING_L3", label: "Awaiting final approval" },
   { v: "NEEDS_INFO", label: "Sent back" },
   { v: "APPROVED", label: "With Finance" },
   { v: "REJECTED", label: "Rejected" },

@@ -73,7 +73,7 @@ export function ClaimDecisionDialog({
       const next = "data" in res && res.data && "status" in res.data ? res.data.status : "";
       toast.success(
         next === "PENDING_L2" ? "Approved — sent for second-level approval." :
-        next === "PENDING_L3" ? "Approved — sent to Finance for final approval." :
+        next === "PENDING_L3" ? "Approved — sent for final approval." :
         "Approved — ready for payment scheduling."
       );
     } else toast.success("Claim rejected.");

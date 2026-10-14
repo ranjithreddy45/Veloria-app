@@ -16,7 +16,7 @@ interface Data {
   headcount: { total: number; active: number; onboarding: number; onLeave: number };
   attrition: { exits12m: number; ratePct: number };
   byEntity: Pair[]; byVertical: Pair[]; byDepartment: Pair[]; byType: Pair[];
-  attendance: { presentPct: number | null };
+  attendance: { presentPct: number | null; attendedPerPerson?: number; basisDays?: number };
   leave: { pending: number; byType: Pair[] };
   appraisal: { submitted: number; eligible: number; pct: number } | null;
   cycleName: string | null;
@@ -57,7 +57,7 @@ export function AnalyticsDashboard({ data }: { data: Data }) {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi icon={<Users className="size-4" />} label="Headcount" value={data.headcount.total} sub={`${data.headcount.active} active · ${data.headcount.onboarding} onboarding`} accent />
         <Kpi icon={<UserMinus className="size-4" />} label="Attrition (12 mo)" value={`${data.attrition.ratePct}%`} sub={`${data.attrition.exits12m} exits`} />
-        <Kpi icon={<CalendarCheck className="size-4" />} label="Attendance (mo)" value={data.attendance.presentPct != null ? `${data.attendance.presentPct}%` : "—"} sub={`${data.leave.pending} leave pending`} />
+        <Kpi icon={<CalendarCheck className="size-4" />} label={`Attendance (of ${data.attendance.basisDays ?? 30} days)`} value={data.attendance.presentPct != null ? `${data.attendance.presentPct}%` : "—"} sub={`${data.attendance.attendedPerPerson ?? 0} days/person so far · ${data.leave.pending} leave pending`} />
         <Kpi icon={<ClipboardCheck className="size-4" />} label="Appraisals" value={data.appraisal ? `${data.appraisal.pct}%` : "—"} sub={data.cycleName ? `${data.cycleName} · ${data.appraisal?.submitted ?? 0}/${data.appraisal?.eligible ?? 0}` : "No active cycle"} />
         <Kpi icon={<UserPlus className="size-4" />} label="Joined (this month)" value={data.joinedThisMonth} sub="New joiners this period" />
         <Kpi icon={<UserCheck className="size-4" />} label="Confirmation Pending" value={data.confirmationPending} sub="Still on probation (onboarding)" />

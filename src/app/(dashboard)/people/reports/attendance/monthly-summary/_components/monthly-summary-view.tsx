@@ -43,10 +43,12 @@ export function MonthlySummaryView({
     const headers = [
       "Employee", "Emp Code", "Department", "Present", "Absent", "Half-day",
       "WFH", "On leave", "Holiday", "Week-off", "Recorded days", "Worked hours",
+      "Attended days", `Attendance % (of ${data.basisDays} days)`,
     ];
     const body = rows.map((r) => [
       r.name, r.empCode, r.department ?? "", r.present, r.absent, r.halfDay,
       r.wfh, r.onLeave, r.holiday, r.weekend, r.recordedDays, hoursDecimal(r.workedMinutes),
+      r.attendedDays, r.attendancePct,
     ]);
     downloadCSV(
       `attendance-monthly-summary-${data.fy}-${String(data.month).padStart(2, "0")}.csv`,
@@ -67,11 +69,12 @@ export function MonthlySummaryView({
       </div>
 
       {t && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <StatTile label="Employees" value={t.headcount} accent="blue" icon={<Users />} sub={`${MONTHS[month - 1]} ${data?.year}`} />
           <StatTile label="Present days" value={t.present} accent="emerald" icon={<CalendarCheck />} sub={`+${t.halfDay} half · +${t.wfh} WFH`} />
           <StatTile label="Absent days" value={t.absent} accent="rose" icon={<UserX />} sub={`${t.onLeave} on leave`} />
           <StatTile label="Worked hours" value={Math.round(t.workedMinutes / 60)} accent="amber" icon={<Clock />} sub="Across all employees" />
+          <StatTile label="Avg attendance" value={`${t.avgAttendancePct}%`} accent="teal" icon={<CalendarCheck />} sub={`Of a fixed ${data?.basisDays ?? 30}-day month`} />
         </div>
       )}
 
@@ -79,7 +82,7 @@ export function MonthlySummaryView({
         <div className="border-b px-5 py-3.5">
           <h3 className="text-copy font-semibold">Per-employee tally</h3>
           <p className="text-detail text-muted-foreground">
-            Counts are days recorded with each status in the selected month. Worked hours sum the recorded workedMinutes.
+            Counts are days recorded with each status in the selected month. Attendance is measured against a fixed {data?.basisDays ?? 30}-day month (present and WFH in full, half-days as half), whatever the month&apos;s length. Worked hours sum the recorded workedMinutes.
           </p>
         </div>
 
@@ -98,7 +101,8 @@ export function MonthlySummaryView({
                   <th className="px-3 py-2.5 text-right font-medium">Leave</th>
                   <th className="px-3 py-2.5 text-right font-medium">Holiday</th>
                   <th className="px-3 py-2.5 text-right font-medium">Week-off</th>
-                  <th className="px-3 py-2.5 pr-5 text-right font-medium">Worked</th>
+                  <th className="px-3 py-2.5 text-right font-medium">Worked</th>
+                  <th className="px-3 py-2.5 pr-5 text-right font-medium">Attendance (of {data?.basisDays ?? 30})</th>
                 </tr>
               </thead>
               <tbody>
@@ -117,7 +121,11 @@ export function MonthlySummaryView({
                     <td className="px-3 py-2.5 text-right tabular-nums">{r.onLeave || ""}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{r.holiday || ""}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums text-muted-foreground">{r.weekend || ""}</td>
-                    <td className="px-3 py-2.5 pr-5 text-right tabular-nums font-medium">{fmtHm(r.workedMinutes)}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums font-medium">{fmtHm(r.workedMinutes)}</td>
+                    <td className="px-3 py-2.5 pr-5 text-right tabular-nums">
+                      <span className="font-medium">{r.attendedDays}/{data?.basisDays ?? 30}</span>
+                      <span className="ml-1.5 text-muted-foreground">{r.attendancePct}%</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
