@@ -17,7 +17,14 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface Item { label: string; href: string; icon: LucideIcon; desc?: string }
+interface Item {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+  desc?: string;
+  /** Shown only when the page says the viewer holds venue-owners:manage. */
+  venueOwners?: true;
+}
 interface Category { title: string; icon: LucideIcon; accent: string; items: Item[] }
 
 const CATEGORIES: Category[] = [
@@ -35,6 +42,7 @@ const CATEGORIES: Category[] = [
     items: [
       { label: "Users", href: "/settings/users", icon: Users, desc: "Team members & invites" },
       { label: "Roles & Permissions", href: "/settings/roles", icon: ShieldCheck, desc: "Who can do what" },
+      { label: "Venue Owners", href: "/settings/venue-owners", icon: Building2, desc: "Owner logins: lead & booking counts only", venueOwners: true },
       { label: "Two-Factor Authentication", href: "/settings/security", icon: ShieldCheck, desc: "Authenticator app for your own sign-in" },
       { label: "Activity Log", href: "/settings/activity-log", icon: History, desc: "Full audit trail" },
       { label: "Emergency Response", href: "/settings/emergency", icon: Siren, desc: "Venue safety protocols & incident log" },
@@ -93,13 +101,22 @@ const CATEGORIES: Category[] = [
   },
 ];
 
-export function SettingsHub() {
+export function SettingsHub({ canManageVenueOwners = false }: { canManageVenueOwners?: boolean }) {
   const [q, setQ] = React.useState("");
   const query = q.trim().toLowerCase();
 
+  // Items behind a stricter permission than the hub itself (settings:read).
+  const permitted = React.useMemo(
+    () =>
+      CATEGORIES.map((c) => ({ ...c, items: c.items.filter((it) => !it.venueOwners || canManageVenueOwners) })).filter(
+        (c) => c.items.length > 0,
+      ),
+    [canManageVenueOwners],
+  );
+
   const categories = React.useMemo(() => {
-    if (!query) return CATEGORIES;
-    return CATEGORIES
+    if (!query) return permitted;
+    return permitted
       .map((c) => ({
         ...c,
         items: c.items.filter(
@@ -107,7 +124,7 @@ export function SettingsHub() {
         ),
       }))
       .filter((c) => c.items.length > 0);
-  }, [query]);
+  }, [query, permitted]);
 
   return (
     <div className="space-y-4">
