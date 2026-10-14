@@ -11,6 +11,7 @@ import { resolveStatConfig } from "@/lib/hr/stat-config";
 /** Round to paise. Money must never carry float dust into a Decimal column. */
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 import { sendEmail } from "@/lib/email";
+import { normaliseOldComputePaid, releaseUnpaidRunClaims, settleRunReimbursements } from "@/lib/hr/claim-workflow";
 import { postWithinTx, fyForDate } from "@/lib/finance/ledger";
 import { FIN_ACCOUNT_CODES } from "@/lib/finance/coa-seed";
 
@@ -275,23 +276,11 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
   }
 
   // ---- Approved reimbursements to be paid in THIS run's month ----
-  // Same idempotent shape as arrears: APPROVED (awaiting pay) OR already PAID by
-  // this run, so a re-compute folds them identically instead of dropping them.
-  const reimbursements = await prisma.hrReimbursementClaim.findMany({
-    where: {
-      payFy: run.fy,
-      payMonth: run.month,
-      employeeId: { in: employees.map((e) => e.id) },
-      OR: [{ status: "APPROVED" }, { status: "PAID", runId }],
-    },
-    select: { id: true, employeeId: true, amount: true, taxable: true },
-  });
-  const reimbByEmp = new Map<string, typeof reimbursements>();
-  for (const r of reimbursements) {
-    const list = reimbByEmp.get(r.employeeId) ?? [];
-    list.push(r);
-    reimbByEmp.set(r.employeeId, list);
-  }
+  // Computing only TAGS a claim with this run (runId); it stays APPROVED until
+  // the run is marked paid (markPayrollPaid → settleRunReimbursements), because
+  // computing a draft moves no money. Release, tag and read all happen inside
+  // the compute transaction below, so a failed compute changes nothing and a
+  // claim paid by hand meanwhile can't also land on a payslip.
 
   // ---- Recurring earnings/deductions active for THIS run's month ----
   // Active within [start, end]: started on/before this period, not yet ended.
@@ -314,6 +303,19 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
   }
 
   await prisma.$transaction(async (tx) => {
+    // Claims an earlier version of this code marked PAID when computing this
+    // (still DRAFT, so unpaid) run go back to APPROVED; a hand payment never sets
+    // runId, so paymentRef-less PAID+runId rows can only be those.
+    await tx.hrReimbursementClaim.updateMany({ where: { runId, status: "PAID", paymentRef: null }, data: { status: "APPROVED", paidAt: null } });
+    // Release this run's previous tags; each payable employee's claims are re-tagged below.
+    await tx.hrReimbursementClaim.updateMany({ where: { runId, status: "APPROVED" }, data: { runId: null } });
+    const reimbursements = await tx.hrReimbursementClaim.findMany({
+      where: { payFy: run.fy, payMonth: run.month, employeeId: { in: employees.map((e) => e.id) }, status: "APPROVED", runId: null },
+      select: { id: true, employeeId: true },
+    });
+    const reimbByEmp = new Map<string, string[]>();
+    for (const r of reimbursements) reimbByEmp.set(r.employeeId, [...(reimbByEmp.get(r.employeeId) ?? []), r.id]);
+
     for (const emp of employees) {
       const struct = structByEmp.get(emp.id);
       if (!struct) {
@@ -323,7 +325,21 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
       const baseLines = (struct.lines as unknown as StructureLine[]) ?? [];
       const sheet = sheetByEmp.get(emp.id);
       const empArrears = arrearsByEmp.get(emp.id) ?? [];
-      const empReimb = reimbByEmp.get(emp.id) ?? [];
+      // Tag first, then pay exactly what was tagged: a claim paid by hand in the
+      // meantime is no longer APPROVED, so it is neither tagged nor on the payslip.
+      const candidateIds = reimbByEmp.get(emp.id) ?? [];
+      let empReimb: { id: string; amount: Prisma.Decimal; taxable: boolean }[] = [];
+      if (candidateIds.length > 0) {
+        // Month re-checked: a claim Finance moved to another month meanwhile is skipped.
+        await tx.hrReimbursementClaim.updateMany({
+          where: { id: { in: candidateIds }, status: "APPROVED", runId: null, payFy: run.fy, payMonth: run.month },
+          data: { runId },
+        });
+        empReimb = await tx.hrReimbursementClaim.findMany({
+          where: { id: { in: candidateIds }, status: "APPROVED", runId, payFy: run.fy, payMonth: run.month },
+          select: { id: true, amount: true, taxable: true },
+        });
+      }
       const empRecurring = recurringByEmp.get(emp.id) ?? [];
       // Recurring EARNINGS join the structure lines (LOP-prorated like allowances);
       // recurring DEDUCTIONS are fixed (non-prorated) via fixedDeductions.
@@ -365,13 +381,6 @@ export async function computePayrollRun(runId: string): Promise<Result<{ headcou
         });
       }
 
-      // Stamp the reimbursements disbursed in this run (same idempotent shape).
-      if (empReimb.length > 0) {
-        await tx.hrReimbursementClaim.updateMany({
-          where: { id: { in: empReimb.map((r) => r.id) } },
-          data: { status: "PAID", runId, paidAt: new Date() },
-        });
-      }
 
       // ---- Advance recovery (idempotent + self-healing) ----
       // The HrAdvanceRecovery rows are the SOURCE OF TRUTH. After (re)writing THIS
@@ -505,10 +514,21 @@ export async function lockPayrollRun(runId: string): Promise<Result<{ id: string
   if (run.status !== "DRAFT") return { success: false, error: "Only a draft run can be locked." };
   if (run.headcount < 1) return { success: false, error: "Compute payslips before locking the run." };
 
-  await prisma.hrPayrollRun.update({
-    where: { id: runId },
+  // Guarded flip: two clicks at once lock (and release/notify) only once.
+  const locked = await prisma.hrPayrollRun.updateMany({
+    where: { id: runId, status: "DRAFT" },
     data: { status: "LOCKED", lockedAt: new Date() },
   });
+  if (locked.count === 0) return { success: false, error: "This run was already locked." };
+  // Reimbursements: claims an earlier version of the code marked PAID when
+  // computing go back to APPROVED (paid when the run is paid), and claims
+  // scheduled on this month that did not make it onto the payslips are
+  // un-scheduled — a locked run will never pay them — with Finance told.
+  try {
+    await releaseUnpaidRunClaims(runId, { id: u!.id, name: u!.name ?? null });
+  } catch (e) {
+    console.error("[PAYROLL_LOCK_REIMB]", runId, e);
+  }
   // Payslips are final once locked — notify employees their payslip is ready.
   await deliverPayslipEmails(runId);
   revalidatePath("/people/payroll");
@@ -524,9 +544,23 @@ export async function markPayrollPaid(runId: string): Promise<Result<{ id: strin
   if (!run) return { success: false, error: "Payroll run not found." };
   if (run.status !== "LOCKED") return { success: false, error: "Lock the run before marking it paid." };
 
-  await prisma.hrPayrollRun.update({ where: { id: runId }, data: { status: "PAID" } });
+  // Claims an older version marked PAID at compute go back to APPROVED while
+  // the run is still LOCKED, so settling below pays, logs and notifies them.
+  await normaliseOldComputePaid([runId]);
+  // Guarded flip: two clicks at once settle the run's claims only once.
+  const flipped = await prisma.hrPayrollRun.updateMany({ where: { id: runId, status: "LOCKED" }, data: { status: "PAID" } });
+  if (flipped.count === 0) return { success: false, error: "This run was already marked paid." };
+  // The reimbursements this run carries are paid now — stamped, logged, and
+  // each employee told. If this fails the claim-routes cron settles them.
+  try {
+    await settleRunReimbursements(runId, { id: u!.id, name: u!.name ?? null });
+  } catch (e) {
+    console.error("[PAYROLL_REIMB_SETTLE]", runId, e);
+  }
   revalidatePath("/people/payroll");
   revalidatePath(`/people/payroll/${runId}`);
+  revalidatePath("/me/reimbursements");
+  revalidatePath("/finance/reimbursements");
   return { success: true, data: { id: runId } };
 }
 

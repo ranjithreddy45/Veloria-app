@@ -89,7 +89,7 @@ test.describe("HR — reimbursement claim & approval", () => {
 
       const approvalRow = page.getByRole("row").filter({ hasText: title }).first();
       await expect(approvalRow).toBeVisible();
-      await expect(approvalRow).toContainText("1st-level");
+      await expect(approvalRow).toContainText("1st approval");
       await approvalRow.getByRole("button", { name: "Approve", exact: true }).click();
 
       const decision = page.getByRole("dialog").filter({ hasText: /Give .* approval/ });
@@ -103,10 +103,11 @@ test.describe("HR — reimbursement claim & approval", () => {
       await page.goto("/me/reimbursements");
       await expect(row()).toBeVisible();
       await expect(row()).not.toContainText("Awaiting 1st approval");
-      // Second-level rule configured → "Awaiting 2nd approval"; otherwise the
-      // claim skips to the final approval (Finance). It never jumps straight to
-      // "Approved" any more: the final approval is a stage of its own.
+      // The default route is 1st approval → (2nd approval, when configured) →
+      // Finance. It never jumps straight to "Approved": the final approval is
+      // a stage of its own.
       await expect(row()).toContainText(/Awaiting 2nd approval|Awaiting final approval/);
+      await expect(row()).toContainText("With ");
     });
 
     await test.step("cleanup: withdraw while still withdrawable", async () => {

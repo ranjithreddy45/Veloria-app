@@ -2,13 +2,13 @@
 
 // ============================================================
 // Employee expense reimbursements — IO layer.
-// Lifecycle: employee SUBMITS (ESS) → LEVEL 1 approval (first-level
-// validation) → LEVEL 2 approval (resolved from the employee's department)
-// → APPROVED, now visible to Finance → Finance schedules it on a pay run
-// (payroll disburses and stamps PAID) or records a direct payment → PAID.
-// Every step writes an HrClaimEvent with actor + timestamp and notifies the
-// next person in the chain (in-app + email). Finance cannot see a claim
-// before both approvals are complete. Rules live in lib/hr/claim-workflow.ts.
+// Lifecycle: employee SUBMITS (ESS) → the claim's approval chain, one stage at
+// a time (e.g. reporting manager → HR → Venkat → Finance; chosen by
+// lib/hr/claim-chain.ts and snapshotted on the claim) → APPROVED, now visible
+// to Finance → Finance schedules it on a pay run (payroll disburses and stamps
+// PAID) or records a direct payment → PAID. Every step writes an HrClaimEvent
+// with actor + timestamp and notifies the employee and the next approver
+// (in-app + email). Finance cannot see a claim before every stage is approved.
 // Self-service reads/writes are strictly scoped to the signed-in user's own
 // employee record. All Decimal money crosses the boundary via Number()-out /
 // Prisma.Decimal-in.
@@ -28,15 +28,30 @@ import {
   claimMonthBounds,
   type ReimbursementCategory,
 } from "@/lib/hr/reimbursement";
-import { CLAIM_STAGE_LABEL } from "@/lib/hr/claim-labels";
-import { employeeIdFromScope, employeeRouteScope, isEmployeeRouteScope, pickApproverRules } from "@/lib/hr/claim-routing";
+import { AWAITING_STATUSES } from "@/lib/hr/claim-labels";
+import { isEmployeeRouteScope } from "@/lib/hr/claim-routing";
 import {
-  awaitingLevel,
+  MAX_STAGES,
+  canActOnStage,
+  chainSummary,
+  eligibleApproverIds,
+  eligibleStage,
+  parseChain,
+  parseRouteStages,
+  stageHolder,
+  statusForStage,
+  type ChainStage,
+  type RouteStage,
+} from "@/lib/hr/claim-chain";
+import {
   describeClaim,
+  ensureClaimChain,
   financeRecipients,
   notifyClaimStep,
-  resolveClaimApprovers,
+  resolveClaimChain,
+  usersByIds,
   type ApproverUser,
+  type ClaimChainState,
 } from "@/lib/hr/claim-workflow";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
@@ -129,34 +144,46 @@ async function employeeBrief(employeeId: string) {
     : { id: employeeId, firstName: "", lastName: "", empCode: "—", departmentId: null, userId: null, name: "Unknown" };
 }
 
+/** Fields every chain-aware read needs from a claim. */
+const CHAIN_FIELDS = {
+  id: true, employeeId: true, status: true, category: true, title: true, amount: true,
+  approvalChain: true, stageIndex: true, updatedAt: true,
+  level1ById: true, level1At: true, level1Note: true, level2ById: true, level2At: true, level2Note: true,
+} as const;
+
+const AWAITING: string[] = [...AWAITING_STATUSES];
+
 /**
- * Names of the approvers at each stage, resolved once for a whole list. Uses
- * the same routing as the approvals themselves (claim-routing.ts), so what an
+ * Where a claim stands, in words, from its chain: the stage it waits at, who
+ * holds it, and the whole route. The same chain the approvals use, so what an
  * employee is told always matches who can actually act.
  */
-async function approverNameResolver() {
-  const [rules, finance] = await Promise.all([
-    prisma.hrReimbursementApprover.findMany({ select: { level: true, scope: true, userId: true } }),
-    financeRecipients(),
-  ]);
-  const users = rules.length
-    ? await prisma.user.findMany({ where: { id: { in: rules.map((r) => r.userId) } }, select: { id: true, name: true } })
-    : [];
-  const name = (id?: string | null) => (id ? users.find((u) => u.id === id)?.name ?? null : null);
-  const financeName = finance.map((f) => f.name ?? f.email).join(" / ") || "Finance";
-  return (employee: { id?: string | null; departmentId: string | null }, category?: string | null) => {
-    const p = pickApproverRules(rules, employee, category);
-    return {
-      level1Name: name(p.l1?.userId) ?? "Administrator",
-      level2Name: name(p.l2?.userId),
-      level3Name: name(p.l3?.userId) ?? financeName,
-    };
+function trackerFields(state: ClaimChainState) {
+  const st = state.stageIndex != null ? eligibleStage(state.chain, state.stageIndex) : undefined;
+  const next = state.stageIndex != null ? eligibleStage(state.chain, state.stageIndex + 1) : undefined;
+  return {
+    status: state.status,
+    stageIndex: state.stageIndex,
+    /** Echoed back with a decision, so a stale screen can't act on a claim that has moved. */
+    version: state.updatedAt ? state.updatedAt.toISOString() : null,
+    stage: st?.label ?? null,
+    /** "Final approval with Amrutha" — where an approval here sends it; null at the last stage. */
+    nextStep: next ? `${next.label.toLowerCase()} with ${stageHolder(next)}` : null,
+    awaitingName: st ? stageHolder(st) : null,
+    statusLabel: st ? `Awaiting ${st.label.toLowerCase()}` : null,
+    route: state.chain.length ? chainSummary(state.chain) : null,
   };
 }
 
-/** "Venkat", "Venkat / Ranjith" — how a pool of approvers is named to people. */
-function namesOf(users: ApproverUser[]): string {
-  return users.map((u) => u.name ?? u.email).join(" / ") || "the approver";
+/**
+ * The row as of `state`. Attaching a chain to a pre-chain claim (or a change
+ * racing the list) can move the row after the list read it; then the amount
+ * and title shown must come from a fresh read, never from the stale one beside
+ * a newer version — or an approver could approve an amount they never saw.
+ */
+async function freshRow<T extends { id: string; updatedAt: Date }>(r: T, state: ClaimChainState, reread: () => Promise<T | null>): Promise<T> {
+  if (!state.updatedAt || state.updatedAt.getTime() === r.updatedAt.getTime()) return r;
+  return (await reread()) ?? r;
 }
 
 /**
@@ -257,6 +284,10 @@ export async function submitReimbursement(input: SubmitReimbursementInput): Prom
     ? await storeIncomingFile(input.billUrl, { prefix: "hr/claims", ownerType: "HrReimbursementClaim", createdById: u.id })
     : null;
 
+  // The route this claim will follow, fixed now so a later team change can't
+  // re-route it halfway (claim-chain.ts).
+  const chain = await resolveClaimChain(me.id, category);
+
   let created: { id: string };
   try {
     created = await prisma.$transaction(async (tx) => {
@@ -277,6 +308,8 @@ export async function submitReimbursement(input: SubmitReimbursementInput): Prom
           billUrl,
           note: input.note?.trim() || null,
           createdById: u.id,
+          approvalChain: chain as unknown as Prisma.InputJsonValue,
+          stageIndex: 0,
         },
         select: { id: true },
       });
@@ -287,19 +320,20 @@ export async function submitReimbursement(input: SubmitReimbursementInput): Prom
   }
   await recordClaimEvent(created.id, "SUBMITTED", {
     from: null, to: "PENDING", actorId: u.id, actorName: u.name ?? null,
+    note: `Approval route: ${chainSummary(chain)}`,
   });
 
-  // Step 2 begins: the first-level approver is told immediately, and the
-  // employee learns where their claim is and with whom.
-  const approvers = await resolveClaimApprovers({ id: me.id, departmentId: me.departmentId }, category);
-  await notifyClaimStep(approvers.level1, {
+  // The first approver is told immediately, and the employee learns where
+  // their claim is and with whom.
+  const first = chain[0];
+  await notifyClaimStep(await usersByIds(first.approverIds), {
     title: "Reimbursement claim awaiting your approval",
-    body: `${describeClaim({ title, amount, employeeName: `${me.firstName} ${me.lastName}`.trim() })} needs first-level approval.`,
+    body: `${describeClaim({ title, amount, employeeName: `${me.firstName} ${me.lastName}`.trim() })} needs your ${first.label.toLowerCase()}.`,
     actionUrl: "/me/approvals",
     claimId: created.id,
   });
   await notifyOwner(me.id, created.id, "Reimbursement claim submitted",
-    `Your claim "${title}" was submitted. Status: Pending — ${CLAIM_STAGE_LABEL[1]} with ${namesOf(approvers.level1)}.`);
+    `Your claim "${title}" was submitted. Route: ${chainSummary(chain)}. Status: Pending — ${first.label} with ${stageHolder(first)}.`);
 
   revalidateAll();
   return { success: true, data: { id: created.id } };
@@ -310,20 +344,15 @@ export async function listMyReimbursements() {
   if (!u?.id) return [];
   const me = await myEmployee(u.id);
   if (!me) return [];
-  const [rows, names] = await Promise.all([
-    prisma.hrReimbursementClaim.findMany({ where: { employeeId: me.id }, orderBy: { createdAt: "desc" } }),
-    approverNameResolver(),
-  ]);
-  return rows.map((r) => {
-    const level = awaitingLevel(r.status);
-    const n = names({ id: me.id, departmentId: me.departmentId }, r.category);
-    return {
-      ...serialize(r),
-      // Where the claim is now and who holds it, for the employee's tracker.
-      stage: level ? CLAIM_STAGE_LABEL[level] : null,
-      awaitingName: level === 1 ? n.level1Name : level === 2 ? n.level2Name : level === 3 ? n.level3Name : null,
-    };
-  });
+  const rows = await prisma.hrReimbursementClaim.findMany({ where: { employeeId: me.id }, orderBy: { createdAt: "desc" } });
+  const out = [];
+  for (const r of rows) {
+    // Where the claim is now and who holds it, for the employee's tracker.
+    const state = await ensureClaimChain(r);
+    const row = await freshRow(r, state, () => prisma.hrReimbursementClaim.findUnique({ where: { id: r.id } }));
+    out.push({ ...serialize(row), ...trackerFields(state) });
+  }
+  return out;
 }
 
 /** Withdraw own claim — while it is still awaiting an approval. */
@@ -333,13 +362,31 @@ export async function cancelMyReimbursement(id: string): Promise<Result<{ id: st
   const me = await myEmployee(u.id);
   if (!me) return { success: false, error: "No employee record." };
 
-  const before = await prisma.hrReimbursementClaim.findFirst({ where: { id, employeeId: me.id }, select: { status: true } });
+  const before = await prisma.hrReimbursementClaim.findFirst({ where: { id, employeeId: me.id }, select: CHAIN_FIELDS });
+  if (!before) return { success: false, error: "Claim not found." };
+  if (!AWAITING.includes(before.status)) return { success: false, error: "Only a claim still awaiting approval can be withdrawn." };
+  // Pinned to the state read, so the notice below goes to the stage it was really at.
   const claimed = await prisma.hrReimbursementClaim.updateMany({
-    where: { id, employeeId: me.id, status: { in: ["PENDING", "PENDING_L2"] } },
+    where: { id, employeeId: me.id, status: before.status, stageIndex: before.stageIndex, updatedAt: before.updatedAt },
     data: { status: "REJECTED", decisionNote: "Withdrawn by employee" },
   });
-  if (claimed.count === 0) return { success: false, error: "Only a claim still awaiting approval can be withdrawn." };
-  await recordClaimEvent(id, "WITHDRAWN", { from: before?.status, to: "REJECTED", actorId: u.id, actorName: u.name ?? null });
+  if (claimed.count === 0) return { success: false, error: "This claim just changed — refresh and try again." };
+  await recordClaimEvent(id, "WITHDRAWN", { from: before.status, to: "REJECTED", actorId: u.id, actorName: u.name ?? null });
+
+  // The approver it was waiting on is told it is gone, and the employee gets
+  // the same confirmation as for every other status change.
+  const chain = parseChain(before.approvalChain);
+  const stage = chain && before.stageIndex != null ? eligibleStage(chain, before.stageIndex) : undefined;
+  if (stage) {
+    await notifyClaimStep(await usersByIds(stage.approverIds), {
+      title: "Reimbursement claim withdrawn",
+      body: `${describeClaim({ title: before.title, amount: Number(before.amount), employeeName: `${me.firstName} ${me.lastName}`.trim() })} was withdrawn by the employee at ${stage.label.toLowerCase()}. No action is needed.`,
+      actionUrl: "/me/approvals",
+      claimId: id,
+    });
+  }
+  await notifyOwner(me.id, id, "Reimbursement claim withdrawn",
+    `You withdrew your claim "${before.title}"${stage ? ` at ${stage.label.toLowerCase()}` : ""}. Status: Withdrawn — it will not be paid.`);
   revalidateAll();
   return { success: true, data: { id } };
 }
@@ -356,28 +403,29 @@ export async function listReimbursements(filter?: { status?: string }) {
   const rows = await prisma.hrReimbursementClaim.findMany({ where, orderBy: [{ status: "asc" }, { createdAt: "desc" }] });
   const emps = await prisma.employee.findMany({
     where: { id: { in: Array.from(new Set(rows.map((r) => r.employeeId))) } },
-    select: { id: true, firstName: true, lastName: true, empCode: true, departmentId: true },
+    select: { id: true, firstName: true, lastName: true, empCode: true },
   });
   const byId = new Map(emps.map((e) => [e.id, e]));
-  const approverNames = await approverNameResolver();
-  return rows.map((r) => {
+  const out = [];
+  for (const r of rows) {
     const e = byId.get(r.employeeId);
-    const names = approverNames({ id: r.employeeId, departmentId: e?.departmentId ?? null }, r.category);
-    const level = awaitingLevel(r.status);
-    return {
-      ...serialize(r),
+    const state = await ensureClaimChain(r);
+    const row = await freshRow(r, state, () => prisma.hrReimbursementClaim.findUnique({ where: { id: r.id } }));
+    out.push({
+      ...serialize(row),
+      ...trackerFields(state),
       empCode: e?.empCode ?? "—",
       name: `${e?.firstName ?? ""} ${e?.lastName ?? ""}`.trim() || "Unknown",
-      awaitingName: level === 1 ? names.level1Name : level === 2 ? names.level2Name : level === 3 ? names.level3Name : null,
-    };
-  });
+    });
+  }
+  return out;
 }
 
 export async function reimbursementStats() {
   const u = await requireUser();
   if (!can(u?.role, "hr:payroll")) return { pending: 0, approved: 0, paidThisRunable: 0, pendingAmount: 0 };
   const rows = await prisma.hrReimbursementClaim.findMany({
-    where: { entityId: ENTITY_ID, status: { in: ["PENDING", "PENDING_L2", "APPROVED"] } },
+    where: { entityId: ENTITY_ID, status: { in: [...AWAITING, "APPROVED"] } },
     select: { amount: true, status: true },
   });
   let pending = 0, approved = 0, pendingAmount = 0;
@@ -389,190 +437,180 @@ export async function reimbursementStats() {
 }
 
 // ============================================================
-// Approvals — level 1 and level 2
+// Approvals — one stage at a time, along the claim's chain
 // ============================================================
 export interface DecideReimbursementInput {
   decision: "APPROVED" | "REJECTED";
   note?: string;
+  /** The stage the approver was shown (0-based). A mismatch means the claim moved. */
+  expectedStage?: number | null;
+  /** The claim's version (updatedAt) the approver was shown. */
+  version?: string | null;
+}
+
+/** Did the screen the approver acted from show the claim as it is now? */
+function staleError(state: ClaimChainState, expected: { expectedStage?: number | null; version?: string | null }) {
+  const moved =
+    (expected.expectedStage != null && expected.expectedStage !== state.stageIndex) ||
+    (!!expected.version && !!state.updatedAt && expected.version !== state.updatedAt.toISOString());
+  return moved ? "This claim has changed since you opened it — refresh to see where it is now." : null;
+}
+
+/** canActOnStage (claim-chain.ts) for a signed-in user. */
+function canAct(u: { id: string; role?: string }, chain: ChainStage[], idx: number, claimantUserId: string | null) {
+  return canActOnStage({ id: u.id, superAdmin: isSuperAdmin(u.role) }, chain, idx, claimantUserId);
 }
 
 /**
- * The one decision path for both levels. The level is read from the claim's
- * status; the caller must be that level's resolved approver (or SUPER_ADMIN).
- * Approving at level 1 hands the claim to level 2; the final approval sends it
- * to Finance. Rejection at either level closes the claim.
+ * The one decision path for every stage. The stage comes from the claim's
+ * chain; approving moves it to the next stage (its approvers and the employee
+ * are told), approving the last stage sends it to Finance for payment, and a
+ * rejection at any stage closes it. The update is guarded on status AND stage,
+ * so two approvers clicking at once cannot both move it.
  */
-export async function decideReimbursement(id: string, input: DecideReimbursementInput): Promise<Result<{ id: string; status: string }>> {
+export async function decideReimbursement(
+  id: string,
+  input: DecideReimbursementInput,
+): Promise<Result<{ id: string; status: string; nextStage: string | null; nextHolder: string | null }>> {
   const u = await requireUser();
   if (!u?.id) return { success: false, error: "Not signed in." };
 
-  const claim = await prisma.hrReimbursementClaim.findUnique({
-    where: { id },
-    select: { id: true, status: true, employeeId: true, title: true, amount: true, category: true },
-  });
+  const claim = await prisma.hrReimbursementClaim.findUnique({ where: { id }, select: CHAIN_FIELDS });
   if (!claim) return { success: false, error: "Claim not found." };
-  const level = awaitingLevel(claim.status);
-  if (!level) return { success: false, error: "This claim is not awaiting approval." };
+  if (!AWAITING.includes(claim.status)) return { success: false, error: "This claim is not awaiting approval." };
+
+  const state = await ensureClaimChain(claim);
+  const idx = state.stageIndex;
+  const stage = idx != null ? state.chain[idx] : undefined;
+  if (idx == null || !stage) return { success: false, error: "This claim's approval route could not be worked out — ask HR to check the approvers page." };
+
+  const stale = staleError(state, input);
+  if (stale) return { success: false, error: stale };
 
   const emp = await employeeBrief(claim.employeeId);
-  const approvers = await resolveClaimApprovers({ id: emp.id, departmentId: emp.departmentId }, claim.category);
-  const stage = CLAIM_STAGE_LABEL[level];
-  const actor = u.name ?? "the approver";
-
-  let mine = false;
-  let who: any[] = [];
-  if (level === 1) { mine = approvers.level1.some((a) => a.id === u.id); who = approvers.level1; }
-  else if (level === 2) { mine = approvers.level2.some((a) => a.id === u.id); who = approvers.level2; }
-  else if (level === 3) { mine = approvers.level3.some((a) => a.id === u.id); who = approvers.level3; }
-
-  if (!mine && !isSuperAdmin(u.role)) {
-    return {
-      success: false,
-      error: `This claim is waiting for ${who.map((w) => w.name ?? w.email).join(" / ") || "its approver"} (level ${level}).`,
-    };
-  }
+  const access = canAct(u, state.chain, idx, emp.userId);
+  if (!access.ok) return { success: false, error: access.error ?? "Insufficient permissions" };
 
   const note = input.note?.trim() || null;
   const now = new Date();
+  const actor = u.name ?? "the approver";
   const summary = describeClaim({ title: claim.title, amount: Number(claim.amount), employeeName: emp.name });
+  const last = idx === state.chain.length - 1;
+  const onBehalf = access.onBehalf ? ` (Super Admin, for ${stageHolder(eligibleStage(state.chain, idx))})` : "";
+  const decided: ChainStage = { ...stage, decidedById: u.id, decidedByName: u.name ?? null, decidedAt: now.toISOString(), note };
+  const chainAfter = state.chain.map((st, i) => (i === idx ? decided : st));
+  // The legacy level columns keep their old meaning: 1st, 2nd, and final.
+  const levelCols = last
+    ? { level3ById: u.id, level3At: now, level3Note: note }
+    : idx === 0 ? { level1ById: u.id, level1At: now, level1Note: note }
+    : idx === 1 ? { level2ById: u.id, level2At: now, level2Note: note }
+    : {};
 
   if (input.decision === "REJECTED") {
     const upd = await prisma.hrReimbursementClaim.updateMany({
-      where: { id, status: claim.status },
+      where: { id, status: state.status, stageIndex: idx, ...(state.updatedAt ? { updatedAt: state.updatedAt } : {}) },
       data: {
         status: "REJECTED", decidedById: u.id, decidedAt: now, decisionNote: note,
-        ...(level === 1 ? { level1ById: u.id, level1At: now, level1Note: note } :
-            level === 2 ? { level2ById: u.id, level2At: now, level2Note: note } :
-                          { level3ById: u.id, level3At: now, level3Note: note }),
+        approvalChain: chainAfter as unknown as Prisma.InputJsonValue, ...levelCols,
       },
     });
     if (upd.count === 0) return { success: false, error: "This claim was already decided." };
-    await recordClaimEvent(id, "REJECTED", { from: claim.status, to: "REJECTED", note, actorId: u.id, actorName: u.name ?? null });
+    await recordClaimEvent(id, "REJECTED", {
+      from: state.status, to: "REJECTED", actorId: u.id, actorName: u.name ?? null,
+      note: `${stage.label}${onBehalf}${note ? ` — ${note}` : ""}`,
+    });
     await prisma.activityLog.create({
-      data: { action: "REIMBURSEMENT_REJECTED", entityType: "EMPLOYEE", entityId: claim.employeeId, userId: u.id, changes: { reimbursementId: id, level } },
+      data: { action: "REIMBURSEMENT_REJECTED", entityType: "EMPLOYEE", entityId: claim.employeeId, userId: u.id, changes: { reimbursementId: id, stage: idx + 1 } },
     });
     await notifyOwner(claim.employeeId, id, "Reimbursement claim rejected",
-      `Your claim "${claim.title}" was rejected by ${actor} at ${stage}${note ? `: ${note}` : "."} Status: Rejected.`);
+      `Your claim "${claim.title}" was rejected by ${actor} at ${stage.label.toLowerCase()}${note ? `: ${note}` : "."} Status: Rejected.`);
     revalidateAll();
-    return { success: true, data: { id, status: "REJECTED" } };
+    return { success: true, data: { id, status: "REJECTED", nextStage: null, nextHolder: null } };
   }
 
-  // APPROVE at this level.
-  // APPROVE at this level.
-  let nextStatus: string;
-  let skippedL2 = false;
-
-  if (level === 1) {
-    if (approvers.level2.length > 0) {
-      nextStatus = "PENDING_L2";
-    } else {
-      nextStatus = "PENDING_L3";
-      skippedL2 = true;
-    }
-  } else if (level === 2) {
-    nextStatus = "PENDING_L3";
-  } else {
-    nextStatus = "APPROVED";
-  }
-
+  const nextIdx = last ? idx : idx + 1;
+  const nextStatus = last ? "APPROVED" : statusForStage(nextIdx);
   const upd = await prisma.hrReimbursementClaim.updateMany({
-    where: { id, status: claim.status },
+    where: { id, status: state.status, stageIndex: idx, ...(state.updatedAt ? { updatedAt: state.updatedAt } : {}) },
     data: {
       status: nextStatus,
-      ...(level === 1 ? { level1ById: u.id, level1At: now, level1Note: note } :
-          level === 2 ? { level2ById: u.id, level2At: now, level2Note: note } :
-                        { level3ById: u.id, level3At: now, level3Note: note }),
-      ...(nextStatus === "APPROVED" ? { decidedById: u.id, decidedAt: now, decisionNote: note } : {}),
+      stageIndex: nextIdx,
+      approvalChain: chainAfter as unknown as Prisma.InputJsonValue,
+      ...levelCols,
+      ...(last ? { decidedById: u.id, decidedAt: now, decisionNote: note } : {}),
     },
   });
   if (upd.count === 0) return { success: false, error: "This claim was already decided." };
-
-  await recordClaimEvent(id, level === 1 ? "LEVEL1_APPROVED" : level === 2 ? "LEVEL2_APPROVED" : "LEVEL3_APPROVED", {
-    from: claim.status, to: nextStatus, note, actorId: u.id, actorName: u.name ?? null,
+  await recordClaimEvent(id, "STAGE_APPROVED", {
+    from: state.status, to: nextStatus, actorId: u.id, actorName: u.name ?? null,
+    note: `${stage.label}${onBehalf}${note ? ` — ${note}` : ""}`,
   });
 
-  if (skippedL2) {
-    await recordClaimEvent(id, "LEVEL2_SKIPPED", {
-      from: "PENDING", to: "PENDING_L3", actorId: u.id, actorName: u.name ?? null,
-      note: "No second-level approver is configured for this employee's department.",
-    });
-  }
-
-  if (nextStatus === "PENDING_L2") {
-    await notifyOwner(claim.employeeId, id, `Claim approved at ${stage}`,
-      `Your claim "${claim.title}" was approved by ${actor} (${stage}). Status: Pending — ${CLAIM_STAGE_LABEL[2]} with ${namesOf(approvers.level2)}.`);
-    await notifyClaimStep(approvers.level2, {
+  if (!last) {
+    // The next stage's approvers as of now — without anyone who has just
+    // approved an earlier stage — so the notice goes to who can actually act.
+    const next = eligibleStage(chainAfter, nextIdx)!;
+    await notifyOwner(claim.employeeId, id, `Claim approved at ${stage.label.toLowerCase()}`,
+      `Your claim "${claim.title}" was approved by ${actor} (${stage.label.toLowerCase()}). Status: Pending — ${next.label} with ${stageHolder(next)}.`);
+    await notifyClaimStep(await usersByIds(next.approverIds), {
       title: "Reimbursement claim awaiting your approval",
-      body: `${summary} has first-level approval from ${u.name ?? "the first approver"} and now needs your second-level approval.`,
+      body: `${summary} was approved by ${actor} (${stage.label.toLowerCase()}) and now needs your ${next.label.toLowerCase()}.`,
       actionUrl: "/me/approvals",
       claimId: id,
     });
-  } else if (nextStatus === "PENDING_L3") {
-    await notifyOwner(claim.employeeId, id, `Claim approved at ${stage}`,
-      `Your claim "${claim.title}" was approved by ${actor} (${stage}). Status: Pending — ${CLAIM_STAGE_LABEL[3]} with ${namesOf(approvers.level3)}.`);
-    await notifyClaimStep(approvers.level3, {
-      title: "Reimbursement claim awaiting Finance approval",
-      body: `${summary} has completed its prior approvals and now needs your approval as Finance.`,
-      actionUrl: "/me/approvals",
-      claimId: id,
-    });
-  } else if (nextStatus === "APPROVED") {
-    await prisma.activityLog.create({
-      data: { action: "REIMBURSEMENT_APPROVED", entityType: "EMPLOYEE", entityId: claim.employeeId, userId: u.id, changes: { reimbursementId: id, level } },
-    });
-    // Notice to finance that it's ready for payment scheduling
-    await notifyClaimStep(await financeRecipients(), {
-      title: "Reimbursement approved — ready for payment",
-      body: `${summary} has completed all approvals and is ready for Finance to process.`,
-      actionUrl: "/finance/reimbursements",
-      claimId: id,
-    });
-    await notifyOwner(claim.employeeId, id, "Reimbursement claim approved",
-      `Your claim "${claim.title}" received ${CLAIM_STAGE_LABEL[3].toLowerCase()} from ${actor}. Status: Approved — with Finance for payment. You will be told when it is paid.`);
+    revalidateAll();
+    return { success: true, data: { id, status: nextStatus, nextStage: next.label, nextHolder: stageHolder(next) } };
   }
 
+  await prisma.activityLog.create({
+    data: { action: "REIMBURSEMENT_APPROVED", entityType: "EMPLOYEE", entityId: claim.employeeId, userId: u.id, changes: { reimbursementId: id, stage: idx + 1 } },
+  });
+  await notifyClaimStep(await financeRecipients(), {
+    title: "Reimbursement approved — ready for payment",
+    body: `${summary} has completed every approval and is ready for Finance to pay.`,
+    actionUrl: "/finance/reimbursements",
+    claimId: id,
+  });
+  await notifyOwner(claim.employeeId, id, "Reimbursement claim approved",
+    `Your claim "${claim.title}" received its final approval from ${actor}. Status: Approved — with Finance for payment. You will be told when it is paid.`);
   revalidateAll();
-  return { success: true, data: { id, status: nextStatus } };
+  return { success: true, data: { id, status: "APPROVED", nextStage: null, nextHolder: null } };
 }
 
 export async function listMyApprovals() {
   const u = await requireUser();
   if (!u?.id) return [];
   const rows = await prisma.hrReimbursementClaim.findMany({
-    where: { entityId: ENTITY_ID, status: { in: ["PENDING", "PENDING_L2", "PENDING_L3"] } },
+    where: { entityId: ENTITY_ID, status: { in: AWAITING } },
     orderBy: { createdAt: "asc" },
     include: { _count: { select: { attachments: true } } },
   });
   if (rows.length === 0) return [];
   const emps = await prisma.employee.findMany({
     where: { id: { in: Array.from(new Set(rows.map((r) => r.employeeId))) } },
-    select: { id: true, firstName: true, lastName: true, empCode: true, departmentId: true, department: { select: { name: true } } },
+    select: { id: true, firstName: true, lastName: true, empCode: true, department: { select: { name: true } } },
   });
   const byId = new Map(emps.map((e) => [e.id, e]));
-  const superAdmin = isSuperAdmin(u.role);
-  
-  // To avoid N+1 queries, pre-fetch level 3 (finance users)
-  const l3Users = await financeRecipients();
-  const amIL3 = superAdmin || l3Users.some(f => f.id === u.id);
 
+  // Only the claims whose CURRENT stage names this user. A Super Admin can
+  // still step in from the HR overview, but their queue is what is theirs —
+  // otherwise every claim at every stage would sit in it.
   const out = [];
   for (const r of rows) {
+    const state = await ensureClaimChain(r);
+    const idx = state.stageIndex;
+    if (idx == null || !state.chain[idx] || !eligibleApproverIds(state.chain, idx).includes(u.id)) continue;
+    const row = await freshRow(r, state, () =>
+      prisma.hrReimbursementClaim.findUnique({ where: { id: r.id }, include: { _count: { select: { attachments: true } } } }));
     const e = byId.get(r.employeeId);
-    const level = awaitingLevel(r.status)!;
-    
-    // Dynamically resolve for each row since category matters for L1
-    const approvers = await resolveClaimApprovers({ id: r.employeeId, departmentId: e?.departmentId ?? null }, r.category);
-    
-    let mine = false;
-    if (level === 1) mine = superAdmin || approvers.level1.some(a => a.id === u.id);
-    else if (level === 2) mine = superAdmin || approvers.level2.some(a => a.id === u.id);
-    else if (level === 3) mine = amIL3 || approvers.level3.some((a) => a.id === u.id);
-
-    if (!mine) continue;
+    const previous = idx > 0 ? state.chain[idx - 1] : undefined;
     out.push({
-      ...serialize(r),
-      level,
-      attachmentCount: r._count.attachments + (r.billUrl ? 1 : 0),
+      ...serialize(row),
+      ...trackerFields(state),
+      stageNumber: (idx ?? 0) + 1,
+      stageCount: state.chain.length,
+      previousApproval: previous?.decidedAt ? { label: previous.label, by: previous.decidedByName, at: previous.decidedAt } : null,
+      attachmentCount: row._count.attachments + (row.billUrl ? 1 : 0),
       empCode: e?.empCode ?? "—",
       name: `${e?.firstName ?? ""} ${e?.lastName ?? ""}`.trim() || "Unknown",
       department: e?.department?.name ?? null,
@@ -582,40 +620,46 @@ export async function listMyApprovals() {
 }
 
 /** Send a claim back to the employee for missing information. */
-export async function requestClaimInfo(claimId: string, note: string): Promise<Result<{ id: string }>> {
+export async function requestClaimInfo(
+  claimId: string,
+  note: string,
+  expected: { expectedStage?: number | null; version?: string | null } = {},
+): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!u?.id) return { success: false, error: "Not signed in." };
 
   const reason = (note ?? "").trim();
   if (!reason) return { success: false, error: "Say what is missing — the employee has to know what to add." };
 
-  const claim = await prisma.hrReimbursementClaim.findUnique({ where: { id: claimId }, select: { status: true, employeeId: true, title: true, category: true } });
+  const claim = await prisma.hrReimbursementClaim.findUnique({ where: { id: claimId }, select: CHAIN_FIELDS });
   if (!claim) return { success: false, error: "Claim not found." };
-  const level = awaitingLevel(claim.status);
-  if (!level) return { success: false, error: `Only a claim awaiting approval can be sent back (this one is ${claim.status.toLowerCase()}).` };
+  if (!AWAITING.includes(claim.status)) {
+    return { success: false, error: `Only a claim awaiting approval can be sent back (this one is ${claim.status.toLowerCase()}).` };
+  }
+  const state = await ensureClaimChain(claim);
+  const stage = state.stageIndex != null ? state.chain[state.stageIndex] : undefined;
+  const stale = staleError(state, expected);
+  if (stale) return { success: false, error: stale };
 
-  // HR, the current approver, or an admin may send it back.
-  if (!can(u.role, "hr:payroll") && !isSuperAdmin(u.role)) {
-    const emp = await employeeBrief(claim.employeeId);
-    const approvers = await resolveClaimApprovers({ id: emp.id, departmentId: emp.departmentId }, claim.category);
-
-    let mine = false;
-    if (level === 1) mine = approvers.level1.some((a) => a.id === u.id);
-    else if (level === 2) mine = approvers.level2.some((a) => a.id === u.id);
-    else if (level === 3) mine = approvers.level3.some((a) => a.id === u.id);
-
-    if (!mine) return { success: false, error: "Insufficient permissions" };
+  // HR, the current stage's approver, or an admin may send it back.
+  const mayAct = state.stageIndex != null && eligibleApproverIds(state.chain, state.stageIndex).includes(u.id);
+  if (!can(u.role, "hr:payroll") && !isSuperAdmin(u.role) && !mayAct) {
+    return { success: false, error: "Insufficient permissions" };
   }
 
-  await prisma.hrReimbursementClaim.updateMany({
-    where: { id: claimId, status: claim.status },
+  const upd = await prisma.hrReimbursementClaim.updateMany({
+    where: {
+      id: claimId, status: state.status, stageIndex: state.stageIndex,
+      ...(state.updatedAt ? { updatedAt: state.updatedAt } : {}),
+    },
     data: { status: "NEEDS_INFO", decisionNote: reason },
   });
+  if (upd.count === 0) return { success: false, error: "This claim was already decided." };
   await recordClaimEvent(claimId, "INFO_REQUESTED", {
-    from: claim.status, to: "NEEDS_INFO", note: reason, actorId: u.id, actorName: u.name ?? null,
+    from: state.status, to: "NEEDS_INFO", note: reason, actorId: u.id, actorName: u.name ?? null,
   });
   await notifyOwner(claim.employeeId, claimId, "Your reimbursement claim needs more information",
-    `"${claim.title}" was sent back by ${u.name ?? "the approver"} at ${CLAIM_STAGE_LABEL[level]}: ${reason} Status: Needs your input.`);
+    `"${claim.title}" was sent back by ${u.name ?? "the approver"}${stage ? ` at ${stage.label.toLowerCase()}` : ""}: ${reason} Status: Needs your input — once you update it, it starts again from the 1st approval.`);
 
   revalidateAll();
   return { success: true, data: { id: claimId } };
@@ -640,20 +684,32 @@ export async function listFinanceReimbursements() {
     select: { id: true, firstName: true, lastName: true, empCode: true, department: { select: { name: true } } },
   });
   const byId = new Map(emps.map((e) => [e.id, e]));
-  const approverIds = Array.from(new Set(rows.flatMap((r) => [r.level1ById, r.level2ById]).filter(Boolean) as string[]));
+  const approverIds = Array.from(new Set(rows.flatMap((r) => [r.level1ById, r.level2ById, r.level3ById, r.decidedById]).filter(Boolean) as string[]));
   const approvers = approverIds.length
     ? await prisma.user.findMany({ where: { id: { in: approverIds } }, select: { id: true, name: true } })
     : [];
   const nameOf = (id: string | null) => (id ? approvers.find((a) => a.id === id)?.name ?? "—" : null);
   return rows.map((r) => {
     const e = byId.get(r.employeeId);
+    // Every approval the claim received, in order — from its chain, or from the
+    // level columns for claims decided before chains existed.
+    const chain = parseChain(r.approvalChain);
+    const approvals = chain
+      ? chain.filter((st) => st.decidedAt).map((st) => ({ label: st.label, by: st.decidedByName ?? "—", at: st.decidedAt as string | Date | null }))
+      : [
+          { label: "1st approval", by: nameOf(r.level1ById), at: r.level1At },
+          { label: "2nd approval", by: nameOf(r.level2ById), at: r.level2At },
+          { label: "Final approval", by: nameOf(r.level3ById), at: r.level3At },
+        ].filter((a) => a.at).map((a) => ({ label: a.label, by: a.by ?? "—", at: a.at as string | Date | null }));
+    if (!chain && approvals.length === 0 && r.decidedAt) {
+      approvals.push({ label: "Approved", by: nameOf(r.decidedById) ?? "—", at: r.decidedAt });
+    }
     return {
       ...serialize(r),
       empCode: e?.empCode ?? "—",
       name: `${e?.firstName ?? ""} ${e?.lastName ?? ""}`.trim() || "Unknown",
       department: e?.department?.name ?? null,
-      level1By: nameOf(r.level1ById),
-      level2By: nameOf(r.level2ById),
+      approvals,
     };
   });
 }
@@ -670,12 +726,22 @@ export async function scheduleReimbursementPayment(
   const payMonth = Number(input.payMonth);
   if (!payFy || !/^\d{4}-\d{2}$/.test(payFy)) return { success: false, error: "Pick the financial year of the pay run." };
   if (!Number.isInteger(payMonth) || payMonth < 1 || payMonth > 12) return { success: false, error: "Pick the month of the pay run." };
+  // A locked or paid run is frozen: a claim scheduled onto it would never be paid.
+  const frozen = await prisma.hrPayrollRun.findFirst({
+    where: { entityId: ENTITY_ID, fy: payFy, month: payMonth, status: { in: ["LOCKED", "PAID"] } },
+    select: { status: true },
+  });
+  if (frozen) {
+    return { success: false, error: `That month's payroll is already ${frozen.status.toLowerCase()} — pick a later month, or record a direct payment.` };
+  }
 
   const upd = await prisma.hrReimbursementClaim.updateMany({
-    where: { id, status: "APPROVED" },
+    where: { id, status: "APPROVED", runId: null },
     data: { payFy, payMonth, taxable: !!input.taxable },
   });
-  if (upd.count === 0) return { success: false, error: "Only a fully approved, unpaid claim can be scheduled." };
+  if (upd.count === 0) {
+    return { success: false, error: "Only a fully approved, unpaid claim that isn't already on a computed payroll can be scheduled." };
+  }
   await recordClaimEvent(id, "PAY_RUN_SCHEDULED", {
     from: "APPROVED", to: "APPROVED", actorId: u.id, actorName: u.name ?? null,
     note: `Scheduled on the ${payMonth}/${payFy} pay run${input.taxable ? " (taxable)" : ""}`,
@@ -693,16 +759,18 @@ export async function markReimbursementPaid(
   if (!u?.id) return { success: false, error: "Not signed in." };
   if (!canFinance(u.role)) return { success: false, error: "Not authorized." };
 
-  const claim = await prisma.hrReimbursementClaim.findUnique({ where: { id }, select: { status: true, employeeId: true, title: true } });
+  const claim = await prisma.hrReimbursementClaim.findUnique({ where: { id }, select: { status: true, employeeId: true, title: true, runId: true } });
   if (!claim) return { success: false, error: "Claim not found." };
   if (claim.status !== "APPROVED") return { success: false, error: "Only a fully approved, unpaid claim can be marked paid." };
+  // On a computed payroll it is paid with that run; paying it here too would pay it twice.
+  if (claim.runId) return { success: false, error: "This claim is on a computed payroll run — it is marked paid when that run is paid." };
 
   const paidAt = input.paidOn ? new Date(input.paidOn) : new Date();
   if (Number.isNaN(paidAt.getTime())) return { success: false, error: "Pick a valid payment date." };
   const reference = input.reference?.trim() || null;
 
   const upd = await prisma.hrReimbursementClaim.updateMany({
-    where: { id, status: "APPROVED" },
+    where: { id, status: "APPROVED", runId: null },
     data: { status: "PAID", paidAt, paymentRef: reference },
   });
   if (upd.count === 0) return { success: false, error: "This claim was already paid." };
@@ -722,8 +790,9 @@ export async function markReimbursementPaid(
 export async function getReimbursementApproverConfig() {
   const u = await requireUser();
   if (!can(u?.role, "hr:admin")) return { success: false as const, error: "Not authorized." };
-  const [rules, departments, candidates, employees, finance] = await Promise.all([
+  const [rules, routes, departments, candidates, employees, finance] = await Promise.all([
     prisma.hrReimbursementApprover.findMany(),
+    prisma.hrReimbursementRoute.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.department.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.user.findMany({
       where: { isActive: true, role: { notIn: ["CLIENT", "VENDOR"] } },
@@ -733,40 +802,44 @@ export async function getReimbursementApproverConfig() {
     prisma.employee.findMany({
       where: { deletedAt: null, status: { not: "EXITED" } },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
-      select: { id: true, firstName: true, lastName: true, empCode: true, fuelMonthlyCap: true, department: { select: { name: true } } },
+      select: {
+        id: true, firstName: true, lastName: true, empCode: true, fuelMonthlyCap: true, reportingManagerId: true,
+        department: { select: { name: true } },
+      },
     }),
     financeRecipients(),
   ]);
+  // Old per-employee level rules ("EMP:<id>") are superseded by routes and ignored.
   const deptRules = rules.filter((r) => !isEmployeeRouteScope(r.scope));
-  // Per-employee routes, one row per employee that has any of them.
-  const routes = new Map<string, { employeeId: string; level1UserId: string | null; level2UserId: string | null; level3UserId: string | null }>();
-  for (const r of rules) {
-    const employeeId = employeeIdFromScope(r.scope);
-    if (!employeeId) continue;
-    const row = routes.get(employeeId) ?? { employeeId, level1UserId: null, level2UserId: null, level3UserId: null };
-    if (r.level === 1) row.level1UserId = r.userId;
-    else if (r.level === 2) row.level2UserId = r.userId;
-    else if (r.level === 3) row.level3UserId = r.userId;
-    routes.set(employeeId, row);
+  const reportCount = new Map<string, number>();
+  for (const e of employees) {
+    if (e.reportingManagerId) reportCount.set(e.reportingManagerId, (reportCount.get(e.reportingManagerId) ?? 0) + 1);
   }
   return {
     success: true as const,
     data: {
       level1UserId: deptRules.find((r) => r.level === 1 && r.scope === "ALL")?.userId ?? null,
       level2Default: deptRules.find((r) => r.level === 2 && r.scope === "ALL")?.userId ?? null,
-      // Department rules only — per-employee scopes and the event pool are not departments.
+      // Department rules only — the event pool is not a department.
       level2ByDepartment: Object.fromEntries(
         deptRules
           .filter((r) => r.level === 2 && r.scope !== "ALL" && r.scope !== "CATEGORY_EVENT")
           .map((r) => [r.scope, r.userId])
       ) as Record<string, string>,
-      employeeRoutes: [...routes.values()],
+      routes: routes.map((r) => ({
+        id: r.id,
+        kind: r.kind as "EMPLOYEE" | "TEAM",
+        subjectEmployeeId: r.subjectEmployeeId,
+        stages: parseRouteStages(r.stages),
+      })),
       employees: employees.map((e) => ({
         id: e.id,
         name: `${e.firstName} ${e.lastName}`.trim(),
         empCode: e.empCode,
         department: e.department?.name ?? null,
         fuelMonthlyCap: e.fuelMonthlyCap != null ? Number(e.fuelMonthlyCap) : null,
+        reportingManagerId: e.reportingManagerId,
+        reportCount: reportCount.get(e.id) ?? 0,
       })),
       financeName: finance.map((f) => f.name ?? f.email).join(" / ") || "Finance",
       departments,
@@ -776,27 +849,17 @@ export async function getReimbursementApproverConfig() {
 }
 
 export async function setReimbursementApprover(input: {
-  level: 1 | 2 | 3;
-  /** "ALL", a departmentId (level 2), or "EMP:<employeeId>" for a per-employee route. */
+  level: 1 | 2;
+  /** "ALL", or a departmentId (level 2). */
   scope: string;
   userId: string | null; // null clears the rule
 }): Promise<Result<{ ok: true }>> {
   const u = await requireUser();
   if (!can(u?.role, "hr:admin")) return { success: false, error: "Not authorized." };
-  const level = input.level === 3 ? 3 : input.level === 2 ? 2 : 1;
+  const level = input.level === 2 ? 2 : 1;
   const requested = input.scope || "ALL";
-  const employeeId = employeeIdFromScope(requested);
-  let scope: string;
-  if (employeeId) {
-    const emp = await prisma.employee.findFirst({ where: { id: employeeId, deletedAt: null }, select: { id: true } });
-    if (!emp) return { success: false, error: "That employee no longer exists." };
-    scope = employeeRouteScope(emp.id);
-  } else if (level === 3) {
-    // The default final approver is Finance; only a per-employee route can name someone else.
-    return { success: false, error: "A final approver can only be set for a specific employee." };
-  } else {
-    scope = level === 1 ? "ALL" : requested;
-  }
+  if (isEmployeeRouteScope(requested)) return { success: false, error: "Set a named person's approvers as a route instead." };
+  const scope = level === 1 ? "ALL" : requested;
   if (!input.userId) {
     await prisma.hrReimbursementApprover.deleteMany({ where: { level, scope } });
   } else {
@@ -815,13 +878,54 @@ export async function setReimbursementApprover(input: {
   return { success: true, data: { ok: true } };
 }
 
-/** Clear every per-employee route for one employee (back to the default chain). */
-export async function clearEmployeeRoute(employeeId: string): Promise<Result<{ ok: true }>> {
+/**
+ * Create or replace a route. EMPLOYEE = that person's own claims; TEAM = the
+ * claims of everyone who reports to that person. Applies to claims submitted
+ * (or resubmitted) from now on — claims in flight keep the route they have.
+ */
+export async function setReimbursementRoute(input: {
+  kind: "EMPLOYEE" | "TEAM";
+  subjectEmployeeId: string;
+  stages: RouteStage[];
+}): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!can(u?.role, "hr:admin")) return { success: false, error: "Not authorized." };
-  await prisma.hrReimbursementApprover.deleteMany({ where: { scope: employeeRouteScope(employeeId) } });
+  if (input.kind !== "EMPLOYEE" && input.kind !== "TEAM") return { success: false, error: "Pick whose claims this route is for." };
+  const subject = await prisma.employee.findFirst({ where: { id: input.subjectEmployeeId, deletedAt: null }, select: { id: true } });
+  if (!subject) return { success: false, error: "That employee no longer exists." };
+
+  const stages = parseRouteStages(input.stages);
+  if (stages.length === 0) return { success: false, error: "Add at least one approval stage." };
+  if (Array.isArray(input.stages) && input.stages.length > MAX_STAGES) return { success: false, error: `A route can have at most ${MAX_STAGES} stages.` };
+  if (Array.isArray(input.stages) && stages.length !== input.stages.length) return { success: false, error: "Pick an approver for every stage." };
+  const named = stages.flatMap((st) => (st.type === "USER" ? [st.userId] : []));
+  if (named.length) {
+    const ok = await prisma.user.count({ where: { id: { in: named }, isActive: true, role: { notIn: ["CLIENT", "VENDOR"] } } });
+    if (ok !== new Set(named).size) return { success: false, error: "Every named approver must be an active staff login." };
+  }
+
+  const row = await prisma.hrReimbursementRoute.upsert({
+    where: { kind_subjectEmployeeId: { kind: input.kind, subjectEmployeeId: subject.id } },
+    update: { stages: stages as unknown as Prisma.InputJsonValue },
+    create: { kind: input.kind, subjectEmployeeId: subject.id, stages: stages as unknown as Prisma.InputJsonValue, createdById: u!.id },
+    select: { id: true },
+  });
   await prisma.activityLog.create({
-    data: { action: "REIMBURSEMENT_ROUTE_CLEARED", entityType: "HR_CONFIG", entityId: employeeRouteScope(employeeId), userId: u!.id, changes: {} },
+    data: { action: "REIMBURSEMENT_ROUTE_SET", entityType: "HR_CONFIG", entityId: `${input.kind}:${subject.id}`, userId: u!.id, changes: { stages } as unknown as Prisma.InputJsonValue },
+  });
+  revalidatePath("/people/payroll/reimbursements/approvers");
+  return { success: true, data: { id: row.id } };
+}
+
+/** Remove a route; those claims go back to the next rule that applies. */
+export async function deleteReimbursementRoute(id: string): Promise<Result<{ ok: true }>> {
+  const u = await requireUser();
+  if (!can(u?.role, "hr:admin")) return { success: false, error: "Not authorized." };
+  const row = await prisma.hrReimbursementRoute.findUnique({ where: { id }, select: { kind: true, subjectEmployeeId: true, stages: true } });
+  if (!row) return { success: true, data: { ok: true } };
+  await prisma.hrReimbursementRoute.delete({ where: { id } });
+  await prisma.activityLog.create({
+    data: { action: "REIMBURSEMENT_ROUTE_REMOVED", entityType: "HR_CONFIG", entityId: `${row.kind}:${row.subjectEmployeeId}`, userId: u!.id, changes: { stages: row.stages ?? null } as unknown as Prisma.InputJsonValue },
   });
   revalidatePath("/people/payroll/reimbursements/approvers");
   return { success: true, data: { ok: true } };
@@ -859,16 +963,108 @@ export async function setEmployeeFuelCap(input: { employeeId: string; cap: numbe
 const EDITABLE_BY_EMPLOYEE = ["PENDING", "NEEDS_INFO"];
 
 /** May this user read this claim (its amount, receipts and history)? */
-async function canReadClaim(u: { id: string; role?: string }, claim: { employeeId: string; status: string }) {
+async function canReadClaim(
+  u: { id: string; role?: string },
+  claim: { employeeId: string; status: string; approvalChain?: Prisma.JsonValue | null; level1ById?: string | null; level2ById?: string | null; level3ById?: string | null },
+) {
   const me = await myEmployee(u.id);
   if (me?.id === claim.employeeId) return { ok: true, isOwner: true, isHr: can(u.role, "hr:payroll") };
   const isHr = can(u.role, "hr:payroll");
   if (isHr || isSuperAdmin(u.role) || can(u.role, "finance:read")) return { ok: true, isOwner: false, isHr };
-  // An approver in this claim's chain.
-  const emp = await employeeBrief(claim.employeeId);
-  const approvers = await resolveClaimApprovers({ id: emp.id, departmentId: emp.departmentId });
-  const inChain = [...approvers.level1, ...approvers.level2, ...approvers.level3].some((a) => a.id === u.id);
-  return { ok: inChain, isOwner: false, isHr };
+  // Anyone on this claim's route — before, at or after their stage — so the
+  // bills stay open to them for as long as the claim exists.
+  const chain = parseChain(claim.approvalChain ?? null) ?? (await resolveClaimChain(claim.employeeId));
+  const onRoute =
+    chain.some((st) => st.approverIds.includes(u.id) || st.decidedById === u.id) ||
+    [claim.level1ById, claim.level2ById, claim.level3ById].includes(u.id);
+  return { ok: onRoute, isOwner: false, isHr };
+}
+
+/** One stage of the trail, as the History dialog shows it. */
+export interface ClaimTrailStage {
+  label: string;
+  /** "Reporting manager", "Finance" — omitted when it would just repeat the name. */
+  role: string | null;
+  holder: string;
+  state: "done" | "current" | "waiting" | "rejected" | "returned";
+  by: string | null;
+  at: Date | string | null;
+  note: string | null;
+}
+
+/**
+ * The stages of a claim's route with what happened at each. Claims decided
+ * before chains existed have no snapshot: their trail is rebuilt from the
+ * level columns, which is exactly what happened to them.
+ */
+async function trailStages(claim: {
+  status: string; stageIndex: number | null; approvalChain: Prisma.JsonValue | null; decisionNote: string | null;
+  decidedAt: Date | null; decidedById: string | null;
+  level1ById: string | null; level1At: Date | null; level1Note: string | null;
+  level2ById: string | null; level2At: Date | null; level2Note: string | null;
+  level3ById: string | null; level3At: Date | null; level3Note: string | null;
+}, returnedBy: string | null): Promise<ClaimTrailStage[]> {
+  const chain = parseChain(claim.approvalChain);
+  if (chain) {
+    const at = claim.stageIndex;
+    return chain.map((st, i) => {
+      // Named as the notices and queues name it: who may act on it now.
+      const holder = stageHolder(st.decidedAt ? st : eligibleStage(chain, i));
+      const done = !!st.decidedAt && !(claim.status === "REJECTED" && i === at);
+      let state: ClaimTrailStage["state"] = done ? "done" : "waiting";
+      // A rejection is recorded on the stage; a withdrawal is not (it shows in History).
+      if (i === at && claim.status === "REJECTED" && st.decidedAt) state = "rejected";
+      else if (i === at && claim.status === "NEEDS_INFO") state = "returned";
+      else if (i === at && AWAITING.includes(claim.status)) state = "current";
+      return {
+        label: st.label,
+        role: st.role && st.role !== holder ? st.role : null,
+        holder,
+        state,
+        // Who actually sent it back (HR or an admin may, not only the holder).
+        by: state === "returned" ? returnedBy : st.decidedByName ?? null,
+        at: st.decidedAt ?? null,
+        note: state === "returned" ? claim.decisionNote : st.note ?? null,
+      };
+    });
+  }
+  // Pre-chain claims: only the decisions actually recorded. The old flow wrote
+  // the level columns on a rejection too, at the same instant as decidedAt, so
+  // the stage carrying that timestamp is the one that rejected it.
+  const ids = [claim.level1ById, claim.level2ById, claim.level3ById, claim.decidedById].filter(Boolean) as string[];
+  const users = await usersByIds(ids);
+  const nameOf = (id: string | null) => (id ? users.find((x) => x.id === id)?.name ?? "—" : null);
+  const rejectedAt = claim.status === "REJECTED" && claim.decidedAt ? claim.decidedAt.getTime() : null;
+  const recorded = [
+    { label: "1st approval", by: claim.level1ById, at: claim.level1At, note: claim.level1Note },
+    { label: "2nd approval", by: claim.level2ById, at: claim.level2At, note: claim.level2Note },
+    { label: "Final approval", by: claim.level3ById, at: claim.level3At, note: claim.level3Note },
+  ]
+    .filter((l) => l.at)
+    .map((l) => ({
+      label: l.label,
+      role: null,
+      holder: nameOf(l.by) ?? "—",
+      state: rejectedAt != null && l.at!.getTime() === rejectedAt ? ("rejected" as const) : ("done" as const),
+      by: nameOf(l.by),
+      at: l.at,
+      note: l.note,
+    }));
+  // The original single-step flow recorded only decidedBy/decidedAt — show that
+  // decision rather than nothing (a withdrawal has no decider and is in History).
+  const decisionShown = claim.decidedAt != null && recorded.some((st) => st.at!.getTime() === claim.decidedAt!.getTime());
+  if (!decisionShown && claim.decidedAt && claim.decidedById) {
+    recorded.push({
+      label: "Decision",
+      role: null,
+      holder: nameOf(claim.decidedById) ?? "—",
+      state: claim.status === "REJECTED" ? ("rejected" as const) : ("done" as const),
+      by: nameOf(claim.decidedById),
+      at: claim.decidedAt,
+      note: claim.decisionNote,
+    });
+  }
+  return recorded;
 }
 
 /** Attachments + full history for one claim. */
@@ -876,14 +1072,15 @@ export async function getClaimDetail(claimId: string) {
   const u = await requireUser();
   if (!u?.id) return { success: false as const, error: "Not signed in." };
 
-  const claim = await prisma.hrReimbursementClaim.findUnique({
+  const found = await prisma.hrReimbursementClaim.findUnique({
     where: { id: claimId },
     select: {
       id: true, employeeId: true, status: true, title: true, amount: true,
       category: true, claimDate: true, note: true, decisionNote: true, billUrl: true,
+      approvalChain: true, stageIndex: true, updatedAt: true, decidedAt: true, decidedById: true,
       level1ById: true, level1At: true, level1Note: true, level2ById: true, level2At: true, level2Note: true,
       level3ById: true, level3At: true, level3Note: true,
-      payFy: true, payMonth: true, paidAt: true, paymentRef: true,
+      payFy: true, payMonth: true, paidAt: true, paymentRef: true, runId: true,
       attachments: {
         orderBy: { createdAt: "asc" },
         select: { id: true, fileName: true, mimeType: true, sizeBytes: true, createdAt: true },
@@ -891,27 +1088,32 @@ export async function getClaimDetail(claimId: string) {
       events: { orderBy: { createdAt: "asc" } },
     },
   });
-  if (!claim) return { success: false as const, error: "Claim not found." };
+  if (!found) return { success: false as const, error: "Claim not found." };
 
-  const access = await canReadClaim(u, claim);
+  const access = await canReadClaim(u, found);
   if (!access.ok) return { success: false as const, error: "Insufficient permissions" };
 
+  // A pre-chain claim still in flight gets its chain here like anywhere else.
+  const state = await ensureClaimChain(found);
+  const claim = { ...found, status: state.status, stageIndex: state.stageIndex ?? found.stageIndex, approvalChain: state.chain.length ? (state.chain as unknown as Prisma.JsonValue) : found.approvalChain };
   const emp = await employeeBrief(claim.employeeId);
-  const names = await approverNameResolver();
-  const chain = names({ id: emp.id, departmentId: emp.departmentId }, claim.category);
 
   return {
     success: true as const,
     data: {
-      ...claim,
+      // Picked, not spread: the bill column can hold a whole data-URL, and the
+      // chain snapshot is shown through `stages`.
+      id: claim.id, employeeId: claim.employeeId, title: claim.title, category: claim.category,
+      claimDate: claim.claimDate, note: claim.note, decisionNote: claim.decisionNote,
+      payFy: claim.payFy, payMonth: claim.payMonth, paidAt: claim.paidAt, paymentRef: claim.paymentRef, runId: claim.runId,
+      attachments: claim.attachments, events: claim.events,
       amount: Number(claim.amount),
       hasLegacyBill: !!claim.billUrl,
       canEdit: access.isOwner && EDITABLE_BY_EMPLOYEE.includes(claim.status),
       employeeName: emp.name,
       empCode: emp.empCode,
-      level1Name: chain.level1Name,
-      level2Name: chain.level2Name,
-      level3Name: chain.level3Name,
+      ...trackerFields(state),
+      stages: await trailStages(claim, [...claim.events].reverse().find((e) => e.action === "INFO_REQUESTED")?.actorName ?? null),
     },
   };
 }
@@ -923,7 +1125,10 @@ export async function getClaimAttachment(attachmentId: string) {
 
   const att = await prisma.hrClaimAttachment.findUnique({
     where: { id: attachmentId },
-    select: { fileName: true, mimeType: true, data: true, claim: { select: { employeeId: true, status: true } } },
+    select: {
+      fileName: true, mimeType: true, data: true,
+      claim: { select: { employeeId: true, status: true, approvalChain: true, level1ById: true, level2ById: true, level3ById: true } },
+    },
   });
   if (!att) return { success: false as const, error: "Attachment not found." };
   const access = await canReadClaim(u, att.claim);
@@ -939,7 +1144,7 @@ export async function getClaimLegacyBill(claimId: string) {
   if (!u?.id) return { success: false as const, error: "Not signed in." };
   const claim = await prisma.hrReimbursementClaim.findUnique({
     where: { id: claimId },
-    select: { employeeId: true, status: true, billUrl: true },
+    select: { employeeId: true, status: true, billUrl: true, approvalChain: true, level1ById: true, level2ById: true, level3ById: true },
   });
   if (!claim?.billUrl) return { success: false as const, error: "No bill on this claim." };
   const access = await canReadClaim(u, claim);
@@ -998,6 +1203,9 @@ export async function addClaimAttachments(
     })),
   });
 
+  // Evidence changed: bump the claim's version so an approver's open screen
+  // (showing the old bills) can't approve it without refreshing.
+  await prisma.hrReimbursementClaim.update({ where: { id: claimId }, data: { updatedAt: new Date() } });
   await recordClaimEvent(claimId, "EDITED", {
     from: claim.status, to: claim.status, actorId: u.id, actorName: u.name ?? null,
     note: `Added ${files.length} attachment${files.length === 1 ? "" : "s"}`,
@@ -1027,6 +1235,7 @@ export async function removeClaimAttachment(attachmentId: string): Promise<Resul
   }
 
   await prisma.hrClaimAttachment.delete({ where: { id: attachmentId } });
+  await prisma.hrReimbursementClaim.update({ where: { id: att.claimId }, data: { updatedAt: new Date() } });
   await recordClaimEvent(att.claimId, "EDITED", {
     from: att.claim.status, to: att.claim.status, actorId: u.id, actorName: u.name ?? null,
     note: `Removed attachment ${att.fileName}`,
@@ -1072,10 +1281,15 @@ export async function resubmitClaim(
   // Back to level 1 so the chain re-validates what changed. Clearing
   // decisionNote matters: leaving "missing the hotel invoice" on a claim that
   // now HAS it makes the queue read as though the problem is outstanding.
+  // The route is worked out again too, so it reflects the reporting line today.
+  const chain = await resolveClaimChain(me.id, claim.category);
   data.status = "PENDING";
+  data.stageIndex = 0;
+  data.approvalChain = chain as unknown as Prisma.InputJsonValue;
   data.decisionNote = null;
   data.level1ById = null; data.level1At = null; data.level1Note = null;
   data.level2ById = null; data.level2At = null; data.level2Note = null;
+  data.level3ById = null; data.level3At = null; data.level3Note = null;
 
   // A changed fuel amount must still fit the monthly cap; this claim's own old
   // amount is left out of the running total.
@@ -1105,12 +1319,12 @@ export async function resubmitClaim(
     note: "Employee updated the claim and sent it back for approval",
   });
 
-  const approvers = await resolveClaimApprovers({ id: me.id, departmentId: me.departmentId }, claim.category);
+  const first = chain[0];
   await notifyOwner(me.id, claimId, "Reimbursement claim resubmitted",
-    `Your claim "${(data.title as string) ?? claim.title}" was sent back for approval. Status: Pending — ${CLAIM_STAGE_LABEL[1]} with ${namesOf(approvers.level1)}.`);
-  await notifyClaimStep(approvers.level1, {
+    `Your claim "${(data.title as string) ?? claim.title}" was sent back for approval. Route: ${chainSummary(chain)}. Status: Pending — ${first.label} with ${stageHolder(first)}.`);
+  await notifyClaimStep(await usersByIds(first.approverIds), {
     title: "Reimbursement claim resubmitted",
-    body: `${describeClaim({ title: (data.title as string) ?? claim.title, amount: Number(data.amount ?? claim.amount), employeeName: `${me.firstName} ${me.lastName}`.trim() })} was updated and needs first-level approval again.`,
+    body: `${describeClaim({ title: (data.title as string) ?? claim.title, amount: Number(data.amount ?? claim.amount), employeeName: `${me.firstName} ${me.lastName}`.trim() })} was updated and needs your ${first.label.toLowerCase()} again.`,
     actionUrl: "/me/approvals",
     claimId,
   });

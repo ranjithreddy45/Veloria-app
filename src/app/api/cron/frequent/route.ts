@@ -21,6 +21,7 @@ const JOBS = [
   "event-interval-reminders", // 48/24/12/4h pre-event reminders (vendor/guest/property) + T-1h readiness check
   "lapsed-hold-release", // unpaid HOLDs past holdExpiresAt → CANCELLED + PublicHold EXPIRED; never a hold with any payment (src/lib/holds/lapsed-hold.ts)
   "sync-callvibe", // pull CallVibe call records (CallVibe cannot push to us)
+  "claim-routes", // give in-flight reimbursement claims without an approval chain one (src/lib/hr/claim-workflow.ts)
 ] as const;
 
 export async function GET(request: Request) {

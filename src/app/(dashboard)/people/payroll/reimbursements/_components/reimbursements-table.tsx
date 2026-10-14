@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { ClaimDecisionDialog, type ClaimDecisionMode, type ClaimDecisionTarget } from "@/components/hr/claim-decision-dialog";
 import { ClaimTrailDialog } from "@/components/hr/claim-trail-dialog";
-import { CLAIM_STATUS_HUE, CLAIM_STATUS_LABEL, awaitingLevel } from "@/lib/hr/claim-labels";
+import { CLAIM_STATUS_HUE, CLAIM_STATUS_LABEL } from "@/lib/hr/claim-labels";
 import type { listReimbursements } from "@/actions/hr-reimbursement.actions";
 
 /** Row shape returned by listReimbursements(). */
@@ -24,7 +24,8 @@ const FILTERS = [
   { v: "ALL", label: "All" },
   { v: "PENDING", label: "Awaiting 1st approval" },
   { v: "PENDING_L2", label: "Awaiting 2nd approval" },
-  { v: "PENDING_L3", label: "Awaiting final approval" },
+  { v: "PENDING_L3", label: "Awaiting 3rd approval" },
+  { v: "PENDING_L4", label: "Awaiting 4th approval" },
   { v: "NEEDS_INFO", label: "Sent back" },
   { v: "APPROVED", label: "With Finance" },
   { v: "REJECTED", label: "Rejected" },
@@ -49,7 +50,7 @@ export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
   );
 
   function decide(r: ReimbursementRow, m: ClaimDecisionMode) {
-    setTarget({ id: r.id, title: r.title, amount: r.amount, name: r.name, empCode: r.empCode, category: r.category, level: awaitingLevel(r.status) });
+    setTarget({ id: r.id, title: r.title, amount: r.amount, name: r.name, empCode: r.empCode, category: r.category, stage: r.stage, nextStep: r.nextStep, expectedStage: r.stageIndex, version: r.version });
     setMode(m);
   }
   function close() {
@@ -63,7 +64,7 @@ export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
         <div>
           <h3 className="text-copy font-semibold">Claims</h3>
           <p className="text-detail text-muted-foreground">
-            Every claim and where it stands. Approvals are taken by the configured first- and second-level approvers; Finance pays once both are in.
+            Every claim and where it stands on its approval route. Finance pays once every stage is approved.
           </p>
         </div>
         <Select value={filter} onValueChange={setFilter}>
@@ -103,7 +104,7 @@ export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
             </TableHeader>
             <TableBody>
               {visible.map((r) => {
-                const awaiting = awaitingLevel(r.status);
+                const awaiting = !!r.stage;
                 return (
                   <TableRow key={r.id}>
                     <TableCell>
@@ -123,7 +124,7 @@ export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
                       {awaiting ? (
                         <>
                           <div>{r.awaitingName ?? "—"}</div>
-                          <div className="text-meta text-muted-foreground">{awaiting === 1 ? "1st-level" : "2nd-level"}</div>
+                          <div className="text-meta text-muted-foreground">{r.stage}</div>
                         </>
                       ) : r.status === "NEEDS_INFO" ? (
                         <span className="text-muted-foreground">Employee</span>
@@ -135,7 +136,7 @@ export function ReimbursementsTable({ rows }: { rows: ReimbursementRow[] }) {
                     </TableCell>
                     <TableCell className="text-detail text-muted-foreground">{payRunLabel(r)}</TableCell>
                     <TableCell>
-                      <StatusPill label={CLAIM_STATUS_LABEL[r.status] ?? r.status} hue={CLAIM_STATUS_HUE[r.status] ?? "slate"} size="xs" />
+                      <StatusPill label={r.statusLabel ?? CLAIM_STATUS_LABEL[r.status] ?? r.status} hue={CLAIM_STATUS_HUE[r.status] ?? "slate"} size="xs" />
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex flex-wrap justify-end gap-1.5">

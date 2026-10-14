@@ -9464,6 +9464,27 @@ model HrReimbursementApprover {
   @@index([userId])
 }
 
+/// Approval routes for reimbursement claims, managed from HR → Payroll →
+/// Reimbursement approvers. Resolution order for a claim: the claimant's own
+/// EMPLOYEE route, else the TEAM route of their reporting manager, else the
+/// default HrReimbursementApprover rules.
+model HrReimbursementRoute {
+  id                String   @id @default(cuid())
+  /// "EMPLOYEE" = this employee's own claims. "TEAM" = claims from everyone whose
+  /// reporting manager is this employee.
+  kind              String
+  subjectEmployeeId String
+  /// Ordered stages, first to last (1–4). Each is { type: "MANAGER" } (the
+  /// claimant's reporting manager), { type: "USER", userId }, or { type: "FINANCE" }.
+  stages            Json
+  createdById       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([kind, subjectEmployeeId])
+  @@index([subjectEmployeeId])
+}
+
 model HrClaimEvent {
   id      String              @id @default(cuid())
   claimId String
@@ -9560,6 +9581,13 @@ model HrReimbursementClaim {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
+  /// The approval chain resolved for this claim (named-person route, team route
+  /// by reporting manager, or the default rules), first stage to last:
+  /// [{ type, label, approverIds, approverNames, fallback }]. Snapshotted so a
+  /// claim keeps the chain it was routed on even if the org changes mid-flight.
+  approvalChain Json?
+  /// 0-based index into approvalChain of the stage awaiting a decision; null once decided.
+  stageIndex    Int?
   /// Multiple supporting documents. `billUrl` above is kept for claims raised
   /// before this existed — read it as "the first attachment".
   attachments HrClaimAttachment[]

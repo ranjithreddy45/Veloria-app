@@ -126,14 +126,21 @@ export function FinanceReimbursementsTable({ rows }: { rows: Row[] }) {
                     {r.taxable && <div className="text-meta font-medium text-warning">Taxable</div>}
                   </TableCell>
                   <TableCell className="text-detail">
-                    <div>1st: {r.level1By ?? "—"}{r.level1At ? ` · ${when(r.level1At)}` : ""}</div>
-                    <div className="text-muted-foreground">2nd: {r.level2By ?? "not required"}{r.level2At ? ` · ${when(r.level2At)}` : ""}</div>
+                    {r.approvals.length === 0 ? (
+                      <span className="text-muted-foreground">—</span>
+                    ) : (
+                      r.approvals.map((a, i) => (
+                        <div key={i} className={i === r.approvals.length - 1 ? "" : "text-muted-foreground"}>
+                          {a.label}: {a.by}{a.at ? ` · ${when(a.at)}` : ""}
+                        </div>
+                      ))
+                    )}
                   </TableCell>
                   <TableCell className="text-detail text-muted-foreground">
                     {r.status === "PAID"
                       ? `Paid ${when(r.paidAt) ?? ""}${r.paymentRef ? ` · ${r.paymentRef}` : r.runId ? " · payroll" : ""}`
                       : r.payFy && r.payMonth
-                        ? `Pay run ${MONTHS[r.payMonth]} · FY ${r.payFy}`
+                        ? `Pay run ${MONTHS[r.payMonth]} · FY ${r.payFy}${r.runId ? " · on the computed run, paid with it" : ""}`
                         : "Not scheduled"}
                   </TableCell>
                   <TableCell>
@@ -141,7 +148,7 @@ export function FinanceReimbursementsTable({ rows }: { rows: Row[] }) {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      {r.status === "APPROVED" && (
+                      {r.status === "APPROVED" && !r.runId && (
                         <>
                           <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setTaxable(r.taxable); setSchedule(r); }}>
                             <CalendarClock className="size-4" /> {r.payFy ? "Reschedule" : "Pay run"}
