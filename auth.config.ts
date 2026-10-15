@@ -61,7 +61,7 @@ const authConfig: NextAuthConfig = {
       // ------------------------------------------------------------------
       // 1. A Google / WhatsApp-OTP sign-in by an enrolled user is flagged
       //    `twoFactorPending` in the JWT (auth.ts). Until the /two-factor page
-      //    verifies a code for this session, every other route bounces there —
+      //    verifies a code for this session, every other route bounces there —
       //    server actions POST to the page URL, so they are covered too.
       const tfUser = auth?.user as
         | { role?: string; twoFactorPending?: boolean; twoFactorEnabled?: boolean }
@@ -167,9 +167,18 @@ const authConfig: NextAuthConfig = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
-        // Effective (override-aware) permissions, baked at sign-in (auth.ts).
-        (session.user as { perms?: string[] }).perms =
-          (token as { perms?: string[] }).perms;
+        // Permission claims baked by `bakePerms` (auth.ts). ALL THREE must be
+        // carried: `bakePerms` deletes the legacy full `perms` list and writes
+        // the override delta instead, so copying only `perms` silently drops
+        // every RolePermission grant and revoke -- `claimsAllow` then falls back
+        // to the static role defaults and a permission an admin granted in
+        // Settings → Roles has no effect anywhere outside SUPER_ADMIN/ADMIN
+        // (who short-circuit). Keep this in step with auth.ts `bakePerms`.
+        const claims = token as { perms?: string[]; permsAdd?: string[]; permsDel?: string[] };
+        const su = session.user as { perms?: string[]; permsAdd?: string[]; permsDel?: string[] };
+        su.perms = claims.perms;
+        su.permsAdd = claims.permsAdd;
+        su.permsDel = claims.permsDel;
         // Two-factor flags (auth.ts jwt callback). The challenge id is not a
         // secret: only a verified code can turn it into a passed challenge.
         const tf = token as { tfa?: boolean; tfaPending?: boolean; tfaSid?: string };
