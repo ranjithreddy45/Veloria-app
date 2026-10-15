@@ -51,14 +51,13 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
-  // Read verify token from DB config, fallback to env var
+  // Read verify token from DB config, fallback to env var. No hard-coded
+  // fallback: with nothing configured, verification is refused (R1-5) — a
+  // token published in the source would let anyone subscribe this endpoint.
   const config = await getActiveConfig();
-  const verifyToken =
-    config?.verifyToken ||
-    process.env.WHATSAPP_VERIFY_TOKEN ||
-    "veloria_whatsapp_verify";
+  const verifyToken = config?.verifyToken || process.env.WHATSAPP_VERIFY_TOKEN || null;
 
-  if (mode === "subscribe" && token === verifyToken) {
+  if (verifyToken && mode === "subscribe" && token === verifyToken) {
     console.log("[WhatsApp Webhook] Verification successful");
     return new NextResponse(challenge, { status: 200 });
   }

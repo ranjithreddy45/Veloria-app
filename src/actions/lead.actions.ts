@@ -2,7 +2,7 @@
 
 import { auth } from "@/../auth";
 import { OCCASION_NONE, buildOccasionOptions, occasionKey, rawValuesForOccasion } from "@/lib/crm/occasion";
-import { buildLeadListWhere, canSeeAllLeads, type LeadListFilters, type LeadScope } from "@/lib/crm/lead-filters";
+import { buildLeadListWhere, canSeeAllLeads, canViewLead, type LeadListFilters, type LeadScope } from "@/lib/crm/lead-filters";
 import { isEnquirySource } from "@/lib/enquiry-source";
 import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
@@ -430,6 +430,9 @@ export async function getLead(id: string) {
     if (!lead) {
       return { success: false as const, error: "Lead not found" };
     }
+    if (!canViewLead({ id: session.user.id as string, role: session.user.role as string }, lead)) {
+      return { success: false as const, error: "Lead not found" };
+    }
 
     // Object-storage refs become URLs the browser can load; inline data-URLs
     // pass through untouched. The edit form echoes these back and the
@@ -647,6 +650,9 @@ export async function updateLead(
     if (!existing) {
       return { success: false as const, error: "Lead not found" };
     }
+    if (!canViewLead({ id: session.user.id as string, role: session.user.role as string }, existing)) {
+      return { success: false as const, error: "Lead not found" };
+    }
 
     // Server-side guards (updateLead doesn't run the full leadSchema). Reject
     // negative numbers (S-8) and an event date before the lead's createdAt (S-6).
@@ -807,6 +813,9 @@ export async function deleteLead(id: string) {
     });
 
     if (!lead) {
+      return { success: false as const, error: "Lead not found" };
+    }
+    if (!canViewLead({ id: session.user.id as string, role: session.user.role as string }, lead)) {
       return { success: false as const, error: "Lead not found" };
     }
 
@@ -1122,9 +1131,12 @@ export async function setLeadLocationConfirmed(id: string, confirmed: boolean) {
 
     const lead = await prisma.lead.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true },
+      select: { id: true, assignedToId: true },
     });
     if (!lead) return { success: false as const, error: "Lead not found" };
+    if (!canViewLead({ id: session.user.id as string, role: session.user.role as string }, lead)) {
+      return { success: false as const, error: "Lead not found" };
+    }
 
     await prisma.lead.update({ where: { id }, data: { locationConfirmed: confirmed } });
     await logActivity({
@@ -1158,6 +1170,9 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
     // for an invisible lead).
     const existing = await prisma.lead.findFirst({ where: { id, deletedAt: null } });
     if (!existing) {
+      return { success: false as const, error: "Lead not found" };
+    }
+    if (!canViewLead({ id: session.user.id as string, role: session.user.role as string }, existing)) {
       return { success: false as const, error: "Lead not found" };
     }
 
@@ -1304,6 +1319,9 @@ export async function convertLeadToDeal(leadId: string) {
       include: { deal: { select: { id: true } } },
     });
     if (!existing) {
+      return { success: false as const, error: "Lead not found" };
+    }
+    if (!canViewLead({ id: session.user.id as string, role: session.user.role as string }, existing)) {
       return { success: false as const, error: "Lead not found" };
     }
 

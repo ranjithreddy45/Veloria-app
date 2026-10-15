@@ -27,9 +27,9 @@ export async function GET() {
     });
     return NextResponse.json({ ok: true, now: new Date().toISOString(), crons });
   } catch (e) {
-    return NextResponse.json(
-      { ok: false, error: e instanceof Error ? e.message : "unknown" },
-      { status: 503 }
-    );
+    // Detail stays in the server log; a public endpoint must not echo database
+    // or driver error text (R1-7).
+    console.error("[HEALTH_ERROR]", e);
+    return NextResponse.json({ ok: false, error: "Service unavailable" }, { status: 503 });
   }
 }

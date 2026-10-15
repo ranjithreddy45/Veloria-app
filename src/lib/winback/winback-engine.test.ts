@@ -12,6 +12,7 @@ const db = vi.hoisted(() => {
     findUnique: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   });
   return {
     lead: table(),
@@ -56,9 +57,14 @@ function proximityLead(over: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   db.cadence.findFirst.mockResolvedValue(null); // no win-back cadence → direct WhatsApp fallback
-  db.winbackTarget.findFirst.mockResolvedValue(null);
+  // No target yet; after create, the oldest-row lookup finds the new one.
+  db.winbackTarget.findFirst.mockReset();
+  db.winbackTarget.findFirst.mockResolvedValueOnce(null).mockResolvedValue({ id: "t1", status: "PENDING", createdAt: new Date() });
   db.winbackTarget.create.mockImplementation(async () => ({ id: "t1", status: "PENDING", createdAt: new Date(), coolOffUntil: null }));
   db.winbackTarget.update.mockResolvedValue({});
+  // The claim: a PENDING target with no attempts, and the guarded update wins.
+  db.winbackTarget.findUnique.mockResolvedValue({ status: "PENDING", attempts: 0, coolOffUntil: null });
+  db.winbackTarget.updateMany.mockResolvedValue({ count: 1 });
   sendWhatsApp.mockResolvedValue({ success: true, messageId: "wamid.1" });
 });
 
@@ -171,14 +177,14 @@ describe("lost-lead and event-proximity win-back guards", () => {
   it("sends a lost-lead revival whose cool-off ended recently, however old its target", async () => {
     db.lead.findMany.mockResolvedValue([lostLead()]);
     db.winbackTarget.findFirst.mockResolvedValue({ id: "t2", status: "PENDING", createdAt: daysAgo(60) });
-    db.winbackTarget.findUnique.mockResolvedValue({ coolOffUntil: daysAgo(3) });
+    db.winbackTarget.findUnique.mockResolvedValue({ status: "PENDING", attempts: 0, coolOffUntil: daysAgo(3) });
     expect((await runLostLeadRevivalWinback()).fired).toBe(1);
   });
 
   it("skips a lost-lead revival still PENDING 7+ days after its cool-off ended", async () => {
     db.lead.findMany.mockResolvedValue([lostLead()]);
     db.winbackTarget.findFirst.mockResolvedValue({ id: "t2", status: "PENDING", createdAt: daysAgo(60) });
-    db.winbackTarget.findUnique.mockResolvedValue({ coolOffUntil: daysAgo(10) });
+    db.winbackTarget.findUnique.mockResolvedValue({ status: "PENDING", attempts: 0, coolOffUntil: daysAgo(10) });
     const result = await runLostLeadRevivalWinback();
     expect(sendWhatsApp).not.toHaveBeenCalled();
     expect(result.skipped).toBe(1);
@@ -221,5 +227,24 @@ describe("win-back template labels", () => {
     expect(eventDateLabel(new Date("2026-11-13T18:30:00.000Z"))).toBe("14 Nov 2026");
     expect(eventDateLabel(new Date("2026-11-14T00:00:00.000Z"))).toBe("14 Nov 2026");
     expect(eventDateLabel(null)).toBe("your event date");
+  });
+});
+
+describe("claim before send (R1-1 / L07)", () => {
+  it("does not send when another run already claimed the target", async () => {
+    db.lead.findMany.mockResolvedValue([proximityLead()]);
+    db.winbackTarget.updateMany.mockResolvedValue({ count: 0 }); // the other run won
+    await runEventProximityWinback();
+    expect(sendWhatsApp).not.toHaveBeenCalled();
+  });
+
+  it("claims before the provider call, and a failed send is never retried", async () => {
+    db.lead.findMany.mockResolvedValue([proximityLead()]);
+    const order: string[] = [];
+    db.winbackTarget.updateMany.mockImplementation(async () => (order.push("claim"), { count: 1 }));
+    sendWhatsApp.mockImplementation(async () => (order.push("send"), { success: false, error: "Request timed out" }));
+    await runEventProximityWinback();
+    expect(order).toEqual(["claim", "send"]);
+    expect(db.winbackTarget.update).toHaveBeenCalledWith(expect.objectContaining({ data: { status: "EXHAUSTED" } }));
   });
 });

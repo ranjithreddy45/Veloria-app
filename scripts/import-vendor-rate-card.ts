@@ -21,7 +21,10 @@ type Data = { categories: { key: string; label: string }[]; vendors: Vendor[] };
 const dec = (n: number | null) => (n == null ? null : new Prisma.Decimal(n.toFixed(2)));
 
 async function main() {
-  const data: Data = JSON.parse(readFileSync(join(process.cwd(), "scripts/vendor-import.json"), "utf8"));
+  // Real vendor data stays out of git (R1-11): point VENDOR_IMPORT_JSON at the
+  // private copy, or drop it at scripts/vendor-import.json (git-ignored).
+  const file = process.env.VENDOR_IMPORT_JSON || join(process.cwd(), "scripts/vendor-import.json");
+  const data: Data = JSON.parse(readFileSync(file, "utf8"));
   console.log(`Target DB host: ${(process.env.DATABASE_URL || "").replace(/:[^:@/]+@/, ":***@").replace(/\?.*$/, "")}`);
   console.log(`${DRY ? "[DRY RUN] " : ""}${data.vendors.length} vendors, ${data.vendors.reduce((s, v) => s + v.packages.length, 0)} packages, ${data.categories.length} new categories\n`);
 

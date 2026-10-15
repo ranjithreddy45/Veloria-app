@@ -13,6 +13,7 @@ import { releaseLapsedHolds } from "@/lib/holds/release-lapsed-holds";
 import { processDueCallVibePushJobs } from "@/lib/integrations/callvibe/push";
 import { drainMetaLeadJobs } from "@/lib/meta/queue";
 import { maybeRunMetaBackfill } from "@/lib/meta/schedule";
+import { claimCronLease, releaseCronLease } from "@/lib/cron/lease";
 
 export const maxDuration = 120;
 
@@ -44,6 +45,24 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // The fast job runs every ~5 min on its own AND inside the hourly lane; only
+  // one may run at a time, or its senders (SLA escalations, cadences) double up.
+  const holder = await claimCronLease("job:fast", FAST_LEASE_MS);
+  if (!holder) {
+    console.warn("[CRON_LANE_SKIPPED] fast: another run is in progress");
+    return NextResponse.json({ success: true, skipped: true });
+  }
+  try {
+    return await runFast();
+  } finally {
+    await releaseCronLease("job:fast", holder);
+  }
+}
+
+/** Longer than this route's maxDuration (120s). */
+const FAST_LEASE_MS = 4 * 60 * 1000;
+
+async function runFast() {
   const results: Record<string, unknown> = {};
 
   try {

@@ -91,6 +91,17 @@ export function canSeeAllLeads(role: string): boolean {
 }
 
 /**
+ * May this viewer open, or act on, this ONE lead? The same rule as the list
+ * (buildLeadListWhere): a lead manager (leads:assign) sees every lead; anyone
+ * else only the leads assigned to them — unassigned leads are a manager view.
+ * Every single-lead loader uses this, so a rep can't open another rep's lead
+ * by typing its id. Refusals answer "not found", never "forbidden".
+ */
+export function canViewLead(viewer: { id: string; role: string }, lead: { assignedToId: string | null }): boolean {
+  return canSeeAllLeads(viewer.role) || (!!lead.assignedToId && lead.assignedToId === viewer.id);
+}
+
+/**
  * The absolute [start, end] UTC instants of one IST calendar day. Anchored via
  * the shared BD range resolver so leads use the same IST (+5:30) day boundaries
  * as every other date filter in the app — no bespoke timezone maths here.

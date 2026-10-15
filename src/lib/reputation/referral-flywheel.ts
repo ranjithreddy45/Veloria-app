@@ -43,6 +43,11 @@ const DEFAULT_GUEST_PAYOUT = {
   payoutPercent: new Prisma.Decimal(0),
 };
 
+/** True when a send failure may still have been delivered (timeout, dropped connection). */
+export function isUncertainSendError(error: string | undefined): boolean {
+  return !!error && /time ?out|timed out|abort|ECONNRESET|ETIMEDOUT|socket hang up|fetch failed|network/i.test(error);
+}
+
 export function buildReferralPortalLink(code: string): string {
   return buildPartnerLink(code);
 }
@@ -57,33 +62,36 @@ async function issuePartnerForContact(args: {
   reviewId?: string | null;
   customerName: string;
 }): Promise<{ partnerId: string; code: string; created: boolean } | null> {
-  // Already issued for this contact (any flywheel source)?
-  const existing = await prisma.referralPartner.findFirst({
-    where: { type: "GUEST", contactId: args.contactId },
-    select: { id: true, code: true },
-  });
-  if (existing) {
-    return { partnerId: existing.id, code: existing.code, created: false };
-  }
-
   for (let attempt = 0; attempt < 4; attempt++) {
     const code = await generateUniquePartnerCode();
     try {
-      const partner = await prisma.referralPartner.create({
-        data: {
-          code,
-          type: "GUEST",
-          name: args.customerName || "Veloria Guest",
-          contactId: args.contactId,
-          issuedFromReviewId: args.reviewId || null,
-          payoutType: DEFAULT_GUEST_PAYOUT.payoutType,
-          payoutValue: DEFAULT_GUEST_PAYOUT.payoutValue,
-          payoutPercent: DEFAULT_GUEST_PAYOUT.payoutPercent,
-          isActive: true,
-        },
-        select: { id: true, code: true },
+      // Find-then-create under a per-contact advisory lock (R1-1): two
+      // overlapping runs used to both find nothing and both create — two codes
+      // and two invites. The creator is the only caller that sends.
+      const issued = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT 1 AS locked FROM pg_advisory_xact_lock(hashtext(${"referral-partner:" + args.contactId}))`;
+        const existing = await tx.referralPartner.findFirst({
+          where: { type: "GUEST", contactId: args.contactId },
+          select: { id: true, code: true },
+        });
+        if (existing) return { partnerId: existing.id, code: existing.code, created: false };
+        const partner = await tx.referralPartner.create({
+          data: {
+            code,
+            type: "GUEST",
+            name: args.customerName || "Veloria Guest",
+            contactId: args.contactId,
+            issuedFromReviewId: args.reviewId || null,
+            payoutType: DEFAULT_GUEST_PAYOUT.payoutType,
+            payoutValue: DEFAULT_GUEST_PAYOUT.payoutValue,
+            payoutPercent: DEFAULT_GUEST_PAYOUT.payoutPercent,
+            isActive: true,
+          },
+          select: { id: true, code: true },
+        });
+        return { partnerId: partner.id, code: partner.code, created: true };
       });
-      return { partnerId: partner.id, code: partner.code, created: true };
+      return issued;
     } catch (error) {
       // P2002 = code collision (generateUniquePartnerCode race) → retry.
       if (
@@ -125,7 +133,9 @@ async function sendReferralInvite(args: {
       message: textFallback,
       params: { customerName: args.customerName || "there", referralLink },
     });
-    if (!result.success) {
+    // A timeout or network failure is UNKNOWN — the template may already have
+    // been delivered — so it never falls back to a second message.
+    if (!result.success && !isUncertainSendError(result.error)) {
       // Keep the template's own error: the text fallback usually fails for an
       // unrelated reason (outside the 24h window) that would hide it.
       const templateError = result.error;

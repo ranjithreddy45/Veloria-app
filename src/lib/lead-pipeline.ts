@@ -268,6 +268,13 @@ export async function escalateLeadSlaBreaches(): Promise<number> {
     });
 
     for (const lead of breached) {
+      // Claim first (R1-1): stamp slaEscalatedAt with a guarded update and alert
+      // only if this run won it, so two overlapping runs alert once.
+      const claimed = await prisma.lead.updateMany({
+        where: { id: lead.id, slaEscalatedAt: null },
+        data: { slaEscalatedAt: now },
+      });
+      if (claimed.count === 0) continue;
       const who = `${lead.contact?.firstName ?? ""} ${lead.contact?.lastName ?? ""}`.trim() || "a new lead";
       const recipients = new Set<string>();
       if (lead.assignedToId) recipients.add(lead.assignedToId);
@@ -285,10 +292,6 @@ export async function escalateLeadSlaBreaches(): Promise<number> {
           })
         )
       );
-      await prisma.lead.update({
-        where: { id: lead.id },
-        data: { slaEscalatedAt: now },
-      });
       escalated++;
     }
   } catch (e) {

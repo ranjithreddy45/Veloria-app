@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { scrubSentryBreadcrumb, scrubSentryEvent } from "@/lib/log-redact";
 
 // ============================================================
 // Sentry — Edge runtime (middleware, edge route handlers). Same gating and
@@ -19,6 +20,10 @@ if (dsn) {
       undefined,
     tracesSampleRate: 0.1,
     sendDefaultPii: false,
+    // Messages and breadcrumbs can still carry a customer's phone or email
+    // (an error string, a fetch URL): mask them before anything leaves (R1-8).
+    beforeSend: (event) => scrubSentryEvent(event),
+    beforeBreadcrumb: (breadcrumb) => scrubSentryBreadcrumb(breadcrumb),
     debug: false,
   });
 }
