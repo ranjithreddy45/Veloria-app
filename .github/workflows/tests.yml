@@ -1,0 +1,82 @@
+name: Tests (unit + database integration)
+
+# R1-9: every pull request runs the unit tests and the database integration
+# tests. A failing test blocks merge (make both jobs required checks in the
+# branch protection rules for main).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: "true"
+      # Unit tests never touch a database; prisma only needs a parseable URL.
+      DATABASE_URL: postgresql://unused:unused@localhost:5432/unused
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies (postinstall runs prisma generate)
+        run: pnpm install --frozen-lockfile
+      - name: Prisma generate
+        run: pnpm exec prisma generate
+      - name: Unit tests
+        run: pnpm exec vitest run --exclude "**/*.integration.test.ts" --exclude "tests/e2e/**" --exclude "node_modules/**"
+
+  integration:
+    name: integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: veloria
+          POSTGRES_PASSWORD: veloria_secret
+          POSTGRES_DB: veloria_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U veloria -d veloria_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      CI: "true"
+      # A throwaway service database — never production.
+      DATABASE_URL: postgresql://veloria:veloria_secret@localhost:5432/veloria_test
+      DATABASE_URL_UNPOOLED: postgresql://veloria:veloria_secret@localhost:5432/veloria_test
+      AUTH_SECRET: tests-ci-dummy-secret-0123456789abcdefghijklmnopqrstuvwxyz
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies (postinstall runs prisma generate)
+        run: pnpm install --frozen-lockfile
+      - name: Push schema to the service database
+        run: pnpm exec prisma db push --skip-generate
+      - name: Bootstrap (partial / expression indexes)
+        run: pnpm exec tsx prisma/bootstrap.ts || echo "bootstrap skipped"
+      - name: Integration tests
+        run: pnpm exec vitest run --no-file-parallelism $(git ls-files '*.integration.test.ts')

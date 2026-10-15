@@ -444,7 +444,7 @@ async function main() {
         {
           ownerName: "Rajesh Hegde",
           companyName: "Hegde Convention Centre",
-          email: "rajesh@hegdeconvention.in",
+          email: "rajesh@hegdeconvention.example",
           phone: "+91 98450 11223",
           propertyCity: "Bangalore",
           propertyType: "CONVENTION_CENTER",
@@ -459,7 +459,7 @@ async function main() {
         {
           ownerName: "Lakshmi Estates",
           companyName: "Lakshmi Marriage Gardens",
-          email: "contact@lakshmigardens.in",
+          email: "contact@lakshmigardens.example",
           phone: "+91 97400 55667",
           propertyCity: "Mysuru",
           propertyType: "MARRIAGE_GARDEN",
@@ -475,7 +475,7 @@ async function main() {
         {
           ownerName: "Imperial Banquets",
           companyName: "Imperial Hospitality LLP",
-          email: "owner@imperialbanquets.in",
+          email: "owner@imperialbanquets.example",
           phone: "+91 99000 44556",
           propertyCity: "Bangalore",
           propertyType: "BANQUET_HALL",

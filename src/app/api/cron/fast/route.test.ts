@@ -18,6 +18,8 @@ const jobs = vi.hoisted(() => ({
   processDueCallVibePushJobs: vi.fn(),
 }));
 
+// The lease always grants in these tests (lease behaviour has its own tests).
+vi.mock("@/lib/cron/lease", () => ({ claimCronLease: vi.fn(async () => "holder"), releaseCronLease: vi.fn(async () => {}) }));
 vi.mock("@/lib/cadence-executor", () => ({ processDueCadenceSteps: jobs.processDueCadenceSteps }));
 vi.mock("@/lib/lead-pipeline", () => ({
   processCadenceExits: jobs.processCadenceExits,

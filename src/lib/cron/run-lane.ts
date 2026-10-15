@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { reportSystemFailure } from "@/lib/ops-alert";
+import { claimCronLease, releaseCronLease } from "./lease";
 
 // ============================================================
 // Cron lane orchestrator.
@@ -62,7 +63,8 @@ function getBaseUrl(): string {
 
 export interface LaneResult {
   lane: string;
-  status: "SUCCESS" | "PARTIAL" | "FAILURE";
+  /** SKIPPED: another run of this lane held the lease; no job ran. */
+  status: "SUCCESS" | "PARTIAL" | "FAILURE" | "SKIPPED";
   total: number;
   failed: number;
   durationMs: number;
@@ -96,6 +98,34 @@ export async function runCronLane(
   const results: Record<string, string> = {};
 
   const jobNames = jobs.flatMap((j) => (Array.isArray(j) ? [...j] : [j as string]));
+
+  // ---- One run per lane ---------------------------------------------------
+  // A second concurrent call exits without running any job (R1-2). The skip is
+  // logged, not written to CronRunLog, so health keeps reporting the real run.
+  const holder = await claimCronLease(`lane:${lane}`, LANE_LEASE_MS);
+  if (!holder) {
+    console.warn(`[CRON_LANE_SKIPPED] ${lane}: another run of this lane is in progress`);
+    return { lane, status: "SKIPPED", total: jobNames.length, failed: 0, durationMs: 0, results };
+  }
+  try {
+    return await runLaneJobs(lane, jobs, jobNames, base, authHeader, startedAt, results);
+  } finally {
+    await releaseCronLease(`lane:${lane}`, holder);
+  }
+}
+
+/** Lane lease lifetime: longer than any lane's maxDuration (daily is 300s). */
+const LANE_LEASE_MS = 10 * 60 * 1000;
+
+async function runLaneJobs(
+  lane: string,
+  jobs: readonly CronJobSpec[],
+  jobNames: string[],
+  base: string,
+  authHeader: string,
+  startedAt: number,
+  results: Record<string, string>,
+): Promise<LaneResult> {
 
   // ---- Heartbeat FIRST ----------------------------------------------------
   // Written before any work so that a lane killed mid-run leaves evidence. The

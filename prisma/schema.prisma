@@ -8555,6 +8555,17 @@ model OtaSyncLog {
 // Cron run history — one row per orchestrator lane execution. Powers the
 // /api/health heartbeat and gives admins a trail when a job fails.
 // ------------------------------------------------------------
+/// One row per cron lane / single job: whoever holds an unexpired lease is the
+/// only run allowed (src/lib/cron/lease.ts). Overlapping triggers — GitHub
+/// Actions, the server crontab, the fast job inside the hourly lane — would
+/// otherwise run the same senders twice.
+model CronLaneLease {
+  lane       String   @id
+  leaseUntil DateTime
+  holder     String?
+  updatedAt  DateTime @updatedAt
+}
+
 model CronRunLog {
   id         String   @id @default(cuid())
   lane       String // "daily" | "frequent" | "<single-job>"

@@ -83,7 +83,7 @@ async function findOrCreateTarget(
       return { id: existing.id, status: existing.status, isNew: false, createdAt: existing.createdAt };
     }
 
-    const created = await prisma.winbackTarget.create({
+    await prisma.winbackTarget.create({
       data: {
         kind: key.kind,
         status: "PENDING",
@@ -94,9 +94,17 @@ async function findOrCreateTarget(
         eventDate: extra.eventDate ?? null,
         coolOffUntil: extra.coolOffUntil ?? null,
       },
+    });
+    // Two overlapping runs can both get here and create a row each (there is
+    // no unique key). Both then settle on the OLDEST row for the subject, and
+    // the claim in dispatchRecovery lets only one of them send (R1-1).
+    const oldest = await prisma.winbackTarget.findFirst({
+      where,
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       select: { id: true, status: true, createdAt: true },
     });
-    return { id: created.id, status: created.status, isNew: true, createdAt: created.createdAt };
+    if (!oldest) return null;
+    return { id: oldest.id, status: oldest.status, isNew: true, createdAt: oldest.createdAt };
   } catch (e) {
     console.error("[winback findOrCreateTarget] error:", e);
     return null;
@@ -133,10 +141,35 @@ interface DispatchArgs {
   actionUrl: string;
 }
 
-type DispatchOutcome = "enrolled" | "fired" | "skipped" | "error";
+/** busy: another run holds this target's claim right now — nothing done here. */
+type DispatchOutcome = "enrolled" | "fired" | "skipped" | "error" | "busy";
+
+/** How long a claimed target is "in flight" before another run may try it. */
+const CLAIM_WINDOW_MS = 15 * 60 * 1000;
 
 async function dispatchRecovery(args: DispatchArgs): Promise<DispatchOutcome> {
   const now = new Date();
+  // ---- Claim BEFORE any send (R1-1) ---------------------------------------
+  // Compare-and-swap on (status PENDING, attempts as read): exactly one of two
+  // overlapping runs bumps attempts and goes on; the other sees count 0 and
+  // skips. Nothing below runs without the claim.
+  const current = await prisma.winbackTarget.findUnique({
+    where: { id: args.targetId },
+    select: { status: true, attempts: true },
+  });
+  if (!current || current.status !== "PENDING") return "skipped";
+  // ...and not while another run is mid-send: a target stays PENDING until its
+  // send resolves, so a fresh claim inside the window is refused.
+  const claimed = await prisma.winbackTarget.updateMany({
+    where: {
+      id: args.targetId,
+      status: "PENDING",
+      attempts: current.attempts,
+      OR: [{ lastAttemptAt: null }, { lastAttemptAt: { lt: new Date(now.getTime() - CLAIM_WINDOW_MS) } }],
+    },
+    data: { attempts: { increment: 1 }, lastAttemptAt: now },
+  });
+  if (claimed.count === 0) return "busy";
   try {
     const cadence = await resolveWinbackCadence(args.kind);
 
@@ -148,10 +181,7 @@ async function dispatchRecovery(args: DispatchArgs): Promise<DispatchOutcome> {
         cadence.firstStepDelayMs
       );
       if (!enrollmentId) {
-        await prisma.winbackTarget.update({
-          where: { id: args.targetId },
-          data: { attempts: { increment: 1 }, lastAttemptAt: now },
-        });
+        // Nothing was sent: the target stays PENDING for the next run.
         return "error";
       }
       await prisma.winbackTarget.update({
@@ -160,8 +190,6 @@ async function dispatchRecovery(args: DispatchArgs): Promise<DispatchOutcome> {
           status: "ENROLLED",
           cadenceId: cadence.id,
           enrollmentId,
-          attempts: { increment: 1 },
-          lastAttemptAt: now,
         },
       });
       if (!alreadyEnrolled) {
@@ -182,7 +210,7 @@ async function dispatchRecovery(args: DispatchArgs): Promise<DispatchOutcome> {
     if (!template || !args.phone) {
       await prisma.winbackTarget.update({
         where: { id: args.targetId },
-        data: { status: "SUPPRESSED", attempts: { increment: 1 }, lastAttemptAt: now },
+        data: { status: "SUPPRESSED" },
       });
       return "skipped";
     }
@@ -199,8 +227,6 @@ async function dispatchRecovery(args: DispatchArgs): Promise<DispatchOutcome> {
         data: {
           status: "CONTACTED",
           whatsappMessageId: res.messageId ?? null,
-          attempts: { increment: 1 },
-          lastAttemptAt: now,
         },
       });
       await maybeAlertRep(args, now);
@@ -214,22 +240,20 @@ async function dispatchRecovery(args: DispatchArgs): Promise<DispatchOutcome> {
       return "fired";
     }
 
-    // Send failed (best-effort, no throw): record the attempt and move on.
+    // Send failed. If WhatsApp simply isn't configured nothing left the
+    // building, so the target stays PENDING. Any other failure may already
+    // have been delivered (timeout, provider error after acceptance), so it is
+    // terminal: never resent automatically.
+    if (/not configured/i.test(res.error ?? "")) return "error";
     await prisma.winbackTarget.update({
       where: { id: args.targetId },
-      data: { attempts: { increment: 1 }, lastAttemptAt: now },
+      data: { status: "EXHAUSTED" },
     });
     return "error";
   } catch (e) {
+    // The attempt is already counted by the claim; an exception mid-dispatch
+    // leaves the target PENDING only if nothing could have been sent before it.
     console.error("[winback dispatchRecovery] error:", e);
-    try {
-      await prisma.winbackTarget.update({
-        where: { id: args.targetId },
-        data: { attempts: { increment: 1 }, lastAttemptAt: now },
-      });
-    } catch {
-      /* ignore */
-    }
     return "error";
   }
 }
@@ -414,7 +438,7 @@ export async function runAbandonedQuoteWinback(): Promise<WinbackRunResult> {
         // — attempts is already incremented on the WinbackTarget — so the next
         // daily sweep retries instead of silently dropping the customer.
         // Mirrors cooling-lead-catch.ts (stamp one-shot only on success).
-        if (outcome !== "error") {
+        if (outcome !== "error" && outcome !== "busy") {
           await markLinkNudged(link.id);
         }
         tally(result, outcome);
@@ -647,6 +671,7 @@ function tally(result: WinbackRunResult, outcome: DispatchOutcome): void {
       result.fired++;
       break;
     case "skipped":
+    case "busy":
       result.skipped++;
       break;
     case "error":

@@ -29,18 +29,18 @@ const now = new Date();
 // ============================================================
 
 const INDIAN_CONTACTS = [
-  { firstName: "Aarav", lastName: "Sharma", city: "Bangalore", state: "Karnataka", company: "TechVista Solutions", email: "aarav.sharma@techvista.in", phone: "+91 9845012345", tags: ["wedding", "corporate"] },
-  { firstName: "Priya", lastName: "Patel", city: "Mumbai", state: "Maharashtra", company: "Patel Industries", email: "priya.patel@patelindustries.com", phone: "+91 9820167890", tags: ["wedding", "luxury"] },
-  { firstName: "Vikram", lastName: "Reddy", city: "Hyderabad", state: "Telangana", company: "Reddy Enterprises", email: "vikram.reddy@reddyent.in", phone: "+91 9701234567", tags: ["reception", "sangeet"] },
-  { firstName: "Ananya", lastName: "Gupta", city: "Delhi", state: "Delhi", company: "Gupta & Sons", email: "ananya.gupta@guptasons.com", phone: "+91 9811023456", tags: ["wedding", "destination"] },
-  { firstName: "Rohan", lastName: "Kumar", city: "Chennai", state: "Tamil Nadu", company: "Kumar Tech", email: "rohan.kumar@kumartech.in", phone: "+91 9444078901", tags: ["corporate", "conference"] },
-  { firstName: "Sneha", lastName: "Joshi", city: "Pune", state: "Maharashtra", company: "Joshi Exports", email: "sneha.joshi@joshiexports.com", phone: "+91 9823045678", tags: ["engagement", "wedding"] },
-  { firstName: "Arjun", lastName: "Singh", city: "Bangalore", state: "Karnataka", company: "Singh Realty", email: "arjun.singh@singhrealty.in", phone: "+91 9845567890", tags: ["reception", "corporate"] },
-  { firstName: "Meera", lastName: "Nair", city: "Kochi", state: "Kerala", company: "Nair Group", email: "meera.nair@nairgroup.com", phone: "+91 9447012345", tags: ["wedding", "traditional"] },
-  { firstName: "Karthik", lastName: "Iyer", city: "Mumbai", state: "Maharashtra", company: "Iyer Consulting", email: "karthik.iyer@iyerconsult.in", phone: "+91 9821098765", tags: ["corporate", "gala"] },
-  { firstName: "Divya", lastName: "Menon", city: "Hyderabad", state: "Telangana", company: "Menon Associates", email: "divya.menon@menonassoc.com", phone: "+91 9700345678", tags: ["wedding", "engagement"] },
-  { firstName: "Rahul", lastName: "Verma", city: "Delhi", state: "Delhi", company: "Verma & Co.", email: "rahul.verma@vermaco.in", phone: "+91 9818076543", tags: ["birthday", "anniversary"] },
-  { firstName: "Kavitha", lastName: "Rao", city: "Chennai", state: "Tamil Nadu", company: "Rao Builders", email: "kavitha.rao@raobuilders.com", phone: "+91 9445123456", tags: ["wedding", "south-indian"] },
+  { firstName: "Aarav", lastName: "Sharma", city: "Bangalore", state: "Karnataka", company: "TechVista Solutions", email: "aarav.sharma@techvista.example", phone: "+91 9000000024", tags: ["wedding", "corporate"] },
+  { firstName: "Priya", lastName: "Patel", city: "Mumbai", state: "Maharashtra", company: "Patel Industries", email: "priya.patel@patelindustries.example", phone: "+91 9000000025", tags: ["wedding", "luxury"] },
+  { firstName: "Vikram", lastName: "Reddy", city: "Hyderabad", state: "Telangana", company: "Reddy Enterprises", email: "vikram.reddy@reddyent.example", phone: "+91 9000000026", tags: ["reception", "sangeet"] },
+  { firstName: "Ananya", lastName: "Gupta", city: "Delhi", state: "Delhi", company: "Gupta & Sons", email: "ananya.gupta@guptasons.example", phone: "+91 9000000027", tags: ["wedding", "destination"] },
+  { firstName: "Rohan", lastName: "Kumar", city: "Chennai", state: "Tamil Nadu", company: "Kumar Tech", email: "rohan.kumar@kumartech.example", phone: "+91 9000000028", tags: ["corporate", "conference"] },
+  { firstName: "Sneha", lastName: "Joshi", city: "Pune", state: "Maharashtra", company: "Joshi Exports", email: "sneha.joshi@joshiexports.example", phone: "+91 9000000029", tags: ["engagement", "wedding"] },
+  { firstName: "Arjun", lastName: "Singh", city: "Bangalore", state: "Karnataka", company: "Singh Realty", email: "arjun.singh@singhrealty.example", phone: "+91 9000000030", tags: ["reception", "corporate"] },
+  { firstName: "Meera", lastName: "Nair", city: "Kochi", state: "Kerala", company: "Nair Group", email: "meera.nair@nairgroup.example", phone: "+91 9000000031", tags: ["wedding", "traditional"] },
+  { firstName: "Karthik", lastName: "Iyer", city: "Mumbai", state: "Maharashtra", company: "Iyer Consulting", email: "karthik.iyer@iyerconsult.example", phone: "+91 9000000032", tags: ["corporate", "gala"] },
+  { firstName: "Divya", lastName: "Menon", city: "Hyderabad", state: "Telangana", company: "Menon Associates", email: "divya.menon@menonassoc.example", phone: "+91 9000000033", tags: ["wedding", "engagement"] },
+  { firstName: "Rahul", lastName: "Verma", city: "Delhi", state: "Delhi", company: "Verma & Co.", email: "rahul.verma@vermaco.example", phone: "+91 9000000034", tags: ["birthday", "anniversary"] },
+  { firstName: "Kavitha", lastName: "Rao", city: "Chennai", state: "Tamil Nadu", company: "Rao Builders", email: "kavitha.rao@raobuilders.example", phone: "+91 9000000035", tags: ["wedding", "south-indian"] },
 ];
 
 const LEAD_TEMPLATES = [

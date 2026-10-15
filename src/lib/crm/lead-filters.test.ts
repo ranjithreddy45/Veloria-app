@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildLeadListWhere } from "./lead-filters";
+import { canViewLead, buildLeadListWhere } from "./lead-filters";
 
 // A manager (leads:assign) so scope is not silently downgraded to "mine".
 const MANAGER = { id: "u1", role: "SUPER_ADMIN" };
@@ -79,5 +79,20 @@ describe("buildLeadListWhere — occasion", () => {
     const { where } = buildLeadListWhere({ occasion: "wedding", occasionValues: ["Wedding"] }, REP);
     expect(where.AND).toHaveLength(1);
     expect(Object.keys(where).length).toBeGreaterThan(2); // deletedAt + scope + AND
+  });
+});
+
+describe("canViewLead — opening one lead by id (R1-4 / L18)", () => {
+  const rep = { id: "rep-a", role: "SALES_EXEC" };
+  it("a sales exec cannot open another rep's lead, or an unassigned one", () => {
+    expect(canViewLead(rep, { assignedToId: "rep-b" })).toBe(false);
+    expect(canViewLead(rep, { assignedToId: null })).toBe(false);
+  });
+  it("the assignee can", () => {
+    expect(canViewLead(rep, { assignedToId: "rep-a" })).toBe(true);
+  });
+  it("a sales head or admin can open any lead", () => {
+    expect(canViewLead({ id: "head", role: "SALES_HEAD" }, { assignedToId: "rep-b" })).toBe(true);
+    expect(canViewLead({ id: "admin", role: "ADMIN" }, { assignedToId: null })).toBe(true);
   });
 });
