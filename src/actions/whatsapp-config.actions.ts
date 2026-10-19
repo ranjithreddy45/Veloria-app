@@ -157,84 +157,86 @@ export async function saveWhatsAppConfig(input: WhatsAppConfigInput & WhatsAppTe
       guestInviteTemplateName: templates.data.guestInviteTemplateName || null,
     };
 
-    // Deactivate all existing configs first
-    await prisma.whatsAppConfig.updateMany({
-      where: { isActive: true },
-      data: { isActive: false },
+    // Deactivate-all and the write are ONE transaction (R1-6): a failure in the
+    // write used to leave no active provider at all.
+    const config = await prisma.$transaction(async (tx) => {
+      await tx.whatsAppConfig.updateMany({
+        where: { isActive: true },
+        data: { isActive: false },
+      });
+
+      if (data.id) {
+        // If the token looks masked (contains ***), keep the existing value
+        const existingConfig = await tx.whatsAppConfig.findUnique({
+          where: { id: data.id },
+          select: {
+            accessToken: true,
+            appSecret: true,
+            crmWebhookSecret: true,
+            eventSigningSecret: true,
+            aisensyApiPassword: true,
+            aisensyWebhookSecret: true,
+          },
+        });
+
+        // A masked value (contains "***") means "unchanged" — keep the stored one.
+        const keepMasked = (incoming: string | undefined, stored: string | null | undefined) =>
+          incoming && incoming.includes("***") ? stored ?? incoming : incoming || null;
+
+        const accessToken = keepMasked(data.accessToken, existingConfig?.accessToken) ?? "";
+        const appSecret = keepMasked(data.appSecret, existingConfig?.appSecret);
+        const crmWebhookSecret = keepMasked(data.crmWebhookSecret, existingConfig?.crmWebhookSecret);
+        const eventSigningSecret = keepMasked(data.eventSigningSecret, existingConfig?.eventSigningSecret);
+        const aisensyApiPassword = keepMasked(data.aisensyApiPassword, existingConfig?.aisensyApiPassword);
+        const aisensyWebhookSecret = keepMasked(data.aisensyWebhookSecret, existingConfig?.aisensyWebhookSecret);
+
+        return tx.whatsAppConfig.update({
+          where: { id: data.id },
+          data: {
+            provider: data.provider,
+            accessToken,
+            phoneNumberId: data.phoneNumberId || null,
+            businessAccountId: data.businessAccountId || null,
+            appSecret,
+            apiEndpoint: data.apiEndpoint || null,
+            crmWebhookUrl: data.crmWebhookUrl || null,
+            crmWebhookSecret,
+            eventSigningSecret,
+            verifyToken: data.verifyToken,
+            aisensyProjectId: data.aisensyProjectId || null,
+            aisensyApiPassword,
+            aisensyApiEndpoint: data.aisensyApiEndpoint || null,
+            aisensyWebhookSecret,
+            aisensyVerifyToken: data.aisensyVerifyToken || null,
+            ...templateData,
+            isActive: data.isActive,
+          },
+        });
+      } else {
+        return tx.whatsAppConfig.create({
+          data: {
+            provider: data.provider,
+            accessToken: data.accessToken || "",
+            phoneNumberId: data.phoneNumberId || null,
+            businessAccountId: data.businessAccountId || null,
+            appSecret: data.appSecret || null,
+            apiEndpoint: data.apiEndpoint || null,
+            crmWebhookUrl: data.crmWebhookUrl || null,
+            crmWebhookSecret: data.crmWebhookSecret || null,
+            eventSigningSecret: data.eventSigningSecret || null,
+            verifyToken: data.verifyToken,
+            aisensyProjectId: data.aisensyProjectId || null,
+            aisensyApiPassword: data.aisensyApiPassword || null,
+            aisensyApiEndpoint: data.aisensyApiEndpoint || null,
+            aisensyWebhookSecret: data.aisensyWebhookSecret || null,
+            aisensyVerifyToken: data.aisensyVerifyToken || null,
+            ...templateData,
+            isActive: data.isActive,
+            createdById: session.user.id,
+          },
+        });
+      }
     });
-
-    let config;
-    if (data.id) {
-      // If the token looks masked (contains ***), keep the existing value
-      const existingConfig = await prisma.whatsAppConfig.findUnique({
-        where: { id: data.id },
-        select: {
-          accessToken: true,
-          appSecret: true,
-          crmWebhookSecret: true,
-          eventSigningSecret: true,
-          aisensyApiPassword: true,
-          aisensyWebhookSecret: true,
-        },
-      });
-
-      // A masked value (contains "***") means "unchanged" — keep the stored one.
-      const keepMasked = (incoming: string | undefined, stored: string | null | undefined) =>
-        incoming && incoming.includes("***") ? stored ?? incoming : incoming || null;
-
-      const accessToken = keepMasked(data.accessToken, existingConfig?.accessToken) ?? "";
-      const appSecret = keepMasked(data.appSecret, existingConfig?.appSecret);
-      const crmWebhookSecret = keepMasked(data.crmWebhookSecret, existingConfig?.crmWebhookSecret);
-      const eventSigningSecret = keepMasked(data.eventSigningSecret, existingConfig?.eventSigningSecret);
-      const aisensyApiPassword = keepMasked(data.aisensyApiPassword, existingConfig?.aisensyApiPassword);
-      const aisensyWebhookSecret = keepMasked(data.aisensyWebhookSecret, existingConfig?.aisensyWebhookSecret);
-
-      config = await prisma.whatsAppConfig.update({
-        where: { id: data.id },
-        data: {
-          provider: data.provider,
-          accessToken,
-          phoneNumberId: data.phoneNumberId || null,
-          businessAccountId: data.businessAccountId || null,
-          appSecret,
-          apiEndpoint: data.apiEndpoint || null,
-          crmWebhookUrl: data.crmWebhookUrl || null,
-          crmWebhookSecret,
-          eventSigningSecret,
-          verifyToken: data.verifyToken,
-          aisensyProjectId: data.aisensyProjectId || null,
-          aisensyApiPassword,
-          aisensyApiEndpoint: data.aisensyApiEndpoint || null,
-          aisensyWebhookSecret,
-          aisensyVerifyToken: data.aisensyVerifyToken || null,
-          ...templateData,
-          isActive: data.isActive,
-        },
-      });
-    } else {
-      config = await prisma.whatsAppConfig.create({
-        data: {
-          provider: data.provider,
-          accessToken: data.accessToken || "",
-          phoneNumberId: data.phoneNumberId || null,
-          businessAccountId: data.businessAccountId || null,
-          appSecret: data.appSecret || null,
-          apiEndpoint: data.apiEndpoint || null,
-          crmWebhookUrl: data.crmWebhookUrl || null,
-          crmWebhookSecret: data.crmWebhookSecret || null,
-          eventSigningSecret: data.eventSigningSecret || null,
-          verifyToken: data.verifyToken,
-          aisensyProjectId: data.aisensyProjectId || null,
-          aisensyApiPassword: data.aisensyApiPassword || null,
-          aisensyApiEndpoint: data.aisensyApiEndpoint || null,
-          aisensyWebhookSecret: data.aisensyWebhookSecret || null,
-          aisensyVerifyToken: data.aisensyVerifyToken || null,
-          ...templateData,
-          isActive: data.isActive,
-          createdById: session.user.id,
-        },
-      });
-    }
 
     revalidatePath("/settings/integrations/whatsapp");
     return { success: true as const, data: { id: config.id } };

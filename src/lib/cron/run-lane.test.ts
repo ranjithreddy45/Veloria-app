@@ -5,8 +5,24 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // that was wrong.
 const created: unknown[] = [];
 const updated: unknown[] = [];
+// In-memory CronLaneLease with the same guarded-update semantics as Postgres.
+const leases = vi.hoisted(() => new Map<string, { leaseUntil: Date; holder: string | null }>());
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    cronLaneLease: {
+      createMany: vi.fn(async ({ data }: { data: { lane: string; leaseUntil: Date }[] }) => {
+        for (const d of data) if (!leases.has(d.lane)) leases.set(d.lane, { leaseUntil: d.leaseUntil, holder: null });
+        return { count: data.length };
+      }),
+      updateMany: vi.fn(async ({ where, data }: { where: { lane: string; leaseUntil?: { lt: Date }; holder?: string }; data: { leaseUntil: Date; holder: string | null } }) => {
+        const row = leases.get(where.lane);
+        if (!row) return { count: 0 };
+        if (where.leaseUntil && !(row.leaseUntil < where.leaseUntil.lt)) return { count: 0 };
+        if (where.holder !== undefined && row.holder !== where.holder) return { count: 0 };
+        leases.set(where.lane, { leaseUntil: data.leaseUntil, holder: data.holder });
+        return { count: 1 };
+      }),
+    },
     cronRunLog: {
       create: vi.fn(async (args: { data: unknown }) => {
         created.push(args.data);
@@ -28,6 +44,7 @@ let inFlight = 0;
 let peak = 0;
 
 beforeEach(() => {
+  leases.clear();
   order = [];
   inFlight = 0;
   peak = 0;
@@ -98,5 +115,23 @@ describe("runCronLane", () => {
     expect(order.sort()).toEqual(["a", "bad", "c"]);
     expect(res.status).toBe("PARTIAL");
     expect(res.failed).toBe(1);
+  });
+});
+
+describe("one run per lane (R1-2)", () => {
+  it("a second concurrent call exits without running any job", async () => {
+    const jobs = ["a", "b", "c"];
+    const [first, second] = await Promise.all([
+      runCronLane("frequent", jobs, "Bearer x"),
+      runCronLane("frequent", jobs, "Bearer x"),
+    ]);
+    const statuses = [first.status, second.status].sort();
+    expect(statuses).toEqual(["SKIPPED", "SUCCESS"]);
+    expect(order.filter((j) => j === "a")).toHaveLength(1);
+  });
+
+  it("releases the lease so the next scheduled run goes ahead", async () => {
+    await runCronLane("daily", ["a"], "Bearer x");
+    expect((await runCronLane("daily", ["a"], "Bearer x")).status).toBe("SUCCESS");
   });
 });

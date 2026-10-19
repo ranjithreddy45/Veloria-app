@@ -61,3 +61,7 @@ id_rsa
 
 # visual-tour screenshots (uploaded as a CI artifact, never committed)
 tests/e2e/visual-tour-shots
+
+# Real vendor rate-card data (names, contacts, margins) — never commit (R1-11).
+# Kept outside the repo; see scripts/import-vendor-rate-card.ts.
+scripts/vendor-import.json

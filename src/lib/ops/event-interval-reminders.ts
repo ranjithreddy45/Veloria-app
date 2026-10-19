@@ -15,15 +15,19 @@ import { eventStartUtc } from "@/lib/ops/schedule";
 
 const OFFSETS = [48, 24, 12, 4] as const;
 
-async function already(bookingId: string, offsetHours: number, audience: string): Promise<boolean> {
-  const row = await prisma.eventReminderLog.findUnique({
-    where: { bookingId_offsetHours_audience: { bookingId, offsetHours, audience } },
-    select: { id: true },
-  });
-  return !!row;
-}
-async function mark(bookingId: string, offsetHours: number, audience: string): Promise<void> {
-  await prisma.eventReminderLog.create({ data: { bookingId, offsetHours, audience } }).catch(() => {});
+/**
+ * Claim a (booking, offset, audience) reminder BEFORE sending it (R1-1): the
+ * log row's unique key means exactly one run creates it; that run sends, every
+ * other run gets false. A send that fails after the claim is not retried —
+ * the provider may already have delivered it.
+ */
+async function claim(bookingId: string, offsetHours: number, audience: string): Promise<boolean> {
+  try {
+    await prisma.eventReminderLog.create({ data: { bookingId, offsetHours, audience } });
+    return true;
+  } catch {
+    return false; // already claimed (unique violation) — or unwritable, so don't send
+  }
 }
 
 export async function runEventIntervalReminders(): Promise<{ fired: number; readinessAlerts: number }> {
@@ -68,23 +72,20 @@ export async function runEventIntervalReminders(): Promise<{ fired: number; read
 
         // Silently mark the larger buckets as handled (all audiences), no messages.
         for (const off of backfill) {
-          for (const audience of ["GUEST", "VENDOR", "PROPERTY"]) {
-            if (!(await already(b.id, off, audience))) await mark(b.id, off, audience);
-          }
+          for (const audience of ["GUEST", "VENDOR", "PROPERTY"]) await claim(b.id, off, audience);
         }
 
         for (const off of sendOff === null ? [] : [sendOff]) {
           // GUEST
-          if (b.contact?.phone && !(await already(b.id, off, "GUEST"))) {
+          if (b.contact?.phone && (await claim(b.id, off, "GUEST"))) {
             const msg = `Reminder: your event ${label} is coming up in ~${off}h. Our team will be in touch. — Veloria Grand`;
             sendWhatsApp({ to: b.contact.phone, message: msg }).catch(() => {});
             sendSMSFireAndForget({ to: b.contact.phone, message: msg });
-            await mark(b.id, off, "GUEST");
             fired++;
           }
 
           // VENDORS (confirmed assignments for this booking's event operation)
-          if (!(await already(b.id, off, "VENDOR"))) {
+          if (await claim(b.id, off, "VENDOR")) {
             const vendors = await prisma.operationVendorAssignment.findMany({
               where: { status: "CONFIRMED", bookingVendor: { bookingId: b.id } },
               select: { bookingVendor: { select: { vendor: { select: { phone: true } } } } },
@@ -96,15 +97,12 @@ export async function runEventIntervalReminders(): Promise<{ fired: number; read
                 sendWhatsApp({ to: p, message: msg }).catch(() => {});
                 sendSMSFireAndForget({ to: p, message: msg });
               }
-              await mark(b.id, off, "VENDOR");
               fired++;
-            } else {
-              await mark(b.id, off, "VENDOR"); // nothing to send; don't retry every run
             }
           }
 
           // PROPERTY team (in-app)
-          if (!(await already(b.id, off, "PROPERTY"))) {
+          if (await claim(b.id, off, "PROPERTY")) {
             const ops = await prisma.user.findMany({
               where: { isActive: true, role: { in: ["OPERATIONS", "EVENT_COORDINATOR", "PROPERTY_MANAGER", "OPERATIONS_HEAD", "ADMIN", "SUPER_ADMIN"] } },
               select: { id: true },
@@ -112,13 +110,12 @@ export async function runEventIntervalReminders(): Promise<{ fired: number; read
             for (const o of ops) {
               await notifyAwait({ userId: o.id, type: "SYSTEM", title: `Event in ~${off}h`, message: label, actionUrl: `/bookings/${b.id}` }).catch(() => {});
             }
-            await mark(b.id, off, "PROPERTY");
             fired++;
           }
         }
 
         // T-1h property readiness check: pre-readiness photos must be up ~1h out.
-        if (hoursTo <= 1 && !(await already(b.id, 1, "READINESS"))) {
+        if (hoursTo <= 1 && (await claim(b.id, 1, "READINESS"))) {
           const pre = await prisma.galleryItem.count({ where: { bookingId: b.id, kind: "PRE_READINESS" } });
           if (pre === 0) {
             const ops = await prisma.user.findMany({
@@ -130,7 +127,6 @@ export async function runEventIntervalReminders(): Promise<{ fired: number; read
             }
             readinessAlerts++;
           }
-          await mark(b.id, 1, "READINESS");
         }
       } catch (e) {
         console.error("[EVENT_INTERVAL_REMINDER_ROW_ERR]", b.id, e);
