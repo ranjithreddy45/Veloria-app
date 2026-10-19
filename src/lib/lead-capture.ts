@@ -150,7 +150,29 @@ interface ExternalLeadData {
   inLeadTransaction?: (tx: Prisma.TransactionClient, lead: { id: string; contactId: string; status: string; createdAt: Date }) => Promise<void>;
   /** Don't send the automatic WhatsApp welcome message for this lead. */
   suppressAutoWelcome?: boolean;
+  /**
+   * A PAST enquiry being imported (a Meta lead-ads backfill), not one arriving
+   * now. The lead and any new contact are dated `receivedAt`; there is no
+   * speed-to-lead clock (a two-week-old enquiry is not "first reply overdue"
+   * and must not page every manager); and nothing customer- or rep-facing
+   * fires — no welcome, no workflows or cadences, no per-lead alerts, which
+   * for a few hundred imported leads would be a flood. It still gets an owner
+   * and its sales team. It also folds into the contact's lead from the same
+   * few days whatever its status, because that is usually the same enquiry
+   * already brought in another way (the Google Sheet sync), worked or not.
+   */
+  historical?: { receivedAt: Date };
+  /**
+   * When the person actually made the enquiry, if the provider says so (Meta's
+   * created_time). The lead and any new contact carry this date instead of the
+   * moment we happened to process it — a webhook retried hours later still
+   * shows when the customer wrote in. Ignored if it is in the future.
+   */
+  occurredAt?: Date;
 }
+
+/** How close (either side) an existing lead must be to count as the same past enquiry. */
+const HISTORICAL_MATCH_MS = 3 * 24 * 60 * 60 * 1000;
 
 /** Postgres serialization failure (SQLSTATE 40001), as Prisma reports it. */
 function isSerializationFailure(e: unknown): boolean {
@@ -262,6 +284,13 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     }
 
     // Parse the name into first/last
+    // The enquiry's real date, when the provider gave one (never a future date).
+    const enquiryCandidate = data.historical?.receivedAt ?? data.occurredAt;
+    const enquiryAt =
+      enquiryCandidate && !Number.isNaN(enquiryCandidate.getTime()) && enquiryCandidate.getTime() <= Date.now()
+        ? enquiryCandidate
+        : undefined;
+
     const nameParts = data.name.trim().split(/\s+/);
     const firstName = nameParts[0] || "Unknown";
     const lastName = nameParts.slice(1).join(" ") || "";
@@ -349,6 +378,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           // and crowding the useful label out; the channel now has its own
           // column (enquirySource) with its own filter and export.
           tags: eventTag ? [eventTag] : [],
+          ...(enquiryAt ? { createdAt: enquiryAt } : {}),
         },
       });
     }
@@ -392,11 +422,25 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     // customer enquiring for a new event correctly gets a fresh lead.
     // ------------------------------------------------------------------
     if (isExistingContact && !data.skipOpenLeadFold) {
+      const receivedAt = data.historical?.receivedAt;
       const openLead = await prisma.lead.findFirst({
         where: {
           contactId: contact.id,
           deletedAt: null,
-          status: { notIn: ["WON", "LOST"] },
+          OR: [
+            { status: { notIn: ["WON", "LOST"] } },
+            // A past enquiry also matches a closed lead from the same few days.
+            ...(receivedAt
+              ? [
+                  {
+                    createdAt: {
+                      gte: new Date(receivedAt.getTime() - HISTORICAL_MATCH_MS),
+                      lte: new Date(receivedAt.getTime() + HISTORICAL_MATCH_MS),
+                    },
+                  },
+                ]
+              : []),
+          ],
         },
         orderBy: { createdAt: "desc" },
       });
@@ -413,8 +457,11 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           !openLead.eventDate ||
           new Date(data.eventDate).toDateString() === openLead.eventDate.toDateString());
       if (openLead && sameEvent) {
-        const stamp = new Date().toISOString().slice(0, 10);
-        const note = `Re-enquired via ${data.source} on ${stamp}${data.message ? ` — ${data.message}` : ""}`;
+        const stamp = (receivedAt ?? new Date()).toISOString().slice(0, 10);
+        const note = receivedAt
+          ? `Form answers from ${data.source}, enquiry of ${stamp}${data.message ? ` — ${data.message}` : ""}`
+          : `Re-enquired via ${data.source} on ${stamp}${data.message ? ` — ${data.message}` : ""}`;
+        const filledEventType = !openLead.eventType && data.eventType ? data.eventType : null;
         await prisma.lead
           .update({
             where: { id: openLead.id },
@@ -438,6 +485,11 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
                 (data.eventDate ? new Date(data.eventDate) : undefined),
               guestCount: openLead.guestCount ?? data.guestCount ?? undefined,
               preferredVenueId: openLead.preferredVenueId ?? data.venueId ?? undefined,
+              // An event type filled in here also sorts the lead into its team,
+              // unless a person already placed it.
+              ...(filledEventType && !openLead.salesTeam && !openLead.salesTeamManual
+                ? { salesTeam: teamForEventType(filledEventType) }
+                : {}),
             },
           })
           .catch(() => {}); // enrichment is best-effort; the dedup return below is the point
@@ -548,7 +600,9 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         guestCount: data.guestCount || null,
         estimatedValue,
         preferredVenueId: data.venueId || null,
-        firstContactDue: leadSlaDeadline(),
+        // A past enquiry keeps its real date and starts no speed-to-lead clock.
+        firstContactDue: data.historical ? null : leadSlaDeadline(),
+        ...(enquiryAt ? { createdAt: enquiryAt } : {}),
         contactId: contact.id,
         assignedToId,
         createdById: systemUserId,
@@ -666,7 +720,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       // actionUrl now points at the lead itself rather than the list: sending
       // someone to a list to hunt for the row they were just told about is a
       // small tax paid on every single notification.
-      if (assignedToId) {
+      if (assignedToId && !data.historical) {
         notify({
           userId: assignedToId,
           title: "New Lead Captured",
@@ -688,7 +742,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           where: { leadSource: (data.leadSource ?? mapSource(data.source)) as any },
         });
 
-        if (welcomeConfig?.isEnabled && contact.phone && !data.suppressAutoWelcome) {
+        if (welcomeConfig?.isEnabled && contact.phone && !data.suppressAutoWelcome && !data.historical) {
           // Schedule welcome message (delayed or immediate)
           if (welcomeConfig.delayMinutes === 0) {
             // NOT awaited. This is an outbound call to WhatsApp's API, made
@@ -726,7 +780,9 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
 
       // Intake: instant email auto-reply (via LEAD_CREATED workflows) + the
       // "call now" task + auto-enrolment into matching nurture cadences.
-      await runLeadIntake({
+      // Not for a past enquiry: those all speak to the customer as if they
+      // had just written in.
+      if (!data.historical) await runLeadIntake({
         lead: {
           id: lead.id,
           contactId: contact.id,
@@ -742,7 +798,8 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
 
       // Message-intent classification on the first-touch inbound message so a
       // brand-new READY_TO_BUY lead also boosts + pings. Best-effort, never blocks.
-      if (data.message && data.message.trim().length > 0) {
+      // (A past enquiry pings nobody.)
+      if (!data.historical && data.message && data.message.trim().length > 0) {
         try {
           // Also not awaited: this calls an AI provider to classify the
           // enquiry's intent. Useful, entirely optional, and absolutely not

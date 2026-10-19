@@ -24,6 +24,8 @@ export interface BackfillSummary {
   captured: number;
   duplicates: number;
   skipped: number;
+  /** Of `skipped`: held back because the campaign is excluded (see exclusions.ts). */
+  excluded: number;
   errors: number;
   since: string;
   note?: string;
@@ -51,6 +53,7 @@ export async function runMetaBackfill(options?: {
     captured: 0,
     duplicates: 0,
     skipped: 0,
+    excluded: 0,
     errors: 0,
     since: since.toISOString(),
   };
@@ -91,7 +94,10 @@ export async function runMetaBackfill(options?: {
             );
             if (outcome.status === "captured") summary.captured++;
             else if (outcome.status === "duplicate") summary.duplicates++;
-            else summary.skipped++;
+            else {
+              summary.skipped++;
+              if (outcome.reason.startsWith("Campaign excluded")) summary.excluded++;
+            }
           } catch (e) {
             summary.errors++;
             console.error("[MetaBackfill] lead failed", payload.id, e);
