@@ -12,6 +12,7 @@ import { QuickActions, type QuickActionSpec } from "@/components/ui/quick-action
 import { HelpHint } from "@/components/layout/help-hint";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { salesTeamLabel } from "@/lib/crm/sales-team";
 import { LeadsViews } from "./_components/leads-views";
 import { LeadsFilterBar } from "./_components/leads-filter-bar";
 import { WorkStrip } from "./_components/work-strip";
@@ -43,7 +44,14 @@ export default async function LeadsPage({
   // unless the viewer actually holds the manager permission.
   const rawScope = first(sp.scope);
   const filters: LeadListFilters = {
-    scope: rawScope === "all" ? "all" : rawScope === "unassigned" ? "unassigned" : "mine",
+    // No scope in the URL → the server picks the default ("team" for a rep in
+    // a sales team, "mine" otherwise).
+    scope:
+      rawScope === "all" || rawScope === "unassigned" || rawScope === "team" || rawScope === "mine"
+        ? rawScope
+        : undefined,
+    // A manager's team switcher (WEDDING / CORPORATE / SOCIAL / UNSORTED).
+    team: first(sp.team),
     status: first(sp.status),
     venueId: first(sp.venue),
     eventFrom: first(sp.eventFrom),
@@ -94,8 +102,10 @@ export default async function LeadsPage({
   // Scope/permission are whatever the SERVER resolved, not what the URL asked for.
   const canViewAll = result.success ? result.data.canViewAll : false;
   const scope = result.success ? result.data.scope : "mine";
+  const viewerTeam = result.success ? result.data.viewerTeam : null;
+  const teamFilter = result.success ? result.data.teamFilter : null;
   const statusFilter = first(sp.status);
-  const scopeIsMine = filters.scope === "mine";
+  const scopeIsMine = scope === "mine";
   const filtersActive = Boolean(
     statusFilter ||
       filters.venueId ||
@@ -202,11 +212,14 @@ export default async function LeadsPage({
             <span className="h-3 w-px bg-border" />
             <span className="text-foreground/80">
               <span className="font-semibold numeric">{totalLeads}</span>{" "}
-              {scope === "all"
-                ? "total"
-                : scope === "unassigned"
-                  ? "awaiting an owner"
-                  : "assigned to you"}
+              {scope === "team"
+                ? `in the ${salesTeamLabel(viewerTeam)} team`
+                : scope === "all"
+                  ? "total"
+                  : scope === "unassigned"
+                    ? "awaiting an owner"
+                    : "assigned to you"}
+              {teamFilter && (teamFilter === "UNSORTED" ? " · Unsorted" : ` · ${salesTeamLabel(teamFilter)} team`)}
             </span>
             {pipelineValue > 0 && (
               <>
@@ -242,6 +255,8 @@ export default async function LeadsPage({
       <LeadsFilterBar
         canViewAll={canViewAll}
         scope={scope}
+        viewerTeam={viewerTeam}
+        teamFilter={teamFilter}
         venues={venues}
         unassignedCount={unassignedCount}
         occasions={occasionsResult.success ? occasionsResult.data : []}
@@ -353,6 +368,12 @@ export default async function LeadsPage({
                     </div>
                   ) : undefined
                 }
+              />
+            ) : scope === "team" ? (
+              <EmptyState
+                icon={<SparklesIcon className="size-6" />}
+                title={`No leads in the ${salesTeamLabel(viewerTeam)} team yet`}
+                description="New enquiries for your team land here as they arrive, sorted by event type."
               />
             ) : scope === "unassigned" ? (
               <EmptyState

@@ -9,6 +9,8 @@ import { sessionAllows } from "@/lib/permission-claims";
 import { PipelineBoard } from "./_components/pipeline-board";
 import { ScoreAllDealsButton } from "./_components/score-all-deals-button";
 import { SyncLeadsButton } from "./_components/sync-leads-button";
+import { TeamSwitcher, TeamChip } from "@/components/crm/team-switcher";
+import { canSeeAllLeads } from "@/lib/crm/lead-filters";
 
 export const metadata: Metadata = { title: "Sales Pipeline" };
 
@@ -20,12 +22,22 @@ function formatIndianCurrency(value: number): string {
   return `₹${value.toLocaleString("en-IN")}`;
 }
 
-export default async function PipelinePage() {
+export default async function PipelinePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // ?team= is a manager's pick; a rep in a sales team is held to their own
+  // team's deals by the server whatever the URL says.
+  const sp = await searchParams;
+  const requestedTeam = Array.isArray(sp.team) ? sp.team[0] : sp.team;
   const [stagesResult, statsResult, session] = await Promise.all([
-    getPipelineStages(),
-    getPipelineStats(),
+    getPipelineStages({ team: requestedTeam }),
+    getPipelineStats({ team: requestedTeam }),
     auth(),
   ]);
+  const team = stagesResult.success ? stagesResult.team : null;
+  const canSwitchTeam = canSeeAllLeads(session?.user?.role ?? "");
 
   const stages = stagesResult.success ? stagesResult.data : [];
   const stats = statsResult.success ? statsResult.data : null;
@@ -130,8 +142,17 @@ export default async function PipelinePage() {
         actions={headerActions}
       />
 
+      {canSwitchTeam ? (
+        <TeamSwitcher value={team} />
+      ) : team ? (
+        <p className="flex items-center gap-2 text-detail text-muted-foreground">
+          <TeamChip team={team} /> Your team&rsquo;s deals
+        </p>
+      ) : null}
+
       <div className="flex-1 overflow-hidden">
-        <PipelineBoard initialStages={stages} />
+        {/* Keyed by team: the board holds its own drag state, so a team switch remounts it. */}
+        <PipelineBoard key={team ?? "all"} initialStages={stages} />
       </div>
     </div>
   );

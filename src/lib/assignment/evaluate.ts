@@ -12,6 +12,8 @@
 
 import { prisma } from "@/lib/prisma";
 import type { AssignmentRuleCondition } from "@/schemas/assignment-rule.schema";
+import { teamForEventType } from "@/lib/crm/sales-team";
+import { pickTeamAssignee } from "@/lib/crm/sales-team-db";
 
 // Roles a lead can be auto-assigned to (mirrors lead.actions.ts ASSIGNABLE_ROLES
 // and the new/edit form's user list). A rule's stored assignToUserId/assignToTeam
@@ -64,6 +66,19 @@ export async function evaluateAssignmentRules(
   leadData: Record<string, unknown>
 ): Promise<string | null> {
   try {
+    // ---- Sales team first ------------------------------------------------
+    // A lead that belongs to a team's CRM (Wedding / Corporate / Social) goes
+    // round-robin to that team's members, so no team receives another team's
+    // enquiries. A team with no members, or with auto-routing off, falls
+    // through to the assignment rules below.
+    const team =
+      (typeof leadData.salesTeam === "string" ? leadData.salesTeam : null) ??
+      teamForEventType(typeof leadData.eventType === "string" ? leadData.eventType : null);
+    if (team) {
+      const teamPick = await pickTeamAssignee(team);
+      if (teamPick && (await isAssignableUser(teamPick))) return teamPick;
+    }
+
     const rules = await prisma.assignmentRule.findMany({
       where: { entityType: "LEAD", isActive: true },
       orderBy: { priority: "asc" },

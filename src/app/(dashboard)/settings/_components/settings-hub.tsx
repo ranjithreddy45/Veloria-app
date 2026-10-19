@@ -24,6 +24,8 @@ interface Item {
   desc?: string;
   /** Shown only when the page says the viewer holds venue-owners:manage. */
   venueOwners?: true;
+  /** Shown only when the page says the viewer holds leads:assign. */
+  salesTeams?: true;
 }
 interface Category { title: string; icon: LucideIcon; accent: string; items: Item[] }
 
@@ -54,6 +56,7 @@ const CATEGORIES: Category[] = [
       { label: "Pipeline Stages", href: "/settings/pipeline", icon: Kanban, desc: "Deal stages & flow" },
       { label: "Scoring Rules", href: "/settings/scoring-rules", icon: Target, desc: "Lead scoring" },
       { label: "Assignment Rules", href: "/settings/assignment-rules", icon: UserCheck, desc: "Auto-route leads" },
+      { label: "Sales Teams", href: "/settings/sales-teams", icon: Users, desc: "Wedding, Corporate & Social teams: members, heads, routing", salesTeams: true },
       { label: "Smart Routing", href: "/settings/routing", icon: Route, desc: "Route to the available, lightest-loaded, best-matched rep" },
       { label: "Rep Availability", href: "/settings/rep-availability", icon: UserCheck, desc: "Live rep availability & load" },
       { label: "Blueprints", href: "/settings/blueprints", icon: GitBranch, desc: "Stage process guards" },
@@ -101,17 +104,26 @@ const CATEGORIES: Category[] = [
   },
 ];
 
-export function SettingsHub({ canManageVenueOwners = false }: { canManageVenueOwners?: boolean }) {
+export function SettingsHub({
+  canManageVenueOwners = false,
+  canManageSalesTeams = false,
+}: {
+  canManageVenueOwners?: boolean;
+  canManageSalesTeams?: boolean;
+}) {
   const [q, setQ] = React.useState("");
   const query = q.trim().toLowerCase();
 
   // Items behind a stricter permission than the hub itself (settings:read).
   const permitted = React.useMemo(
     () =>
-      CATEGORIES.map((c) => ({ ...c, items: c.items.filter((it) => !it.venueOwners || canManageVenueOwners) })).filter(
-        (c) => c.items.length > 0,
-      ),
-    [canManageVenueOwners],
+      CATEGORIES.map((c) => ({
+        ...c,
+        items: c.items.filter(
+          (it) => (!it.venueOwners || canManageVenueOwners) && (!it.salesTeams || canManageSalesTeams),
+        ),
+      })).filter((c) => c.items.length > 0),
+    [canManageVenueOwners, canManageSalesTeams],
   );
 
   const categories = React.useMemo(() => {

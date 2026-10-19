@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 import { coarseContactWhere, matchesContactKey } from "@/lib/dedup";
 import { revalidatePath } from "next/cache";
 import { INTERNAL_ROLES } from "@/lib/roles";
+import { teamForEventType } from "@/lib/crm/sales-team";
 import {
   stampsForStatus,
   validateLeadStatusChange,
@@ -232,6 +233,7 @@ export async function importSalesLeads(
               ...(status === "WON" && importedValue ? { bookingValue: importedValue } : {}),
               source: "WALK_IN" as never,
               eventType: eventType ?? null,
+              salesTeam: teamForEventType(eventType),
               eventDate: parseFlexibleDate(r.eventDate),
               guestCount: toNumber(r.attendees) ?? null,
               estimatedValue: toNumber(r.quoteValue) ?? null,

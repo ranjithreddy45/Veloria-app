@@ -22,6 +22,7 @@ const JOBS = [
   "lapsed-hold-release", // unpaid HOLDs past holdExpiresAt → CANCELLED + PublicHold EXPIRED; never a hold with any payment (src/lib/holds/lapsed-hold.ts)
   "sync-callvibe", // pull CallVibe call records (CallVibe cannot push to us)
   "claim-routes", // give in-flight reimbursement claims without an approval chain one (src/lib/hr/claim-workflow.ts)
+  "sales-team-sort", // give Unsorted leads their sales team once the event type names one (src/lib/crm/sales-team-db.ts)
 ] as const;
 
 export async function GET(request: Request) {

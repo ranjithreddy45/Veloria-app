@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Building2, SettingsIcon } from "lucide-react";
 import { auth } from "@/../auth";
 import { sessionAllows } from "@/lib/permission-claims";
+import { hasPermission } from "@/lib/permissions";
 import {
   Card,
   CardContent,
@@ -16,6 +17,8 @@ export const metadata: Metadata = { title: "Settings" };
 export default async function SettingsPage() {
   const session = await auth();
   const canManageVenueOwners = sessionAllows(session, "venue-owners:manage");
+  // Static check: the Sales teams page and its actions check leads:assign on the role matrix.
+  const canManageSalesTeams = hasPermission(session?.user?.role ?? "", "leads:assign");
 
   return (
     <div className="space-y-6">
@@ -44,7 +47,7 @@ export default async function SettingsPage() {
       </Card>
 
       {/* Categorized, searchable setup hub */}
-      <SettingsHub canManageVenueOwners={canManageVenueOwners} />
+      <SettingsHub canManageVenueOwners={canManageVenueOwners} canManageSalesTeams={canManageSalesTeams} />
 
       {/* Developer / Admin tools */}
       <Card className="border-dashed">
