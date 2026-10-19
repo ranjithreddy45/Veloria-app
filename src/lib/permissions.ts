@@ -1347,6 +1347,7 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   { prefix: "/settings/business-contact", permission: "settings:venues" }, // customer-app contact details
   { prefix: "/settings/customer-content", permission: "settings:venues" }, // customer-app policies + FAQs
   { prefix: "/settings/venue-owners", permission: "venue-owners:manage" },
+  { prefix: "/settings/sales-teams", permission: "leads:assign" }, // Wedding / Corporate / Social team setup
   { prefix: "/settings", permission: "settings:read" },
 ];
 

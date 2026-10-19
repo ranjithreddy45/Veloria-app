@@ -9,6 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { serialize } from "@/lib/utils";
 import { ENQUIRY_STATUS_LABEL, type EnquiryStatus } from "@/lib/enquiry-status";
 import { enquirySourceLabel } from "@/lib/enquiry-source";
+import { leadViewer } from "@/lib/crm/lead-viewer";
 
 // ============================================================
 // Export Actions — Fetch ALL data (no pagination) for CSV export
@@ -248,10 +249,7 @@ export async function exportLeads(filters?: LeadListFilters) {
     // buildLeadListWhere already downgrades scope to "mine" for anyone without
     // the manager permission, so the own-book guard is inherited rather than
     // re-implemented here.
-    const { where } = buildLeadListWhere(filters, {
-      id: session.user.id as string,
-      role: session.user.role,
-    });
+    const { where } = buildLeadListWhere(filters, await leadViewer(session.user));
     const leads = await prisma.lead.findMany({
       where,
       orderBy: { createdAt: "desc" },

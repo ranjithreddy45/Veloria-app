@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { canViewLead, buildLeadListWhere } from "./lead-filters";
+import { canViewLead, buildLeadListWhere, resolveTeamView } from "./lead-filters";
 
 // A manager (leads:assign) so scope is not silently downgraded to "mine".
 const MANAGER = { id: "u1", role: "SUPER_ADMIN" };
@@ -94,5 +94,60 @@ describe("canViewLead — opening one lead by id (R1-4 / L18)", () => {
   it("a sales head or admin can open any lead", () => {
     expect(canViewLead({ id: "head", role: "SALES_HEAD" }, { assignedToId: "rep-b" })).toBe(true);
     expect(canViewLead({ id: "admin", role: "ADMIN" }, { assignedToId: null })).toBe(true);
+  });
+});
+
+describe("sales teams — each team works its own CRM", () => {
+  const WED_REP = { id: "w1", role: "SALES_EXEC", salesTeam: "WEDDING" };
+  const HEAD = { id: "h1", role: "SALES_HEAD", salesTeam: "WEDDING" };
+
+  it("a rep in a team opens every lead of their team, and none of another team's", () => {
+    expect(canViewLead(WED_REP, { assignedToId: "w2", salesTeam: "WEDDING" })).toBe(true);
+    expect(canViewLead(WED_REP, { assignedToId: "c1", salesTeam: "CORPORATE" })).toBe(false);
+    expect(canViewLead(WED_REP, { assignedToId: null, salesTeam: null })).toBe(false);
+    // Their own lead stays theirs even after it moves to another team.
+    expect(canViewLead(WED_REP, { assignedToId: "w1", salesTeam: "SOCIAL" })).toBe(true);
+  });
+
+  it("a rep in no team is not let into Unsorted leads through a null-equals-null match", () => {
+    expect(canViewLead({ id: "x", role: "SALES_EXEC", salesTeam: null }, { assignedToId: "y", salesTeam: null })).toBe(false);
+  });
+
+  it("defaults a team rep to the team scope, and holds them to it", () => {
+    expect(buildLeadListWhere({}, WED_REP)).toMatchObject({ scope: "team", viewerTeam: "WEDDING" });
+    expect(buildLeadListWhere({}, WED_REP).where.salesTeam).toBe("WEDDING");
+    expect(buildLeadListWhere({}, WED_REP).where.assignedToId).toBeUndefined();
+    // "all" and a team filter are manager views: downgraded / ignored.
+    const r = buildLeadListWhere({ scope: "all", team: "CORPORATE" }, WED_REP);
+    expect(r.scope).toBe("team");
+    expect(r.where.salesTeam).toBe("WEDDING");
+    expect(r.teamFilter).toBeNull();
+    // "My leads" still works for them.
+    expect(buildLeadListWhere({ scope: "mine" }, WED_REP).where.assignedToId).toBe("w1");
+  });
+
+  it("keeps a rep in no team on their own book", () => {
+    const r = buildLeadListWhere({ scope: "team" }, REP);
+    expect(r.scope).toBe("mine");
+    expect(r.where.assignedToId).toBe("u2");
+  });
+
+  it("lets a manager narrow any scope to one team or to Unsorted", () => {
+    expect(buildLeadListWhere({ scope: "all", team: "SOCIAL" }, MANAGER).where.salesTeam).toBe("SOCIAL");
+    const u = buildLeadListWhere({ scope: "all", team: "UNSORTED" }, MANAGER);
+    expect(u.where.salesTeam).toBeNull();
+    expect(u.teamFilter).toBe("UNSORTED");
+    expect(buildLeadListWhere({ scope: "all", team: "NONSENSE" }, MANAGER).where.salesTeam).toBeUndefined();
+    // A head who is in a team still defaults to "My leads", like every manager.
+    expect(buildLeadListWhere({}, HEAD).scope).toBe("mine");
+  });
+
+  it("resolveTeamView: managers pick, team reps are pinned, others see everything", () => {
+    expect(resolveTeamView(MANAGER, "CORPORATE")).toBe("CORPORATE");
+    expect(resolveTeamView(MANAGER, "UNSORTED")).toBe("UNSORTED");
+    expect(resolveTeamView(MANAGER, "junk")).toBeNull();
+    expect(resolveTeamView(WED_REP, "CORPORATE")).toBe("WEDDING");
+    expect(resolveTeamView(WED_REP, null)).toBe("WEDDING");
+    expect(resolveTeamView(REP, "CORPORATE")).toBeNull();
   });
 });

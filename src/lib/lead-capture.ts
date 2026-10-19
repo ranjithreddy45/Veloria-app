@@ -17,6 +17,7 @@ import { normalizePhone } from "@/lib/sales/lead-import";
 import { coarseContactWhere, matchesContactKey, phoneDigits } from "@/lib/dedup";
 import { toEnquirySource, eventTypeTag, classifyWebChannel } from "@/lib/enquiry-source";
 import { recordConsent, type ConsentPurpose } from "@/lib/privacy/consent";
+import { teamForEventType } from "@/lib/crm/sales-team";
 
 /**
  * An email is only worth storing if it could plausibly be delivered to. Same
@@ -541,6 +542,8 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         source: (data.leadSource ?? mapSource(data.source)) as any,
         score,
         eventType: data.eventType || null,
+        // The team CRM this enquiry lands in (Unsorted when the type is unknown).
+        salesTeam: teamForEventType(data.eventType),
         eventDate: data.eventDate ? new Date(data.eventDate) : null,
         guestCount: data.guestCount || null,
         estimatedValue,

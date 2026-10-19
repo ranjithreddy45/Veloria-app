@@ -353,6 +353,9 @@ model User {
   isVenueOwner            Boolean   @default(false)
   /// Legacy, never used by any code. Venue-owner access is VenueOwnerAccess.
   ownedVenueIds           String[]
+  /// The sales team this person works in ("WEDDING" | "CORPORATE" | "SOCIAL");
+  /// they see that team's leads. Managed at Settings → Sales teams.
+  salesTeam               String?
   venueOwnerAccess        VenueOwnerAccess[] @relation("VenueOwnerAccessUser")
   // User notification preferences (per-event-type email/SMS toggles).
   // Shape: Array<{ key: string; emailEnabled: boolean; smsEnabled: boolean }>
@@ -776,6 +779,14 @@ model Lead {
   bookingUploadStatus UploadStatus @default(PENDING) // Booking Confirmed conversion
   bookingUploadedAt   DateTime?
 
+  /// Sales team that owns this enquiry: "WEDDING" | "CORPORATE" | "SOCIAL";
+  /// null = Unsorted (no event type yet). Set from the event type at intake
+  /// (src/lib/crm/sales-team.ts) unless someone moved it by hand.
+  salesTeam        String?
+  /// True once a person moved the lead between teams — auto-sorting then
+  /// never overrides that choice.
+  salesTeamManual  Boolean   @default(false)
+  @@index([salesTeam])
   @@index([preferredVenueId]) // venue portal: leads per venue
   @@index([status])
   @@index([assignedToId])
@@ -8559,6 +8570,17 @@ model OtaSyncLog {
 /// only run allowed (src/lib/cron/lease.ts). Overlapping triggers — GitHub
 /// Actions, the server crontab, the fast job inside the hourly lane — would
 /// otherwise run the same senders twice.
+/// The three sales teams (Wedding / Corporate / Social events): who heads each,
+/// whether new leads are routed round-robin to its members, and where that
+/// rotation stands. Rows are created on first use (src/lib/crm/sales-team-db.ts).
+model SalesTeam {
+  key             String   @id // "WEDDING" | "CORPORATE" | "SOCIAL"
+  headUserId      String?
+  autoRoute       Boolean  @default(true)
+  lastAssignedIdx Int      @default(-1)
+  updatedAt       DateTime @updatedAt
+}
+
 model CronLaneLease {
   lane       String   @id
   leaseUntil DateTime

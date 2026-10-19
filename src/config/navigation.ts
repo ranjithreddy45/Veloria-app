@@ -94,6 +94,13 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["leads:read"],
       },
       {
+        // One CRM per team: Wedding / Corporate / Social side by side.
+        title: "Team Dashboard",
+        href: "/sales/teams",
+        icon: "Users",
+        permissions: ["leads:read"],
+      },
+      {
         title: "Reports",
         href: "/sales/reports",
         icon: "BarChart3",
@@ -1029,6 +1036,13 @@ export const sidebarNavigation: NavItem[] = [
         // gate; visibility-gate the nav on the same key so we never advertise a
         // link that would bounce to /not-authorized.
         permissions: ["settings:read"],
+      },
+      {
+        // Wedding / Corporate / Social teams: members, heads, auto-routing.
+        title: "Sales Teams",
+        href: "/settings/sales-teams",
+        icon: "Users",
+        permissions: ["leads:assign"],
       },
       {
         title: "Rep Availability",

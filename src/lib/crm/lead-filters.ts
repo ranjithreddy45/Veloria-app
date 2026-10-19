@@ -2,6 +2,7 @@ import { hasPermission } from "@/lib/permissions";
 import { isEnquirySource } from "@/lib/enquiry-source";
 import { OCCASION_NONE } from "@/lib/crm/occasion";
 import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
+import { isSalesTeam, UNSORTED } from "@/lib/crm/sales-team";
 
 // ============================================================
 // ONE definition of "which leads match these filters".
@@ -39,10 +40,23 @@ const LEAD_SOURCE_VALUES = new Set<string>([
  * user). "all" and "unassigned" are manager views — see `canSeeAllLeads`.
  * "unassigned" is the routing inbox: leads with no owner yet (assignedToId=null).
  */
-export type LeadScope = "mine" | "all" | "unassigned";
+/** "team" = every lead of the viewer's own sales team (Wedding / Corporate / Social). */
+export type LeadScope = "mine" | "team" | "all" | "unassigned";
+
+/** Who is looking: their sales team decides the "team" scope and team leads they may open. */
+export interface LeadViewer {
+  id: string;
+  role: string;
+  salesTeam?: string | null;
+}
 
 export interface LeadListFilters {
   search?: string;
+  /**
+   * Sales-team filter for lead managers: a team key, or "UNSORTED" for leads
+   * with no team yet. Ignored for everyone else (their team scope is fixed).
+   */
+  team?: string;
   status?: string;
   source?: string;
   /** Event-date period — IST yyyy-mm-dd, inclusive on both ends. */
@@ -93,12 +107,15 @@ export function canSeeAllLeads(role: string): boolean {
 /**
  * May this viewer open, or act on, this ONE lead? The same rule as the list
  * (buildLeadListWhere): a lead manager (leads:assign) sees every lead; anyone
- * else only the leads assigned to them — unassigned leads are a manager view.
- * Every single-lead loader uses this, so a rep can't open another rep's lead
- * by typing its id. Refusals answer "not found", never "forbidden".
+ * else the leads assigned to them plus every lead of their own sales team
+ * (each team works its own CRM, in full view of each other) — never another
+ * team's, never Unsorted. Every single-lead loader uses this, so a rep can't
+ * open a lead outside that by typing its id. Refusals answer "not found".
  */
-export function canViewLead(viewer: { id: string; role: string }, lead: { assignedToId: string | null }): boolean {
-  return canSeeAllLeads(viewer.role) || (!!lead.assignedToId && lead.assignedToId === viewer.id);
+export function canViewLead(viewer: LeadViewer, lead: { assignedToId: string | null; salesTeam?: string | null }): boolean {
+  if (canSeeAllLeads(viewer.role)) return true;
+  if (lead.assignedToId && lead.assignedToId === viewer.id) return true;
+  return !!viewer.salesTeam && !!lead.salesTeam && lead.salesTeam === viewer.salesTeam;
 }
 
 /**
@@ -137,22 +154,40 @@ function istRangeFilter(fromISO?: string, toISO?: string): { gte?: Date; lte?: D
  */
 export function buildLeadListWhere(
   filters: LeadListFilters | undefined,
-  viewer: { id: string; role: string }
-): { where: Record<string, unknown>; scope: LeadScope; canViewAll: boolean } {
+  viewer: LeadViewer
+): {
+  where: Record<string, unknown>;
+  scope: LeadScope;
+  canViewAll: boolean;
+  /** The viewer's own sales team (drives the "Team leads" tab), or null. */
+  viewerTeam: string | null;
+  /** The team a manager narrowed to (a key or UNSORTED), or null. */
+  teamFilter: string | null;
+} {
   // Exclude soft-deleted records by default
   const where: Record<string, unknown> = { deletedAt: null };
 
   // ---- Ownership scoping (server-authoritative) ----
   const canViewAll = canSeeAllLeads(viewer.role);
-  // "all" and "unassigned" are manager-only views; a rep asking for either is
-  // silently downgraded to "mine" so the query can never widen past their book.
-  const requested = filters?.scope;
+  // "team" is the viewer's own sales team, and the default (and widest view)
+  // for a rep in a team. "all" and "unassigned" are manager-only views; a rep
+  // asking for either is silently downgraded to their default, so the query
+  // can never widen past their team (or, outside a team, their own book).
+  const team = viewer.salesTeam && isSalesTeam(viewer.salesTeam) ? viewer.salesTeam : null;
+  const fallback: LeadScope = team && !canViewAll ? "team" : "mine";
+  const requested = filters?.scope ?? fallback;
   const scope: LeadScope =
     (requested === "all" || requested === "unassigned") && canViewAll
       ? requested
-      : "mine";
+      : requested === "team" && team
+        ? "team"
+        : requested === "mine"
+          ? "mine"
+          : fallback;
   if (scope === "mine") {
     where.assignedToId = viewer.id;
+  } else if (scope === "team") {
+    where.salesTeam = team;
   } else if (scope === "unassigned") {
     // The routing inbox: leads that landed with no owner. With the capture-side
     // fallback owner this should stay near-empty, but it's the safety net that
@@ -160,6 +195,14 @@ export function buildLeadListWhere(
     where.assignedToId = null;
   }
   // scope === "all" → no assignedToId filter (every lead in the company).
+
+  // A lead manager can narrow any scope to one team's CRM, or to Unsorted.
+  let teamFilter: string | null = null;
+  if (canViewAll && filters?.team) {
+    if (filters.team === UNSORTED) where.salesTeam = null;
+    else if (isSalesTeam(filters.team)) where.salesTeam = filters.team;
+    if (filters.team === UNSORTED || isSalesTeam(filters.team)) teamFilter = filters.team;
+  }
 
   const search = filters?.search?.trim();
   if (search) {
@@ -247,5 +290,18 @@ export function buildLeadListWhere(
     where.preferredVenueId = venueId;
   }
 
-  return { where, scope, canViewAll };
+  return { where, scope, canViewAll, viewerTeam: team, teamFilter };
+}
+
+/**
+ * Which team's slice a team-aware screen (pipeline, team dashboard) shows.
+ * A lead manager picks any team, Unsorted, or all (null); a rep in a team is
+ * held to their own team whatever the URL says; a rep in no team keeps the
+ * unfiltered view those screens always had.
+ */
+export function resolveTeamView(viewer: LeadViewer, requested?: string | null): string | null {
+  if (canSeeAllLeads(viewer.role)) {
+    return requested === UNSORTED || isSalesTeam(requested) ? requested : null;
+  }
+  return isSalesTeam(viewer.salesTeam) ? viewer.salesTeam : null;
 }

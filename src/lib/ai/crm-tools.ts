@@ -9,6 +9,7 @@ import { utcDayRange } from "@/lib/sales/slot-util";
 import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
 import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
 import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
+import { teamForEventType } from "@/lib/crm/sales-team";
 
 // ============================================================
 // Tool execution context — who is asking, and from where
@@ -1075,6 +1076,7 @@ async function createLeadEnquiryTool(
       assignedToId: ctx!.userId,
       source: ((args.source as string) || "PHONE_INQUIRY") as never,
       eventType: (args.eventType as string) || null,
+      salesTeam: teamForEventType(args.eventType as string),
       eventDate: eventDate && !Number.isNaN(eventDate.getTime()) ? eventDate : null,
       guestCount: typeof args.guestCount === "number" ? (args.guestCount as number) : null,
       estimatedValue: typeof args.estimatedValue === "number" ? (args.estimatedValue as number) : null,

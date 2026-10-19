@@ -14,6 +14,23 @@ import { velosOnDealStage } from "@/lib/velos/triggers";
 import { calculateLeadScore } from "@/lib/lead-scoring";
 import { utcDayRange } from "@/lib/sales/slot-util";
 import { releaseLapsedHoldsForSlot } from "@/lib/holds/release-lapsed-holds";
+import { resolveTeamView } from "@/lib/crm/lead-filters";
+import { leadViewer } from "@/lib/crm/lead-viewer";
+import { UNSORTED } from "@/lib/crm/sales-team";
+
+/**
+ * The deal filter for one sales team's board: a rep in a team sees only their
+ * team's deals; a manager sees the team they picked (or every deal); a rep in
+ * no team keeps the whole board as before. Returns the resolved team too.
+ */
+async function pipelineTeamScope(
+  user: { id?: string | null; role?: string | null },
+  requested?: string | null,
+): Promise<{ team: string | null; dealWhere: Prisma.DealWhereInput }> {
+  const team = resolveTeamView(await leadViewer(user), requested);
+  if (!team) return { team: null, dealWhere: {} };
+  return { team, dealWhere: { lead: { salesTeam: team === UNSORTED ? null : team } } };
+}
 
 // ============================================================
 // Open-funnel status ordering (mirrors the LeadStatus enum). Used to avoid
@@ -111,7 +128,7 @@ type UpdateStageInput = {
 // Get Pipeline Stages (with Deals)
 // ============================================================
 
-export async function getPipelineStages() {
+export async function getPipelineStages(opts?: { team?: string | null }) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -123,10 +140,12 @@ export async function getPipelineStages() {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    const { team, dealWhere } = await pipelineTeamScope(session.user, opts?.team);
     const stages = await prisma.pipelineStage.findMany({
       orderBy: { order: "asc" },
       include: {
         deals: {
+          where: dealWhere,
           orderBy: { orderInStage: "asc" },
           include: {
             lead: {
@@ -193,7 +212,7 @@ export async function getPipelineStages() {
       }),
     }));
 
-    return { success: true as const, data: serialize(stagesWithContacts) };
+    return { success: true as const, data: serialize(stagesWithContacts), team };
   } catch (error) {
     console.error("[GET_PIPELINE_STAGES_ERROR]", error);
     return { success: false as const, error: "Failed to fetch pipeline stages" };
@@ -864,7 +883,7 @@ export async function deletePipelineStage(id: string) {
 // Get Pipeline Stats
 // ============================================================
 
-export async function getPipelineStats() {
+export async function getPipelineStats(opts?: { team?: string | null }) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -876,8 +895,9 @@ export async function getPipelineStats() {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
+    const { dealWhere } = await pipelineTeamScope(session.user, opts?.team);
     const [totalDeals, stages, wonDeals, allDeals] = await Promise.all([
-      prisma.deal.count(),
+      prisma.deal.count({ where: dealWhere }),
       prisma.pipelineStage.findMany({
         orderBy: { order: "asc" },
         select: {
@@ -887,16 +907,18 @@ export async function getPipelineStats() {
           isWonStage: true,
           isLostStage: true,
           probability: true,
-          _count: { select: { deals: true } },
+          _count: { select: { deals: { where: dealWhere } } },
           deals: {
+            where: dealWhere,
             select: { value: true, probability: true },
           },
         },
       }),
       prisma.deal.count({
-        where: { stage: { isWonStage: true } },
+        where: { ...dealWhere, stage: { isWonStage: true } },
       }),
       prisma.deal.aggregate({
+        where: dealWhere,
         _sum: { value: true },
       }),
     ]);

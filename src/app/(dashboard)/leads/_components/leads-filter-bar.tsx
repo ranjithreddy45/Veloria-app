@@ -55,6 +55,8 @@ import {
 } from "@/components/ui/sheet";
 import { ViewTabs } from "@/components/ui/view-tabs";
 import { ENQUIRY_SOURCE_OPTIONS } from "@/lib/enquiry-source";
+import { salesTeamLabel } from "@/lib/crm/sales-team";
+import { TeamSwitcher } from "@/components/crm/team-switcher";
 
 // Sentinel for "no status filter" — a shadcn SelectItem can't take value="".
 const ANY_STATUS = "ALL";
@@ -96,7 +98,11 @@ interface Props {
   /** Server-resolved: may this viewer switch to "All leads" / "Unassigned"? */
   canViewAll: boolean;
   /** Server-resolved effective scope (a downgraded "all" shows as "mine"). */
-  scope: "mine" | "all" | "unassigned";
+  scope: "mine" | "team" | "all" | "unassigned";
+  /** The viewer's own sales team — adds the "Team leads" tab. */
+  viewerTeam?: string | null;
+  /** The team a manager narrowed to (a key or UNSORTED), or null for every team. */
+  teamFilter?: string | null;
   /** Active halls/properties for the venue filter. */
   venues: { id: string; name: string }[];
   /** Ownerless-lead count for the "Unassigned" inbox badge (managers only). */
@@ -108,7 +114,15 @@ interface Props {
   occasions?: { value: string; label: string; count: number }[];
 }
 
-export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0, occasions = [] }: Props) {
+export function LeadsFilterBar({
+  canViewAll,
+  scope,
+  viewerTeam = null,
+  teamFilter = null,
+  venues,
+  unassignedCount = 0,
+  occasions = [],
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const sp = useSearchParams();
@@ -289,16 +303,22 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0,
     </>
   );
 
-  // Ownership scope — managers only. Reps always see their own book. This is a
-  // view switch, not a filter, so it stays OUT of the mobile sheet and one tap
-  // away. Stateless/controlled, so rendering it in both layouts is safe.
+  // Ownership scope. Managers: My / (Team) / All / Unassigned, plus the team
+  // switcher. A rep in a sales team: Team leads (their default) / My leads.
+  // A rep in no team has nothing to switch, so no tabs. This is a view
+  // switch, not a filter, so it stays OUT of the mobile sheet and one tap
+  // away. The scope is always written explicitly because the default differs
+  // by person ("team" for a rep in a team, "mine" otherwise).
+  const teamTab = viewerTeam
+    ? [{ value: "team" as const, label: `${salesTeamLabel(viewerTeam)} team`, icon: Users }]
+    : [];
   const scopeTabs = canViewAll ? (
     <ViewTabs
       value={scope}
-      // "mine" is the default → clear the param; the other two set it.
-      onValueChange={(v) => push({ scope: v === "mine" ? null : v })}
+      onValueChange={(v) => push({ scope: v })}
       options={[
         { value: "mine", label: "My leads", icon: User },
+        ...teamTab,
         { value: "all", label: "All leads", icon: Users },
         {
           value: "unassigned",
@@ -307,6 +327,22 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0,
           icon: Inbox,
         },
       ]}
+    />
+  ) : viewerTeam ? (
+    <ViewTabs
+      value={scope}
+      onValueChange={(v) => push({ scope: v })}
+      options={[...teamTab, { value: "mine", label: "My leads", icon: User }]}
+    />
+  ) : null;
+
+  // Managers look at one team's CRM at a time (or all of them). Picking a
+  // team from "My leads" widens to All, or the switch would show only the
+  // manager's own leads of that team.
+  const teamSwitcher = canViewAll ? (
+    <TeamSwitcher
+      value={teamFilter}
+      alsoSet={scope === "mine" || scope === "team" ? { scope: "all" } : undefined}
     />
   ) : null;
 
@@ -317,6 +353,11 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0,
       {scopeTabs && (
         <div className="-mx-1 overflow-x-auto px-1 pb-0.5 md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {scopeTabs}
+        </div>
+      )}
+      {teamSwitcher && (
+        <div className="-mx-1 overflow-x-auto px-1 pb-0.5 md:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {teamSwitcher}
         </div>
       )}
 
@@ -381,6 +422,7 @@ export function LeadsFilterBar({ canViewAll, scope, venues, unassignedCount = 0,
           opens with content, not a wall of dropdowns. */}
       <div className="hidden flex-wrap items-center gap-2 py-1 md:flex">
         {scopeTabs}
+        {teamSwitcher}
 
         <Popover>
           <PopoverTrigger asChild>

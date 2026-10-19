@@ -3,6 +3,7 @@
 import { auth } from "@/../auth";
 import { OCCASION_NONE, buildOccasionOptions, occasionKey, rawValuesForOccasion } from "@/lib/crm/occasion";
 import { buildLeadListWhere, canSeeAllLeads, canViewLead, type LeadListFilters, type LeadScope } from "@/lib/crm/lead-filters";
+import { leadViewer } from "@/lib/crm/lead-viewer";
 import { isEnquirySource } from "@/lib/enquiry-source";
 import { Prisma } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
@@ -32,6 +33,7 @@ import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
 import { syncLeadToWhatsAppProvider } from "@/lib/integrations/lead-sync";
 import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
 import { after } from "next/server";
+import { isSalesTeam, teamForEventType } from "@/lib/crm/sales-team";
 // LeadStatus enum values matching Prisma schema
 type LeadStatus = "NEW" | "NOT_CONNECTED" | "CONTACTED" | "QUALIFIED" | "PROPOSAL_SENT" | "NEGOTIATION" | "WON" | "LOST";
 
@@ -170,7 +172,7 @@ export async function getLeadOccasionOptions(params?: LeadListFilters) {
     }
     const { where } = buildLeadListWhere(
       { ...params, occasion: undefined, occasionValues: undefined },
-      { id: session.user.id as string, role: session.user.role }
+      await leadViewer(session.user)
     );
     const groups = await prisma.lead.groupBy({ by: ["eventType"], where, _count: { _all: true } });
     return {
@@ -216,10 +218,10 @@ export async function getLeads(params?: LeadListFilters & {
     const limit = Math.min(Math.max(1, Math.floor(params?.limit ?? 50)), MAX_LEAD_PAGE_SIZE);
     const skip = (page - 1) * limit;
 
-    const { where, scope, canViewAll } = buildLeadListWhere(await withOccasionValues(params), {
-      id: session.user.id as string,
-      role: session.user.role,
-    });
+    const { where, scope, canViewAll, viewerTeam, teamFilter } = buildLeadListWhere(
+      await withOccasionValues(params),
+      await leadViewer(session.user),
+    );
 
     const [leads, total] = await Promise.all([
       prisma.lead.findMany({
@@ -291,6 +293,8 @@ export async function getLeads(params?: LeadListFilters & {
         // role guess.
         scope,
         canViewAll,
+        viewerTeam,
+        teamFilter,
       },
     };
   } catch (error) {
@@ -323,10 +327,7 @@ export async function getLeadStats(params?: LeadListFilters) {
       return { success: false as const, error: "Insufficient permissions" };
     }
 
-    const { where } = buildLeadListWhere(await withOccasionValues(params), {
-      id: session.user.id as string,
-      role: session.user.role,
-    });
+    const { where } = buildLeadListWhere(await withOccasionValues(params), await leadViewer(session.user));
 
     const [total, openAgg] = await Promise.all([
       prisma.lead.count({ where }),
@@ -430,7 +431,7 @@ export async function getLead(id: string) {
     if (!lead) {
       return { success: false as const, error: "Lead not found" };
     }
-    if (!canViewLead({ id: session.user.id as string, role: session.user.role as string }, lead)) {
+    if (!canViewLead(await leadViewer(session.user), lead)) {
       return { success: false as const, error: "Lead not found" };
     }
 
@@ -501,6 +502,7 @@ export async function createLead(data: LeadInput & { images?: string[] }) {
         contactId: leadData.contactId,
         source: leadData.source,
         eventType: leadData.eventType || null,
+        salesTeam: teamForEventType(leadData.eventType),
         eventDate: leadData.eventDate || null,
         guestCount: leadData.guestCount || null,
         estimatedValue: leadData.estimatedValue || null,
@@ -650,7 +652,7 @@ export async function updateLead(
     if (!existing) {
       return { success: false as const, error: "Lead not found" };
     }
-    if (!canViewLead({ id: session.user.id as string, role: session.user.role as string }, existing)) {
+    if (!canViewLead(await leadViewer(session.user), existing)) {
       return { success: false as const, error: "Lead not found" };
     }
 
@@ -677,8 +679,15 @@ export async function updateLead(
     if (data.title !== undefined) updateData.title = data.title;
     if (data.contactId !== undefined) updateData.contactId = data.contactId;
     if (data.source !== undefined) updateData.source = data.source;
-    if (data.eventType !== undefined)
+    if (data.eventType !== undefined) {
       updateData.eventType = data.eventType || null;
+      // A new event type re-sorts the lead into that team's CRM — unless a
+      // person moved it by hand, which always wins.
+      if (!existing.salesTeamManual) {
+        const team = teamForEventType(data.eventType);
+        if (team) updateData.salesTeam = team;
+      }
+    }
     if (data.eventDate !== undefined)
       updateData.eventDate = data.eventDate || null;
     if (data.guestCount !== undefined)
@@ -815,7 +824,7 @@ export async function deleteLead(id: string) {
     if (!lead) {
       return { success: false as const, error: "Lead not found" };
     }
-    if (!canViewLead({ id: session.user.id as string, role: session.user.role as string }, lead)) {
+    if (!canViewLead(await leadViewer(session.user), lead)) {
       return { success: false as const, error: "Lead not found" };
     }
 
@@ -1131,10 +1140,10 @@ export async function setLeadLocationConfirmed(id: string, confirmed: boolean) {
 
     const lead = await prisma.lead.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true, assignedToId: true },
+      select: { id: true, assignedToId: true, salesTeam: true },
     });
     if (!lead) return { success: false as const, error: "Lead not found" };
-    if (!canViewLead({ id: session.user.id as string, role: session.user.role as string }, lead)) {
+    if (!canViewLead(await leadViewer(session.user), lead)) {
       return { success: false as const, error: "Lead not found" };
     }
 
@@ -1172,7 +1181,7 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
     if (!existing) {
       return { success: false as const, error: "Lead not found" };
     }
-    if (!canViewLead({ id: session.user.id as string, role: session.user.role as string }, existing)) {
+    if (!canViewLead(await leadViewer(session.user), existing)) {
       return { success: false as const, error: "Lead not found" };
     }
 
@@ -1321,7 +1330,7 @@ export async function convertLeadToDeal(leadId: string) {
     if (!existing) {
       return { success: false as const, error: "Lead not found" };
     }
-    if (!canViewLead({ id: session.user.id as string, role: session.user.role as string }, existing)) {
+    if (!canViewLead(await leadViewer(session.user), existing)) {
       return { success: false as const, error: "Lead not found" };
     }
 
@@ -1487,5 +1496,45 @@ export async function runLeadEngagementRepair() {
   } catch (e) {
     console.error("[LEAD_ENGAGEMENT_REPAIR_ERROR]", e);
     return { success: false as const, error: "Repair failed" };
+  }
+}
+
+
+/**
+ * Move a lead to a team's CRM (or back to Unsorted). Anyone who can open the
+ * lead and update leads may do it; the move is logged and auto-sorting never
+ * overrides it afterwards.
+ */
+export async function setLeadSalesTeam(leadId: string, team: string | null) {
+  try {
+    const session = await auth();
+    if (!session?.user) return { success: false as const, error: "Unauthorized" };
+    if (!hasPermission(session.user.role, "leads:update")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+    if (team !== null && !isSalesTeam(team)) return { success: false as const, error: "Pick a sales team." };
+    const lead = await prisma.lead.findFirst({
+      where: { id: leadId, deletedAt: null },
+      select: { id: true, assignedToId: true, salesTeam: true },
+    });
+    if (!lead) return { success: false as const, error: "Lead not found" };
+    const viewer = await leadViewer(session.user);
+    if (!canViewLead(viewer, lead)) return { success: false as const, error: "Lead not found" };
+    if (lead.salesTeam === team) return { success: true as const, data: { salesTeam: team } };
+
+    await prisma.lead.update({ where: { id: leadId }, data: { salesTeam: team, salesTeamManual: true } });
+    await logActivity({
+      userId: session.user.id as string,
+      action: "lead_sales_team_changed",
+      entityType: "lead",
+      entityId: leadId,
+      changes: { from: lead.salesTeam, to: team },
+    });
+    revalidatePath("/leads");
+    revalidatePath(`/leads/${leadId}`);
+    return { success: true as const, data: { salesTeam: team } };
+  } catch (error) {
+    console.error("setLeadSalesTeam error:", error);
+    return { success: false as const, error: "Failed to move the lead" };
   }
 }
