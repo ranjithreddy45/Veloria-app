@@ -12,7 +12,7 @@ export const maxDuration = 120;
 // ============================================================
 // GET /api/cron/meta-leads — drain the Meta lead queue, and poll for misses.
 //
-// Also the on-demand import: ?since=YYYY-MM-DD runs the poll immediately over
+// Also the on-demand import: ?since=YYYY-MM-DD (or a full ISO time) runs the poll immediately over
 // that window, which is how the leads already sitting in Meta's Leads Centre
 // get pulled in after a broken token is replaced.
 //
@@ -35,14 +35,22 @@ export async function GET(request: Request) {
   const sinceParam = url.searchParams.get("since");
   const hoursParam = Number(url.searchParams.get("hours") ?? "");
   const ranAt = new Date().toISOString();
+  const since = sinceParam
+    ? new Date(sinceParam.includes("T") ? sinceParam : `${sinceParam}T00:00:00.000Z`)
+    : null;
+  if (since && Number.isNaN(since.getTime())) {
+    return NextResponse.json({ error: "since must be YYYY-MM-DD or an ISO date-time" }, { status: 400 });
+  }
 
   try {
     const drained = await drainMetaLeadJobs(50);
 
     // An explicit ?since= is always honoured — that is the whole point of the
     // on-demand import — and bypasses the 15-minute pacing.
-    const backfill = sinceParam
-      ? await runMetaBackfill({ since: new Date(`${sinceParam}T00:00:00.000Z`) })
+    const backfill = since
+      ? // A date (YYYY-MM-DD, UTC midnight) or a full ISO time — e.g.
+        // 2026-09-30T18:30:00Z for "from 1 October, India time".
+        await runMetaBackfill({ since })
       : await maybeRunMetaBackfill({
           force: url.searchParams.get("force") === "1",
           hours: Number.isFinite(hoursParam) && hoursParam > 0 ? hoursParam : undefined,

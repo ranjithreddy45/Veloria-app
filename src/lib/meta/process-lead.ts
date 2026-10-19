@@ -19,6 +19,14 @@ import {
   type MetaLeadPayload,
 } from "./field-map";
 import { fetchFormName, fetchLead, getMetaCredentials, type MetaCredentials } from "./graph";
+import { EXCLUDED_PIPELINE, excludedCampaignMatch } from "./exclusions";
+
+/**
+ * A lead older than this when we process it is a PAST enquiry (an import, or a
+ * webhook that failed for a day): it keeps its date but sends no welcome,
+ * starts no first-reply clock and pings nobody. See ExternalLeadData.historical.
+ */
+const HISTORICAL_AFTER_MS = 24 * 60 * 60 * 1000;
 
 export type ProcessOutcome =
   | { status: "captured"; leadId: string; metaLeadId: string; isTest: boolean; pipeline: string }
@@ -51,13 +59,48 @@ export async function processMetaLeadPayload(
 
   const existing = await prisma.metaLeadCapture.findUnique({
     where: { metaLeadId },
-    select: { leadId: true },
+    select: { leadId: true, pipeline: true },
   });
-  if (existing) return { status: "duplicate", metaLeadId, leadId: existing.leadId };
+  // A lead held back only because its campaign was excluded is looked at
+  // again — if the campaign has since been let in, it is imported now.
+  const heldBack = existing != null && existing.leadId === null && existing.pipeline === EXCLUDED_PIPELINE;
+  if (existing && !heldBack) return { status: "duplicate", metaLeadId, leadId: existing.leadId };
 
   const formId = String(payload.form_id ?? "");
   const formName = formId ? await fetchFormName(formId, creds) : null;
-  const mapped = mapMetaLead(payload, formName);
+
+  const excludedBy = excludedCampaignMatch({
+    campaignName: payload.campaign_name,
+    adsetName: payload.adset_name,
+    formName,
+  });
+  if (excludedBy) {
+    if (!heldBack) {
+      await recordCapture(
+        metaLeadId,
+        null,
+        payload,
+        formName,
+        mapMetaLead(payload, formName),
+        `excluded campaign (${excludedBy})`,
+        EXCLUDED_PIPELINE
+      );
+    }
+    return { status: "skipped", metaLeadId, reason: `Campaign excluded for now (${excludedBy})` };
+  }
+  if (heldBack) {
+    // Let in now: clear the hold so the capture below can be recorded.
+    await prisma.metaLeadCapture.delete({ where: { metaLeadId } }).catch(() => {});
+  }
+
+  // When the customer actually filled the form, per Meta.
+  const createdAt = payload.created_time ? new Date(payload.created_time) : null;
+  const enquiryAt = createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt : null;
+  const isPast = enquiryAt != null && Date.now() - enquiryAt.getTime() > HISTORICAL_AFTER_MS;
+
+  // Answers are read as of the day the form was filled: "5 Oct" written on
+  // 3 October is this year's 5 October, not next year's.
+  const mapped = mapMetaLead(payload, formName, enquiryAt ?? undefined);
 
   if (!mapped.phone && !mapped.email) {
     // A lead with no way to reach anyone is not a lead. It is usually a test
@@ -93,6 +136,10 @@ export async function processMetaLeadPayload(
     // Same key the older Facebook webhook used, so a lead captured by either
     // route is recognised as the same lead rather than duplicated.
     externalId: `fb:${metaLeadId}`,
+    // Dated when the customer filled the form, not when we fetched it; a past
+    // enquiry (an import) is also kept quiet — see HISTORICAL_AFTER_MS.
+    occurredAt: enquiryAt ?? undefined,
+    historical: isPast && enquiryAt ? { receivedAt: enquiryAt } : undefined,
     customFields: {
       metaLeadId,
       formId,
@@ -140,7 +187,8 @@ async function recordCapture(
   payload: MetaLeadPayload,
   formName: string | null,
   mapped: ReturnType<typeof mapMetaLead>,
-  skippedReason: string | null
+  skippedReason: string | null,
+  pipelineOverride?: string
 ): Promise<void> {
   await prisma.metaLeadCapture
     .create({
@@ -157,7 +205,7 @@ async function recordCapture(
         adName: payload.ad_name ?? null,
         platform: mapped.platform,
         venueLabel: mapped.venueLabel,
-        pipeline: mapped.pipeline,
+        pipeline: pipelineOverride ?? mapped.pipeline,
         isTest: mapped.isTest,
         isOrganic: Boolean(payload.is_organic),
         metaCreatedAt: payload.created_time ? new Date(payload.created_time) : null,
