@@ -118,4 +118,15 @@ describe("team columns", () => {
     expect(statusFromRemarks("not interested")).toBeNull();
     expect(statusFromRemarks("")).toBeNull();
   });
+
+});
+
+describe("event type from each form's own question", () => {
+  const ask = (name: string, value: string) => mapMetaLead({ field_data: [{ name, values: [value] }] }, null).eventType;
+  it("reads the wedding, pre-wedding and banquet wordings — not the Diwali 'who for'", () => {
+    expect(ask("what_celebration_are_you_planning?", "Wedding + Reception")).toBe("Wedding + Reception");
+    expect(ask("which_function_are_you_planning?", "Engagement")).toBe("Engagement");
+    expect(ask("what_type_of_event_are_you_planning?", "birthday_celebration")).toBe("birthday celebration");
+    expect(ask("who_is_this_diwali_celebration_for?", "Our employees")).toBeNull();
+  });
 });

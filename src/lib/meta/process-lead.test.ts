@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const db = vi.hoisted(() => ({
-  metaLeadCapture: { findUnique: vi.fn(), create: vi.fn(), delete: vi.fn() },
+  metaLeadCapture: { findUnique: vi.fn(), findFirst: vi.fn(), create: vi.fn(), delete: vi.fn() },
   venue: { findFirst: vi.fn() },
   lead: { update: vi.fn() },
 }));
@@ -40,6 +40,7 @@ describe("processMetaLeadPayload — dates, quiet import, excluded campaigns", (
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
     db.metaLeadCapture.findUnique.mockResolvedValue(null);
+    db.metaLeadCapture.findFirst.mockResolvedValue(null);
     db.metaLeadCapture.create.mockResolvedValue({});
     db.metaLeadCapture.delete.mockResolvedValue({});
     db.venue.findFirst.mockResolvedValue(null);
@@ -99,5 +100,16 @@ describe("processMetaLeadPayload — dates, quiet import, excluded campaigns", (
     db.metaLeadCapture.findUnique.mockResolvedValue({ leadId: "lead-9", pipeline: "event" });
     expect(await processMetaLeadPayload(lead(), creds)).toEqual({ status: "duplicate", metaLeadId: "L1", leadId: "lead-9" });
     expect(capture).not.toHaveBeenCalled();
+  });
+
+  it("recognises the same lead under another export's id: same phone, same submit time", async () => {
+    db.metaLeadCapture.findFirst.mockResolvedValue({ leadId: "lead-from-sheet" });
+    const out = await processMetaLeadPayload(lead({ id: "LEADS-CENTRE-ID" }), creds);
+    expect(out).toEqual({ status: "duplicate", metaLeadId: "LEADS-CENTRE-ID", leadId: "lead-from-sheet" });
+    expect(capture).not.toHaveBeenCalled();
+    expect(db.metaLeadCapture.findFirst.mock.calls[0][0].where).toMatchObject({
+      metaCreatedAt: new Date("2026-10-03T09:15:00Z"),
+      lead: { contact: { phone: { endsWith: "9006612345" } } },
+    });
   });
 });
