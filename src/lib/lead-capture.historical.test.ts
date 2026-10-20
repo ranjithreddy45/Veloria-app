@@ -116,4 +116,9 @@ describe("captureLeadFromExternal — past enquiry (historical)", () => {
     expect(upd).toMatchObject({ eventType: "Wedding", guestCount: 300, salesTeam: "WEDDING" });
     expect(upd.description).toContain("enquiry of 2026-10-03");
   });
+
+  it("files an Instagram lead ad as INSTAGRAM, not OTHER", async () => {
+    await captureLeadFromExternal({ ...base, source: "instagram", historical: { receivedAt: OCT3 } });
+    expect(db.lead.create.mock.calls[0][0].data.source).toBe("INSTAGRAM");
+  });
 });

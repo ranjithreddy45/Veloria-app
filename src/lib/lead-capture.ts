@@ -891,6 +891,9 @@ function mapSource(source: string): string {
   const sourceMap: Record<string, string> = {
     facebook: "FACEBOOK_ADS",
     facebook_ads: "FACEBOOK_ADS",
+    // Instagram lead ads (Meta sends platform "ig"). This key was missing, so
+    // every Instagram lead was filed as OTHER — 105 of the first 134 imported.
+    instagram: "INSTAGRAM",
     google: "GOOGLE_ADS",
     google_ads: "GOOGLE_ADS",
     indiamart: "INDIAMART",
