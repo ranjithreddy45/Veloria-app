@@ -4762,6 +4762,7 @@ model AcqLead {
   firstContactDue     DateTime
   firstContactAt      DateTime? // when the lead was first actually contacted — clears the SLA
   slaEscalatedAt      DateTime? // set when an overdue first-contact SLA was escalated (idempotency)
+  followupNotifiedFor DateTime? // the nextFollowupAt already alerted as due — one alert per scheduled follow-up (acq-sla)
   convertedDealId     String? // set on qualify (denormalized; deal.leadId is authoritative)
   deal                AcqDeal?             @relation("AcqDealOrigin")
   activities          AcqLeadActivity[]
@@ -5257,6 +5258,7 @@ model AcqOnboardingProject {
   notes                 String?   @db.Text
   createdAt             DateTime  @default(now())
   completedAt           DateTime?
+  slaEscalatedAt        DateTime? // set when the onboarding SLA breach was alerted — alert once (acq-sla)
   updatedAt             DateTime  @default(now()) @updatedAt
 
   tasks            AcqOnboardingTask[]
