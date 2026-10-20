@@ -67,7 +67,8 @@ export async function processMetaLeadPayload(
   if (existing && !heldBack) return { status: "duplicate", metaLeadId, leadId: existing.leadId };
 
   const formId = String(payload.form_id ?? "");
-  const formName = formId ? await fetchFormName(formId, creds) : null;
+  // A sheet/CSV export already carries the form's name; only the API needs a lookup.
+  const formName = payload.form_name?.trim() || (formId ? await fetchFormName(formId, creds) : null);
 
   const excludedBy = excludedCampaignMatch({
     campaignName: payload.campaign_name,
