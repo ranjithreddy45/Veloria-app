@@ -103,6 +103,22 @@ export async function processMetaLeadPayload(
   // 3 October is this year's 5 October, not next year's.
   const mapped = mapMetaLead(payload, formName, enquiryAt ?? undefined);
 
+  // The same lead reaches us under different ids — the Leads Sheet, a Leads
+  // Centre export and the Graph API each number it their own way — so the id
+  // check above can miss it. Same phone, same second it was submitted: same lead.
+  const phoneDigits = (mapped.phone ?? "").replace(/\D/g, "").slice(-10);
+  if (enquiryAt && phoneDigits.length === 10) {
+    const twin = await prisma.metaLeadCapture.findFirst({
+      where: {
+        metaCreatedAt: enquiryAt,
+        leadId: { not: null },
+        lead: { contact: { phone: { endsWith: phoneDigits } } },
+      },
+      select: { leadId: true },
+    });
+    if (twin) return { status: "duplicate", metaLeadId, leadId: twin.leadId };
+  }
+
   if (!mapped.phone && !mapped.email) {
     // A lead with no way to reach anyone is not a lead. It is usually a test
     // ping or a token problem, and creating it would only pollute the queue.

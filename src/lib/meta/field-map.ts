@@ -206,6 +206,14 @@ export function eventTypeFromAdNames(
   return null;
 }
 
+/**
+ * Questions that ask what the event is. Each form words it differently:
+ * "What type of event are you planning?" (Banquet), "What celebration are you
+ * planning?" (Wedding v2–v4), "Which function are you planning?" (Pre-Wedding).
+ * Not "Who is this Diwali celebration for?" — that is who, not what.
+ */
+const EVENT_TYPE_KEYS = ["type_of_event", "what_type_of_event", "celebration_are_you_planning", "which_function"];
+
 const IDENTITY = /(full_?name|^name$|first_?name|last_?name|email|phone|city|zip|postal)/i;
 
 /** Map one Graph lead payload onto the fields the CRM keeps. */
@@ -234,7 +242,7 @@ export function mapMetaLead(
   claim(["budget"]);
   claim(["what_do_you_need"]);
   claim(["visit"]);
-  claim(["type_of_event", "what_type_of_event"]);
+  claim(EVENT_TYPE_KEYS);
 
   const unmapped = fields
     .filter((f) => !claimed.has(f.name) && !IDENTITY.test(f.name ?? ""))
@@ -262,7 +270,7 @@ export function mapMetaLead(
     // The form's own answer wins; a form that never asks takes the occasion
     // its campaign is named for.
     eventType:
-      pretty(pick(fields, "type_of_event", "what_type_of_event")) ?? eventTypeFromAdNames(payload, formName),
+      pretty(pick(fields, ...EVENT_TYPE_KEYS)) ?? eventTypeFromAdNames(payload, formName),
     platform,
     source: platform === "ig" ? "Instagram Lead Ad" : "Facebook Lead Ad",
     venueLabel: venueFromAdsetName(payload.adset_name),
