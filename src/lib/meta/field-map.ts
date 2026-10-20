@@ -25,6 +25,8 @@ export interface MetaLeadPayload {
   created_time?: string;
   field_data?: MetaField[];
   form_id?: string;
+  /** Present in sheet/CSV exports; the Graph API needs a separate lookup. */
+  form_name?: string;
   ad_id?: string;
   ad_name?: string;
   adset_id?: string;
@@ -177,6 +179,33 @@ export function venueFromAdsetName(adsetName?: string | null): string {
   return known ?? label ?? UNASSIGNED_VENUE;
 }
 
+/**
+ * The occasion an ad is about, read from its names, for forms that never ask
+ * (the Birthday "Check Your Date" form). Campaign first, then ad set, ad, form.
+ * Only a clear occasion word counts; anything else stays unknown (Unsorted).
+ */
+const OCCASION_IN_NAME: [RegExp, string][] = [
+  [/birthday|b'?day/i, "Birthday"],
+  [/baby\s*shower/i, "Baby Shower"],
+  [/naming/i, "Naming Ceremony"],
+  [/engagement/i, "Engagement"],
+  [/reception/i, "Reception"],
+  [/wedding/i, "Wedding"],
+  [/corporate|conference|offsite/i, "Corporate Event"],
+];
+
+export function eventTypeFromAdNames(
+  payload: Pick<MetaLeadPayload, "campaign_name" | "adset_name" | "ad_name">,
+  formName?: string | null
+): string | null {
+  for (const name of [payload.campaign_name, payload.adset_name, payload.ad_name, formName]) {
+    if (!name) continue;
+    const hit = OCCASION_IN_NAME.find(([re]) => re.test(name));
+    if (hit) return hit[1];
+  }
+  return null;
+}
+
 const IDENTITY = /(full_?name|^name$|first_?name|last_?name|email|phone|city|zip|postal)/i;
 
 /** Map one Graph lead payload onto the fields the CRM keeps. */
@@ -230,7 +259,10 @@ export function mapMetaLead(
     budget: pretty(pick(fields, "budget")),
     requirement: pretty(pick(fields, "what_do_you_need")),
     visitTiming: pretty(pick(fields, "visit")),
-    eventType: pretty(pick(fields, "type_of_event", "what_type_of_event")),
+    // The form's own answer wins; a form that never asks takes the occasion
+    // its campaign is named for.
+    eventType:
+      pretty(pick(fields, "type_of_event", "what_type_of_event")) ?? eventTypeFromAdNames(payload, formName),
     platform,
     source: platform === "ig" ? "Instagram Lead Ad" : "Facebook Lead Ad",
     venueLabel: venueFromAdsetName(payload.adset_name),
