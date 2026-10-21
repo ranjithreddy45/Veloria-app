@@ -131,14 +131,28 @@ export async function getTrash(): Promise<{
   }
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Permanently purge soft-deleted records older than RETENTION_DAYS.
  * Wire this to a cron — see `src/app/api/cron/trash-purge/route.ts`.
  *
- * FK-safe: only deletes records with no dependents. A lead with a deal or
- * quote, or a contact with leads/bookings/invoices, is left in trash and
- * surfaced via `skipped` so an admin can resolve it. This avoids the cron
- * crashing on a foreign-key violation mid-batch.
+ * Leads — every relation to Lead in prisma/schema.prisma falls into one of:
+ *  - Business records (Deal, Quote, SalesQuotation; no onDelete, so the FK
+ *    restricts): never destroyed. The lead stays in trash and is counted in
+ *    `skipped`. Logged once — on the run where it first crosses the retention
+ *    window — not on every daily run.
+ *  - Pure child data with a restricting FK (LeadAttribution,
+ *    LeadFirstResponse): deleted explicitly, in the same transaction as the
+ *    lead, so a failed lead delete rolls them back.
+ *  - Already handled by the schema: ConversionExportLog, LeadExternalRef and
+ *    LeadTouch cascade; MetaLeadCapture is set null.
+ * Every statement in the transaction is re-scoped to "still in trash and past
+ * the cutoff", so a lead restored mid-run keeps its attribution and survives.
+ * Plain `leadId` string columns (no FK — Task, CrmNote, routing/SLA logs…)
+ * cannot block the delete and are deliberately left as they are.
+ *
+ * Contacts with leads/bookings/invoices are likewise left in trash.
  *
  * AUTH: this is a top-level "use server" export, so it is independently
  * dispatchable by any client and MUST gate itself. The cron route is trusted
@@ -156,32 +170,52 @@ export async function purgeOldTrash(): Promise<{
     return { leadsPurged: 0, contactsPurged: 0, skipped: 0, error: authz.error };
   }
 
-  const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(Date.now() - RETENTION_DAYS * DAY_MS);
   let leadsPurged = 0;
   let contactsPurged = 0;
   let skipped = 0;
 
-  // Leads — skip any with a linked deal or quote
   const oldLeads = await prisma.lead.findMany({
     where: { deletedAt: { not: null, lt: cutoff } },
     select: {
       id: true,
+      deletedAt: true,
       deal: { select: { id: true } },
       quotes: { select: { id: true }, take: 1 },
+      salesQuotations: { select: { id: true }, take: 1 },
     },
   });
+  const newlyKept: string[] = [];
   for (const lead of oldLeads) {
-    if (lead.deal || lead.quotes.length > 0) {
+    if (lead.deal || lead.quotes.length > 0 || lead.salesQuotations.length > 0) {
       skipped++;
+      // Crossed the cutoff within the last day → first run to see it.
+      if (lead.deletedAt && lead.deletedAt.getTime() >= cutoff.getTime() - DAY_MS) {
+        newlyKept.push(lead.id);
+      }
       continue;
     }
     try {
-      await prisma.lead.delete({ where: { id: lead.id } });
-      leadsPurged++;
+      const stillInTrash = { deletedAt: { not: null, lt: cutoff } };
+      const [, , removed] = await prisma.$transaction([
+        prisma.leadAttribution.deleteMany({
+          where: { leadId: lead.id, lead: stillInTrash },
+        }),
+        prisma.leadFirstResponse.deleteMany({
+          where: { leadId: lead.id, lead: stillInTrash },
+        }),
+        prisma.lead.deleteMany({ where: { id: lead.id, ...stillInTrash } }),
+      ]);
+      if (removed.count > 0) leadsPurged++;
     } catch (e) {
       console.error(`[purgeOldTrash] Failed to purge lead ${lead.id}:`, e);
       skipped++;
     }
+  }
+  if (newlyKept.length > 0) {
+    console.info(
+      `[purgeOldTrash] Keeping ${newlyKept.length} lead(s) in trash past ${RETENTION_DAYS} days — they have a deal or quote: ${newlyKept.join(", ")}`
+    );
   }
 
   // Contacts — skip any with leads/bookings/invoices
