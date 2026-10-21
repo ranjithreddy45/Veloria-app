@@ -212,8 +212,6 @@ export async function importSalesLeads(
             eventDate: importedEventDate,
             guestCount: importedGuests,
             eventType: eventType ?? null,
-            // A sheet cannot confirm the location with the customer.
-            locationConfirmed: false,
             bookingValue: mapped === "WON" ? importedValue : null,
           };
           const allowed = validateLeadStatusChange(mapped, importFacts).ok;

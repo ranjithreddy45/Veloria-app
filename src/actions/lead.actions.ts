@@ -1123,46 +1123,6 @@ export async function getSalesFollowupQueue(): Promise<
   return { success: true, data: serialize({ overdue, today, upcoming }) as { overdue: unknown[]; today: unknown[]; upcoming: unknown[] } };
 }
 
-/**
- * Record that the customer confirmed the Hosa Road location works for them.
- *
- * Its own action rather than part of the lead edit form because it is evidence
- * for a rule, not a detail: it is one of the four things that let a lead be
- * called Qualified, and it gets ticked in the middle of a phone call.
- */
-export async function setLeadLocationConfirmed(id: string, confirmed: boolean) {
-  try {
-    const session = await auth();
-    if (!session?.user) return { success: false as const, error: "Unauthorized" };
-    if (!hasPermission(session.user.role, "leads:update")) {
-      return { success: false as const, error: "Insufficient permissions" };
-    }
-
-    const lead = await prisma.lead.findFirst({
-      where: { id, deletedAt: null },
-      select: { id: true, assignedToId: true, salesTeam: true },
-    });
-    if (!lead) return { success: false as const, error: "Lead not found" };
-    if (!canViewLead(await leadViewer(session.user), lead)) {
-      return { success: false as const, error: "Lead not found" };
-    }
-
-    await prisma.lead.update({ where: { id }, data: { locationConfirmed: confirmed } });
-    await logActivity({
-      action: confirmed ? "location_confirmed" : "location_confirmation_removed",
-      entityType: "Lead",
-      entityId: id,
-      userId: session.user.id as string,
-    });
-
-    revalidatePath(`/leads/${id}`);
-    return { success: true as const };
-  } catch (error) {
-    console.error("[SET_LOCATION_CONFIRMED_ERROR]", error);
-    return { success: false as const, error: "Failed to save" };
-  }
-}
-
 export async function updateLeadStatus(id: string, status: LeadStatus) {
   try {
     const session = await auth();
@@ -1204,14 +1164,13 @@ export async function updateLeadStatus(id: string, status: LeadStatus) {
       };
     }
 
-    // Qualified and Won are hard statuses now: Qualified needs the four facts
+    // Qualified and Won are hard statuses now: Qualified needs the three facts
     // that make the signal worth sending to Google, Won needs the booking value
     // it is worth. Same rule object every other write path uses.
     const ruled = validateLeadStatusChange(status, {
       eventDate: existing.eventDate,
       guestCount: existing.guestCount,
       eventType: existing.eventType,
-      locationConfirmed: existing.locationConfirmed,
       bookingValue: existing.bookingValue,
     });
     if (!ruled.ok) {
@@ -1357,7 +1316,6 @@ export async function convertLeadToDeal(leadId: string) {
       eventDate: existing.eventDate,
       guestCount: existing.guestCount,
       eventType: existing.eventType,
-      locationConfirmed: existing.locationConfirmed,
       bookingValue: existing.bookingValue,
     }).ok;
     const targetStatus: LeadStatus =

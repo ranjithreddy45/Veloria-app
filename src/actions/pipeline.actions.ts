@@ -322,7 +322,7 @@ export async function createDeal(data: CreateDealInput) {
     // clobber it backward to QUALIFIED. Recompute the score on any change.
     if (statusRank(lead.status) < statusRank("QUALIFIED")) {
       // Creating a deal no longer qualifies a lead by itself. Qualified is a
-      // claim we send to Google Ads, so it needs the four facts behind it; a
+      // claim we send to Google Ads, so it needs the three facts behind it; a
       // lead without them keeps its current status and the deal is still
       // created — refusing the deal would punish the user for a different rule.
       const guard = await guardLeadStatusChange(prisma, data.leadId, "QUALIFIED");
@@ -579,7 +579,7 @@ export async function moveDeal(
 
       if (nextStatus) {
         // Dragging a card is a status change like any other. Won without a
-        // booking value, or Qualified without the four facts, is refused here
+        // booking value, or Qualified without the three facts, is refused here
         // rather than written quietly — the message names what is missing.
         const guard = await guardLeadStatusChange(tx, deal.leadId, nextStatus);
         if (!guard.ok) throw new Error(`LEAD_STATUS_BLOCKED:${guard.error}`);

@@ -45,7 +45,6 @@ export async function guardLeadStatusChange(
       eventDate: true,
       guestCount: true,
       eventType: true,
-      locationConfirmed: true,
       bookingValue: true,
       qualifiedAt: true,
       wonAt: true,
@@ -57,7 +56,6 @@ export async function guardLeadStatusChange(
     eventDate: lead.eventDate,
     guestCount: lead.guestCount,
     eventType: lead.eventType,
-    locationConfirmed: lead.locationConfirmed,
     bookingValue: lead.bookingValue,
   });
   if (!ruled.ok) return { ok: false, error: ruled.error };
@@ -95,7 +93,6 @@ export async function guardLeadStatusChangeMany(
       eventDate: true,
       guestCount: true,
       eventType: true,
-      locationConfirmed: true,
       bookingValue: true,
       qualifiedAt: true,
       wonAt: true,
@@ -110,7 +107,6 @@ export async function guardLeadStatusChangeMany(
       eventDate: lead.eventDate,
       guestCount: lead.guestCount,
       eventType: lead.eventType,
-      locationConfirmed: lead.locationConfirmed,
       bookingValue: lead.bookingValue,
     });
     if (!ruled.ok) {

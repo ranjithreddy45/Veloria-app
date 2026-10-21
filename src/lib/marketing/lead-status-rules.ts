@@ -5,9 +5,14 @@
 // signal it got was "a form was submitted". It optimised accordingly: of 346
 // Google Ads leads, none ever reached Won. Sending "Qualified" back is only
 // worth doing if Qualified means something a machine can trust, so it stops
-// being a feeling and becomes four facts:
+// being a feeling and becomes three facts:
 //
-//   event date · guest count ≥ 50 · event type · the customer confirmed Hosa Road
+//   event date · guest count ≥ 50 · event type
+//
+// (A fourth — "the customer confirmed Hosa Road works" — was dropped on
+// 2026-10-21: it dated from when every ad was for Hosa Road, and with ads for
+// several venues it blocked qualifying most leads. Lead.locationConfirmed
+// stays in the database, unused.)
 //
 // and Won stops being a status someone drags a card into and requires the
 // booking value it is worth.
@@ -24,7 +29,6 @@ export interface LeadQualificationFacts {
   eventDate?: Date | string | null;
   guestCount?: number | null;
   eventType?: string | null;
-  locationConfirmed?: boolean | null;
   bookingValue?: number | string | { toString(): string } | null;
 }
 
@@ -49,7 +53,6 @@ export function qualificationGaps(facts: LeadQualificationFacts): string[] {
     gaps.push(`guest count of at least ${MIN_QUALIFIED_GUESTS}`);
   }
   if (!hasText(facts.eventType)) gaps.push("event type");
-  if (!facts.locationConfirmed) gaps.push("confirmation that Hosa Road works for the customer");
   return gaps;
 }
 
