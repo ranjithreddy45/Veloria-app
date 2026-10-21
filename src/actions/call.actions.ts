@@ -8,6 +8,9 @@ import { revalidatePath } from "next/cache";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { stampLeadResponded } from "@/lib/lead-pipeline";
+import { canViewLead } from "@/lib/crm/lead-filters";
+import { leadViewer } from "@/lib/crm/lead-viewer";
+import { summariseLeadCalls } from "@/lib/crm/call-insights";
 import {
   logCallSchema,
   callFiltersSchema,
@@ -412,5 +415,71 @@ export async function deleteCallLog(id: string) {
   } catch (error) {
     console.error("[DELETE_CALL_LOG_ERROR]", error);
     return { success: false as const, error: "Failed to delete call log" };
+  }
+}
+
+// ============================================================
+// One lead's calls, with the AI read of each (the lead page's "Calls &
+// insights"). Same visibility as the lead itself: whoever can open the lead
+// sees its calls — no separate communications permission needed.
+// ============================================================
+
+export async function getLeadCallInsights(leadId: string) {
+  try {
+    const session = await auth();
+    if (!session?.user) return { success: false as const, error: "Unauthorized" };
+    if (!hasPermission(session.user.role ?? "", "leads:read")) {
+      return { success: false as const, error: "Insufficient permissions" };
+    }
+    const lead = await prisma.lead.findFirst({
+      where: { id: leadId, deletedAt: null },
+      select: { id: true, contactId: true, assignedToId: true, salesTeam: true },
+    });
+    if (!lead) return { success: false as const, error: "Lead not found" };
+    if (!canViewLead(await leadViewer(session.user), lead)) {
+      return { success: false as const, error: "Lead not found" };
+    }
+
+    // Calls are stored per contact; CallVibe stamps the lead they were about.
+    // A contact with several enquiries keeps each lead's calls on that lead;
+    // calls with no lead stamp belong to every lead of the contact.
+    const rows = await prisma.callLog.findMany({
+      where: { contactId: lead.contactId },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+      select: {
+        id: true,
+        createdAt: true,
+        disposition: true,
+        durationSeconds: true,
+        recordingUrl: true,
+        notes: true,
+        agent: { select: { name: true, email: true } },
+        communication: { select: { direction: true, content: true, metadata: true } },
+      },
+    });
+    const insights = summariseLeadCalls(
+      rows
+        .filter((r) => {
+          const stamped = (r.communication?.metadata as { leadId?: unknown } | null)?.leadId;
+          return typeof stamped !== "string" || stamped === lead.id;
+        })
+        .map((r) => ({
+          id: r.id,
+          createdAt: r.createdAt,
+          disposition: r.disposition,
+          durationSeconds: r.durationSeconds,
+          recordingUrl: r.recordingUrl,
+          notes: r.notes,
+          agentName: r.agent?.name ?? r.agent?.email ?? null,
+          direction: r.communication?.direction ?? null,
+          content: r.communication?.content ?? null,
+          metadata: r.communication?.metadata ?? null,
+        })),
+    );
+    return { success: true as const, data: serialize(insights) };
+  } catch (error) {
+    console.error("[GET_LEAD_CALL_INSIGHTS_ERROR]", error);
+    return { success: false as const, error: "Could not load this lead's calls." };
   }
 }

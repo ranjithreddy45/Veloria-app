@@ -43,7 +43,7 @@ import {
   CALL_DISPOSITION_LABELS,
   CALL_DISPOSITION_COLORS,
 } from "@/lib/constants";
-import { CallInsightsDialog } from "./call-insights-dialog";
+import { CallInsightsDialog } from "@/components/crm/call-insights-dialog";
 
 interface CallLogItem {
   id: string;
