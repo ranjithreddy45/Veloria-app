@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogCommunicationDialog } from "@/components/shared/log-communication-dialog";
 import { humanizeWhatsAppContent } from "@/lib/whatsapp-render";
-import { CallInsightsDialog } from "@/app/(dashboard)/crm/calls/_components/call-insights-dialog";
+import { CallInsightsDialog } from "@/components/crm/call-insights-dialog";
 
 // ============================================================
 // Props

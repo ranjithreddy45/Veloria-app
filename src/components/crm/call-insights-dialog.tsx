@@ -79,7 +79,8 @@ export function CallInsightsDialog({ content, metadata }: CallInsightsDialogProp
                     <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">AI score</h4>
                     <p className="numeric text-3xl font-semibold">
                       {aiScore}
-                      <span className="text-muted-foreground text-base font-normal">/100</span>
+                      {/* CallVibe sends 0–10 in practice (see scoreOf in lib/crm/call-insights). */}
+                      <span className="text-muted-foreground text-base font-normal">/{aiScore > 10 ? 100 : 10}</span>
                     </p>
                   </div>
                 )}

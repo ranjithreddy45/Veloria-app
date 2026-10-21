@@ -56,6 +56,8 @@ import { CrmNotesPanel } from "@/components/crm/crm-notes-panel";
 import { ScheduleTaskDialog } from "@/components/crm/schedule-task-dialog";
 import { ScheduleSiteVisitDialog } from "./_components/schedule-site-visit-dialog";
 import { LeadSiteVisits } from "./_components/lead-site-visits";
+import { LeadCallInsights } from "@/components/crm/lead-call-insights";
+import { getLeadCallInsights } from "@/actions/call.actions";
 
 export const metadata: Metadata = { title: "Lead Details" };
 
@@ -71,7 +73,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
   const { leadId } = await params;
   const session = await auth();
   const canSendToCallVibe = !!session?.user?.role && hasPermission(session.user.role, "leads:update");
-  const result = await getLead(leadId);
+  const [result, callsResult] = await Promise.all([getLead(leadId), getLeadCallInsights(leadId)]);
 
   if (!result.success || !result.data) {
     notFound();
@@ -382,6 +384,13 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
               )}
             </CardContent>
           </Card>
+
+          {/* Every call with this lead and what the AI took from it — the
+              Engagement call log, but for this one lead. */}
+          <LeadCallInsights
+            data={callsResult.success ? callsResult.data : null}
+            error={callsResult.success ? undefined : callsResult.error}
+          />
 
           {/* Contact Info */}
           <Card>
