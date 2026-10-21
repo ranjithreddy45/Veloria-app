@@ -138,10 +138,12 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * Wire this to a cron — see `src/app/api/cron/trash-purge/route.ts`.
  *
  * Leads — every relation to Lead in prisma/schema.prisma falls into one of:
- *  - Business records (Deal, Quote, SalesQuotation; no onDelete, so the FK
- *    restricts): never destroyed. The lead stays in trash and is counted in
- *    `skipped`. Logged once — on the run where it first crosses the retention
- *    window — not on every daily run.
+ *  - Business records (Deal, Quote, SalesQuotation): the lead stays in trash,
+ *    counted in `skipped`, logged once — on the run where it first crosses
+ *    the retention window — not on every daily run. Deal's FK restricts, but
+ *    Quote's and SalesQuotation's are optional and so SET NULL: deleting the
+ *    lead would silently detach the quote rather than fail, so this check is
+ *    the only thing keeping a quote linked to its enquiry.
  *  - Pure child data with a restricting FK (LeadAttribution,
  *    LeadFirstResponse): deleted explicitly, in the same transaction as the
  *    lead, so a failed lead delete rolls them back.
