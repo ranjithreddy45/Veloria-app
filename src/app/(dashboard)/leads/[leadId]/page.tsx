@@ -43,7 +43,6 @@ import { MacroButton } from "@/components/shared/macro-button";
 import { LeadStatusSelect } from "./_components/lead-status-select";
 import { LeadTeamSelect } from "./_components/lead-team-select";
 import { LeadQualitySelect } from "./_components/lead-quality-select";
-import { LocationConfirmedToggle } from "./_components/location-confirmed-toggle";
 import { LeadDeleteButton } from "./_components/lead-delete-button";
 import { LeadQuickActions } from "./_components/lead-quick-actions";
 import { auth } from "@/../auth";
@@ -226,10 +225,6 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
           <LeadStatusSelect leadId={lead.id} currentStatus={lead.status} />
           <LeadTeamSelect leadId={lead.id} currentTeam={lead.salesTeam ?? null} />
           <LeadQualitySelect leadId={lead.id} currentQuality={lead.leadQuality} />
-          <LocationConfirmedToggle
-            leadId={lead.id}
-            confirmed={lead.locationConfirmed}
-          />
           <LeadDeleteButton leadId={lead.id} leadTitle={lead.title} />
         </div>
       </PageHeader>

@@ -26,19 +26,17 @@ const complete = {
   eventDate: new Date("2026-12-01"),
   guestCount: 200,
   eventType: "Wedding",
-  locationConfirmed: true,
   bookingValue: 145000,
 };
 
 describe("validateLeadStatusChange", () => {
-  it("allows Qualified when all four facts are there", () => {
+  it("allows Qualified when all three facts are there", () => {
     expect(validateLeadStatusChange("QUALIFIED", complete).ok).toBe(true);
   });
 
   it.each([
     ["eventDate", { eventDate: null }, "event date"],
     ["eventType", { eventType: "" }, "event type"],
-    ["locationConfirmed", { locationConfirmed: false }, "Hosa Road"],
   ])("refuses Qualified without %s", (_label, override, expected) => {
     const res = validateLeadStatusChange("QUALIFIED", { ...complete, ...override });
     expect(res.ok).toBe(false);
@@ -56,14 +54,14 @@ describe("validateLeadStatusChange", () => {
       eventDate: null,
       guestCount: null,
       eventType: null,
-      locationConfirmed: false,
     });
     expect(res.ok).toBe(false);
     if (!res.ok) {
       expect(res.error).toContain("event date");
       expect(res.error).toContain("guest count");
       expect(res.error).toContain("event type");
-      expect(res.error).toContain("Hosa Road");
+      // No longer a rule: ads now run for several venues, not only Hosa Road.
+      expect(res.error).not.toContain("Hosa Road");
     }
   });
 
