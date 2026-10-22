@@ -124,7 +124,7 @@ const OTHER_TOWNS: [RegExp, string][] = [
   [/\bgoa\b/i, "Goa"],
   [/yercaud|salem/i, "Salem"],
   [/vaniyambadi/i, "Vaniyambadi"],
-  [/sakleshpur|सकलेशपुर|ಸಕಲೇಶಪುರ/i, "Sakleshpur"],
+  [/sak[lø]eshpur|सकलेशपुर|ಸಕಲೇಶಪುರ/i, "Sakleshpur"],
   [/channapatna|channpatna/i, "Channapatna"],
   [/mandya/i, "Mandya"],
   [/kanakapura\b(?!\s*(main\s*)?road)/i, "Kanakapura"],
@@ -146,7 +146,7 @@ const CITY_WORDS = /\b(bangalore|bengaluru|bangalor|banglore)\b/gi;
 const FILLER =
   /\b(it'?s\s+in|its\s+in|this\s+is\s+in|we\s+are\s+in|located\s+(in|at)|property\s+located\s+at|venue\s+is\s+near|near|in|at|the|is|its|it'?s|of|and|dt|district|taluk|karnataka|ap|tamil\s*nadu|telangana|kerala|main\s*road|road|area|city|north|south|east|west|km|kms|far|from|not|no|&|cross|highway|toll|towards|side|phase|junction|sh|nh|dist|district)\b/gi;
 
-const squash = (s: string) => s.replace(/\s+/g, " ").trim();
+const squash = (s: string) => s.replace(/[’‘`´]/g, "'").replace(/\s+/g, " ").trim();
 const letters = (s: string) => s.replace(/[^A-Za-zऀ-೿]/g, "");
 
 function titleCase(s: string): string {
@@ -174,36 +174,53 @@ function residual(raw: string, matches: RegExp[]): string {
     .join(" ");
 }
 
-/** The owner's venue name: filler and the trailing place stripped, casing tidied. */
+/** Is this text only a place, a city word or filler? */
+function placeOnly(text: string, placeMatches: RegExp[]): boolean {
+  let r = text;
+  for (const re of placeMatches) r = r.replace(new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g"), " ");
+  return letters(r.replace(CITY_WORDS, " ").replace(FILLER, " ")).length < 3;
+}
+
+const LEADS_WITH_PREPOSITION = /^\s*(below|behind|above|near|opp(osite)?|next\s+to|beside|at|in|on|towards|off)\b/i;
+
+/** The owner's venue name: filler and the trailing place stripped, casing tidied; "" if none. */
 function cleanVenueName(raw: string, placeMatches: RegExp[]): string {
-  let t = raw
-    .replace(/https?:\/\/\S+/gi, "")
-    .replace(/[✨️]/g, "")
-    .replace(/^\s*(we\s+are\s+a\s+\w+\s+venue\s+called|called|it'?s\s+in|its\s+in|this\s+is\s+in|property\s+located\s+at|venue\s+is\s+near|located\s+(in|at)|in)\s+/i, "")
-    .replace(/\s*\b(it'?s\s+in|its\s+in|located\s+(in|at)|on|behind|near|we\s+are|with)\b\s*.*$/i, (m) => (VENUE_WORDS.test(m) && !/^\s*(on|behind|near|with)\b/i.test(m) ? m : ""))
-    .replace(/[.,].*$/, "")
-    .trim();
-  // Strip a place that ends the name: "Sri Lakshmi Gardens, Yelahanka",
-  // "Ivaana nature resort mysuru", "Siddhartha Convention Center HSR Layout Bengaluru".
-  for (let i = 0; i < 3; i++) {
-    const before = t;
-    // A trailing pincode or a direction is the place, not the name.
-    t = t.replace(/\s+\d{6}\s*$/g, "").replace(/\s+(north|south|east|west)\s*$/i, "");
-    t = t.replace(new RegExp(`[\\s,]*\\b(${["bangalore", "bengaluru", "banglore", "district", "dt", "karnataka", "ap"].join("|")})\\b[\\s.,]*$`, "i"), "");
-    for (const re of placeMatches) {
-      const tail = new RegExp(`[\\s,]*(in\\s+|near\\s+)?(?:${re.source})[\\s.,]*$`, "i");
-      const stripped = t.replace(tail, "");
-      if (stripped !== t && letters(stripped).length >= 3 && VENUE_WORDS.test(stripped)) t = stripped;
+  const text = squash(raw.replace(/https?:\/\/\S+/gi, "").replace(/[✨️]/g, ""));
+  // "coimbatore . the banyan meadows", "North, Taluk, below Olive Hotel": the
+  // name is whichever segment stands as a name on its own.
+  const segments = text.split(/[.,;]/).map(squash).filter(Boolean);
+  for (const [idx, seg] of segments.entries()) {
+    if (LEADS_WITH_PREPOSITION.test(seg)) continue;
+    let t = seg
+      .replace(/^\s*(we\s+are\s+a\s+\w+\s+venue\s+called|called|it'?s\s+in|its\s+in|this\s+is\s+in|property\s+located\s+at|venue\s+is\s+near|located\s+(in|at)|in)\s+/i, "")
+      .replace(/\s*\b(it'?s\s+in|its\s+in|located\s+(in|at)|on|behind|near|we\s+are|with)\b\s*.*$/i, (m) => (VENUE_WORDS.test(m) && !/^\s*(on|behind|near|with)\b/i.test(m) ? m : ""))
+      .trim();
+    // Strip a place that ends the name: "Sri Lakshmi Gardens Yelahanka",
+    // "Ivaana nature resort mysuru", "Siddhartha Convention Center HSR Layout Bengaluru".
+    for (let i = 0; i < 3; i++) {
+      const before = t;
+      t = t.replace(/\s+\d{6}\s*$/g, "").replace(/\s+(north|south|east|west)\s*$/i, "");
+      t = t.replace(/[\s,]*\b(bangalore|bengaluru|banglore|district|dt|karnataka|ap)\b[\s.,]*$/i, "");
+      for (const re of placeMatches) {
+        const tail = new RegExp(`[\\s,]*(in\\s+|near\\s+)?(?:${re.source})[\\s.,]*$`, "i");
+        const stripped = t.replace(tail, "");
+        if (stripped !== t && letters(stripped).length >= 3 && VENUE_WORDS.test(stripped)) t = stripped;
+      }
+      if (t === before) break;
     }
-    if (t === before) break;
+    t = squash(t.replace(/[.\s,]+$/g, ""));
+    // "villa with 25000 sqft land", "Resort with 5 1.5 accar": a description.
+    if (/(^|\s)\d+(\.\d+)?(\s|$)/.test(t)) continue;
+    // "North", "Coimbatore", "Channanayakanapalya": the place itself, not a name.
+    if (placeOnly(t, placeMatches)) continue;
+    if (letters(t).length < 3 || isJunk(t) || GENERIC_ONLY.test(t)) continue;
+    // Without venue words only the FIRST segment may stand as a bare name, and
+    // only a short one ("Bharti Nagar" after "North, Taluk, below…" is a place).
+    if (!VENUE_WORDS.test(t) && (idx > 0 || t.split(" ").length > 4 || MESSAGE.test(t))) continue;
+    if (t === t.toUpperCase() || t === t.toLowerCase()) t = titleCase(t);
+    return t.slice(0, 200);
   }
-  t = squash(t.replace(/[.\s,]+$/g, ""));
-  // "villa with 25000 sqft land", "Resort with 5 1.5 accar": a description.
-  if (/(^|\s)\d+(\.\d+)?(\s|$)/.test(t)) return "";
-  // "North", "In", "Bangalore": nothing but place words and filler left.
-  if (letters(t.replace(CITY_WORDS, " ").replace(FILLER, " ")).length < 3) return "";
-  if (t === t.toUpperCase() || t === t.toLowerCase()) t = titleCase(t);
-  return t.slice(0, 200);
+  return "";
 }
 
 export function readVenueAnswer(text: string | null | undefined, formCity: string): VenueReading {
@@ -278,7 +295,7 @@ export function readVenueAnswer(text: string | null | undefined, formCity: strin
   let nameIsPlaceholder = true;
   if (candidate) {
     const name = cleanVenueName(raw, placeMatches);
-    if (letters(name).length >= 3 && !isJunk(name) && !GENERIC_ONLY.test(name)) {
+    if (name) {
       propertyName = name;
       nameIsPlaceholder = false;
     }

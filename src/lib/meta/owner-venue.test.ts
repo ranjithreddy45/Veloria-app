@@ -180,3 +180,18 @@ describe("readVenueAnswer — comma-led answers from production", () => {
     expect(readVenueAnswer("marriage hall... mangalore", "Bengaluru")).toMatchObject({ propertyName: VENUE_NOT_NAMED, city: "Mangaluru" });
   });
 });
+
+describe("readVenueAnswer — a place is never the name", () => {
+  it.each([
+    ["Channanayakanapalya", "Channanayakanapalya", "Bengaluru"],
+    ["It’s in Nellore district", "Nellore", "Nellore"],
+    ["Coimbatore", "Coimbatore", "Coimbatore"],
+    ["Sakøeshpura", "Sakleshpur", "Sakleshpur"],
+  ])("%s", (answer, locality, city) => {
+    expect(readVenueAnswer(answer, "Bengaluru")).toMatchObject({ propertyName: VENUE_NOT_NAMED, locality, city });
+  });
+
+  it("takes the name from a later segment when the first is only the place", () => {
+    expect(readVenueAnswer("coimbatore . the banyan meadows", "Bengaluru")).toMatchObject({ propertyName: "The Banyan Meadows", city: "Coimbatore" });
+  });
+});
