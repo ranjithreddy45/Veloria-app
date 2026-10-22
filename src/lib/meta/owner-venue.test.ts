@@ -156,6 +156,8 @@ describe("readVenueAnswer — messages and junk", () => {
     "Already setup",
     "all ready open",
     "Corporate events",
+    "Corporate events, Sports event, Horse events   Ramanagara, Bangalore South",
+    "rc Events",
     "birthday party.... Bangalore city",
     "https://maps.app.goo.gl/SFdMvxMJLpRn3mCC6?g_st=ipc",
     "I do have my own land apart from Bangalore is it possible.",
