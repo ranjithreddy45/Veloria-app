@@ -48,10 +48,11 @@ const nextConfig: NextConfig = {
     // 3 MB phone photo was silently failing to save. Images are now downscaled
     // client-side (see lib/images/downscale-image.ts), which is the real fix;
     // this raises the ceiling to cover multi-image batches and PDF scans, which
-    // are NOT downscaled. Kept at 4 MB on purpose: the serverless platform
-    // enforces its own request-body cap of roughly 4.5 MB, so a larger number
-    // here would be fiction — requests would still be rejected upstream.
-    serverActions: { bodySizeLimit: "4mb" },
+    // are NOT downscaled. It was held at 4 MB while the app ran on a serverless
+    // platform with its own ~4.5 MB request cap; on the VPS (Apache → Next on
+    // pm2) that cap is gone, and 4 MB was rejecting real uploads with 413
+    // "Body exceeded 4mb limit". 12 MB covers a phone photo batch or a scan.
+    serverActions: { bodySizeLimit: "12mb" },
     optimizePackageImports: [
       "recharts",
       "lucide-react",

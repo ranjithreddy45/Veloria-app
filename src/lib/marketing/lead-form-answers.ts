@@ -27,6 +27,12 @@ export interface MappedAnswers {
   eventDate: Date | null;
   guestCount: number | null;
   eventType: string | null;
+  /**
+   * "In less than 15 days", "1-3 months", "Date not fixed yet": the date
+   * question answered with a timeframe. Not a date, but not an unknown column
+   * either — it goes into the notes without the "unrecognised" warning.
+   */
+  timeframe: string | null;
   /** Answers no rule claimed — logged, and appended to the lead's notes. */
   unmapped: RawAnswer[];
 }
@@ -98,6 +104,7 @@ export function mapLeadFormAnswers(answers: RawAnswer[]): MappedAnswers {
     eventDate: null,
     guestCount: null,
     eventType: null,
+    timeframe: null,
     unmapped: [],
   };
 
@@ -111,6 +118,10 @@ export function mapLeadFormAnswers(answers: RawAnswer[]): MappedAnswers {
       const d = parseAnswerDate(value);
       if (d) {
         out.eventDate = d;
+        continue;
+      }
+      if (!out.timeframe && /date|when/.test(key)) {
+        out.timeframe = prettifyAnswer(value);
         continue;
       }
     }
@@ -135,7 +146,10 @@ export function mapLeadFormAnswers(answers: RawAnswer[]): MappedAnswers {
 }
 
 /** A one-line note carrying the answers nothing claimed, for the lead's message. */
-export function unmappedNote(unmapped: RawAnswer[]): string {
-  if (!unmapped.length) return "";
-  return unmapped.map((a) => `${prettifyAnswer(a.key)}: ${a.value}`).join(" · ");
+export function unmappedNote(unmapped: RawAnswer[], timeframe?: string | null): string {
+  const parts = [
+    ...(timeframe ? [`Booking timeframe: ${timeframe}`] : []),
+    ...unmapped.map((a) => `${prettifyAnswer(a.key)}: ${a.value}`),
+  ];
+  return parts.join(" · ");
 }

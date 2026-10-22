@@ -1,9 +1,11 @@
 name: Deploy to Production VPS
 
+# Manual only. This workflow failed on every push to main (no SSH host or key
+# is configured for it) and would rsync a checkout over production if secrets
+# were ever added. Production deploys run from /root/vg-safe-deploy.sh on the
+# VPS; see docs in that script.
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
 
 jobs:
   deploy:
