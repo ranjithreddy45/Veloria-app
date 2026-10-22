@@ -87,6 +87,7 @@ export async function createAcqLeadFromMeta(
       city: mapped.city,
       locality: mapped.locality,
       propertyStage: mapped.propertyStage,
+      qualOwnerInterested: mapped.qualOwnerInterested,
       notes: mapped.notes,
       leadSource: mapped.leadSource,
       ownerType: mapped.ownerType,
