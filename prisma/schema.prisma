@@ -7914,6 +7914,10 @@ model MetaLeadCapture {
   metaLeadId String   @unique
   leadId     String?
   lead       Lead?    @relation("LeadMetaCapture", fields: [leadId], references: [id], onDelete: SetNull)
+  /// The BD (acquisition) lead a venue-owner form created instead of a sales
+  /// lead. Plain id, no relation: AcqLead rows are hard-deleted on purge and a
+  /// dangling id here is harmless.
+  acqLeadId  String?
 
   formId     String?
   formName   String?
@@ -7940,6 +7944,7 @@ model MetaLeadCapture {
   @@index([pipeline, receivedAt])
   @@index([formId])
   @@index([leadId])
+  @@index([acqLeadId])
 }
 
 /// One row per (lead, conversion) pair the moment it first appears in the
