@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { bdCandidatesForCity, cityOf, mapOwnerLead, splitVenueAndArea } from "./owner-lead";
+import { bdCandidatesForCity, cityOf, mapOwnerLead } from "./owner-lead";
 
 const payload = (over: Record<string, unknown> = {}, answers: Record<string, string> = {}) => ({
   id: "1",
@@ -61,7 +61,12 @@ describe("mapOwnerLead", () => {
     const s = (status: string) => mapOwnerLead(payload({}, { "what_is_its_current_status?": status })).propertyStage;
     expect(s("Operational")).toBe("OPERATIONAL");
     expect(s("Opening soon")).toBeNull();
-    expect(s("Planning stage")).toBeNull();
+    expect(s("Planning stage")).toBe("GREENFIELD");
+
+    const i = (support: string) => mapOwnerLead(payload({}, { "what_support_are_you_considering?": support })).qualOwnerInterested;
+    expect(i("Full management (branding, marketing, sales, operations)")).toBe(true);
+    expect(i("Marketing and sales only")).toBeNull();
+    expect(i("Exploring options")).toBeNull();
   });
 
   it("takes the city from the question wording, then the form or campaign name", () => {
@@ -74,12 +79,15 @@ describe("mapOwnerLead", () => {
     expect(cityOf({ campaign_name: "VG Owner Partnership - Leads Form - Vijayawada" })).toBe("Vijayawada");
   });
 
-  it("splits venue and area on a comma; otherwise the city stands in for the area", () => {
-    expect(splitVenueAndArea("Sri Lakshmi Gardens, Yelahanka", "Bengaluru")).toEqual({ propertyName: "Sri Lakshmi Gardens", locality: "Yelahanka", placeholder: false });
-    expect(splitVenueAndArea("Green Meadows Electronic City", "Bengaluru")).toEqual({ propertyName: "Green Meadows Electronic City", locality: "Bengaluru", placeholder: true });
-    expect(splitVenueAndArea("", "Guntur")).toEqual({ propertyName: "Venue not named (Guntur)", locality: "Guntur", placeholder: true });
-    const m = mapOwnerLead(payload({}, { "which_venue_is_this,_and_in_which_part_of_bengaluru?": "x" }));
-    expect(m.notes).toContain("city used as the locality");
+  it("reads the venue answer: name and area, a locality alone, a town, or nothing", () => {
+    const v = (answer: string) => mapOwnerLead(payload({}, { "which_venue_is_this,_and_in_which_part_of_bengaluru?": answer }));
+    expect(v("Sri Lakshmi Gardens, Yelahanka")).toMatchObject({ propertyName: "Sri Lakshmi Gardens", locality: "Yelahanka", city: "Bengaluru" });
+    expect(v("jp nagar")).toMatchObject({ propertyName: "Venue not named", locality: "JP Nagar", city: "Bengaluru" });
+    expect(v("it's in mysore")).toMatchObject({ propertyName: "Venue not named", locality: "Mysuru", city: "Mysuru" });
+    const none = v("Call us");
+    expect(none).toMatchObject({ propertyName: "Venue not named", locality: "Not given", city: "Bengaluru" });
+    expect(none.notes).toContain("No venue name in the answer");
+    expect(v("it's in mysore").notes).toContain("Filed under Mysuru from the answer");
   });
 
   it("flags Meta's test leads", () => {

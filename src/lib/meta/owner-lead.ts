@@ -13,6 +13,7 @@
 
 import type { MetaLeadPayload } from "./field-map";
 import { pick, pretty } from "./field-map";
+import { readVenueAnswer } from "./owner-venue";
 
 export type AcqOwnerType = "SOLE_OWNER" | "PARTNER" | "GPA_HOLDER" | "MANAGER";
 export type AcqPropertyType = "BANQUET" | "MARRIAGE_HALL" | "CONVENTION_CENTRE" | "RESORT" | "LAWN";
@@ -32,6 +33,8 @@ export interface MappedOwnerLead {
   /** True when the venue type was "Other" and Banquet stands in for it. */
   propertyTypeIsPlaceholder: boolean;
   propertyStage: AcqPropertyStage | null;
+  /** The owner asked for full management → interested in the management model. */
+  qualOwnerInterested: boolean | null;
   ownerType: AcqOwnerType;
   leadSource: AcqLeadSource;
   notes: string;
@@ -94,25 +97,16 @@ function propertyTypeOf(venueType: string | null): { propertyType: AcqPropertyTy
 function propertyStageOf(status: string | null): AcqPropertyStage | null {
   const s = (status ?? "").toLowerCase();
   if (/operational|running|open$/.test(s)) return "OPERATIONAL";
-  // "Opening soon" and "Planning stage" are timing, not a build type; the
-  // answer stays in the notes rather than being forced into a stage.
+  // A venue still at the planning stage is a new build in the making.
+  // "Opening soon" says when, not what kind of build, so it stays in the notes.
+  if (/planning/.test(s)) return "GREENFIELD";
   return null;
 }
 
-/**
- * "Sri Lakshmi Convention Hall, Yelahanka" → name + area. Without a comma the
- * whole answer is the venue name and the city stands in for the area.
- */
-export function splitVenueAndArea(text: string | null, city: string): { propertyName: string; locality: string; placeholder: boolean } {
-  const t = (text ?? "").replace(/\s+/g, " ").trim();
-  if (!t) return { propertyName: `Venue not named (${city})`, locality: city, placeholder: true };
-  const comma = t.indexOf(",");
-  if (comma > 0 && comma < t.length - 1) {
-    const name = t.slice(0, comma).trim();
-    const area = t.slice(comma + 1).replace(/^[\s,]+|[\s,.]+$/g, "").trim();
-    if (name && area) return { propertyName: name.slice(0, 200), locality: area.slice(0, 100), placeholder: false };
-  }
-  return { propertyName: t.slice(0, 200), locality: city, placeholder: true };
+function interestedOf(support: string | null): boolean | null {
+  const s = (support ?? "").toLowerCase();
+  if (/full\s*management/.test(s)) return true;
+  return null;
 }
 
 export function mapOwnerLead(payload: MetaLeadPayload, formName?: string | null): MappedOwnerLead {
@@ -123,8 +117,9 @@ export function mapOwnerLead(payload: MetaLeadPayload, formName?: string | null)
   const support = pretty(pick(fields, "support_are_you_considering", "support"));
   const start = pretty(pick(fields, "consider_starting", "when_would_you"));
   const venueText = pick(fields, "which_venue_is_this", "which_venue", "venue_name");
-  const city = cityOf(payload, formName);
-  const { propertyName, locality, placeholder: localityIsPlaceholder } = splitVenueAndArea(venueText, city);
+  const formCity = cityOf(payload, formName);
+  const venue = readVenueAnswer(venueText, formCity);
+  const { propertyName, locality, localityIsPlaceholder, city } = venue;
   const { ownerType, leadSource } = ownerTypeOf(role);
   const { propertyType, placeholder: propertyTypeIsPlaceholder } = propertyTypeOf(venueType);
 
@@ -139,7 +134,8 @@ export function mapOwnerLead(payload: MetaLeadPayload, formName?: string | null)
     support ? `Support wanted: ${support}` : null,
     start ? `Would start: ${start}` : null,
     venueText ? `Venue and area, as written: ${venueText.trim()}` : null,
-    localityIsPlaceholder ? `Area not given separately — city used as the locality.` : null,
+    venue.nameIsPlaceholder ? `No venue name in the answer — ask the owner.` : null,
+    venue.cityFromAnswer && city !== formCity ? `Filed under ${city} from the answer (the form was for ${formCity}).` : null,
     payload.campaign_name ? `Campaign: ${payload.campaign_name}` : null,
   ]
     .filter(Boolean)
@@ -156,6 +152,7 @@ export function mapOwnerLead(payload: MetaLeadPayload, formName?: string | null)
     propertyType,
     propertyTypeIsPlaceholder,
     propertyStage: propertyStageOf(status),
+    qualOwnerInterested: interestedOf(support),
     ownerType,
     leadSource,
     notes,
