@@ -29,6 +29,19 @@ describe("readVenueAnswer — venue names", () => {
     expect(r.city).toBe(city);
   });
 
+  it("stops the name where the description starts, and drops descriptions", () => {
+    expect(readVenueAnswer("Nisarga Mantapa or Nisarga resort On kanakpura road Behind art of living. 75+ rooms and lawn area and convention center", B)).toMatchObject({ propertyName: "Nisarga Mantapa or Nisarga resort", locality: "Kanakapura Road" });
+    expect(readVenueAnswer("Avani the venue near nice road junction Magadi Road", B)).toMatchObject({ propertyName: "Avani the venue", locality: "Magadi Road" });
+    expect(readVenueAnswer("We are a lakeside venue called Dinklr Pickleball. We are near e city phase 2. Closer to Jigani side.", B)).toMatchObject({ propertyName: "Dinklr Pickleball", locality: "Electronic City" });
+    expect(readVenueAnswer("Rajagiri Banquet Party hall located at Mahalakshmi Layout Main Road", B)).toMatchObject({ propertyName: "Rajagiri Banquet Party hall", locality: "Mahalakshmi Layout" });
+    expect(readVenueAnswer("RN PRESTlGE Bangalore south", B)).toMatchObject({ propertyName: "RN PRESTlGE", locality: "South Bengaluru" });
+    expect(readVenueAnswer("Saptha Aradana banglore east 560049", B)).toMatchObject({ propertyName: "Saptha Aradana", locality: "East Bengaluru" });
+    expect(readVenueAnswer("Camp HRID Woods Harohalli", B)).toMatchObject({ propertyName: "Camp HRID Woods", locality: "Harohalli" });
+    expect(readVenueAnswer("villa with 25000 sqft land behind Global International school Varthur sarjapoor road", B)).toMatchObject({ propertyName: VENUE_NOT_NAMED, locality: "Sarjapur Road" });
+    expect(readVenueAnswer("Resort with 5 1.5 accar", "Guntur")).toMatchObject({ propertyName: VENUE_NOT_NAMED });
+    expect(readVenueAnswer("It is located near Orion uptown mall and half hector space Nimbekayipura", B)).toMatchObject({ propertyName: VENUE_NOT_NAMED, locality: "Nimbekayipura" });
+  });
+
   it("keeps a venue that is in another town, under that town", () => {
     expect(readVenueAnswer("Ivaana nature resort mysuru", B)).toMatchObject({ propertyName: "Ivaana nature resort", city: "Mysuru", locality: "Mysuru", cityFromAnswer: true });
     expect(readVenueAnswer("Kabir convention hall it's in hassan district", B)).toMatchObject({ propertyName: "Kabir convention hall", city: "Hassan" });
@@ -58,6 +71,12 @@ describe("readVenueAnswer — localities and towns only", () => {
     ["Doddballapur North Bangalore", "Doddaballapur"],
     ["Ramanagar Bangalore South", "Ramanagara"],
     ["NYE 2027 SARJAPURA", "Sarjapur"],
+    ["Budigere Cross", "Budigere Cross"],
+    ["harohalli jigani main road", "Jigani"],
+    ["Thanisandra Main Road", "Thanisandra"],
+    ["Nelamangala Dabaspete road", "Nelamangala"],
+    ["North", "North Bengaluru"],
+    ["Majestic area", "Majestic"],
   ])("%s → %s in Bengaluru", (answer, locality) => {
     const r = readVenueAnswer(answer, B);
     expect(r).toMatchObject({ locality, localityIsPlaceholder: false, city: B, propertyName: VENUE_NOT_NAMED, nameIsPlaceholder: true });
@@ -79,6 +98,9 @@ describe("readVenueAnswer — localities and towns only", () => {
     ["This is in Yercaud", "Salem"],
     ["सकलेशपुर", "Sakleshpur"],
     ["Huliyurdurga Kunigal Tumkur SH 33", "Tumakuru"],
+    ["10 kms from Krishnagiri toll towards Tiruvannamalai highway", "Hosur"],
+    ["50 Kms from Electronic city. Shoolagiri", "Hosur"],
+    ["In Haveri district", "Haveri"],
     ["located in KGF kolar", "Kolar"],
     ["mantralaya ap", "Kurnool"],
     ["Adoni AP", "Kurnool"],
@@ -88,6 +110,7 @@ describe("readVenueAnswer — localities and towns only", () => {
     expect(r.city).toBe(city);
     expect(r.cityFromAnswer).toBe(true);
     expect(r.localityIsPlaceholder).toBe(false);
+    expect(r.propertyName).toBe(VENUE_NOT_NAMED);
   });
 
   it("reads the Vijayawada and Guntur forms' areas", () => {
@@ -147,5 +170,13 @@ describe("readVenueAnswer — messages and junk", () => {
   it("a message that names a place still yields the place", () => {
     expect(readVenueAnswer("Please call we can discuss # in South Bangalore", B)).toMatchObject({ locality: "South Bengaluru", propertyName: VENUE_NOT_NAMED });
     expect(readVenueAnswer("birthday party.... Bangalore city", B)).toMatchObject({ city: B });
+  });
+});
+
+describe("readVenueAnswer — comma-led answers from production", () => {
+  it("does not turn a leading direction or place into the name", () => {
+    expect(readVenueAnswer("North, Taluk, below Olive Hotel, Bharti Nagar, Hunasamaranahalli,", "Bengaluru")).toMatchObject({ propertyName: VENUE_NOT_NAMED, locality: "North Bengaluru" });
+    expect(readVenueAnswer("NYE 2027 SARJAPURA, ARE RESTAURANT", "Bengaluru")).toMatchObject({ propertyName: VENUE_NOT_NAMED, locality: "Sarjapur" });
+    expect(readVenueAnswer("marriage hall... mangalore", "Bengaluru")).toMatchObject({ propertyName: VENUE_NOT_NAMED, city: "Mangaluru" });
   });
 });

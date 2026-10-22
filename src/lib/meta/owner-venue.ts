@@ -135,7 +135,8 @@ const VENUE_WORDS =
   /\b(resorts?|halls?|banquets?|lawns?|gardens?|convention|palace|grand|greens?|events?|farms?|farm\s*house|villas?|inn|hotel|residency|choultry|mantapa|mandapam?|maha+l|meadows|woods|courtyard|retreats?|party\s*hall|arena|prestige|club|pickleball|venue|camp|estate|kalyana|function\s*hall)\b/i;
 
 /** A whole answer that is just a generic word, not a name. */
-const GENERIC_ONLY = /^(new\s+venue|resorts?|halls?|venue|corporate\s+events?|events?|farms?|lawns?|gardens?|banquet\s*hall)$/i;
+const GENERIC_ONLY =
+  /^(new\s+venue|resorts?|halls?|venue|corporate\s+events?|events?|farms?|lawns?|gardens?|(banquet|marriage|convention|party|function|kalyana)\s*(hall|mantapa|centre|center)?|restaurant|hotels?|villas?|inn|club|camp|estate|palace|courtyard|meadows|woods)$/i;
 
 /** An answer that is a message to us, not a place. */
 const MESSAGE =
@@ -143,7 +144,7 @@ const MESSAGE =
 
 const CITY_WORDS = /\b(bangalore|bengaluru|bangalor|banglore)\b/gi;
 const FILLER =
-  /\b(it'?s\s+in|its\s+in|this\s+is\s+in|we\s+are\s+in|located\s+(in|at)|property\s+located\s+at|venue\s+is\s+near|near|in|at|the|is|its|it'?s|of|and|dt|district|taluk|karnataka|ap|tamil\s*nadu|telangana|kerala|main\s*road|road|area|city|north|south|east|west|km|kms|far|from|not|no|&)\b/gi;
+  /\b(it'?s\s+in|its\s+in|this\s+is\s+in|we\s+are\s+in|located\s+(in|at)|property\s+located\s+at|venue\s+is\s+near|near|in|at|the|is|its|it'?s|of|and|dt|district|taluk|karnataka|ap|tamil\s*nadu|telangana|kerala|main\s*road|road|area|city|north|south|east|west|km|kms|far|from|not|no|&|cross|highway|toll|towards|side|phase|junction|sh|nh|dist|district)\b/gi;
 
 const squash = (s: string) => s.replace(/\s+/g, " ").trim();
 const letters = (s: string) => s.replace(/[^A-Za-zऀ-೿]/g, "");
@@ -166,10 +167,10 @@ function residual(raw: string, matches: RegExp[]): string {
   let r = raw.replace(/https?:\/\/\S+/gi, "");
   for (const re of matches) r = r.replace(new RegExp(re.source, re.flags.includes("g") ? re.flags : re.flags + "g"), " ");
   r = r.replace(CITY_WORDS, " ").replace(FILLER, " ").replace(/[\d.,()'’"\-#:/]+/g, " ");
-  // Tokens of up to 3 letters are noise here ("6stg", "NYE", "SH").
+  // One-letter tokens and the bare word "venue" are noise here.
   return squash(r)
     .split(" ")
-    .filter((w) => letters(w).length > 3 && !GENERIC_ONLY.test(w))
+    .filter((w) => letters(w).length >= 2 && !/^venues?$/i.test(w))
     .join(" ");
 }
 
@@ -179,12 +180,15 @@ function cleanVenueName(raw: string, placeMatches: RegExp[]): string {
     .replace(/https?:\/\/\S+/gi, "")
     .replace(/[✨️]/g, "")
     .replace(/^\s*(we\s+are\s+a\s+\w+\s+venue\s+called|called|it'?s\s+in|its\s+in|this\s+is\s+in|property\s+located\s+at|venue\s+is\s+near|located\s+(in|at)|in)\s+/i, "")
-    .replace(/\s*(it'?s\s+in|its\s+in|located\s+(in|at)|,\s*)\s*.*$/i, "")
+    .replace(/\s*\b(it'?s\s+in|its\s+in|located\s+(in|at)|on|behind|near|we\s+are|with)\b\s*.*$/i, (m) => (VENUE_WORDS.test(m) && !/^\s*(on|behind|near|with)\b/i.test(m) ? m : ""))
+    .replace(/[.,].*$/, "")
     .trim();
   // Strip a place that ends the name: "Sri Lakshmi Gardens, Yelahanka",
   // "Ivaana nature resort mysuru", "Siddhartha Convention Center HSR Layout Bengaluru".
   for (let i = 0; i < 3; i++) {
     const before = t;
+    // A trailing pincode or a direction is the place, not the name.
+    t = t.replace(/\s+\d{6}\s*$/g, "").replace(/\s+(north|south|east|west)\s*$/i, "");
     t = t.replace(new RegExp(`[\\s,]*\\b(${["bangalore", "bengaluru", "banglore", "district", "dt", "karnataka", "ap"].join("|")})\\b[\\s.,]*$`, "i"), "");
     for (const re of placeMatches) {
       const tail = new RegExp(`[\\s,]*(in\\s+|near\\s+)?(?:${re.source})[\\s.,]*$`, "i");
@@ -194,6 +198,10 @@ function cleanVenueName(raw: string, placeMatches: RegExp[]): string {
     if (t === before) break;
   }
   t = squash(t.replace(/[.\s,]+$/g, ""));
+  // "villa with 25000 sqft land", "Resort with 5 1.5 accar": a description.
+  if (/(^|\s)\d+(\.\d+)?(\s|$)/.test(t)) return "";
+  // "North", "In", "Bangalore": nothing but place words and filler left.
+  if (letters(t.replace(CITY_WORDS, " ").replace(FILLER, " ")).length < 3) return "";
   if (t === t.toUpperCase() || t === t.toLowerCase()) t = titleCase(t);
   return t.slice(0, 200);
 }
@@ -211,7 +219,8 @@ export function readVenueAnswer(text: string | null | undefined, formCity: strin
   if (!raw || isJunk(raw)) return base;
 
   const town = OTHER_TOWNS.find(([re]) => re.test(raw));
-  const loc = BENGALURU_LOCALITIES.find(([re]) => re.test(raw));
+  const locs = BENGALURU_LOCALITIES.filter(([re]) => re.test(raw));
+  const loc = locs[0];
   const mentionsBengaluru = CITY_WORDS.test(raw);
   CITY_WORDS.lastIndex = 0;
   const saysOutside = /not\s+(in\s+)?(bangalore|bengaluru|bangalor)|apart\s+from\s+(bangalore|bengaluru)|km(s)?\s+(far\s+)?from\s+(bang|bengaluru|electronic)/i.test(raw);
@@ -231,13 +240,13 @@ export function readVenueAnswer(text: string | null | undefined, formCity: strin
     locality = town[1];
     localityIsPlaceholder = false;
     placeMatches.push(town[0]);
-    if (loc && !/road/i.test(loc[1])) placeMatches.push(loc[0]);
+    for (const [re, name] of locs) if (!/road/i.test(name)) placeMatches.push(re);
   } else if (loc) {
     city = formCity === "Bengaluru" || mentionsBengaluru ? "Bengaluru" : formCity;
     cityFromAnswer = mentionsBengaluru;
     locality = loc[1];
     localityIsPlaceholder = false;
-    placeMatches.push(loc[0]);
+    for (const [re] of locs) placeMatches.push(re);
   } else if (saysOutside) {
     city = OUTSIDE_BENGALURU;
     cityFromAnswer = true;
@@ -251,8 +260,19 @@ export function readVenueAnswer(text: string | null | undefined, formCity: strin
   // "near art of living", "near jaydeva hospital": a landmark, not the venue.
   const rest = residual(hasVenueWords ? raw : raw.replace(/\bnear\b.*$/i, ""), placeMatches);
   const looksLikeMessage = MESSAGE.test(raw) && !hasVenueWords;
-  const shortProperName = rest.split(" ").filter(Boolean).length <= 4 && !/\d/.test(rest);
-  const candidate = rest.length >= 3 && !looksLikeMessage && (hasVenueWords || shortProperName);
+  const restTokens = rest.split(" ").filter(Boolean);
+  const restWords = restTokens.length;
+  // "NYE", "SH 33", "6stg": nothing of substance unless some token has 4+ letters.
+  const hasSubstance = restTokens.some((w) => letters(w).length >= 4);
+  const rawWords = raw.split(/\s+/).length;
+  // "10 kms from Krishnagiri toll…", "50 Kms from Electronic city": directions, not a venue.
+  const isDistance = /\d+\s*(km|kms|kilomet)/i.test(raw);
+  // Next to a known place, one leftover word is a finer place ("Budigere Cross",
+  // "Huliyurdurga Kunigal Tumkur"), not a name; a sentence without venue words
+  // is a description ("It is located near Orion uptown mall and half hector…").
+  const shortProperName =
+    !hasVenueWords && restWords >= (placeMatches.length ? 2 : 1) && restWords <= 4 && rawWords <= 8 && !/\d/.test(rest);
+  const candidate = hasSubstance && !looksLikeMessage && !isDistance && (hasVenueWords || shortProperName);
 
   let propertyName = VENUE_NOT_NAMED;
   let nameIsPlaceholder = true;
