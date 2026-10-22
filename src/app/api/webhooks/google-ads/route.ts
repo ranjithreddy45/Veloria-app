@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
         mapped.unmapped.map((a) => a.key).join(", ")
       );
     }
-    const extraNote = unmappedNote(mapped.unmapped);
+    const extraNote = unmappedNote(mapped.unmapped, mapped.timeframe);
 
     const capture = await captureLeadFromExternal({
       name,

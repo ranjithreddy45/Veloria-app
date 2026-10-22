@@ -1,4 +1,3 @@
-import { after } from "next/server";
 import { sendLeadAssignedEmail } from "@/lib/crm/lead-assigned-email";
 import { canonicalPhone } from "@/lib/phone";
 import type { Prisma } from "@prisma/client";
@@ -192,19 +191,18 @@ function isSerializationFailure(e: unknown): boolean {
 /**
  * Run work after the HTTP response has been flushed.
  *
- * Next's `after()` keeps the serverless invocation alive past the response, so
- * this is real deferral rather than a fire-and-forget promise that the platform
- * is free to freeze mid-flight. Outside a request scope (crons, scripts) it
- * throws, so fall back to running the work inline — never silently drop it.
+ * This used to go through Next's `after()`, which keeps a SERVERLESS
+ * invocation alive past the response. Production is a long-lived pm2 process
+ * now, where a detached promise simply runs to completion — and `after()`
+ * was crashing on it: once the tail finished, Next tried to close the
+ * already-flushed response stream and logged
+ * "controller[kState].transformAlgorithm is not a function" on nearly every
+ * public-form lead. The response is sent first either way; the tail is only
+ * ever decoration (attribution, notifications, intake). Errors are caught so
+ * they can never surface as an unhandled rejection.
  */
 function scheduleAfterResponse(work: () => Promise<void>) {
-  const guarded = () =>
-    work().catch((e) => console.error("[LeadCapture] deferred tail failed:", e));
-  try {
-    after(guarded);
-  } catch {
-    void guarded();
-  }
+  void work().catch((e) => console.error("[LeadCapture] deferred tail failed:", e));
 }
 
 function externalIdMarker(externalId: string): string {
