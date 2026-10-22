@@ -20,6 +20,8 @@ import {
 } from "./field-map";
 import { fetchFormName, fetchLead, getMetaCredentials, type MetaCredentials } from "./graph";
 import { EXCLUDED_PIPELINE, excludedCampaignMatch } from "./exclusions";
+import { mapOwnerLead } from "./owner-lead";
+import { createAcqLeadFromMeta } from "./owner-lead-db";
 
 /**
  * A lead older than this when we process it is a PAST enquiry (an import, or a
@@ -29,7 +31,15 @@ import { EXCLUDED_PIPELINE, excludedCampaignMatch } from "./exclusions";
 const HISTORICAL_AFTER_MS = 24 * 60 * 60 * 1000;
 
 export type ProcessOutcome =
-  | { status: "captured"; leadId: string; metaLeadId: string; isTest: boolean; pipeline: string }
+  | {
+      status: "captured";
+      /** The sales lead; empty for a venue-owner lead, which is a BD lead instead. */
+      leadId: string;
+      acqLeadId?: string;
+      metaLeadId: string;
+      isTest: boolean;
+      pipeline: string;
+    }
   | { status: "duplicate"; metaLeadId: string; leadId: string | null }
   | { status: "skipped"; metaLeadId: string; reason: string };
 
@@ -126,8 +136,26 @@ export async function processMetaLeadPayload(
     return { status: "skipped", metaLeadId, reason: "No phone or email in the answers" };
   }
 
+  // A venue owner answering the partnership ad is a BD lead, not a customer:
+  // it goes to the acquisition CRM, assigned by city, and never into a sales
+  // rep's queue.
+  if (mapped.pipeline === "owner_partnership") {
+    if (mapped.isTest) {
+      await recordCapture(metaLeadId, null, payload, formName, mapped, "Meta test lead");
+      return { status: "skipped", metaLeadId, reason: "Meta test lead" };
+    }
+    const owner = mapOwnerLead(payload, formName);
+    const out = await createAcqLeadFromMeta(owner, { enquiryAt });
+    if (out.status === "skipped") {
+      await recordCapture(metaLeadId, null, payload, formName, mapped, out.reason);
+      return { status: "skipped", metaLeadId, reason: out.reason };
+    }
+    await recordCapture(metaLeadId, null, payload, formName, mapped, null, undefined, out.acqLeadId);
+    if (out.status === "duplicate") return { status: "duplicate", metaLeadId, leadId: null };
+    return { status: "captured", leadId: "", acqLeadId: out.acqLeadId, metaLeadId, isTest: false, pipeline: mapped.pipeline };
+  }
+
   const venueId = await findVenueId(mapped.venueLabel);
-  const isOwnerLead = mapped.pipeline === "owner_partnership";
 
   const capture = await captureLeadFromExternal({
     name: mapped.name || "Facebook Lead",
@@ -139,12 +167,11 @@ export async function processMetaLeadPayload(
     eventType: mapped.eventType ?? undefined,
     eventDate: mapped.eventDate ? mapped.eventDate.toISOString() : undefined,
     venueId: venueId ?? undefined,
-    source: isOwnerLead ? "partner" : mapped.source === "Instagram Lead Ad" ? "instagram" : "facebook_ads",
+    source: mapped.source === "Instagram Lead Ad" ? "instagram" : "facebook_ads",
     // Markers go in the note at creation: Lead has no tag column, and the note
     // is what the list search reads.
     message: [
       mapped.isTest ? "[META TEST]" : null,
-      isOwnerLead ? "[OWNER PARTNERSHIP]" : null,
       mapped.source,
       describeMetaLead(mapped, payload),
     ]
@@ -177,11 +204,10 @@ export async function processMetaLeadPayload(
 
   const leadId = (capture as { leadId?: string } | null)?.leadId ?? null;
 
-  // Neither a venue owner nor a test lead belongs in a rep's queue. They are
-  // unassigned rather than given a separate capture path, so the contact
-  // de-duplication above still applies to them. Which one it is stays readable
-  // on MetaLeadCapture.pipeline and in the note.
-  if (leadId && (isOwnerLead || mapped.isTest)) {
+  // A test lead does not belong in a rep's queue. It is unassigned rather than
+  // given a separate capture path, so the contact de-duplication above still
+  // applies; it stays readable on MetaLeadCapture.isTest and in the note.
+  if (leadId && mapped.isTest) {
     await prisma.lead
       .update({ where: { id: leadId }, data: { assignedToId: null } })
       .catch((e) => console.error("[MetaLeads] could not unassign", leadId, e));
@@ -205,13 +231,15 @@ async function recordCapture(
   formName: string | null,
   mapped: ReturnType<typeof mapMetaLead>,
   skippedReason: string | null,
-  pipelineOverride?: string
+  pipelineOverride?: string,
+  acqLeadId?: string
 ): Promise<void> {
   await prisma.metaLeadCapture
     .create({
       data: {
         metaLeadId,
         leadId,
+        acqLeadId: acqLeadId ?? null,
         formId: payload.form_id ?? null,
         formName,
         campaignId: payload.campaign_id ?? null,

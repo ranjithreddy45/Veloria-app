@@ -8,6 +8,8 @@ const db = vi.hoisted(() => ({
 const capture = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 vi.mock("@/lib/lead-capture", () => ({ captureLeadFromExternal: capture }));
+const ownerDb = vi.hoisted(() => ({ createAcqLeadFromMeta: vi.fn() }));
+vi.mock("./owner-lead-db", () => ownerDb);
 vi.mock("./graph", () => ({
   fetchFormName: vi.fn(async () => "Wedding enquiry form"),
   fetchLead: vi.fn(),
@@ -111,5 +113,43 @@ describe("processMetaLeadPayload — dates, quiet import, excluded campaigns", (
       metaCreatedAt: new Date("2026-10-03T09:15:00Z"),
       lead: { contact: { phone: { endsWith: "9006612345" } } },
     });
+  });
+
+  it("sends a venue-owner form to the BD CRM, never to a sales rep", async () => {
+    ownerDb.createAcqLeadFromMeta.mockResolvedValue({ status: "created", acqLeadId: "acq-1" });
+    const ownerForm = lead({
+      campaign_name: "VG Owner Partnership - Leads Form - Bengaluru",
+      field_data: [
+        { name: "what_is_your_role_at_the_venue?", values: ["Owner / co-owner"] },
+        { name: "what_type_of_venue_is_it?", values: ["Banquet hall"] },
+        { name: "which_venue_is_this,_and_in_which_part_of_bengaluru?", values: ["Test Hall, Yelahanka"] },
+        { name: "full_name", values: ["Test Owner"] },
+        { name: "phone", values: ["+919000000002"] },
+      ],
+    });
+    const { fetchFormName } = await import("./graph");
+    vi.mocked(fetchFormName).mockResolvedValueOnce("VG Owner Partnership Application");
+    const out = await processMetaLeadPayload(ownerForm, creds);
+    expect(out).toMatchObject({ status: "captured", leadId: "", acqLeadId: "acq-1", pipeline: "owner_partnership" });
+    expect(capture).not.toHaveBeenCalled();
+    const mapped = ownerDb.createAcqLeadFromMeta.mock.calls[0][0];
+    expect(mapped).toMatchObject({ city: "Bengaluru", propertyName: "Test Hall", locality: "Yelahanka", propertyType: "BANQUET" });
+    expect(ownerDb.createAcqLeadFromMeta.mock.calls[0][1].enquiryAt.toISOString()).toBe("2026-10-03T09:15:00.000Z");
+    expect(db.metaLeadCapture.create.mock.calls[0][0].data).toMatchObject({ leadId: null, acqLeadId: "acq-1", pipeline: "owner_partnership" });
+  });
+
+  it("records an owner the BD CRM already has as a duplicate, and skips Meta's test owners", async () => {
+    const { fetchFormName } = await import("./graph");
+    vi.mocked(fetchFormName).mockResolvedValue("VG Owner Partnership Application");
+    ownerDb.createAcqLeadFromMeta.mockResolvedValue({ status: "duplicate", acqLeadId: "acq-9" });
+    const owner = lead({ field_data: [{ name: "full_name", values: ["Test Owner"] }, { name: "phone", values: ["+919000000002"] }] });
+    expect(await processMetaLeadPayload(owner, creds)).toEqual({ status: "duplicate", metaLeadId: "L1", leadId: null });
+    expect(db.metaLeadCapture.create.mock.calls[0][0].data).toMatchObject({ acqLeadId: "acq-9" });
+
+    ownerDb.createAcqLeadFromMeta.mockClear();
+    const test = lead({ id: "L2", field_data: [{ name: "full_name", values: ["<test lead: dummy data for full_name>"] }, { name: "phone", values: ["<test lead: dummy data for phone>"] }] });
+    expect(await processMetaLeadPayload(test, creds)).toMatchObject({ status: "skipped", reason: "Meta test lead" });
+    expect(ownerDb.createAcqLeadFromMeta).not.toHaveBeenCalled();
+    expect(capture).not.toHaveBeenCalled();
   });
 });
