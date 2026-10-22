@@ -152,11 +152,10 @@ export function runCallVibePushJobsSoon(jobIds: string[]): void {
       }
     }
   };
-  try {
-    after(work);
-  } catch {
-    void work();
-  }
+  // Detached, not Next's after(): production is a long-lived pm2 process, and
+  // after() crashed on closed response streams (see scheduleAfterResponse in
+  // lead-capture.ts). The work never throws — every job is caught above.
+  void work();
 }
 
 /** Queue and start pushes. Never throws. */
@@ -197,11 +196,7 @@ export async function autoPushContactToCallVibe(contactIds: string | string[]): 
 /** Schedule auto-push after the response (or now, outside a request). For lead-creation paths. */
 export function scheduleAutoPushToCallVibe(contactIds: string | string[]): void {
   const work = () => autoPushContactToCallVibe(contactIds);
-  try {
-    after(work);
-  } catch {
-    void work();
-  }
+  void work().catch((e) => console.error("[CallVibePush] auto-push failed:", e instanceof Error ? e.message : e));
 }
 
 // ------------------------------------------------------------ run
