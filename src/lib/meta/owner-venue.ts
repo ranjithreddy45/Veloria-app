@@ -136,7 +136,7 @@ const VENUE_WORDS =
 
 /** A whole answer that is just a generic word, not a name. */
 const GENERIC_ONLY =
-  /^(new\s+venue|resorts?|halls?|venue|corporate\s+events?|events?|farms?|lawns?|gardens?|(banquet|marriage|convention|party|function|kalyana)\s*(hall|mantapa|centre|center)?|restaurant|hotels?|villas?|inn|club|camp|estate|palace|courtyard|meadows|woods)$/i;
+  /^(new\s+venue|resorts?|halls?|venue|[a-z]+\s+events?|events?|farms?|lawns?|gardens?|(banquet|marriage|convention|party|function|kalyana)\s*(hall|mantapa|centre|center)?|restaurant|hotels?|villas?|inn|club|camp|estate|palace|courtyard|meadows|woods)$/i;
 
 /** An answer that is a message to us, not a place. */
 const MESSAGE =
