@@ -33,7 +33,6 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -57,6 +56,7 @@ import { ViewTabs } from "@/components/ui/view-tabs";
 import { ENQUIRY_SOURCE_OPTIONS } from "@/lib/enquiry-source";
 import { salesTeamLabel } from "@/lib/crm/sales-team";
 import { TeamSwitcher } from "@/components/crm/team-switcher";
+import { CommitDateInput } from "@/components/ui/commit-date-input";
 
 // Sentinel for "no status filter" — a shadcn SelectItem can't take value="".
 const ANY_STATUS = "ALL";
@@ -92,7 +92,16 @@ const FILTER_KEYS = [
   "channel",
   "occasion",
   "sort",
+  // The work strip's "Follow-ups overdue" / "Never contacted" links. Not a
+  // control in the panel, so it was neither counted nor cleared: "Clear
+  // filters" left it on, and the list stayed narrowed with nothing saying why.
+  "due",
 ] as const;
+
+const DUE_LABEL: Record<string, string> = {
+  overdue: "Follow-up overdue",
+  untouched: "Never contacted",
+};
 
 interface Props {
   /** Server-resolved: may this viewer switch to "All leads" / "Unassigned"? */
@@ -155,6 +164,21 @@ export function LeadsFilterBar({
   const activeCount = FILTER_KEYS.filter((k) => !!sp.get(k)).length;
   const filtersActive = activeCount > 0;
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  // "Follow-up overdue" / "Never contacted" arrive from the work strip and have
+  // no control in the panel, so they show as a chip you can remove.
+  const due = sp.get("due");
+  const dueChip = due && DUE_LABEL[due] ? (
+    <button
+      type="button"
+      onClick={() => push({ due: null })}
+      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 text-detail font-medium text-primary hover:bg-primary/15"
+      aria-label={`Remove filter: ${DUE_LABEL[due]}`}
+    >
+      {DUE_LABEL[due]}
+      <X className="size-3.5" />
+    </button>
+  ) : null;
 
   const clearFilters = () => {
     const cleared: Record<string, string | null> = {};
@@ -400,6 +424,7 @@ export function LeadsFilterBar({
             </div>
           </SheetContent>
         </Sheet>
+        {dueChip}
         {filtersActive && (
           <Button
             variant="ghost"
@@ -441,6 +466,7 @@ export function LeadsFilterBar({
           </PopoverContent>
         </Popover>
 
+        {dueChip}
         {filtersActive && (
           <Button
             variant="ghost"
@@ -493,22 +519,20 @@ function DateRangeField({
         </span>
       </div>
       <div className="flex items-center gap-1.5">
-        <Input
-          type="date"
+        <CommitDateInput
           value={from}
           max={to || undefined}
           aria-label={`${label} period from`}
           className="h-9 w-full min-w-0 flex-1"
-          onChange={(e) => onFrom(e.target.value)}
+          onCommit={onFrom}
         />
         <span className="shrink-0 text-sm text-muted-foreground">→</span>
-        <Input
-          type="date"
+        <CommitDateInput
           value={to}
           min={from || undefined}
           aria-label={`${label} period to`}
           className="h-9 w-full min-w-0 flex-1"
-          onChange={(e) => onTo(e.target.value)}
+          onCommit={onTo}
         />
       </div>
     </div>

@@ -849,7 +849,7 @@ function AIScoreAllButton() {
   );
 }
 
-function ExportButton() {
+function ExportButton({ ids }: { ids?: string[] }) {
   const [loading, setLoading] = React.useState(false);
   const searchParams = useSearchParams();
 
@@ -863,8 +863,14 @@ function ExportButton() {
       // Read straight from the URL rather than from component state because the
       // URL is what the server page itself filtered on — anything else would be
       // a second opinion about what the user is looking at.
+      // Every filter the page reads (leads/page.tsx). Occasion and team were
+      // missing, so a Wedding-team or Birthday export held every lead; and a
+      // missing scope was forced to "mine", which for a rep in a team is not
+      // what the page shows (the server's default is their team).
+      const scope = searchParams.get("scope");
       const result = await exportLeads({
-        scope: (searchParams.get("scope") as "mine" | "all" | "unassigned") ?? "mine",
+        scope: scope === "mine" || scope === "team" || scope === "all" || scope === "unassigned" ? scope : undefined,
+        team: searchParams.get("team") ?? undefined,
         status: searchParams.get("status") ?? undefined,
         venueId: searchParams.get("venue") ?? undefined,
         eventFrom: searchParams.get("eventFrom") ?? undefined,
@@ -872,7 +878,9 @@ function ExportButton() {
         createdFrom: searchParams.get("createdFrom") ?? undefined,
         createdTo: searchParams.get("createdTo") ?? undefined,
         enquirySource: searchParams.get("channel") ?? undefined,
+        occasion: searchParams.get("occasion") ?? undefined,
         due: searchParams.get("due") ?? undefined,
+        ids,
       });
       if (result.success) {
         const csv = toCSV(result.data.headers, result.data.rows);
@@ -916,15 +924,21 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("ALL");
   const [selectedRows, setSelectedRows] = React.useState<LeadWithContact[]>([]);
 
-  // Post-tab rows feed the facet rail; the rail's output feeds the table.
-  // When the server already filtered by status the tabs are hidden, so any
-  // leftover local tab state must NOT keep narrowing rows invisibly.
+  // Order: server rows → "Filter by" facets → status tab → search box.
+  // The tabs count the facet-filtered rows, and the KPI tiles and Export use
+  // the rows the table finally shows — before, both read the unfiltered list,
+  // so ticking "Facebook Ads" left "Total leads 2,396" and every tab count
+  // unchanged, and Export ignored the selection. When the server already
+  // filtered by status the tabs are hidden, so leftover tab state must NOT
+  // keep narrowing rows invisibly.
+  const [facetFiltered, setFacetFiltered] = React.useState<LeadWithContact[]>(data);
   const filtered = React.useMemo(() => {
-    if (statusFiltered || statusFilter === "ALL") return data;
-    return data.filter((l) => l.status === statusFilter);
-  }, [data, statusFilter, statusFiltered]);
-
-  const [facetFiltered, setFacetFiltered] = React.useState<LeadWithContact[]>(filtered);
+    if (statusFiltered || statusFilter === "ALL") return facetFiltered;
+    return facetFiltered.filter((l) => l.status === statusFilter);
+  }, [facetFiltered, statusFilter, statusFiltered]);
+  const [visibleRows, setVisibleRows] = React.useState<LeadWithContact[]>(data);
+  // Only send ids to Export when the browser narrowed the server's list.
+  const exportIds = visibleRows.length === data.length ? undefined : visibleRows.map((l) => l.id);
 
   const selectedIds = React.useMemo(
     () => selectedRows.map((r) => r.id),
@@ -1046,24 +1060,25 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
 
   return (
     <div className="space-y-4">
-      <LeadsStatStrip data={data} />
+      <LeadsStatStrip data={visibleRows} />
       {!statusFiltered && (
         <StatusTabs
-          data={data}
+          data={facetFiltered}
           active={statusFilter}
           onChange={setStatusFilter}
         />
       )}
       <div className="flex flex-col gap-4">
         <FacetFilterRail
-          items={filtered}
+          items={data}
           facets={leadFacets}
           onChange={setFacetFiltered}
         />
         <div className="min-w-0 flex-1">
           <DataTable
             columns={columns}
-            data={facetFiltered}
+            data={filtered}
+            onFilteredRowsChange={setVisibleRows}
             searchKey="identity"
             // Name, email AND phone. The box used to filter the identity column
             // alone, so searching a phone number or an email returned nothing —
@@ -1087,7 +1102,7 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
                   onViewSelect={handleViewSelect}
                 />
                 <AIScoreAllButton />
-                <ExportButton />
+                <ExportButton ids={exportIds} />
               </div>
             }
           />
