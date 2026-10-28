@@ -5591,6 +5591,9 @@ model SalesQuotation {
   clientName  String?
   clientPhone String?
   clientEmail String?
+  /// Client address for the quotation header — pre-filled from the enquiry
+  /// (Contact address/city/state/pincode), editable on the quotation.
+  clientAddress String? @db.Text
   occasion    String?
   eventDate   DateTime?
   timeSlot    String?

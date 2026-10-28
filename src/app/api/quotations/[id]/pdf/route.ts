@@ -1,3 +1,4 @@
+import { formatContactAddress } from "@/lib/sales/client-address";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/../auth";
 import { getVerifiedContactIds } from "@/lib/portal-identity";
@@ -65,7 +66,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params;
   const q = await prisma.salesQuotation.findUnique({
     where: { id },
-    include: { venue: { select: { name: true } }, contact: { select: { firstName: true, lastName: true } } },
+    include: {
+      venue: { select: { name: true } },
+      contact: { select: { firstName: true, lastName: true, address: true, city: true, state: true, pincode: true } },
+    },
   });
   if (!q) return notAvailable();
 
@@ -114,6 +118,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     q.clientName ||
     [q.contact?.firstName, q.contact?.lastName].filter(Boolean).join(" ") ||
     "Guest";
+  // Saved on the quotation; an older quotation falls back to the enquiry's address.
+  const clientAddress = q.clientAddress || formatContactAddress(q.contact);
   const eventDate = q.eventDate
     ? new Date(q.eventDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata" })
     : "—";
@@ -165,6 +171,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   .details { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; margin: 16px 0; font-size: 12.5px; }
   .d { display:flex; justify-content: space-between; border-bottom: 1px dashed #e6dccb; padding: 4px 0; }
   .d span { color: #6b5b73; }
+  .d.wide { grid-column: 1 / -1; }
+  .d.wide strong { text-align: right; max-width: 75%; white-space: pre-line; }
   h2 { font-size: 13px; margin: 18px 0 8px; padding: 6px 10px; background: ${PLUM}; color: ${IVORY}; border-radius: 6px; }
   table { width: 100%; border-collapse: collapse; font-size: 12.5px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(45,27,61,.08); }
   th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #efe7dd; }
@@ -194,6 +202,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       ${detail("Quotation Date", quotationDate)}
       ${detail("Phone", q.clientPhone || "—")}
       ${detail("Event Date", eventDate)}
+      ${clientAddress ? `<div class="d wide"><span>Address</span><strong>${esc(clientAddress)}</strong></div>` : ""}
       ${detail("Occasion", q.occasion || "—")}
       ${detail("Time Slot", q.timeSlot ? SLOT_LABEL[plannerSlotToEnum(q.timeSlot)] : "—")}
       ${detail("Hall", q.venue?.name || "—")}

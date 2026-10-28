@@ -1,3 +1,4 @@
+import { formatContactAddress } from "@/lib/sales/client-address";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { auth } from "@/../auth";
@@ -42,7 +43,9 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
         id: true,
         title: true,
         contactId: true,
-        contact: { select: { firstName: true, lastName: true, phone: true, email: true } },
+        contact: {
+          select: { firstName: true, lastName: true, phone: true, email: true, address: true, city: true, state: true, pincode: true },
+        },
       },
       orderBy: { createdAt: "desc" },
       take: 300,
@@ -80,6 +83,7 @@ export default async function QuotationPage({ params }: { params: Promise<{ id: 
     clientName: [l.contact?.firstName, l.contact?.lastName].filter(Boolean).join(" ") || null,
     clientPhone: l.contact?.phone ?? null,
     clientEmail: l.contact?.email ?? null,
+    clientAddress: formatContactAddress(l.contact),
   }));
 
   // Proforma-first flow: slot booking is gated until the booking advance is

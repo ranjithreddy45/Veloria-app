@@ -58,6 +58,8 @@ interface LeadOpt {
   clientName?: string | null;
   clientPhone?: string | null;
   clientEmail?: string | null;
+  /** The enquiry's address, formatted (lib/sales/client-address.ts). */
+  clientAddress?: string | null;
 }
 interface VenueOpt {
   id: string;
@@ -110,6 +112,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
   const [clientName, setClientName] = useState(initial?.meta.clientName ?? "");
   const [clientPhone, setClientPhone] = useState(initial?.meta.clientPhone ?? "");
   const [clientEmail, setClientEmail] = useState(initial?.meta.clientEmail ?? "");
+  const [clientAddress, setClientAddress] = useState(initial?.meta.clientAddress ?? "");
   const [occasion, setOccasion] = useState(initial?.meta.occasion ?? "");
   const [eventDate, setEventDate] = useState(
     initial?.meta.eventDate ? String(initial.meta.eventDate).slice(0, 10) : ""
@@ -311,7 +314,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
   }, [eventDate, venueId, timeSlot]);
 
   const meta: QuotationMeta = {
-    clientName, clientPhone, clientEmail, occasion,
+    clientName, clientPhone, clientEmail, clientAddress, occasion,
     eventDate: eventDate || null, timeSlot, notes,
     leadId: leadId || null, venueId: venueId || null,
     taxSlabId: chosenRate?.id ?? null,
@@ -326,6 +329,7 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
       if (lead.clientName && !clientName) setClientName(lead.clientName);
       if (lead.clientPhone && !clientPhone) setClientPhone(lead.clientPhone);
       if (lead.clientEmail && !clientEmail) setClientEmail(lead.clientEmail);
+      if (lead.clientAddress && !clientAddress) setClientAddress(lead.clientAddress);
     }
   }
 
@@ -455,6 +459,15 @@ export function QuotationCalculator({ leads, venues, initial }: Props) {
             <div className={field}>
               <Label>Email</Label>
               <Input value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="Email (for sending)" />
+            </div>
+            <div className={`${field} sm:col-span-2`}>
+              <Label>Client Address</Label>
+              <Textarea
+                value={clientAddress}
+                onChange={(e) => setClientAddress(e.target.value)}
+                rows={2}
+                placeholder="From the enquiry — add or correct it here; it prints in the quotation header"
+              />
             </div>
             <div className={field}>
               <Label>Occasion</Label>
