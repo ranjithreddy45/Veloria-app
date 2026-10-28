@@ -1,5 +1,6 @@
 "use client";
 
+import { formatContactAddress } from "@/lib/sales/client-address";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -85,6 +86,7 @@ interface QuoteRow {
   clientName: string | null;
   clientPhone: string | null;
   clientEmail: string | null;
+  clientAddress?: string | null;
   occasion: string | null;
   eventDate: string | null;
   timeSlot: string | null;
@@ -105,7 +107,17 @@ interface QuoteRow {
   approvedBy?: { name: string | null } | null;
   sentBy?: { name: string | null } | null;
   lead?: { id: string; title: string } | null;
-  contact?: { id: string; firstName: string; lastName: string; email: string | null; phone: string | null } | null;
+  contact?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string | null;
+    phone: string | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    pincode?: string | null;
+  } | null;
   venue?: { id: string; name: string } | null;
   transitions?: { id: string; fromStatus: string | null; toStatus: string; note: string | null; createdAt: string; actor?: { name: string | null } | null }[];
 }
@@ -157,6 +169,8 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, redu
         clientName: quote.clientName ?? undefined,
         clientPhone: quote.clientPhone ?? undefined,
         clientEmail: quote.clientEmail ?? undefined,
+        // A draft saved before this field existed starts from the enquiry's address.
+        clientAddress: quote.clientAddress ?? formatContactAddress(quote.contact) ?? undefined,
         occasion: quote.occasion ?? undefined,
         eventDate: quote.eventDate ?? null,
         timeSlot: quote.timeSlot ?? undefined,
@@ -178,6 +192,10 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, redu
       </div>
     );
   }
+
+  // Saved on the quotation; a quotation from before the field existed shows the
+  // enquiry's address instead.
+  const clientAddress = quote.clientAddress || formatContactAddress(quote.contact);
 
   const client =
     quote.clientName ||
@@ -280,6 +298,9 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, redu
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
               <Detail label="Client" value={client} />
               <Detail label="Phone" value={quote.clientPhone || "—"} numeric />
+              <div className="col-span-2 sm:col-span-3">
+                <Detail label="Address" value={clientAddress || "—"} />
+              </div>
               <Detail label="Occasion" value={quote.occasion || "—"} />
               <Detail label="Event Date" value={quote.eventDate ? formatDate(quote.eventDate) : "—"} numeric />
               <Detail label="Time Slot" value={quote.timeSlot || "—"} />

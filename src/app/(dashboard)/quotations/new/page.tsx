@@ -1,3 +1,4 @@
+import { formatContactAddress } from "@/lib/sales/client-address";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { FileTextIcon } from "lucide-react";
@@ -25,7 +26,9 @@ export default async function NewQuotationPage({
     guestCount: true,
     slot: true,
     preferredVenueId: true,
-    contact: { select: { firstName: true, lastName: true, phone: true, email: true } },
+    contact: {
+      select: { firstName: true, lastName: true, phone: true, email: true, address: true, city: true, state: true, pincode: true },
+    },
   } as const;
 
   const [leadsRaw, venues, targetLead] = await Promise.all([
@@ -82,6 +85,7 @@ export default async function NewQuotationPage({
     clientName: [l.contact?.firstName, l.contact?.lastName].filter(Boolean).join(" ") || null,
     clientPhone: l.contact?.phone ?? null,
     clientEmail: l.contact?.email ?? null,
+    clientAddress: formatContactAddress(l.contact),
   }));
 
   // The lead stores its slot as "Lunch"/"Dinner" (lead.schema.ts); the quotation
@@ -118,6 +122,7 @@ export default async function NewQuotationPage({
             undefined,
           clientPhone: preRaw.contact?.phone ?? undefined,
           clientEmail: preRaw.contact?.email ?? undefined,
+          clientAddress: formatContactAddress(preRaw.contact) ?? undefined,
           occasion: preRaw.eventType ?? undefined,
           eventDate: preRaw.eventDate ? preRaw.eventDate.toISOString() : null,
           timeSlot: mapSlotToTimeSlot(preRaw.slot),

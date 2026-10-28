@@ -53,6 +53,8 @@ export interface QuotationMeta {
   clientName?: string;
   clientPhone?: string;
   clientEmail?: string;
+  /** Shown in the quotation's client header (screen and PDF). */
+  clientAddress?: string;
   occasion?: string;
   eventDate?: string | Date | null;
   timeSlot?: string;
@@ -121,6 +123,7 @@ function headline(input: QuotationInput, meta: QuotationMeta) {
     clientName: meta.clientName?.trim() || null,
     clientPhone: meta.clientPhone?.trim() || null,
     clientEmail: meta.clientEmail?.trim() || null,
+    clientAddress: meta.clientAddress?.trim() || null,
     occasion: meta.occasion?.trim() || null,
     eventDate: meta.eventDate ? new Date(meta.eventDate) : null,
     timeSlot: meta.timeSlot?.trim() || null,
@@ -237,7 +240,12 @@ export async function getSalesQuotation(id: string): Promise<Result<unknown>> {
       approvedBy: { select: { name: true } },
       sentBy: { select: { name: true } },
       lead: { select: { id: true, title: true } },
-      contact: { select: { id: true, firstName: true, lastName: true, email: true, phone: true } },
+      contact: {
+        select: {
+          id: true, firstName: true, lastName: true, email: true, phone: true,
+          address: true, city: true, state: true, pincode: true,
+        },
+      },
       venue: { select: { id: true, name: true } },
       transitions: {
         orderBy: { createdAt: "asc" },
@@ -382,6 +390,7 @@ export async function updateSalesQuotation(
         clientName: meta.clientName ?? row.clientName ?? undefined,
         clientPhone: meta.clientPhone ?? row.clientPhone ?? undefined,
         clientEmail: meta.clientEmail ?? row.clientEmail ?? undefined,
+        clientAddress: meta.clientAddress ?? row.clientAddress ?? undefined,
         occasion: meta.occasion ?? row.occasion ?? undefined,
         eventDate: meta.eventDate ?? row.eventDate,
         timeSlot: meta.timeSlot ?? row.timeSlot ?? undefined,
