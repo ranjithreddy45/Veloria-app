@@ -21,6 +21,7 @@ import { validatePackageLinesAgainstCatalog } from "@/actions/quote-packages.act
 import { blocksApproval, resolveTaxSlab, totalRate } from "@/lib/sales/tax-slab";
 import { getVenueSlabs } from "@/lib/sales/venue-tax";
 import { ensureQuoteShareLink, quotationPdfShareUrl } from "@/lib/quote-radar/share-link";
+import { formatContactAddress } from "@/lib/sales/client-address";
 import { Prisma } from "@prisma/client";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string; code?: number };
@@ -168,6 +169,26 @@ async function syncLeadFromQuotation(
 function isSerializationFailure(e: unknown): boolean {
   const code = !!e && typeof e === "object" ? (e as { code?: string }).code : undefined;
   return code === "P2034" || code === "P2002"; // write conflict / serialization / unique
+}
+
+// The client a quotation is for, read from its linked lead. The form only knows
+// a lead's contact when that lead is in its picker list, so a quote saved or
+// edited from outside that window was storing no contact, and every version
+// cloned from it inherited the gap, so the enquiry's address never appeared.
+// The server resolves both from the lead instead of trusting the form.
+async function clientFromLead(
+  leadId: string | null | undefined
+): Promise<{ contactId: string | null; address: string | null } | null> {
+  if (!leadId) return null;
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    select: {
+      contactId: true,
+      contact: { select: { address: true, city: true, state: true, pincode: true } },
+    },
+  });
+  if (!lead) return null;
+  return { contactId: lead.contactId, address: formatContactAddress(lead.contact) };
 }
 
 // Allocate the next number AND create the row inside a single Serializable
@@ -325,16 +346,20 @@ export async function createSalesQuotation(
   const safeInput: QuotationInput =
     tax.taxRate != null ? { ...baseInput, taxRate: tax.taxRate } : baseInput;
 
+  const fromLead = await clientFromLead(meta.leadId);
   const row = await createQuotationRow((quoteNumber) => ({
     quoteNumber,
     status: "DRAFT",
     inputsJson: safeInput as unknown as Prisma.InputJsonValue,
     leadId: meta.leadId || null,
-    contactId: meta.contactId || null,
+    contactId: fromLead?.contactId || meta.contactId || null,
     venueId: meta.venueId || null,
     taxSlabId: tax.taxSlabId,
     createdById: user.id,
-    ...headline(safeInput, meta),
+    ...headline(safeInput, {
+      ...meta,
+      clientAddress: meta.clientAddress?.trim() || fromLead?.address || undefined,
+    }),
   }));
   await prisma.salesQuotationTransition.create({
     data: { quotationId: row.id, fromStatus: null, toStatus: "DRAFT", actorId: user.id, note: `${row.quoteNumber} created` },
@@ -377,20 +402,25 @@ export async function updateSalesQuotation(
   // concurrent submit could land between check and write and the edit would
   // mutate a quotation already under review. updateMany with the status in the
   // WHERE makes check-and-write atomic — count 0 ⇒ it left DRAFT, reject.
+  // `undefined` = key omitted (keep current); explicit null = clear it.
+  const leadId = meta.leadId !== undefined ? meta.leadId || null : row.leadId;
+  const fromLead = await clientFromLead(leadId);
   const { count: updated } = await prisma.salesQuotation.updateMany({
     where: { id, status: "DRAFT" },
     data: {
       inputsJson: safeInput as unknown as Prisma.InputJsonValue,
-      // `undefined` = key omitted (keep current); explicit null = clear it.
-      leadId: meta.leadId !== undefined ? meta.leadId || null : row.leadId,
-      contactId: meta.contactId !== undefined ? meta.contactId || null : row.contactId,
+      leadId,
+      contactId:
+        fromLead?.contactId ||
+        (meta.contactId !== undefined ? meta.contactId || null : row.contactId),
       venueId: meta.venueId !== undefined ? meta.venueId || null : row.venueId,
       taxSlabId: tax.taxSlabId,
       ...headline(safeInput, {
         clientName: meta.clientName ?? row.clientName ?? undefined,
         clientPhone: meta.clientPhone ?? row.clientPhone ?? undefined,
         clientEmail: meta.clientEmail ?? row.clientEmail ?? undefined,
-        clientAddress: meta.clientAddress ?? row.clientAddress ?? undefined,
+        clientAddress:
+          (meta.clientAddress ?? row.clientAddress)?.trim() || fromLead?.address || undefined,
         occasion: meta.occasion ?? row.occasion ?? undefined,
         eventDate: meta.eventDate ?? row.eventDate,
         timeSlot: meta.timeSlot ?? row.timeSlot ?? undefined,
@@ -749,6 +779,7 @@ export async function newSalesQuotationVersion(id: string): Promise<Result<{ id:
   if (row.status !== "APPROVED" && row.status !== "SENT")
     return { success: false, error: "Only an approved or sent quotation can be versioned." };
 
+  const fromLead = await clientFromLead(row.leadId);
   const clone = await createQuotationRow((quoteNumber) => ({
     quoteNumber,
     version: row.version + 1,
@@ -757,6 +788,7 @@ export async function newSalesQuotationVersion(id: string): Promise<Result<{ id:
     clientName: row.clientName,
     clientPhone: row.clientPhone,
     clientEmail: row.clientEmail,
+    clientAddress: row.clientAddress || fromLead?.address || null,
     occasion: row.occasion,
     eventDate: row.eventDate,
     timeSlot: row.timeSlot,
@@ -767,7 +799,7 @@ export async function newSalesQuotationVersion(id: string): Promise<Result<{ id:
     grandTotal: row.grandTotal,
     notes: row.notes,
     leadId: row.leadId,
-    contactId: row.contactId,
+    contactId: fromLead?.contactId || row.contactId,
     venueId: row.venueId,
     // A revision keeps the rate the previous version was built on; the stored
     // input carries the same number, so the two cannot drift apart.
