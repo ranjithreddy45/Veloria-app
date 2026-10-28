@@ -94,6 +94,12 @@ interface DataTableProps<TData, TValue> {
    * behaviour is kept so the other tables are untouched.
    */
   searchFields?: (row: TData) => (string | null | undefined)[];
+  /**
+   * The rows left after the search box and column filters — what the table
+   * actually shows (all pages). Lets a parent make its totals, tabs and
+   * export agree with the table.
+   */
+  onFilteredRowsChange?: (rows: TData[]) => void;
 }
 
 // ============================================================
@@ -177,6 +183,7 @@ export function DataTable<TData, TValue>({
   toolbarExtra,
   enableRowSelection = false,
   onSelectionChange,
+  onFilteredRowsChange,
   getRowId,
   mobileCards = true,
   defaultPageSize = 10,
@@ -245,6 +252,11 @@ export function DataTable<TData, TValue>({
       },
     },
   });
+
+  const filteredRowModel = table.getFilteredRowModel();
+  React.useEffect(() => {
+    onFilteredRowsChange?.(filteredRowModel.rows.map((r) => r.original));
+  }, [filteredRowModel, onFilteredRowsChange]);
 
   // Notify parent of selection changes
   React.useEffect(() => {

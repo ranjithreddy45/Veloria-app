@@ -151,3 +151,20 @@ describe("sales teams — each team works its own CRM", () => {
     expect(resolveTeamView(REP, "CORPORATE")).toBeNull();
   });
 });
+
+describe("worklist buckets (due) narrow a picked status instead of replacing it", () => {
+  const M = { id: "m", role: "SUPER_ADMIN" };
+  it("overdue + New → only New leads with an overdue follow-up", () => {
+    const w = buildLeadListWhere({ scope: "all", due: "overdue", status: "NEW" }, M).where;
+    expect(w.status).toBe("NEW");
+    expect(w.followUpDate).toMatchObject({ not: null });
+  });
+  it("untouched with no status → every open status", () => {
+    const w = buildLeadListWhere({ scope: "all", due: "untouched" }, M).where;
+    expect(w.status).toEqual({ in: ["NEW", "NOT_CONNECTED", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION"] });
+    expect(w.lastTouchedAt).toBeNull();
+  });
+  it("a closed status with a due bucket matches nothing (never the open list)", () => {
+    expect(buildLeadListWhere({ scope: "all", due: "overdue", status: "WON" }, M).where.status).toEqual({ in: [] });
+  });
+});

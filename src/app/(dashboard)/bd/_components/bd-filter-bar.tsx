@@ -7,13 +7,13 @@
 // page re-renders with fresh data. Shared by BD dashboard & reports.
 // ============================================================
 
+import { CommitDateInput } from "@/components/ui/commit-date-input";
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   CalendarDays, Users, Check, ChevronDown, Loader2, RotateCcw, Building2,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -139,17 +139,15 @@ export function BdFilterBar({ employees }: Props) {
           {/* Custom date inputs */}
           {range === "custom" && (
             <div className="mt-2 space-y-1.5 border-t border-border pt-2">
-              <Input
-                type="date"
+              <CommitDateInput
                 value={from}
                 className="h-8 text-xs bg-muted/50 border-border text-foreground"
-                onChange={(e) => push({ from: e.target.value })}
+                onCommit={(v) => push({ from: v })}
               />
-              <Input
-                type="date"
+              <CommitDateInput
                 value={to}
                 className="h-8 text-xs bg-muted/50 border-border text-foreground"
-                onChange={(e) => push({ to: e.target.value })}
+                onCommit={(v) => push({ to: v })}
               />
             </div>
           )}

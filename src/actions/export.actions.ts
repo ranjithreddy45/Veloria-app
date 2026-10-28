@@ -1,5 +1,6 @@
 "use server";
 
+import { withOccasionValues } from "@/lib/crm/occasion-values";
 import { auth } from "@/../auth";
 import { phoneForExport } from "@/lib/phone";
 import { buildLeadListWhere, type LeadListFilters } from "@/lib/crm/lead-filters";
@@ -230,7 +231,7 @@ export async function exportContacts() {
  * their entire book. Nothing on screen said the filters had been dropped, which
  * made a wrong file look like a right one.
  */
-export async function exportLeads(filters?: LeadListFilters) {
+export async function exportLeads(filters?: LeadListFilters & { ids?: string[] }) {
   try {
     const session = await auth();
     if (!session?.user) {
@@ -249,7 +250,12 @@ export async function exportLeads(filters?: LeadListFilters) {
     // buildLeadListWhere already downgrades scope to "mine" for anyone without
     // the manager permission, so the own-book guard is inherited rather than
     // re-implemented here.
-    const { where } = buildLeadListWhere(filters, await leadViewer(session.user));
+    const { ids, ...listFilters } = filters ?? {};
+    const { where } = buildLeadListWhere(await withOccasionValues(listFilters), await leadViewer(session.user));
+    // The rows the table is actually showing, when the viewer narrowed it in the
+    // browser (Filter by, status tab, search). Intersected with `where`, so ids
+    // can only ever narrow what this viewer may export, never widen it.
+    if (Array.isArray(ids)) where.id = { in: ids.filter((v) => typeof v === "string").slice(0, 10000) };
     const leads = await prisma.lead.findMany({
       where,
       orderBy: { createdAt: "desc" },

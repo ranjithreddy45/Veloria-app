@@ -242,12 +242,15 @@ export function buildLeadListWhere(
   // stay findable: defaulting them into Direct would invent attribution in a
   // report someone spends money against.
   const OPEN_STATUSES = ["NEW", "NOT_CONNECTED", "CONTACTED", "QUALIFIED", "PROPOSAL_SENT", "NEGOTIATION"];
-  if (filters?.due === "overdue") {
-    where.status = { in: OPEN_STATUSES };
-    where.followUpDate = { not: null, lt: new Date() };
-  } else if (filters?.due === "untouched") {
-    where.status = { in: OPEN_STATUSES };
-    where.lastTouchedAt = null;
+  if (filters?.due === "overdue" || filters?.due === "untouched") {
+    // Both buckets are OPEN leads only — narrowed further by a status the
+    // viewer picked, never replacing it. ("Follow-up overdue" + New used to
+    // return every open status, because this overwrote where.status.) A
+    // closed status picked alongside a due bucket matches nothing.
+    const picked = typeof where.status === "string" ? (where.status as string) : null;
+    where.status = picked ? (OPEN_STATUSES.includes(picked) ? picked : { in: [] }) : { in: OPEN_STATUSES };
+    if (filters.due === "overdue") where.followUpDate = { not: null, lt: new Date() };
+    else where.lastTouchedAt = null;
   }
 
   const channel = filters?.enquirySource?.trim();

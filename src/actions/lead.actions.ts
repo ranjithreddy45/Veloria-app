@@ -1,7 +1,8 @@
 "use server";
 
 import { auth } from "@/../auth";
-import { OCCASION_NONE, buildOccasionOptions, occasionKey, rawValuesForOccasion } from "@/lib/crm/occasion";
+import { buildOccasionOptions } from "@/lib/crm/occasion";
+import { withOccasionValues } from "@/lib/crm/occasion-values";
 import { buildLeadListWhere, canSeeAllLeads, canViewLead, type LeadListFilters, type LeadScope } from "@/lib/crm/lead-filters";
 import { leadViewer } from "@/lib/crm/lead-viewer";
 import { isEnquirySource } from "@/lib/enquiry-source";
@@ -136,27 +137,6 @@ const MAX_LEAD_PAGE_SIZE = 50_000;
 // Get Leads (Paginated + Filters)
 // ============================================================
 
-/**
- * Lead.eventType is free text, so an occasion filter has to be resolved against
- * the spellings actually on record before it can become SQL. One tiny DISTINCT
- * query, and only when the filter is in use. For "NONE" it collects the
- * whitespace-only values, which mean "not recorded" just as null does.
- */
-async function withOccasionValues<T extends LeadListFilters | undefined>(params: T): Promise<T> {
-  const occasion = params?.occasion?.trim();
-  if (!params || !occasion) return params;
-  const rows = await prisma.lead.findMany({
-    where: { deletedAt: null, eventType: { not: null } },
-    distinct: ["eventType"],
-    select: { eventType: true },
-  });
-  const distinctRaw = rows.map((r) => r.eventType);
-  const occasionValues =
-    occasion === OCCASION_NONE
-      ? distinctRaw.filter((raw): raw is string => raw != null && occasionKey(raw) == null)
-      : rawValuesForOccasion(occasion, distinctRaw);
-  return { ...params, occasionValues };
-}
 
 /**
  * The Occasion dropdown's options, with counts. Counted under the SAME scope
