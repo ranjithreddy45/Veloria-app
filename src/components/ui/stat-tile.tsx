@@ -23,6 +23,7 @@
 import * as React from "react";
 import { ArrowDown, ArrowDownRight, ArrowUp, ArrowUpRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { sentenceCase } from "@/lib/text-case";
 import { CALM_RING_TEXT, isHue, type Hue } from "@/lib/ui/hues";
 import { Donut } from "@/components/ui/donut";
 import { CountUp } from "@/components/ui/count-up";
@@ -135,7 +136,9 @@ export function StatTile({ label, value, accent = "indigo", icon, sub, delta, de
                 {icon}
               </span>
             ) : null}
-            <span className="line-clamp-2 min-w-0 break-words">{label}</span>
+            {/* Labels are metric names, never record names, so a Title Case
+                label is safe to sentence-case here ("Site visits"). */}
+            <span className="line-clamp-2 min-w-0 break-words">{sentenceCase(label)}</span>
           </div>
           {/* break-words, never truncate: a clipped money figure is a wrong
               number, so a long value wraps to a second line instead. */}

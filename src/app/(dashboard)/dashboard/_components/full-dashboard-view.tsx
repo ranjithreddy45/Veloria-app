@@ -8,6 +8,7 @@ import type { DashboardFullData } from "@/actions/dashboard-full.actions";
 import { getHallOccupancyForDate, getEventsForDate } from "@/actions/dashboard-full.actions";
 import { format, addDays, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { sentenceCase } from "@/lib/text-case";
 import { QuickActions, type HubActionSpec } from "@/components/ui/quick-actions";
 
 // ============================================================
@@ -289,7 +290,7 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
   const today = [
     {
       n: data.attentionItems.length,
-      title: data.attentionItems.length === 1 ? "Thing needs you" : "Things need you",
+      title: "Waiting on you",
       detail: firstAttention ? firstAttention.title : "Nothing is waiting on you",
       href: "/my-work",
       tone: "default" as const,
@@ -343,7 +344,7 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
     {
       label: "Open leads",
       value: kpis.openLeads.count.toLocaleString("en-IN"),
-      foot: kpis.openLeads.breachedCount === 0 ? "None past the response deadline" : `${kpis.openLeads.breachedCount} past the response deadline`,
+      foot: kpis.openLeads.breachedCount === 0 ? "None past deadline" : `${kpis.openLeads.breachedCount} past deadline`,
       href: canOpenLeads ? "/leads" : undefined,
     },
     {
@@ -404,7 +405,7 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
         {kpiCells.map((cell, i) => {
           const body = (
             <>
-              <span className="block truncate text-body text-muted-foreground">{cell.label}</span>
+              <span className="line-clamp-2 block text-body leading-snug text-muted-foreground">{cell.label}</span>
               <span className={cn("mt-2 block whitespace-nowrap text-title font-semibold tracking-[-0.03em] tabular-nums sm:text-h2", cell.valueClass ?? "text-foreground")}>
                 {cell.value}
               </span>
@@ -541,7 +542,7 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
             <ul className="flex flex-col gap-3.5">
               {pipeline.stages.map((stage, i) => (
                 <li key={stage.stage} className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)_2.25rem] items-center gap-3 text-body">
-                  <span className="truncate text-muted-foreground">{stage.label}</span>
+                  <span className="truncate text-muted-foreground">{sentenceCase(stage.label)}</span>
                   <Bar value={stage.count} max={pipelineMax} strong={i === pipeline.stages.length - 1} />
                   <span className="text-right font-medium tabular-nums text-foreground">{stage.count}</span>
                 </li>
@@ -710,7 +711,7 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
             <ul className="flex flex-col gap-3.5">
               {eventTypes.types.map((t, i) => (
                 <li key={t.type} className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_3.75rem] items-center gap-3 text-body">
-                  <span className="truncate text-muted-foreground">{t.type}</span>
+                  <span className="truncate text-muted-foreground">{sentenceCase(t.type)}</span>
                   <Bar value={t.count} max={typeMax} strong={i === 0} />
                   <span className="text-right tabular-nums">
                     <span className="font-medium text-foreground">{t.count}</span>

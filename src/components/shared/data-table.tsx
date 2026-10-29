@@ -23,7 +23,8 @@ import {
   SearchIcon,
 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
+import { sentenceCase } from "@/lib/text-case";
 import {
   Table,
   TableBody,
@@ -115,15 +116,17 @@ interface DataTableProps<TData, TValue> {
 /** Columns that are chrome, not data — they get their own slot on the card. */
 const STRUCTURAL_COLUMN_IDS = new Set(["select", "actions"]);
 
-/** "eventDate" / "event_date" -> "Event Date". Same convention the Columns
- *  visibility menu already uses, so labels read identically in both places. */
+/** "eventDate" / "event_date" -> "Event date": the same label the Columns
+ *  visibility menu shows, so they read identically in both places. */
 function prettifyColumnId(id: string): string {
-  return id
-    .replace(/([A-Z])/g, " $1")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/^./, (c) => c.toUpperCase());
+  return sentenceCase(
+    id
+      .replace(/([A-Z])/g, " $1")
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/^./, (c) => c.toUpperCase())
+  );
 }
 
 /**
@@ -140,9 +143,9 @@ function mobileLabelFor(column: {
   columnDef: { header?: unknown; meta?: unknown };
 }): string {
   const meta = column.columnDef.meta as { label?: string } | undefined;
-  if (meta?.label) return meta.label;
+  if (meta?.label) return sentenceCase(meta.label);
   const header = column.columnDef.header;
-  if (typeof header === "string" && header.trim()) return header;
+  if (typeof header === "string" && header.trim()) return sentenceCase(header);
   return prettifyColumnId(column.id);
 }
 
@@ -330,13 +333,12 @@ export function DataTable<TData, TValue>({
               .map((column) => (
                 <DropdownMenuCheckboxItem
                   key={column.id}
-                  className="capitalize"
                   checked={column.getIsVisible()}
                   onCheckedChange={(value) =>
                     column.toggleVisibility(!!value)
                   }
                 >
-                  {column.id.replace(/([A-Z])/g, " $1").trim()}
+                  {prettifyColumnId(column.id)}
                 </DropdownMenuCheckboxItem>
               ))}
           </DropdownMenuContent>
@@ -451,14 +453,18 @@ export function DataTable<TData, TValue>({
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className="h-10 bg-transparent px-4 text-detail font-medium text-subtle-foreground"
+                    className="h-10 bg-transparent px-3 text-detail font-medium text-subtle-foreground"
                   >
+                    {/* A plain-string title is sentence-cased here, so the
+                        ~50 tables read "Event name", not "Event Name". */}
                     {header.isPlaceholder
                       ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                      : typeof header.column.columnDef.header === "string"
+                        ? sentenceCase(header.column.columnDef.header)
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -473,7 +479,7 @@ export function DataTable<TData, TValue>({
                   className="group/row border-b border-border last:border-0 transition-colors hover:bg-muted/50 data-[state=selected]:bg-primary-soft"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="h-[52px] px-4 py-2.5 align-middle">
+                    <TableCell key={cell.id} className="h-[52px] px-3 py-2.5 align-middle">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -609,7 +615,7 @@ export function DataTableColumnHeader<TData, TValue>({
   className,
 }: DataTableColumnHeaderProps<TData, TValue>) {
   if (!column.getCanSort()) {
-    return <div className={className}>{title}</div>;
+    return <div className={className}>{sentenceCase(title)}</div>;
   }
 
   return (
@@ -618,7 +624,7 @@ export function DataTableColumnHeader<TData, TValue>({
       className="-ml-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-detail font-medium text-subtle-foreground transition-colors hover:bg-muted hover:text-foreground"
       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
     >
-      {title}
+      {sentenceCase(title)}
       <ArrowUpDownIcon className="size-3 opacity-50" />
     </button>
   );

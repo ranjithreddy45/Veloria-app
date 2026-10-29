@@ -20,13 +20,13 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["dashboard:read"],
   },
   {
-    title: "My Work",
+    title: "My work",
     href: "/my-work",
     icon: "ClipboardList",
     permissions: ["dashboard:read"],
   },
   {
-    title: "Team Chat",
+    title: "Team chat",
     href: "/chat",
     icon: "MessagesSquare",
     permissions: ["dashboard:read"],
@@ -56,7 +56,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["owners:read"],
       },
       {
-        title: "Deal Board",
+        title: "Deal board",
         href: "/bd/deals",
         icon: "Kanban",
         permissions: ["owners:read"],
@@ -74,7 +74,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["owners:read"],
       },
       {
-        title: "Hall Owners",
+        title: "Hall owners",
         href: "/owners",
         icon: "Users",
         permissions: ["owners:read"],
@@ -95,7 +95,7 @@ export const sidebarNavigation: NavItem[] = [
       },
       {
         // One CRM per team: Wedding / Corporate / Social side by side.
-        title: "Team Dashboard",
+        title: "Team dashboard",
         href: "/sales/teams",
         icon: "Users",
         permissions: ["leads:read"],
@@ -107,7 +107,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["leads:read"],
       },
       {
-        title: "My Calendar",
+        title: "My calendar",
         href: "/calendar",
         icon: "Calendar",
         permissions: ["leads:read"],
@@ -129,25 +129,25 @@ export const sidebarNavigation: NavItem[] = [
       ...(LEAD_OPS_PAGES_ENABLED
         ? [
             {
-              title: "Speed-to-Lead",
+              title: "Speed-to-lead",
               href: "/leads/sla",
               icon: "Zap",
               permissions: ["leads:read"],
             },
             {
-              title: "SLA War-Room",
+              title: "SLA war-room",
               href: "/leads/war-room",
               icon: "Siren",
               permissions: ["leads:read"],
             },
             {
-              title: "Missed Calls",
+              title: "Missed calls",
               href: "/leads/missed-calls",
               icon: "PhoneMissed",
               permissions: ["leads:read"],
             },
             {
-              title: "Cooling Leads",
+              title: "Cooling leads",
               href: "/leads/cooling",
               icon: "Snowflake",
               permissions: ["leads:read"],
@@ -155,7 +155,7 @@ export const sidebarNavigation: NavItem[] = [
           ]
         : []),
       {
-        title: "Public Quotes",
+        title: "Public quotes",
         href: "/settings/public-quotes",
         icon: "Calculator",
         permissions: ["publicquotes:read"],
@@ -167,7 +167,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["leads:read"],
       },
       {
-        title: "Web Inquiries",
+        title: "Web inquiries",
         href: "/inquiries",
         icon: "Inbox",
         permissions: ["leads:read"],
@@ -219,13 +219,13 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["communications:read"],
       },
       {
-        title: "Sales Signals",
+        title: "Sales signals",
         href: "/crm/signals",
         icon: "Activity",
         permissions: ["communications:read"],
       },
       {
-        title: "Email Insights",
+        title: "Email insights",
         href: "/crm/email-tracking",
         icon: "MailOpen",
         permissions: ["communications:read"],
@@ -237,13 +237,13 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["whatsapp:read"],
       },
       {
-        title: "WhatsApp Console",
+        title: "WhatsApp console",
         href: "/whatsapp/console",
         icon: "MessagesSquare",
         permissions: ["whatsapp:read"],
       },
       {
-        title: "Catalog Funnel",
+        title: "Catalog funnel",
         href: "/whatsapp/catalog",
         icon: "Package",
         permissions: ["whatsapp:read"],
@@ -255,7 +255,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["sms:read"],
       },
       {
-        title: "Call Log",
+        title: "Call log",
         href: "/crm/calls",
         icon: "Phone",
         permissions: ["communications:read"],
@@ -269,7 +269,7 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["bookings:read"],
     children: [
       {
-        title: "All Bookings",
+        title: "All bookings",
         href: "/bookings",
         icon: "List",
         permissions: ["bookings:read"],
@@ -281,31 +281,31 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["bookings:read"],
       },
       {
-        title: "Slot Availability",
+        title: "Slot availability",
         href: "/availability",
         icon: "CalendarClock",
         permissions: ["bookings:read"],
       },
       {
-        title: "Sell-Down Board",
+        title: "Sell-down board",
         href: "/availability/sell-down",
         icon: "Target",
         permissions: ["bookings:read"],
       },
       {
-        title: "Site Visits",
+        title: "Site visits",
         href: "/site-visits",
         icon: "CalendarCheck",
         permissions: ["tastings:read"],
       },
       {
-        title: "Guest Draw",
+        title: "Guest draw",
         href: "/admin/draw",
         icon: "Gift",
         permissions: ["bookings:read"],
       },
       {
-        title: "Customer Concierge",
+        title: "Customer concierge",
         href: "/concierge",
         icon: "MessagesSquare",
         permissions: ["bookings:read"],
@@ -324,7 +324,7 @@ export const sidebarNavigation: NavItem[] = [
           children: [
             { title: "Venues", href: "/projects", icon: "Building2", permissions: ["projects:read"] },
             { title: "Portfolio", href: "/projects/portfolio", icon: "BarChart3", permissions: ["projects:read"] },
-            { title: "CapEx Rate Card", href: "/projects/rate-card", icon: "Calculator", permissions: ["projects:read"] },
+            { title: "CapEx rate card", href: "/projects/rate-card", icon: "Calculator", permissions: ["projects:read"] },
             { title: "Vendors", href: "/projects/vendors", icon: "Truck", permissions: ["projects:read"] },
           ],
         },
@@ -338,7 +338,7 @@ export const sidebarNavigation: NavItem[] = [
     children: [
       {
         // CR-001: same Bookings dataset, second entry point under Operations.
-        title: "Bookings / Event List",
+        title: "Bookings / event list",
         href: "/bookings",
         icon: "CalendarCheck",
         permissions: ["bookings:read"],
@@ -350,7 +350,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["tasks:read"],
       },
       {
-        title: "Task Templates",
+        title: "Task templates",
         href: "/tasks/templates",
         icon: "Copy",
         permissions: ["tasks:read"],
@@ -374,7 +374,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["staff:read"],
       },
       {
-        title: "SOP Templates",
+        title: "SOP templates",
         href: "/settings/sop-templates",
         icon: "FileCheck",
         permissions: ["sop:read"],
@@ -383,23 +383,23 @@ export const sidebarNavigation: NavItem[] = [
   },
   // New operational modules (banded under Delivery & Ops / Sales).
   {
-    title: "Event Operations",
+    title: "Event operations",
     href: "/beo",
     icon: "ClipboardList",
     permissions: ["beo:read", "kitchen:read"],
     children: [
-      { title: "Function Sheets (BEO)", href: "/beo", icon: "FileText", permissions: ["beo:read"] },
+      { title: "Function sheets (BEO)", href: "/beo", icon: "FileText", permissions: ["beo:read"] },
       { title: "Kitchen & F&B", href: "/kitchen", icon: "UtensilsCrossed", permissions: ["kitchen:read"] },
     ],
   },
   {
-    title: "Supply Chain",
+    title: "Supply chain",
     href: "/procurement",
     icon: "Package",
     permissions: ["procurement:read", "logistics:read"],
     children: [
       { title: "Procurement", href: "/procurement", icon: "Package", permissions: ["procurement:read"] },
-      { title: "Logistics & Dispatch", href: "/logistics", icon: "Truck", permissions: ["logistics:read"] },
+      { title: "Logistics & dispatch", href: "/logistics", icon: "Truck", permissions: ["logistics:read"] },
     ],
   },
   {
@@ -418,11 +418,11 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["recruit:read"],
     children: [
       { title: "Overview", href: "/recruitment", icon: "Gauge", permissions: ["recruit:read"] },
-      { title: "Job Openings", href: "/recruitment/jobs", icon: "Briefcase", permissions: ["recruit:read"] },
+      { title: "Job openings", href: "/recruitment/jobs", icon: "Briefcase", permissions: ["recruit:read"] },
       { title: "Candidates", href: "/recruitment/candidates", icon: "Users", permissions: ["recruit:read"] },
       { title: "Applications", href: "/recruitment/applications", icon: "ClipboardList", permissions: ["recruit:read"] },
       { title: "Offers", href: "/recruitment/offers", icon: "FileSignature", permissions: ["recruit:read"] },
-      { title: "Background Checks", href: "/recruitment/bgv", icon: "ShieldCheck", permissions: ["recruit:read"] },
+      { title: "Background checks", href: "/recruitment/bgv", icon: "ShieldCheck", permissions: ["recruit:read"] },
     ],
   },
   // Employee self-service — visible to EVERY signed-in employee (empty
@@ -436,17 +436,17 @@ export const sidebarNavigation: NavItem[] = [
     icon: "Contact",
     permissions: [],
     children: [
-      { title: "My Attendance", href: "/me/attendance", icon: "Clock", permissions: [] },
-      { title: "My Leave", href: "/me/leave", icon: "CalendarCheck", permissions: [] },
-      { title: "My Payslips", href: "/me/payslips", icon: "FileText", permissions: [] },
-      { title: "My Reimbursements", href: "/me/reimbursements", icon: "Receipt", permissions: [] },
+      { title: "My attendance", href: "/me/attendance", icon: "Clock", permissions: [] },
+      { title: "My leave", href: "/me/leave", icon: "CalendarCheck", permissions: [] },
+      { title: "My payslips", href: "/me/payslips", icon: "FileText", permissions: [] },
+      { title: "My reimbursements", href: "/me/reimbursements", icon: "Receipt", permissions: [] },
       // Claims waiting on THIS user's approval (level 1 / level 2 approvers).
-      { title: "My Approvals", href: "/me/approvals", icon: "CheckCircle2", permissions: [] },
+      { title: "My approvals", href: "/me/approvals", icon: "CheckCircle2", permissions: [] },
       // The handbook is for everyone. Its route is open (dashboard:read
       // override in permissions.ts) but it used to be linked only from the
       // hr:read-gated People section, so ordinary staff never saw it exist.
-      { title: "Employee Handbook", href: "/people/handbook", icon: "BookOpen", permissions: [] },
-      { title: "Help Desk", href: "/me/helpdesk", icon: "MessageCircle", permissions: [] },
+      { title: "Employee handbook", href: "/people/handbook", icon: "BookOpen", permissions: [] },
+      { title: "Help desk", href: "/me/helpdesk", icon: "MessageCircle", permissions: [] },
       // Self-service two-factor enrolment. Lives under /me so every staff role
       // can reach it (the /settings tree is settings:read-gated in middleware).
       { title: "Security & 2FA", href: "/me/security", icon: "ShieldCheck", permissions: [] },
@@ -460,16 +460,16 @@ export const sidebarNavigation: NavItem[] = [
     permissions: ["hr:read"],
     children: [
       { title: "Directory", href: "/people", icon: "Contact", permissions: ["hr:read"] },
-      { title: "Org Chart", href: "/people/org", icon: "Network", permissions: ["hr:read"] },
-      { title: "Joining & Exits", href: "/people/lifecycle", icon: "UserPlus", permissions: ["hr:read"] },
+      { title: "Org chart", href: "/people/org", icon: "Network", permissions: ["hr:read"] },
+      { title: "Joining & exits", href: "/people/lifecycle", icon: "UserPlus", permissions: ["hr:read"] },
       { title: "Documents", href: "/people/documents", icon: "FileText", permissions: ["hr:read"] },
       // Readable by ALL staff (route override in permissions.ts) — a handbook
       // that only HR can open defeats its purpose.
-      { title: "Employee Handbook", href: "/people/handbook", icon: "FileText", permissions: ["dashboard:read"] },
+      { title: "Employee handbook", href: "/people/handbook", icon: "FileText", permissions: ["dashboard:read"] },
     ],
   },
   {
-    title: "Time & Attendance",
+    title: "Time & attendance",
     href: "/people/attendance",
     icon: "Clock",
     permissions: ["hr:read"],
@@ -481,7 +481,7 @@ export const sidebarNavigation: NavItem[] = [
       { title: "Holidays", href: "/people/leave/holidays", icon: "CalendarHeart", permissions: ["hr:admin"] },
       { title: "Shifts", href: "/people/shifts", icon: "CalendarClock", permissions: ["hr:read"] },
       { title: "Timesheets", href: "/people/timesheets", icon: "Clock", permissions: ["hr:read"] },
-      { title: "Attendance Policy", href: "/people/attendance/policy", icon: "ShieldCheck", permissions: ["hr:admin"] },
+      { title: "Attendance policy", href: "/people/attendance/policy", icon: "ShieldCheck", permissions: ["hr:admin"] },
     ],
   },
   {
@@ -497,18 +497,18 @@ export const sidebarNavigation: NavItem[] = [
     ],
   },
   {
-    title: "HR Admin",
+    title: "HR admin",
     href: "/people/analytics",
     icon: "ShieldCheck",
     permissions: ["hr:read"],
     children: [
       { title: "Analytics", href: "/people/analytics", icon: "BarChart3", permissions: ["hr:read"] },
       { title: "Reports", href: "/people/reports", icon: "FileText", permissions: ["hr:read"] },
-      { title: "Help Desk", href: "/people/helpdesk", icon: "MessageCircle", permissions: ["hr:read"] },
-      { title: "Change Requests", href: "/people/requests", icon: "Inbox", permissions: ["hr:approve"] },
+      { title: "Help desk", href: "/people/helpdesk", icon: "MessageCircle", permissions: ["hr:read"] },
+      { title: "Change requests", href: "/people/requests", icon: "Inbox", permissions: ["hr:approve"] },
       { title: "Compensation", href: "/people/compensation", icon: "IndianRupee", permissions: ["hr:read"] },
-      { title: "Pay Grades", href: "/people/settings/grades", icon: "Award", permissions: ["hr:admin"] },
-      { title: "Required Documents", href: "/people/settings/required-docs", icon: "FileCheck", permissions: ["hr:admin"] },
+      { title: "Pay grades", href: "/people/settings/grades", icon: "Award", permissions: ["hr:admin"] },
+      { title: "Required documents", href: "/people/settings/required-docs", icon: "FileCheck", permissions: ["hr:admin"] },
       { title: "Reminders", href: "/people/settings/reminders", icon: "Bell", permissions: ["hr:admin"] },
       { title: "Settings", href: "/people/settings", icon: "Settings", permissions: ["hr:admin"] },
     ],
@@ -519,19 +519,19 @@ export const sidebarNavigation: NavItem[] = [
     icon: "IndianRupee",
     permissions: ["hr:payroll", "hr:read"],
     children: [
-      { title: "Attendance Sheet", href: "/people/payroll/attendance-sheet", icon: "ClipboardList", permissions: ["hr:payroll"] },
-      { title: "Payroll Runs", href: "/people/payroll", icon: "CreditCard", permissions: ["hr:payroll"] },
+      { title: "Attendance sheet", href: "/people/payroll/attendance-sheet", icon: "ClipboardList", permissions: ["hr:payroll"] },
+      { title: "Payroll runs", href: "/people/payroll", icon: "CreditCard", permissions: ["hr:payroll"] },
       { title: "Disbursement", href: "/people/payroll/disbursement", icon: "Banknote", permissions: ["hr:payroll"] },
-      { title: "Salary Advances", href: "/people/payroll/advances", icon: "DollarSign", permissions: ["hr:payroll"] },
+      { title: "Salary advances", href: "/people/payroll/advances", icon: "DollarSign", permissions: ["hr:payroll"] },
       { title: "Arrears", href: "/people/payroll/arrears", icon: "ListOrdered", permissions: ["hr:payroll"] },
       { title: "Reimbursements", href: "/people/payroll/reimbursements", icon: "Receipt", permissions: ["hr:payroll"] },
-      { title: "Recurring Pay", href: "/people/payroll/recurring", icon: "Repeat", permissions: ["hr:payroll"] },
-      { title: "Statutory Registers", href: "/people/payroll/registers", icon: "ClipboardList", permissions: ["hr:payroll"] },
-      { title: "Statutory Config", href: "/people/payroll/statutory-config", icon: "Landmark", permissions: ["hr:payroll"] },
+      { title: "Recurring pay", href: "/people/payroll/recurring", icon: "Repeat", permissions: ["hr:payroll"] },
+      { title: "Statutory registers", href: "/people/payroll/registers", icon: "ClipboardList", permissions: ["hr:payroll"] },
+      { title: "Statutory config", href: "/people/payroll/statutory-config", icon: "Landmark", permissions: ["hr:payroll"] },
       { title: "Gratuity", href: "/people/gratuity", icon: "Gift", permissions: ["hr:payroll"] },
-      { title: "Full & Final", href: "/people/payroll/fnf", icon: "FileInput", permissions: ["hr:payroll"] },
-      { title: "Pay Components", href: "/people/payroll/settings", icon: "Settings", permissions: ["hr:payroll"] },
-      { title: "Reimbursement Approvers", href: "/people/payroll/reimbursements/approvers", icon: "UserCheck", permissions: ["hr:admin"] },
+      { title: "Full & final", href: "/people/payroll/fnf", icon: "FileInput", permissions: ["hr:payroll"] },
+      { title: "Pay components", href: "/people/payroll/settings", icon: "Settings", permissions: ["hr:payroll"] },
+      { title: "Reimbursement approvers", href: "/people/payroll/reimbursements/approvers", icon: "UserCheck", permissions: ["hr:admin"] },
     ],
   },
   {
@@ -559,13 +559,13 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["pricing:read"],
       },
       {
-        title: "Yield Pricing",
+        title: "Yield pricing",
         href: "/pricing/yield",
         icon: "TrendingUp",
         permissions: ["pricing:read"],
       },
       {
-        title: "Date Demand",
+        title: "Date demand",
         href: "/pricing/demand",
         icon: "CalendarHeart",
         permissions: ["pricing:read"],
@@ -592,23 +592,23 @@ export const sidebarNavigation: NavItem[] = [
     icon: "Scale",
     permissions: ["finance:read"],
     children: [
-      { title: "General Ledger", href: "/finance", icon: "Scale", permissions: ["finance:read"] },
-      { title: "Bank & Reconcile", href: "/finance/bank", icon: "Landmark", permissions: ["finance:read"] },
+      { title: "General ledger", href: "/finance", icon: "Scale", permissions: ["finance:read"] },
+      { title: "Bank & reconcile", href: "/finance/bank", icon: "Landmark", permissions: ["finance:read"] },
       { title: "Reports", href: "/finance/reports", icon: "TrendingUp", permissions: ["finance:read"] },
-      { title: "Event Profitability", href: "/finance/reports/event-profitability", icon: "TrendingUp", permissions: ["finance:read"] },
-      { title: "Tax & Compliance", href: "/finance/tax", icon: "Percent", permissions: ["finance:read"] },
+      { title: "Event profitability", href: "/finance/reports/event-profitability", icon: "TrendingUp", permissions: ["finance:read"] },
+      { title: "Tax & compliance", href: "/finance/tax", icon: "Percent", permissions: ["finance:read"] },
       // Fully approved employee expense claims, ready to pay.
       { title: "Reimbursements", href: "/finance/reimbursements", icon: "Receipt", permissions: ["finance:read"] },
     ],
   },
   {
-    title: "Treasury & Planning",
+    title: "Treasury & planning",
     href: "/finance/command-center",
     icon: "Gauge",
     permissions: ["finance:read"],
     children: [
-      { title: "Command Center", href: "/finance/command-center", icon: "Gauge", permissions: ["finance:read"] },
-      { title: "Cash Flow", href: "/finance/cash-flow", icon: "LineChart", permissions: ["finance:read"] },
+      { title: "Command center", href: "/finance/command-center", icon: "Gauge", permissions: ["finance:read"] },
+      { title: "Cash flow", href: "/finance/cash-flow", icon: "LineChart", permissions: ["finance:read"] },
       { title: "Budgets", href: "/finance/budgets", icon: "Calculator", permissions: ["finance:read"] },
       { title: "Anomalies", href: "/finance/anomalies", icon: "ShieldCheck", permissions: ["finance:read"] },
     ],
@@ -624,16 +624,16 @@ export const sidebarNavigation: NavItem[] = [
     ],
   },
   {
-    title: "Payables & Assets",
+    title: "Payables & assets",
     href: "/payouts",
     icon: "Banknote",
     permissions: ["payouts:read", "commissions:read", "insurance:read", "finance:read"],
     children: [
       { title: "Payouts", href: "/payouts", icon: "Banknote", permissions: ["payouts:read"] },
-      { title: "Vendor Bills", href: "/payouts/bills", icon: "Receipt", permissions: ["payouts:read"] },
+      { title: "Vendor bills", href: "/payouts/bills", icon: "Receipt", permissions: ["payouts:read"] },
       { title: "Commissions", href: "/commissions", icon: "Percent", permissions: ["commissions:read"] },
       { title: "Payroll", href: "/finance/payroll", icon: "Banknote", permissions: ["finance:read"] },
-      { title: "Fixed Assets", href: "/finance/assets", icon: "Boxes", permissions: ["finance:read"] },
+      { title: "Fixed assets", href: "/finance/assets", icon: "Boxes", permissions: ["finance:read"] },
       { title: "Insurance", href: "/insurance", icon: "Shield", permissions: ["insurance:read"] },
     ],
   },
@@ -656,7 +656,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["marketing:read"],
       },
       {
-        title: "Corporate Accounts",
+        title: "Corporate accounts",
         href: "/accounts",
         icon: "Building2",
         permissions: ["accounts:read"],
@@ -674,7 +674,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["referrals:read"],
         children: [
           {
-            title: "All Referrals",
+            title: "All referrals",
             href: "/referrals",
             icon: "List",
             permissions: ["referrals:read"],
@@ -692,7 +692,7 @@ export const sidebarNavigation: NavItem[] = [
             permissions: ["referrals:read"],
           },
           {
-            title: "Partner Portal",
+            title: "Partner portal",
             href: "/referrals/partners",
             icon: "Handshake",
             permissions: ["referrals:read"],
@@ -768,7 +768,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["performance:read"],
         children: [
           {
-            title: "KRA Scorecards",
+            title: "KRA scorecards",
             href: "/performance/kra",
             icon: "ClipboardList",
             permissions: ["performance:read"],
@@ -812,7 +812,7 @@ export const sidebarNavigation: NavItem[] = [
         ],
       },
       {
-        title: "Agent Activity",
+        title: "Agent activity",
         href: "/analytics/agents",
         icon: "UserCog",
         permissions: ["performance:read"],
@@ -886,7 +886,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["franchise:read"],
       },
       {
-        title: "New Partner",
+        title: "New partner",
         href: "/franchise/new",
         icon: "UserPlus",
         permissions: ["franchise:onboard"],
@@ -906,13 +906,13 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["settings:venues"],
       },
       {
-        title: "Business Contact",
+        title: "Business contact",
         href: "/settings/business-contact",
         icon: "Phone",
         permissions: ["settings:venues"],
       },
       {
-        title: "Customer Content",
+        title: "Customer content",
         href: "/settings/customer-content",
         icon: "FileText",
         permissions: ["settings:venues"],
@@ -924,7 +924,7 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["pipeline:manage"],
       },
       {
-        title: "Contract Templates",
+        title: "Contract templates",
         href: "/settings/contract-templates",
         icon: "FileSignature",
         permissions: ["settings:templates"],
@@ -936,21 +936,21 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["users:read"],
       },
       {
-        title: "Roles & Permissions",
+        title: "Roles & permissions",
         href: "/settings/roles",
         icon: "ShieldCheck",
         permissions: ["users:manage-roles"],
       },
-      { title: "Privacy & Consent", href: "/settings/privacy", icon: "ShieldCheck", permissions: ["users:manage-roles"] },
+      { title: "Privacy & consent", href: "/settings/privacy", icon: "ShieldCheck", permissions: ["users:manage-roles"] },
       {
         // Owner logins for the venue portal: lead / booking counts only.
-        title: "Venue Owners",
+        title: "Venue owners",
         href: "/settings/venue-owners",
         icon: "Building2",
         permissions: ["venue-owners:manage"],
       },
       {
-        title: "Email Templates",
+        title: "Email templates",
         href: "/settings/email-templates",
         icon: "Mail",
         permissions: ["email-templates:read"],
@@ -968,13 +968,13 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["settings:read"],
       },
       {
-        title: "Integration Health",
+        title: "Integration health",
         href: "/settings/integrations/health",
         icon: "PlugZap",
         permissions: ["settings:read"],
       },
       {
-        title: "System Health",
+        title: "System health",
         href: "/settings/system-health",
         icon: "Activity",
         // ADMIN + SUPER_ADMIN only (the page re-checks the role itself).
@@ -987,13 +987,13 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["settings:read"],
       },
       {
-        title: "OTA Syndication",
+        title: "OTA syndication",
         href: "/settings/integrations/ota",
         icon: "Store",
         permissions: ["settings:read"],
       },
       {
-        title: "Emergency Response",
+        title: "Emergency response",
         href: "/settings/emergency",
         icon: "AlertTriangle",
         permissions: ["emergency:read"],
@@ -1005,31 +1005,31 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["sms:read"],
       },
       {
-        title: "Activity Log",
+        title: "Activity log",
         href: "/settings/activity-log",
         icon: "History",
         permissions: ["settings:read"],
       },
       {
-        title: "Escalation Rules",
+        title: "Escalation rules",
         href: "/settings/escalation-rules",
         icon: "AlertTriangle",
         permissions: ["escalations:manage"],
       },
       {
-        title: "Referral Rules",
+        title: "Referral rules",
         href: "/settings/referral-rules",
         icon: "Award",
         permissions: ["referrals:manage"],
       },
       {
-        title: "Assignment Rules",
+        title: "Assignment rules",
         href: "/settings/assignment-rules",
         icon: "Route",
         permissions: ["leads:read"],
       },
       {
-        title: "Smart Routing",
+        title: "Smart routing",
         href: "/settings/routing",
         icon: "Route",
         // /settings/routing rides the broad /settings -> settings:read middleware
@@ -1039,19 +1039,19 @@ export const sidebarNavigation: NavItem[] = [
       },
       {
         // Wedding / Corporate / Social teams: members, heads, auto-routing.
-        title: "Sales Teams",
+        title: "Sales teams",
         href: "/settings/sales-teams",
         icon: "Users",
         permissions: ["leads:assign"],
       },
       {
-        title: "Rep Availability",
+        title: "Rep availability",
         href: "/settings/rep-availability",
         icon: "UserCog",
         permissions: ["leads:read"],
       },
       {
-        title: "WhatsApp Auto-Catalog",
+        title: "WhatsApp auto-catalog",
         href: "/settings/whatsapp-catalog",
         icon: "Package",
         permissions: ["settings:update"],
@@ -1063,13 +1063,13 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["contacts:read", "leads:read"],
       },
       {
-        title: "Scoring Rules",
+        title: "Scoring rules",
         href: "/settings/scoring-rules",
         icon: "Target",
         permissions: ["settings:read"],
       },
       {
-        title: "Approval Rules",
+        title: "Approval rules",
         href: "/settings/approval-rules",
         icon: "ShieldCheck",
         permissions: ["settings:read"],
