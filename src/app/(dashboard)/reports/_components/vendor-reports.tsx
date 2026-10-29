@@ -75,9 +75,9 @@ export function VendorReports({ range }: VendorReportsProps) {
   }
 
   const netRevenueConfig: ChartConfig = {
-    grossRevenue: { label: "Gross Revenue", color: "hsl(142, 71%, 45%)" },
-    vendorCosts: { label: "Vendor Costs", color: "hsl(0, 84%, 60%)" },
-    netRevenue: { label: "Net Revenue", color: "hsl(217, 91%, 60%)" },
+    grossRevenue: { label: "Gross Revenue", color: "var(--color-green-500)" },
+    vendorCosts: { label: "Vendor Costs", color: "var(--color-red-500)" },
+    netRevenue: { label: "Net Revenue", color: "var(--color-blue-500)" },
   };
 
   return (
@@ -133,8 +133,8 @@ export function VendorReports({ range }: VendorReportsProps) {
                 {/* Payment Status Distribution Pie */}
                 {(() => {
                   const statusData = [
-                    { name: "Paid", value: vendorData.totalPaid, fill: "hsl(142, 71%, 45%)" },
-                    { name: "Pending", value: vendorData.totalPending, fill: "hsl(38, 92%, 50%)" },
+                    { name: "Paid", value: vendorData.totalPaid, fill: "var(--color-green-500)" },
+                    { name: "Pending", value: vendorData.totalPending, fill: "var(--color-amber-500)" },
                   ].filter((d) => d.value > 0);
                   return (
                     <div>
@@ -171,7 +171,7 @@ export function VendorReports({ range }: VendorReportsProps) {
                 <div>
                   <p className="mb-2 text-xs font-medium text-muted-foreground text-center">Top Vendors by Amount Paid</p>
                   <ChartContainer
-                    config={{ totalPaid: { label: "Total Paid", color: "hsl(142, 71%, 45%)" } }}
+                    config={{ totalPaid: { label: "Total Paid", color: "var(--color-green-500)" } }}
                     className="h-[200px] w-full"
                   >
                     <BarChart
@@ -185,11 +185,11 @@ export function VendorReports({ range }: VendorReportsProps) {
                       layout="vertical"
                       margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(240, 5%, 92%)" />
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
                       <XAxis type="number" tickFormatter={(v) => formatINR(v)} fontSize={12} />
                       <YAxis type="category" dataKey="name" width={110} fontSize={11} />
                       <Tooltip content={<ChartTooltipContent formatter={(v) => formatINR(Number(v))} />} />
-                      <Bar dataKey="totalPaid" fill="hsl(142, 71%, 45%)" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="totalPaid" fill="var(--color-green-500)" radius={[0, 4, 4, 0]} />
                     </BarChart>
                   </ChartContainer>
                 </div>
@@ -257,18 +257,18 @@ export function VendorReports({ range }: VendorReportsProps) {
             {netData.months.length > 0 ? (
               <ChartContainer config={netRevenueConfig} className="h-[350px] w-full">
                 <ComposedChart data={netData.months} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(240, 5%, 92%)" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                   <XAxis dataKey="month" tickFormatter={(v) => v.split(" ")[0]} fontSize={12} />
                   <YAxis tickFormatter={(v) => formatINR(v)} width={60} fontSize={12} />
                   <Tooltip content={<ChartTooltipContent formatter={(v) => formatINR(Number(v))} />} />
-                  <Bar dataKey="grossRevenue" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} barSize={20} />
-                  <Bar dataKey="vendorCosts" fill="hsl(0, 84%, 60%)" radius={[4, 4, 0, 0]} barSize={20} />
+                  <Bar dataKey="grossRevenue" fill="var(--color-green-500)" radius={[4, 4, 0, 0]} barSize={20} />
+                  <Bar dataKey="vendorCosts" fill="var(--color-red-500)" radius={[4, 4, 0, 0]} barSize={20} />
                   <Line
                     type="monotone"
                     dataKey="netRevenue"
-                    stroke="hsl(217, 91%, 60%)"
+                    stroke="var(--color-blue-500)"
                     strokeWidth={2}
-                    dot={{ r: 3, fill: "hsl(217, 91%, 60%)" }}
+                    dot={{ r: 3, fill: "var(--color-blue-500)" }}
                   />
                 </ComposedChart>
               </ChartContainer>
@@ -279,15 +279,15 @@ export function VendorReports({ range }: VendorReportsProps) {
             {/* Legend */}
             <div className="mt-3 flex items-center justify-center gap-6">
               <div className="flex items-center gap-2">
-                <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(142, 71%, 45%)" }} />
+                <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "var(--color-green-500)" }} />
                 <span className="text-xs text-muted-foreground">Gross Revenue</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(0, 84%, 60%)" }} />
+                <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "var(--color-red-500)" }} />
                 <span className="text-xs text-muted-foreground">Vendor Costs</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(217, 91%, 60%)" }} />
+                <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "var(--color-blue-500)" }} />
                 <span className="text-xs text-muted-foreground">Net Revenue</span>
               </div>
             </div>

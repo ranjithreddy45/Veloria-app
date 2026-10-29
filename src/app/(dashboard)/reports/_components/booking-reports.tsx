@@ -113,19 +113,19 @@ export function BookingReports({ range }: BookingReportsProps) {
             <p className="text-xs text-muted-foreground">Monthly booking count</p>
           </CardHeader>
           <CardContent className="px-2 pb-4">
-            <ChartContainer config={{ count: { label: "Bookings", color: "hsl(217, 91%, 60%)" } }} className="h-[300px] w-full">
+            <ChartContainer config={{ count: { label: "Bookings", color: "var(--color-blue-500)" } }} className="h-[300px] w-full">
               <AreaChart data={data.bookingsByMonth} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="bookingsGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--color-blue-500)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--color-blue-500)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(240, 5%, 92%)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                 <XAxis dataKey="month" tickFormatter={(v) => v.split(" ")[0]} fontSize={12} />
                 <YAxis allowDecimals={false} fontSize={12} />
                 <Tooltip content={<ChartTooltipContent />} />
-                <Area type="monotone" dataKey="count" stroke="hsl(217, 91%, 60%)" fill="url(#bookingsGrad)" strokeWidth={2} />
+                <Area type="monotone" dataKey="count" stroke="var(--color-blue-500)" fill="url(#bookingsGrad)" strokeWidth={2} />
               </AreaChart>
             </ChartContainer>
           </CardContent>
@@ -186,13 +186,13 @@ export function BookingReports({ range }: BookingReportsProps) {
             <p className="text-xs text-muted-foreground">Distribution across venues</p>
           </CardHeader>
           <CardContent className="px-2 pb-4">
-            <ChartContainer config={{ count: { label: "Bookings", color: "hsl(142, 71%, 45%)" } }} className="h-[200px] w-full">
+            <ChartContainer config={{ count: { label: "Bookings", color: "var(--color-green-500)" } }} className="h-[200px] w-full">
               <BarChart data={data.bookingsByVenue} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(240, 5%, 92%)" />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
                 <XAxis type="number" allowDecimals={false} fontSize={12} />
                 <YAxis type="category" dataKey="venue" width={120} fontSize={12} />
                 <Tooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" fill="hsl(142, 71%, 45%)" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="count" fill="var(--color-green-500)" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ChartContainer>
           </CardContent>
@@ -215,7 +215,7 @@ export function BookingReports({ range }: BookingReportsProps) {
               className="h-[250px] w-full"
             >
               <BarChart data={sourceData.sources} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(240, 5%, 92%)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                 <XAxis
                   dataKey="source"
                   tickFormatter={(v) => v.replace(/_/g, " ")}

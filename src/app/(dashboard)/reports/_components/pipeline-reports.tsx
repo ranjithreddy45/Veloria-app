@@ -129,15 +129,15 @@ export function PipelineReports({ range }: PipelineReportsProps) {
           </CardHeader>
           <CardContent className="px-2 pb-4">
             {data.dealsByStage.length > 0 ? (
-              <ChartContainer config={{ count: { label: "Deals", color: "hsl(262, 83%, 58%)" } }} className="h-[300px] w-full">
+              <ChartContainer config={{ count: { label: "Deals", color: "var(--color-violet-500)" } }} className="h-[300px] w-full">
                 <BarChart data={data.dealsByStage} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(240, 5%, 92%)" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                   <XAxis dataKey="stage" fontSize={11} angle={-20} textAnchor="end" height={50} />
                   <YAxis allowDecimals={false} fontSize={12} />
                   <Tooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                     {data.dealsByStage.map((entry, i) => (
-                      <Cell key={i} fill={entry.color || "hsl(262, 83%, 58%)"} />
+                      <Cell key={i} fill={entry.color || "var(--color-violet-500)"} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -159,8 +159,8 @@ export function PipelineReports({ range }: PipelineReportsProps) {
               <>
                 <ChartContainer
                   config={{
-                    Won: { label: "Won", color: "hsl(142, 71%, 45%)" },
-                    Lost: { label: "Lost", color: "hsl(0, 84%, 60%)" },
+                    Won: { label: "Won", color: "var(--color-green-500)" },
+                    Lost: { label: "Lost", color: "var(--color-red-500)" },
                   }}
                   className="mx-auto h-[220px] w-full"
                 >
@@ -168,8 +168,8 @@ export function PipelineReports({ range }: PipelineReportsProps) {
                     <Tooltip content={<ChartTooltipContent hideLabel />} />
                     <Pie
                       data={[
-                        { name: "Won", value: data.wonDeals, fill: "hsl(142, 71%, 45%)" },
-                        { name: "Lost", value: data.lostDeals, fill: "hsl(0, 84%, 60%)" },
+                        { name: "Won", value: data.wonDeals, fill: "var(--color-green-500)" },
+                        { name: "Lost", value: data.lostDeals, fill: "var(--color-red-500)" },
                       ]}
                       cx="50%"
                       cy="50%"
@@ -181,18 +181,18 @@ export function PipelineReports({ range }: PipelineReportsProps) {
                       stroke="white"
                       strokeWidth={2}
                     >
-                      <Cell fill="hsl(142, 71%, 45%)" />
-                      <Cell fill="hsl(0, 84%, 60%)" />
+                      <Cell fill="var(--color-green-500)" />
+                      <Cell fill="var(--color-red-500)" />
                     </Pie>
                   </PieChart>
                 </ChartContainer>
                 <div className="mt-2 flex items-center justify-center gap-6">
                   <div className="flex items-center gap-2">
-                    <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(142, 71%, 45%)" }} />
+                    <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "var(--color-green-500)" }} />
                     <span className="text-xs text-muted-foreground">Won: {data.wonDeals}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(0, 84%, 60%)" }} />
+                    <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "var(--color-red-500)" }} />
                     <span className="text-xs text-muted-foreground">Lost: {data.lostDeals}</span>
                   </div>
                 </div>
@@ -214,15 +214,15 @@ export function PipelineReports({ range }: PipelineReportsProps) {
           </CardHeader>
           <CardContent className="px-2 pb-4">
             {data.dealsByStage.length > 0 ? (
-              <ChartContainer config={{ value: { label: "Value", color: "hsl(217, 91%, 60%)" } }} className="h-[300px] w-full">
+              <ChartContainer config={{ value: { label: "Value", color: "var(--color-blue-500)" } }} className="h-[300px] w-full">
                 <BarChart data={data.dealsByStage} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(240, 5%, 92%)" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                   <XAxis dataKey="stage" fontSize={11} angle={-20} textAnchor="end" height={50} />
                   <YAxis tickFormatter={(v) => formatINR(v)} width={60} fontSize={12} />
                   <Tooltip content={<ChartTooltipContent formatter={(v) => formatINR(Number(v))} />} />
                   <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                     {data.dealsByStage.map((entry, i) => (
-                      <Cell key={i} fill={entry.color || "hsl(217, 91%, 60%)"} />
+                      <Cell key={i} fill={entry.color || "var(--color-blue-500)"} />
                     ))}
                   </Bar>
                 </BarChart>

@@ -220,8 +220,8 @@ export function FinancialReports({ range }: FinancialReportsProps) {
               <div className="mb-6">
                 <ChartContainer
                   config={{
-                    paid: { label: "Paid", color: "hsl(142, 71%, 45%)" },
-                    outstanding: { label: "Outstanding", color: "hsl(0, 84%, 60%)" },
+                    paid: { label: "Paid", color: "var(--color-green-500)" },
+                    outstanding: { label: "Outstanding", color: "var(--color-red-500)" },
                   }}
                   className="h-[220px] w-full"
                 >
@@ -230,7 +230,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
                     layout="vertical"
                     margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(240, 5%, 92%)" />
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
                     <XAxis type="number" tickFormatter={(v) => formatINR(v)} fontSize={12} />
                     <YAxis
                       type="category"
@@ -241,8 +241,8 @@ export function FinancialReports({ range }: FinancialReportsProps) {
                     />
                     <Tooltip content={<ChartTooltipContent formatter={(v) => formatINR(Number(v))} />} />
                     <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Bar dataKey="paid" stackId="settlement" fill="hsl(142, 71%, 45%)" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="outstanding" stackId="settlement" fill="hsl(0, 84%, 60%)" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="paid" stackId="settlement" fill="var(--color-green-500)" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="outstanding" stackId="settlement" fill="var(--color-red-500)" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ChartContainer>
               </div>
@@ -325,8 +325,8 @@ export function FinancialReports({ range }: FinancialReportsProps) {
               .map(([method, amount]) => ({ method, amount }))
               .sort((a, b) => b.amount - a.amount);
             const DEPOSIT_COLORS = [
-              "hsl(239, 84%, 67%)", "hsl(160, 84%, 39%)", "hsl(30, 95%, 50%)",
-              "hsl(340, 82%, 52%)", "hsl(270, 70%, 55%)", "hsl(200, 75%, 50%)",
+              "var(--color-indigo-500)", "var(--color-emerald-500)", "var(--color-orange-500)",
+              "var(--color-rose-500)", "var(--color-purple-500)", "var(--color-sky-500)",
             ];
             return (
               <div className="mb-6">
@@ -339,7 +339,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
                   className="h-[180px] w-full"
                 >
                   <BarChart data={methodChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(240, 5%, 92%)" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                     <XAxis dataKey="method" fontSize={12} />
                     <YAxis tickFormatter={(v) => formatINR(v)} width={60} fontSize={12} />
                     <Tooltip content={<ChartTooltipContent formatter={(v) => formatINR(Number(v))} />} />
@@ -397,7 +397,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
                 layout="vertical"
                 margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
               >
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(240, 5%, 92%)" />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
                 <XAxis type="number" tickFormatter={(v) => formatINR(v)} fontSize={12} />
                 <YAxis type="category" dataKey="category" width={120} fontSize={12} />
                 <Tooltip content={<ChartTooltipContent formatter={(v) => formatINR(Number(v))} />} />
@@ -444,7 +444,7 @@ export function FinancialReports({ range }: FinancialReportsProps) {
             <div className="mb-6">
               <p className="mb-2 text-xs font-medium text-muted-foreground">Discount Amount by Event</p>
               <ChartContainer
-                config={{ discountAmount: { label: "Discount", color: "hsl(30, 95%, 50%)" } }}
+                config={{ discountAmount: { label: "Discount", color: "var(--color-orange-500)" } }}
                 className="h-[200px] w-full"
               >
                 <BarChart
@@ -456,11 +456,11 @@ export function FinancialReports({ range }: FinancialReportsProps) {
                   layout="vertical"
                   margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(240, 5%, 92%)" />
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
                   <XAxis type="number" tickFormatter={(v) => formatINR(v)} fontSize={12} />
                   <YAxis type="category" dataKey="name" width={140} fontSize={11} />
                   <Tooltip content={<ChartTooltipContent formatter={(v) => formatINR(Number(v))} />} />
-                  <Bar dataKey="discountAmount" fill="hsl(30, 95%, 50%)" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="discountAmount" fill="var(--color-orange-500)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ChartContainer>
             </div>

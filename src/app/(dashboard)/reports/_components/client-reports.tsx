@@ -134,7 +134,7 @@ export function ClientReports({ range }: ClientReportsProps) {
               <div className="mb-6">
                 <p className="mb-2 text-xs font-medium text-muted-foreground">Top VIP Clients by Total Spend</p>
                 <ChartContainer
-                  config={{ totalSpend: { label: "Total Spend", color: "hsl(262, 83%, 58%)" } }}
+                  config={{ totalSpend: { label: "Total Spend", color: "var(--color-violet-500)" } }}
                   className="h-[220px] w-full"
                 >
                   <BarChart
@@ -149,7 +149,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                     layout="vertical"
                     margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(240, 5%, 92%)" />
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
                     <XAxis type="number" tickFormatter={(v) => formatINR(v)} fontSize={12} />
                     <YAxis type="category" dataKey="name" width={120} fontSize={11} />
                     <Tooltip content={<ChartTooltipContent formatter={(v) => formatINR(Number(v))} />} />
@@ -160,7 +160,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                         .map((c, i) => (
                           <Cell
                             key={i}
-                            fill={c.tier === "PLATINUM" ? "hsl(262, 83%, 58%)" : "hsl(38, 92%, 50%)"}
+                            fill={c.tier === "PLATINUM" ? "var(--color-violet-500)" : "var(--color-amber-500)"}
                           />
                         ))}
                     </Bar>
@@ -168,11 +168,11 @@ export function ClientReports({ range }: ClientReportsProps) {
                 </ChartContainer>
                 <div className="mt-2 flex items-center justify-center gap-6">
                   <div className="flex items-center gap-2">
-                    <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(262, 83%, 58%)" }} />
+                    <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "var(--color-violet-500)" }} />
                     <span className="text-xs text-muted-foreground">Platinum</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "hsl(38, 92%, 50%)" }} />
+                    <div className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: "var(--color-amber-500)" }} />
                     <span className="text-xs text-muted-foreground">Gold</span>
                   </div>
                 </div>
@@ -392,9 +392,9 @@ export function ClientReports({ range }: ClientReportsProps) {
                   {/* Invoice Status Pie */}
                   {ledgerData.invoices.length > 0 && (() => {
                     const STATUS_COLORS: Record<string, string> = {
-                      PAID: "hsl(142, 71%, 45%)", SENT: "hsl(217, 91%, 60%)",
-                      OVERDUE: "hsl(0, 84%, 60%)", DRAFT: "hsl(240, 5%, 65%)",
-                      CANCELLED: "hsl(240, 5%, 80%)", PARTIALLY_PAID: "hsl(38, 92%, 50%)",
+                      PAID: "var(--color-green-500)", SENT: "var(--color-blue-500)",
+                      OVERDUE: "var(--color-red-500)", DRAFT: "var(--color-zinc-400)",
+                      CANCELLED: "var(--color-zinc-300)", PARTIALLY_PAID: "var(--color-amber-500)",
                     };
                     const statusCounts = ledgerData.invoices.reduce((acc, inv) => {
                       acc[inv.status] = (acc[inv.status] ?? 0) + 1;
@@ -403,7 +403,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                     const statusChartData = Object.entries(statusCounts).map(([status, count]) => ({
                       status: status.replace(/_/g, " "),
                       count,
-                      fill: STATUS_COLORS[status] ?? "hsl(240, 5%, 65%)",
+                      fill: STATUS_COLORS[status] ?? "var(--color-zinc-400)",
                     }));
                     return (
                       <div>
@@ -439,10 +439,10 @@ export function ClientReports({ range }: ClientReportsProps) {
                   {/* Payment Method Pie */}
                   {ledgerData.payments.length > 0 && (() => {
                     const METHOD_COLORS: Record<string, string> = {
-                      UPI: "hsl(262, 83%, 58%)", BANK_TRANSFER: "hsl(217, 91%, 60%)",
-                      RAZORPAY: "hsl(142, 71%, 45%)", CASH: "hsl(38, 92%, 50%)",
-                      CHEQUE: "hsl(340, 82%, 52%)", CREDIT_CARD: "hsl(200, 75%, 50%)",
-                      DEBIT_CARD: "hsl(30, 95%, 50%)",
+                      UPI: "var(--color-violet-500)", BANK_TRANSFER: "var(--color-blue-500)",
+                      RAZORPAY: "var(--color-green-500)", CASH: "var(--color-amber-500)",
+                      CHEQUE: "var(--color-rose-500)", CREDIT_CARD: "var(--color-sky-500)",
+                      DEBIT_CARD: "var(--color-orange-500)",
                     };
                     const methodTotals = ledgerData.payments.reduce((acc, p) => {
                       acc[p.method] = (acc[p.method] ?? 0) + p.amount;
@@ -451,7 +451,7 @@ export function ClientReports({ range }: ClientReportsProps) {
                     const methodChartData = Object.entries(methodTotals).map(([method, amount]) => ({
                       method: method.replace(/_/g, " "),
                       amount,
-                      fill: METHOD_COLORS[method] ?? "hsl(240, 5%, 65%)",
+                      fill: METHOD_COLORS[method] ?? "var(--color-zinc-400)",
                     }));
                     return (
                       <div>

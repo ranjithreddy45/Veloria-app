@@ -74,8 +74,8 @@ export function TaxReports({ range }: TaxReportsProps) {
   if (!data) return null;
 
   const gstConfig: ChartConfig = {
-    cgst: { label: "CGST", color: "hsl(217, 91%, 60%)" },
-    sgst: { label: "SGST", color: "hsl(142, 71%, 45%)" },
+    cgst: { label: "CGST", color: "var(--color-blue-500)" },
+    sgst: { label: "SGST", color: "var(--color-green-500)" },
   };
 
   // Compute totals for the footer
@@ -131,12 +131,12 @@ export function TaxReports({ range }: TaxReportsProps) {
           {data.months.length > 0 ? (
             <ChartContainer config={gstConfig} className="h-[300px] w-full">
               <BarChart data={data.months} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(240, 5%, 92%)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                 <XAxis dataKey="month" tickFormatter={(v) => v.split(" ")[0]} fontSize={12} />
                 <YAxis tickFormatter={(v) => formatINR(v)} width={60} fontSize={12} />
                 <Tooltip content={<ChartTooltipContent formatter={(v) => formatINR(Number(v))} />} />
-                <Bar dataKey="cgst" stackId="gst" fill="hsl(217, 91%, 60%)" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="sgst" stackId="gst" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="cgst" stackId="gst" fill="var(--color-blue-500)" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="sgst" stackId="gst" fill="var(--color-green-500)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartContainer>
           ) : (

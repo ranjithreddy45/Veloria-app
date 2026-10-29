@@ -77,7 +77,7 @@ export function RevenueReports({ range }: RevenueReportsProps) {
   if (!data) return null;
 
   const revenueConfig: ChartConfig = {
-    revenue: { label: "Revenue", color: "hsl(239, 84%, 67%)" },
+    revenue: { label: "Revenue", color: "var(--color-indigo-500)" },
   };
 
   const eventTypeConfig: ChartConfig = data.revenueByEventType.reduce(
@@ -146,15 +146,15 @@ export function RevenueReports({ range }: RevenueReportsProps) {
               <AreaChart data={data.monthlyRevenue} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(239, 84%, 67%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(239, 84%, 67%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor="var(--color-indigo-500)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--color-indigo-500)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(240, 5%, 92%)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                 <XAxis dataKey="month" tickFormatter={(v) => v.split(" ")[0]} fontSize={12} />
                 <YAxis tickFormatter={(v) => formatINR(v)} width={60} fontSize={12} />
                 <Tooltip content={<ChartTooltipContent formatter={(v) => formatINR(Number(v))} />} />
-                <Area type="monotone" dataKey="revenue" stroke="hsl(239, 84%, 67%)" fill="url(#revenueGrad)" strokeWidth={2} />
+                <Area type="monotone" dataKey="revenue" stroke="var(--color-indigo-500)" fill="url(#revenueGrad)" strokeWidth={2} />
               </AreaChart>
             </ChartContainer>
           </CardContent>
@@ -214,13 +214,13 @@ export function RevenueReports({ range }: RevenueReportsProps) {
             <p className="text-xs text-muted-foreground">Revenue breakdown across venues</p>
           </CardHeader>
           <CardContent className="px-2 pb-4">
-            <ChartContainer config={{ revenue: { label: "Revenue", color: "hsl(239, 84%, 67%)" } }} className="h-[200px] w-full">
+            <ChartContainer config={{ revenue: { label: "Revenue", color: "var(--color-indigo-500)" } }} className="h-[200px] w-full">
               <BarChart data={data.revenueByVenue} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(240, 5%, 92%)" />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
                 <XAxis type="number" tickFormatter={(v) => formatINR(v)} fontSize={12} />
                 <YAxis type="category" dataKey="venue" width={120} fontSize={12} />
                 <Tooltip content={<ChartTooltipContent formatter={(v) => formatINR(Number(v))} />} />
-                <Bar dataKey="revenue" fill="hsl(239, 84%, 67%)" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="revenue" fill="var(--color-indigo-500)" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ChartContainer>
           </CardContent>

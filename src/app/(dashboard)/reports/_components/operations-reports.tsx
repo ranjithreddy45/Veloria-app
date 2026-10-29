@@ -88,7 +88,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
   }, [range]);
 
   const taskChartConfig: ChartConfig = {
-    completionRate: { label: "Completion Rate", color: "hsl(142, 71%, 45%)" },
+    completionRate: { label: "Completion Rate", color: "var(--color-green-500)" },
   };
 
   return (
@@ -249,9 +249,9 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                 const totalPending = taskData.assignees.reduce((s, a) => s + a.pending, 0);
                 const totalOverdue = taskData.assignees.reduce((s, a) => s + a.overdue, 0);
                 const taskStatusData = [
-                  { name: "Completed", value: totalCompleted, fill: "hsl(142, 71%, 45%)" },
-                  { name: "Pending", value: totalPending, fill: "hsl(38, 92%, 50%)" },
-                  { name: "Overdue", value: totalOverdue, fill: "hsl(0, 84%, 60%)" },
+                  { name: "Completed", value: totalCompleted, fill: "var(--color-green-500)" },
+                  { name: "Pending", value: totalPending, fill: "var(--color-amber-500)" },
+                  { name: "Overdue", value: totalOverdue, fill: "var(--color-red-500)" },
                 ].filter((d) => d.value > 0);
 
                 return (
@@ -290,9 +290,9 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                       <p className="mb-2 text-xs font-medium text-muted-foreground text-center">Tasks by Assignee (Completed / Pending / Overdue)</p>
                       <ChartContainer
                         config={{
-                          completed: { label: "Completed", color: "hsl(142, 71%, 45%)" },
-                          pending: { label: "Pending", color: "hsl(38, 92%, 50%)" },
-                          overdue: { label: "Overdue", color: "hsl(0, 84%, 60%)" },
+                          completed: { label: "Completed", color: "var(--color-green-500)" },
+                          pending: { label: "Pending", color: "var(--color-amber-500)" },
+                          overdue: { label: "Overdue", color: "var(--color-red-500)" },
                         }}
                         className="h-[250px] w-full"
                       >
@@ -301,14 +301,14 @@ export function OperationsReports({ range }: OperationsReportsProps) {
                           layout="vertical"
                           margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
                         >
-                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(240, 5%, 92%)" />
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
                           <XAxis type="number" allowDecimals={false} fontSize={12} />
                           <YAxis type="category" dataKey="name" width={120} fontSize={11} />
                           <Tooltip content={<ChartTooltipContent />} />
                           <Legend wrapperStyle={{ fontSize: 12 }} />
-                          <Bar dataKey="completed" stackId="tasks" fill="hsl(142, 71%, 45%)" />
-                          <Bar dataKey="pending" stackId="tasks" fill="hsl(38, 92%, 50%)" />
-                          <Bar dataKey="overdue" stackId="tasks" fill="hsl(0, 84%, 60%)" radius={[0, 4, 4, 0]} />
+                          <Bar dataKey="completed" stackId="tasks" fill="var(--color-green-500)" />
+                          <Bar dataKey="pending" stackId="tasks" fill="var(--color-amber-500)" />
+                          <Bar dataKey="overdue" stackId="tasks" fill="var(--color-red-500)" radius={[0, 4, 4, 0]} />
                         </BarChart>
                       </ChartContainer>
                     </div>
