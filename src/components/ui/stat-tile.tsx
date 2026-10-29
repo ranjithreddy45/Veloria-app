@@ -8,7 +8,9 @@
 //   ↑ +3 deltaLabel               (optional delta)
 //
 // Colour carries meaning only: the icon is muted ink unless the accent is
-// gold (money, which also golds the figure) or red/rose (a problem). The
+// gold on a rupee figure (money, which also golds the figure) or red/rose (a
+// problem). Gold on a plain count ("Paused", "My leads": ~half of the 94 gold
+// tiles) stays neutral, so gold keeps meaning money. The
 // per-hue maps live in src/lib/ui/hues.ts (CALM_*); nothing here assembles a
 // class name from a variable.
 //
@@ -91,12 +93,20 @@ export interface StatTileProps {
   className?: string;
 }
 
+/** The visible text of a value (a string, a number, or the fragments breakAtGroups builds). */
+function textOf(node: React.ReactNode): string {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join("");
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) return textOf(node.props.children);
+  return "";
+}
+
 export function StatTile({ label, value, accent = "indigo", icon, sub, delta, deltaLabel, trend, pct, className }: StatTileProps) {
   // A hue outside the token set (a stale string, a null from untyped data)
   // renders as brand instead of throwing.
   const hue: Hue = isHue(accent) ? accent : "brand";
   const ring = typeof pct === "number" ? Math.max(0, Math.min(100, pct)) : null;
-  const isMoney = hue === "gold";
+  const isMoney = hue === "gold" && textOf(value).includes("₹");
   const isProblem = hue === "red" || hue === "rose";
 
   return (
