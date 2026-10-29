@@ -71,21 +71,25 @@ export function BookingsViews({ data }: BookingsViewsProps) {
     }));
   }, [data]);
 
+  const viewSwitch = (
+    <ViewTabs
+      value={view}
+      onValueChange={setView}
+      options={[
+        { value: "list", label: "List", icon: LayoutList },
+        { value: "board", label: "Board", icon: KanbanIcon },
+      ]}
+    />
+  );
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <ViewTabs
-          value={view}
-          onValueChange={setView}
-          options={[
-            { value: "list", label: "List", icon: LayoutList },
-            { value: "board", label: "Board", icon: KanbanIcon },
-          ]}
-        />
-      </div>
+      {/* In the list the switch sits at the end of the table's toolbar row;
+          the board has no toolbar, so it keeps a row of its own. */}
+      {view === "board" && <div className="flex justify-end">{viewSwitch}</div>}
 
       {view === "list" ? (
-        <BookingsTable data={data} />
+        <BookingsTable data={data} viewSwitch={viewSwitch} />
       ) : (
         <KanbanBoard
           columns={columns}

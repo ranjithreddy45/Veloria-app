@@ -611,13 +611,9 @@ export function ContactsTable({ data, canPushToCallVibe = false }: ContactsTable
     <>
       <TypeTabs data={data} active={typeFilter} onChange={setTypeFilter} />
       <div className="flex flex-col gap-4">
-        <FacetFilterRail
-          items={filtered}
-          facets={CONTACT_FACETS}
-          onChange={setFaceted}
-        />
         <div className="min-w-0 flex-1">
           <DataTable
+            toolbarStart={<FacetFilterRail items={filtered} facets={CONTACT_FACETS} onChange={setFaceted} />}
             columns={columns}
             data={faceted}
             searchKey="name"

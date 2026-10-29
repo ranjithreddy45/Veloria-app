@@ -60,7 +60,7 @@ const HUE_CLASSES: Record<Hue, { bg: string; text: string; ring: string; dot: st
 
 const SIZE_CLASSES: Record<Size, string> = {
   xs: "h-5 px-1.5 text-meta gap-1",
-  sm: "h-6 px-2 text-meta gap-1.5",
+  sm: "h-[22px] px-2 text-detail gap-1.5",
 };
 
 export function StatusPill({
@@ -80,7 +80,7 @@ export function StatusPill({
         // phone means spilling across the next field of a stacked card. Cap at
         // the container width and ellipsise instead; the full text stays
         // available to screen readers and as a native tooltip.
-        "inline-flex max-w-full items-center overflow-hidden text-ellipsis rounded-full font-medium ring-1 ring-inset whitespace-nowrap",
+        "inline-flex max-w-full items-center overflow-hidden text-ellipsis rounded-full font-medium whitespace-nowrap dark:ring-1 dark:ring-inset",
         c.bg,
         c.text,
         c.ring,

@@ -1070,13 +1070,9 @@ export function LeadsTable({ data, statusFiltered = false }: LeadsTableProps) {
         />
       )}
       <div className="flex flex-col gap-4">
-        <FacetFilterRail
-          items={data}
-          facets={leadFacets}
-          onChange={setFacetFiltered}
-        />
         <div className="min-w-0 flex-1">
           <DataTable
+            toolbarStart={<FacetFilterRail items={data} facets={leadFacets} onChange={setFacetFiltered} />}
             columns={columns}
             data={filtered}
             onFilteredRowsChange={setVisibleRows}

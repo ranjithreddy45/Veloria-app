@@ -179,7 +179,7 @@ export function FacetFilterRail<T>({
         <div className="flex items-center gap-1.5">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1.5">
+              <Button variant="outline" className="gap-1.5">
                 <SlidersHorizontal className="size-3.5" />
                 Filter by
                 {activeCount > 0 && (
@@ -207,7 +207,7 @@ export function FacetFilterRail<T>({
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <div className="flex items-center gap-2">
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="flex-1 justify-center gap-1.5">
+              <Button variant="outline" className="flex-1 justify-center gap-1.5">
                 <SlidersHorizontal className="size-3.5" />
                 Filter by
                 {activeCount > 0 && (

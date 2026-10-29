@@ -313,13 +313,9 @@ export function PaymentsTable({ data, canCancel = false, isManager = false }: Pa
 
   return (
     <div className="flex flex-col gap-4">
-      <FacetFilterRail
-        items={data}
-        facets={PAYMENT_FACETS}
-        onChange={setFaceted}
-      />
       <div className="min-w-0 flex-1">
         <DataTable
+          toolbarStart={<FacetFilterRail items={data} facets={PAYMENT_FACETS} onChange={setFaceted} />}
           columns={columns}
           data={faceted}
           searchKey="receiptNumber"

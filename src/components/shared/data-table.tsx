@@ -66,6 +66,12 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   searchKey?: string;
   searchPlaceholder?: string;
+  /**
+   * Controls that sit right after the search box, on the same row: the
+   * "Filter by" button (FacetFilterRail) belongs here, so a list page has one
+   * toolbar row instead of a filter row above the table's own.
+   */
+  toolbarStart?: React.ReactNode;
   toolbarExtra?: React.ReactNode;
   enableRowSelection?: boolean;
   onSelectionChange?: (selectedRows: TData[]) => void;
@@ -180,6 +186,7 @@ export function DataTable<TData, TValue>({
   data,
   searchKey,
   searchPlaceholder = "Search...",
+  toolbarStart,
   toolbarExtra,
   enableRowSelection = false,
   onSelectionChange,
@@ -272,7 +279,7 @@ export function DataTable<TData, TValue>({
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
           {searchKey && (
             <div className="relative w-full max-w-sm flex-1">
               <SearchIcon className="text-muted-foreground absolute left-3 top-1/2 size-4 -translate-y-1/2" />
@@ -292,14 +299,17 @@ export function DataTable<TData, TValue>({
                     table.getColumn(searchKey)?.setFilterValue(v);
                   }
                 }}
-                className="pl-9"
+                className="h-9 pl-9"
               />
             </div>
           )}
+          {toolbarStart}
         </div>
 
-        {/* Right-side controls — wrap on mobile instead of overflowing */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Right-side controls — wrap on mobile instead of overflowing. Buttons
+            passed in (Export, …) take the search box's 36px height, whatever
+            size the caller gave them, so the row reads as one line. */}
+        <div className="flex flex-wrap items-center gap-2 [&>[data-slot=button]]:h-9">
         {/* Extra toolbar content (e.g. Export button) */}
         {toolbarExtra}
 

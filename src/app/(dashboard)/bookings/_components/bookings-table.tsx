@@ -64,6 +64,8 @@ export interface BookingRow {
 
 interface BookingsTableProps {
   data: BookingRow[];
+  /** The List / Board switch, drawn at the end of the table's toolbar row. */
+  viewSwitch?: React.ReactNode;
 }
 
 // ============================================================
@@ -98,7 +100,7 @@ function monthLabel(key: string): string {
   });
 }
 
-export function BookingsTable({ data }: BookingsTableProps) {
+export function BookingsTable({ data, viewSwitch }: BookingsTableProps) {
   const router = useRouter();
   const [cancellingId, setCancellingId] = React.useState<string | null>(null);
   const [filtered, setFiltered] = React.useState<BookingRow[]>(data);
@@ -324,8 +326,8 @@ export function BookingsTable({ data }: BookingsTableProps) {
     }
 
     return (
-      <Button variant="outline" size="sm" onClick={handleExport} disabled={loading}>
-        <DownloadIcon className="mr-2 size-4" />
+      <Button variant="outline" onClick={handleExport} disabled={loading}>
+        <DownloadIcon className="size-4" />
         {loading ? "Exporting..." : "Export CSV"}
       </Button>
     );
@@ -333,18 +335,19 @@ export function BookingsTable({ data }: BookingsTableProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <FacetFilterRail
-        items={data}
-        facets={facets}
-        onChange={setFiltered}
-      />
       <div className="min-w-0 flex-1">
         <DataTable
+          toolbarStart={<FacetFilterRail items={data} facets={facets} onChange={setFiltered} />}
           columns={columns}
           data={filtered}
           searchKey="bookingNumber"
           searchPlaceholder="Search by booking number..."
-          toolbarExtra={<ExportButton />}
+          toolbarExtra={
+            <>
+              {viewSwitch}
+              <ExportButton />
+            </>
+          }
         />
       </div>
     </div>

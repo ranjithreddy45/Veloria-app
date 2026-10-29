@@ -249,13 +249,9 @@ export function CommissionTable({ data }: CommissionTableProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <FacetFilterRail
-        items={data}
-        facets={facets}
-        onChange={setFiltered}
-      />
       <div className="min-w-0 flex-1">
         <DataTable
+          toolbarStart={<FacetFilterRail items={data} facets={facets} onChange={setFiltered} />}
           columns={columns}
           data={filtered}
           searchKey="ruleName"
