@@ -7,9 +7,10 @@ import { TOUR_SCREENS, measurePageHeader, settleLayout, type PageHeaderGeometry 
 // The visual tour takes pictures; this spec measures the same screens so the
 // header layout can't drift silently (design spec R1, R2, R5, R10, R11, R15):
 //
-//   1440px  - every page shows exactly one module chip and an eyebrow, and
-//             the chip, the h1 and the eyebrow sit at the same x on every
-//             route (one left edge, no 54px title jump between sibling pages);
+//   1440px  - every page shows an eyebrow and no module chip (Workspace v3,
+//             2026-10-29, dropped the coloured chip), and the eyebrow, the h1
+//             and the description sit at the content edge, at the same x on
+//             every route (one left edge, no title jump between sibling pages);
 //           - the "Page actions" cluster, when there is one, is fully on
 //             screen and no pill is clipped (focus ring included).
 //   390px   - no chip, the h1 starts at the 16px gutter, and every pill sits
@@ -65,7 +66,7 @@ const px = (n: number) => `${Math.round(n * 10) / 10}px`;
 test.describe("header geometry · 1440", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test("one chip per page, one left edge, the same h1 x on every route, nothing clipped", async ({ page }) => {
+  test("no chip, one left edge, the same h1 x on every route, nothing clipped", async ({ page }) => {
     test.setTimeout(10 * 60_000);
     const rows: { route: string; geometry: PageHeaderGeometry }[] = [];
 
@@ -75,25 +76,23 @@ test.describe("header geometry · 1440", () => {
         if (!g) return;
         rows.push({ route, geometry: g });
 
-        // R2: exactly one module chip, at the content edge.
-        expect.soft(g.visibleChips, `${route}: visible module chips`).toBe(1);
+        // v3: the header has no module chip.
+        expect.soft(g.visibleChips, `${route}: visible module chips`).toBe(0);
         // R1/R15: every header has an eyebrow above its title row (the page's
         // own or, when it passes none, the module's name). The loading
         // skeletons put their title box under one, so a header without it
         // makes the title jump up when the page lands.
         expect.soft(g.eyebrow, `${route}: no eyebrow above the title row`).not.toBeNull();
-        if (!g.chip || !g.h1) return;
-        expect.soft(Math.abs(g.chip.left - g.contentLeft), `${route}: chip x ${px(g.chip.left)}, content edge ${px(g.contentLeft)}`).toBeLessThanOrEqual(SAME_X);
-
-        // R1: one left edge. The eyebrow and the description start where the
-        // chip does: the chip is in the title row, not in a column of its own.
+        if (!g.h1) return;
+        // R1: one left edge. The h1, the eyebrow and the description all start
+        // at the content edge.
+        expect.soft(Math.abs(g.h1.left - g.contentLeft), `${route}: h1 x ${px(g.h1.left)}, content edge ${px(g.contentLeft)}`).toBeLessThanOrEqual(SAME_X);
         if (g.eyebrow) {
-          expect.soft(Math.abs(g.eyebrow.left - g.chip.left), `${route}: eyebrow x ${px(g.eyebrow.left)}, chip x ${px(g.chip.left)}`).toBeLessThanOrEqual(SAME_X);
+          expect.soft(Math.abs(g.eyebrow.left - g.h1.left), `${route}: eyebrow x ${px(g.eyebrow.left)}, h1 x ${px(g.h1.left)}`).toBeLessThanOrEqual(SAME_X);
         }
         if (g.description) {
-          expect.soft(Math.abs(g.description.left - g.chip.left), `${route}: description x ${px(g.description.left)}, chip x ${px(g.chip.left)}`).toBeLessThanOrEqual(SAME_X);
+          expect.soft(Math.abs(g.description.left - g.h1.left), `${route}: description x ${px(g.description.left)}, h1 x ${px(g.h1.left)}`).toBeLessThanOrEqual(SAME_X);
         }
-        expect.soft(g.h1.left, `${route}: the h1 must start right of the chip`).toBeGreaterThan(g.chip.right);
 
         // R5/R11: the cluster is on screen and nothing in it is clipped, its
         // focus ring included.
@@ -114,17 +113,11 @@ test.describe("header geometry · 1440", () => {
       contentType: "application/json",
     });
 
-    // The cross-route rule: the chip and the h1 start at the same x on every
-    // page, whatever module it belongs to. Every h1 is compared, chip or not,
-    // so a page that lost its chip shows up as the title jump it causes.
-    const chips = rows.flatMap(({ route, geometry: g }) => (g.chip ? [{ route, x: g.chip.left }] : []));
+    // The cross-route rule: the h1 starts at the same x on every page,
+    // whatever module it belongs to.
     const h1s = rows.flatMap(({ route, geometry: g }) => (g.h1 ? [{ route, x: g.h1.left }] : []));
     expect(h1s.length, "routes with an h1 to compare").toBeGreaterThan(1);
-    const chipX = median(chips.map((c) => c.x));
     const h1X = median(h1s.map((h) => h.x));
-    for (const c of chips) {
-      expect.soft(Math.abs(c.x - chipX), `${c.route}: chip x ${px(c.x)}, the other routes ${px(chipX)}`).toBeLessThanOrEqual(SAME_X);
-    }
     for (const h of h1s) {
       expect.soft(Math.abs(h.x - h1X), `${h.route}: h1 x ${px(h.x)}, the other routes ${px(h1X)}`).toBeLessThanOrEqual(SAME_X);
     }
@@ -148,7 +141,7 @@ test.describe("header geometry · 390", () => {
         if (!g) return;
         rows.push({ route, geometry: g });
 
-        // R2/R10: the chip is hidden below sm, so the title takes the gutter.
+        // R10: no chip at any width, so the title takes the gutter.
         expect.soft(g.visibleChips, `${route}: module chips visible at 390px`).toBe(0);
         expect.soft(g.eyebrow, `${route}: no eyebrow above the title row`).not.toBeNull();
         if (!g.h1) return;

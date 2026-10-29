@@ -414,15 +414,15 @@ function SidebarNavItem({
         isActive={isActive}
         tooltip={item.title}
         className={cn(
-          "group/nav relative overflow-hidden rounded-xl px-2 font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+          "group/nav relative overflow-hidden rounded-xl px-2 font-medium text-sidebar-foreground transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
           NAV_ROW_TOUCH,
-          "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
           "group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!p-0",
           // Keep the label clear of the 44px touch star (the slot's own pr-8
           // only clears the 28px mouse-sized one).
           pin && "pointer-coarse:pr-11!",
           isActive &&
-            "data-[active=true]:bg-primary/[0.11] data-[active=true]:font-semibold data-[active=true]:text-primary shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.16)] data-[active=true]:hover:bg-primary/[0.14] data-[active=true]:hover:text-primary"
+            "data-[active=true]:bg-card data-[active=true]:font-semibold data-[active=true]:text-foreground shadow-[var(--shadow-1),inset_0_0_0_1px_var(--border)] data-[active=true]:hover:bg-card data-[active=true]:hover:text-foreground"
         )}
       >
         <Link href={item.href} onClick={() => onNavigate(item.href)}>
@@ -476,12 +476,12 @@ function SidebarCollapsibleItem({
             <SidebarMenuButton
               tooltip={item.title}
               className={cn(
-                "group/nav rounded-xl px-2 font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+                "group/nav rounded-xl px-2 font-medium text-sidebar-foreground transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
                 NAV_ROW_TOUCH,
-                "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 "group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!p-0",
                 isGroupActive &&
-                  "bg-primary/[0.06] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.12)]"
+                  "font-semibold text-sidebar-accent-foreground"
               )}
             >
               <span className={cn(
@@ -520,12 +520,12 @@ function SidebarCollapsibleItem({
           <SidebarMenuButton
             tooltip={item.title}
             className={cn(
-              "group/nav rounded-xl px-2 font-medium text-sidebar-foreground/80 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
+              "group/nav rounded-xl px-2 font-medium text-sidebar-foreground transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
               NAV_ROW_TOUCH,
-              "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
               "group-data-[collapsible=icon]:!justify-center group-data-[collapsible=icon]:!p-0",
               isGroupActive &&
-                "bg-primary/[0.06] font-semibold text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.12)]"
+                "font-semibold text-sidebar-accent-foreground"
             )}
           >
             <span className={cn(
@@ -551,10 +551,10 @@ function SidebarCollapsibleItem({
                     className={cn(
                       "rounded-lg text-sidebar-foreground/70 transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] active:scale-[0.98]",
                       NAV_SUBROW_TOUCH,
-                      "hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                      "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                       "pr-8 pointer-coarse:pr-11",
                       isChildActive &&
-                        "data-[active=true]:bg-primary/[0.11] data-[active=true]:font-semibold data-[active=true]:text-primary shadow-[inset_0_0_0_1px_oklch(0.45_0.11_352/0.16)] data-[active=true]:hover:bg-primary/[0.14] data-[active=true]:hover:text-primary"
+                        "data-[active=true]:bg-card data-[active=true]:font-semibold data-[active=true]:text-foreground shadow-[var(--shadow-1),inset_0_0_0_1px_var(--border)] data-[active=true]:hover:bg-card data-[active=true]:hover:text-foreground"
                     )}
                   >
                     <Link href={child.href} onClick={() => onNavigate(child.href)}>
@@ -659,14 +659,14 @@ export function AppSidebar() {
 
   if (isLoading) {
     return (
-      <Sidebar collapsible="icon" variant="floating" className="border-r-0">
+      <Sidebar collapsible="icon" variant="sidebar">
         <SidebarSkeleton />
       </Sidebar>
     );
   }
 
   return (
-    <Sidebar collapsible="icon" variant="floating">
+    <Sidebar collapsible="icon" variant="sidebar">
       {/* Header with logo. */}
       <SidebarHeader className="px-3 pb-3.5 pt-[calc(0.875rem+max(var(--sat),0px))]">
         <Link
@@ -714,7 +714,7 @@ export function AppSidebar() {
                   on hydration or flash the empty hint at people who have pins. */}
               {hydrated && (
                 <>
-                  <SidebarGroupLabel className="mt-1 mb-1 px-2.5 text-meta font-semibold uppercase tracking-[0.06em] text-sidebar-foreground/45 group-data-[collapsible=icon]:hidden">
+                  <SidebarGroupLabel className="mt-1 mb-0.5 px-2.5 text-detail font-medium text-subtle-foreground group-data-[collapsible=icon]:hidden">
                     Pinned by you
                   </SidebarGroupLabel>
                   {pinnedItems.length === 0 ? (
@@ -766,7 +766,7 @@ export function AppSidebar() {
                   return (
                     <Fragment key={item.href}>
                       {showHeader && (
-                        <SidebarGroupLabel className="mt-5 mb-1 px-2.5 text-meta font-semibold uppercase tracking-[0.06em] text-sidebar-foreground/45 group-data-[collapsible=icon]:hidden">
+                        <SidebarGroupLabel className="mt-4 mb-0.5 px-2.5 text-detail font-medium text-subtle-foreground group-data-[collapsible=icon]:hidden">
                           {section}
                         </SidebarGroupLabel>
                       )}

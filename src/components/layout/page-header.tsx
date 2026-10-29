@@ -3,7 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Hue } from "@/lib/ui/hues";
 import type { ModuleKey } from "@/config/modules";
-import { ModuleChip, ModuleEyebrow } from "@/components/layout/module-chip";
+import { ModuleEyebrow } from "@/components/layout/module-chip";
 import { MorphIn } from "@/components/motion/morph-in";
 
 // ============================================================
@@ -11,7 +11,7 @@ import { MorphIn } from "@/components/motion/morph-in";
 // ------------------------------------------------------------
 // Composition (one left edge):
 //   eyebrow
-//   [module chip] title [?]
+//   title [?]
 //   description
 //   meta row (only when `actions` is passed; holds `children`)
 // with the action cluster to the right of that block.
@@ -64,15 +64,10 @@ export const PAGE_HEADER_CLASSES = {
   rootWithActions:
     "relative flex min-w-0 flex-col gap-4 pb-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between",
   titleColumn: "min-w-0 space-y-2 sm:min-w-[280px] sm:flex-1",
-  eyebrow: "text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground",
-  // items-start: the 40px chip lines up with the h1's first line (39px at
-  // sm and above) and stays there when a long title wraps.
+  // v3: sentence case, quiet. A 20px line box; the skeleton draws the same.
+  eyebrow: "text-body leading-5 font-medium text-subtle-foreground",
+  // items-start keeps the help "?" beside the first line of a long title.
   titleRow: "flex min-w-0 items-start gap-2.5",
-  // The chip's own spacing, on top of the row gap (which also spaces the help
-  // "?"), so chip-to-title is 14px.
-  chip: "mr-1",
-  // The chip's box: IconChip size "lg".
-  chipBox: "size-10 rounded-xl",
   title: "large-title min-w-0 break-words text-h2 leading-tight text-foreground sm:text-h1",
   // self-center keeps the "?" centred on the title, as it was before the row
   // switched to items-start for the chip.
@@ -174,7 +169,6 @@ export function PageHeader({
         {/* The help "?" must not be pushed off-screen by a long title, so the
             title takes the min-w-0/wrap and the hint stays shrink-0. */}
         <div className={C.titleRow}>
-          <ModuleChip module={moduleKey} className={C.chip} />
           <h1 className={C.title}>{morphId ? <MorphIn id={morphId}>{title}</MorphIn> : title}</h1>
           {help && <span className={C.help}>{help}</span>}
         </div>

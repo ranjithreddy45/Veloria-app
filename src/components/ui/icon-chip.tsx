@@ -5,14 +5,15 @@
 //   lg (40px, rounded-xl): the module chip in the page header (identity)
 //   md (36px, rounded-xl): the tinted chip on a KPI tile (metric)
 //   sm (28px, rounded-lg): the chip inside an action pill (action)
-// Colours come only from src/lib/ui/hues.ts. No "use client" and no hooks, so
+// Colours come only from src/lib/ui/hues.ts (the CALM_* maps since v3).
+// No "use client" and no hooks, so
 // it renders in server and client trees alike.
 // ============================================================
 
 import * as React from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PRIMARY_INVERSE_CHIP, SOFT_CHIP, SOLID_CHIP, type Hue } from "@/lib/ui/hues";
+import { CALM_SOFT_CHIP, CALM_SOLID_CHIP, PRIMARY_INVERSE_CHIP, type Hue } from "@/lib/ui/hues";
 
 export type IconChipSize = "sm" | "md" | "lg";
 /**
@@ -58,8 +59,8 @@ export function IconChip({ icon, hue, size = "md", tone = "solid", className, ..
     tone === "inverse"
       ? PRIMARY_INVERSE_CHIP
       : tone === "soft"
-        ? (SOFT_CHIP[hue] ?? SOFT_CHIP.brand)
-        : (SOLID_CHIP[hue] ?? SOLID_CHIP.brand);
+        ? (CALM_SOFT_CHIP[hue] ?? CALM_SOFT_CHIP.brand)
+        : (CALM_SOLID_CHIP[hue] ?? CALM_SOLID_CHIP.brand);
 
   return (
     <span

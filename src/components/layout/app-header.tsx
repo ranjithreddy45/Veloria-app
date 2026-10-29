@@ -11,9 +11,7 @@ import {
   LogOut,
   Sun,
   Moon,
-  CircleHelp,
   BookOpen,
-  Sparkles,
   Plus,
   UserPlus,
   FileText,
@@ -27,21 +25,12 @@ import { ActiveAlertsPopup } from "@/components/layout/active-alerts-popup";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { VelosChip } from "@/components/layout/velos-chip";
 import { PendingApprovalsChip } from "@/components/layout/pending-approvals-chip";
-import { WhatsNew } from "@/components/layout/whats-new";
+import { SoundMenuItems } from "@/components/layout/sound-settings";
 import { VersionBadge } from "@/components/layout/version-badge";
 import { AvailabilityToggle } from "@/components/availability/availability-toggle";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { cn } from "@/lib/utils";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -149,7 +138,7 @@ export function AppHeader() {
   const { user } = useCurrentUser();
   const breadcrumbs = generateBreadcrumbs(pathname);
   const [commandOpen, setCommandOpen] = React.useState(false);
-  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => setMounted(true), []);
@@ -159,22 +148,23 @@ export function AppHeader() {
     // pushed the whole page into a sideways scroll. `min-w-0` + tighter mobile
     // gutters keep the bar inside the viewport; the cluster below decides what
     // actually survives at phone width.
-    <header className="surface-glass sticky top-0 z-30 flex min-h-14 w-full min-w-0 shrink-0 items-center gap-2 px-2 pt-[env(safe-area-inset-top)] sm:gap-3 sm:px-4 md:top-2 md:mx-2 md:mt-2 md:w-auto md:rounded-[20px]">
+    //
+    // v3 (approved concept, 2026-10-29): flush with the canvas, one hairline
+    // underneath, and only the controls people use while working. Theme, help
+    // and sounds live in the menu under your initials.
+    <header className="topbar-glass sticky top-0 z-30 flex min-h-14 w-full min-w-0 shrink-0 items-center gap-2 border-b border-border px-2 pt-[env(safe-area-inset-top)] sm:gap-2.5 sm:px-5">
       {/* Mobile sidebar trigger — the only way into the ~80-item nav on a
           phone, so it stays first at every width.
           min-w-11: the coarse-pointer rule in globals.css guarantees a 44px
           HEIGHT here but not the width (the icon isn't the button's only child,
           so that rule's min-width branch doesn't match), which would otherwise
           leave a 36px-wide sliver to hit. */}
-      <SidebarTrigger className="size-9 min-w-11 shrink-0 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94] sm:-ml-1 sm:size-8 sm:min-w-0" />
-
-      {/* Decorative only — drop it on phones to buy back horizontal room. */}
-      <Separator orientation="vertical" className="mr-1 hidden h-4 bg-border/60 md:block" />
+      <SidebarTrigger className="size-9 min-w-11 shrink-0 rounded-[10px] text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94] sm:-ml-1 sm:size-8 sm:min-w-0" />
 
       {/* Page Title & Breadcrumbs */}
       <div className="hidden min-w-0 flex-col justify-center md:flex">
         {breadcrumbs.length > 1 && (
-          <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground/80">
+          <div className="flex items-center gap-1 text-meta text-subtle-foreground">
             {breadcrumbs.slice(0, -1).map((crumb, index) => (
               <React.Fragment key={crumb.href}>
                 {index > 0 && <span>/</span>}
@@ -192,13 +182,40 @@ export function AppHeader() {
 
       {/* Spacer */}
       <div className="ml-auto flex min-w-0 items-center gap-1 sm:gap-2">
+        {/* Search trigger — opens command palette */}
+        <Button
+          variant="outline"
+          className="group/search relative hidden h-9 w-[min(340px,30vw)] justify-start rounded-[10px] border-border bg-card pl-9! text-body font-normal text-subtle-foreground shadow-none transition-colors duration-150 hover:border-input hover:bg-card md:flex"
+          onClick={() => setCommandOpen(true)}
+        >
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-subtle-foreground" />
+          Search leads, bookings, people…
+          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-0.5 rounded-md border border-border bg-muted px-1.5 font-sans text-meta font-medium text-subtle-foreground sm:flex">
+            <span>⌘</span>K
+          </kbd>
+        </Button>
+
+        {/* Search icon for mobile — search is the fastest route to any of the
+            ~80 modules on a phone, so it survives at every width. */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-9 shrink-0 rounded-[10px] text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94] md:hidden"
+          onClick={() => setCommandOpen(true)}
+        >
+          <Search className="size-4" />
+        </Button>
+
+        {/* Command palette */}
+        <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+
         {/* Quick create — visible shortcut to the most common "new X" forms,
             so staff (esp. on mobile) don't need to hunt for create buttons. */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               size="sm"
-              className="h-9 shrink-0 gap-1.5 rounded-full px-3 shadow-sm"
+              className="h-9 shrink-0 gap-1.5 rounded-[10px] px-3"
               title="Create new"
             >
               <Plus className="size-4" />
@@ -228,133 +245,24 @@ export function AppHeader() {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Search trigger — opens command palette */}
-        <Button
-          variant="outline"
-          className="group/search relative hidden h-9 w-64 justify-start rounded-full border-border/70 bg-muted/40 pl-9! text-body font-normal text-muted-foreground shadow-none transition-all duration-200 hover:border-primary/30 hover:bg-muted/70 lg:flex"
-          onClick={() => setCommandOpen(true)}
-        >
-          <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground transition-colors group-hover/search:text-primary" />
-          Search...
-          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 hidden h-5 select-none items-center gap-0.5 rounded-md border border-border bg-background/60 px-1.5 font-sans text-meta font-medium text-muted-foreground sm:flex">
-            <span>⌘</span>K
-          </kbd>
-        </Button>
-
-        {/* Search icon for mobile — search is the fastest route to any of the
-            ~80 modules on a phone, so it survives at every width. */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-9 shrink-0 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94] lg:hidden"
-          onClick={() => setCommandOpen(true)}
-        >
-          <Search className="size-4" />
-        </Button>
-
-        {/* Command palette */}
-        <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
-
         {/* Pending approvals — items awaiting THIS user's action (self-scoped,
             permission-aware). Renders only when there is something to approve,
             and it is an action queue, so it earns a slot even at 375px. */}
         <PendingApprovalsChip />
 
-        {/* ------------------------------------------------------------------
-            Secondary controls — hidden below `sm`.
-            At 375px there is room for roughly five 44px targets. These four
-            (availability, Velos, theme, help, what's-new) are ambient rather
-            than task-driven, so on a phone they collapse: theme and the
-            playbook reappear inside the avatar menu below, availability and
-            Velos have their own full pages one tap away in the nav.
-            ------------------------------------------------------------------ */}
-        <div className="hidden items-center gap-2 sm:flex">
-          {/* Self-serve availability toggle — flips the user's own rep availability
-              and keeps lastSeenAt fresh via heartbeat (smart-routing). */}
+        {/* Availability and Velos stay in the bar (the availability chip also
+            runs the routing heartbeat, so it is mounted at every width); below
+            `sm` they collapse and have their own pages in the nav. */}
+        <div className="hidden items-center gap-1 sm:flex">
           <AvailabilityToggle />
-
-          {/* Velos engagement chip — live points + rank, celebrates on earn */}
           <VelosChip />
-
-          {/* Theme toggle */}
-          {mounted && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-9 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94]"
-              onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-              title={resolvedTheme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {resolvedTheme === "dark" ? (
-                <Sun className="size-4" />
-              ) : (
-                <Moon className="size-4" />
-              )}
-            </Button>
-          )}
-
-          {/* Help & Guidance launcher — always available to every user, ungated */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-9 rounded-full text-muted-foreground transition-all duration-200 hover:bg-accent hover:text-foreground active:scale-[0.94]"
-                title="Help & guidance"
-              >
-                <CircleHelp className="size-4" />
-                <span className="sr-only">Help & guidance</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-60" align="end" sideOffset={8}>
-              <DropdownMenuLabel>Help & guidance</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem asChild>
-                  <Link href="/playbook" className="cursor-pointer">
-                    <BookOpen className="mr-2 size-4" />
-                    Guided Playbook
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard" className="cursor-pointer">
-                    <Sparkles className="mr-2 size-4" />
-                    Getting started
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onSelect={() => setCommandOpen(true)}
-                >
-                  <Search className="mr-2 size-4" />
-                  Search & shortcuts
-                  <kbd className="pointer-events-none ml-auto flex h-5 select-none items-center gap-0.5 rounded-md border border-border bg-background/60 px-1.5 font-sans text-meta font-medium text-muted-foreground">
-                    <span>⌘</span>K
-                  </kbd>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
-              <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                Need help? Ask your admin.
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* What's new — recent releases; unread dot until first opened */}
-          <WhatsNew />
         </div>
 
         {/* Must-act items for THIS user. Renders nothing when the list is
-            empty, so it costs no header space on a clear day. Sits beside the
-            bell because that is where the app already trains people to look —
-            it used to float over the bottom-right corner, on top of the AI
-            chat button and the last row of every page. */}
+            empty, so it costs no header space on a clear day. */}
         <ActiveAlertsPopup />
 
-        {/* Notifications */}
         <NotificationPopover />
-
-        <Separator orientation="vertical" className="mx-1 hidden h-6 bg-border/60 sm:block" />
 
         {/* User dropdown */}
         <DropdownMenu>
@@ -383,7 +291,7 @@ export function AppHeader() {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" sideOffset={8}>
+          <DropdownMenuContent className="w-60" align="end" sideOffset={8}>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">
@@ -416,13 +324,10 @@ export function AppHeader() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
 
-            {/* Phone-only rescue of the two header controls that get hidden
-                below `sm`. This menu is already the one thing every user can
-                reach on mobile, so it is the natural overflow home — and
-                nesting them here avoids a second "..." button competing for
-                the same 375px. */}
-            <DropdownMenuSeparator className="sm:hidden" />
-            <DropdownMenuGroup className="sm:hidden">
+            {/* Ambient controls (v3): theme, sounds and help live here at every
+                width instead of in the top bar. */}
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
               {mounted && (
                 <DropdownMenuItem
                   className="cursor-pointer"
@@ -440,11 +345,22 @@ export function AppHeader() {
                   {resolvedTheme === "dark" ? "Light mode" : "Dark mode"}
                 </DropdownMenuItem>
               )}
+              <SoundMenuItems />
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
               <DropdownMenuItem asChild>
                 <Link href="/playbook" className="cursor-pointer">
                   <BookOpen className="mr-2 size-4" />
-                  Guided Playbook
+                  Guided playbook
                 </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onSelect={() => setCommandOpen(true)}>
+                <Search className="mr-2 size-4" />
+                Search &amp; shortcuts
+                <kbd className="pointer-events-none ml-auto flex h-5 select-none items-center gap-0.5 rounded-md border border-border bg-muted px-1.5 font-sans text-meta font-medium text-subtle-foreground">
+                  <span>⌘</span>K
+                </kbd>
               </DropdownMenuItem>
             </DropdownMenuGroup>
 

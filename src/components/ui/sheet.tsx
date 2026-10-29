@@ -5,6 +5,7 @@ import { XIcon } from "lucide-react"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { OpenCloseSound } from "@/components/motion/sound-runtime"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -60,7 +61,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "bg-card/80 backdrop-blur-xl backdrop-saturate-150 data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col shadow-card-hover motion-sheet",
+          "bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col shadow-overlay motion-sheet",
           // Side sheets: 3/4 of a 375px phone is 281px, which is genuinely
           // cramped for the forms and detail panels these hold. Go to 88% on a
           // phone (the 12% strip left over is also the tap-to-dismiss target,
@@ -70,16 +71,16 @@ function SheetContent({
           // home indicator once the app is installed as a PWA (--sab is 0px in
           // a browser).
           side === "right" &&
-            "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-[88%] max-w-[24rem] pb-[max(var(--sab),0px)] border-l border-border/60 rounded-l-2xl sm:w-3/4 sm:max-w-sm",
+            "data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right inset-y-0 right-0 h-full w-[88%] max-w-[24rem] pb-[max(var(--sab),0px)] border-l border-border rounded-l-2xl sm:w-3/4 sm:max-w-sm",
           side === "left" &&
-            "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-[88%] max-w-[24rem] pb-[max(var(--sab),0px)] border-r border-border/60 rounded-r-2xl sm:w-3/4 sm:max-w-sm",
+            "data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left inset-y-0 left-0 h-full w-[88%] max-w-[24rem] pb-[max(var(--sab),0px)] border-r border-border rounded-r-2xl sm:w-3/4 sm:max-w-sm",
           // Top/bottom sheets had no height ceiling: tall content ran straight
           // off the screen with nothing to scroll. Cap at 85dvh (dvh, not vh,
           // so the mobile URL bar collapsing doesn't clip the last row).
           side === "top" &&
-            "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto max-h-[85dvh] pt-[max(var(--sat),0px)] border-b border-border/60 rounded-b-2xl",
+            "data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top inset-x-0 top-0 h-auto max-h-[85dvh] pt-[max(var(--sat),0px)] border-b border-border rounded-b-2xl",
           side === "bottom" &&
-            "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto max-h-[85dvh] pb-[max(var(--sab),0px)] border-t border-border/60 rounded-t-2xl",
+            "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto max-h-[85dvh] pb-[max(var(--sab),0px)] border-t border-border rounded-t-2xl",
           className
         )}
         {...props}
@@ -91,6 +92,7 @@ function SheetContent({
             SheetContent — so it remains pinned to the panel instead of
             scrolling away, and callers' `[&>button]:hidden` selectors (the
             mobile sidebar uses one) still match. */}
+        <OpenCloseSound />
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain">
           {children}
         </div>

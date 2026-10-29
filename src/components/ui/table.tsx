@@ -57,7 +57,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "hover:bg-muted/40 data-[state=selected]:bg-muted/60 border-b border-border transition-premium",
+        "hover:bg-muted/50 data-[state=selected]:bg-primary-soft border-b border-border transition-premium",
         className
       )}
       {...props}
@@ -70,7 +70,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "text-muted-foreground h-11 px-4 text-left align-middle text-meta font-semibold uppercase tracking-[0.06em] whitespace-nowrap bg-muted/30 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "text-subtle-foreground h-10 px-4 text-left align-middle text-[12.5px] font-medium whitespace-nowrap bg-muted/40 [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}

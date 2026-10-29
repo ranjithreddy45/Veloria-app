@@ -69,7 +69,7 @@ export const SOLID_CHIP: Readonly<Record<Hue, string>> = {
  */
 export const SOLID_FILL_HEX: Readonly<Record<Hue, string>> = {
   brand: "#6d1b52", // --primary (plum)
-  gold: "#b88513", // --gold, light mode
+  gold: "#a87a10", // --gold, light mode
   blue: "#2b7fff", // blue-500
   indigo: "#615fff", // indigo-500
   amber: "#e17100", // amber-600
@@ -147,6 +147,63 @@ export const RING_TEXT: Readonly<Record<Hue, string>> = {
  * primary pill is always brand.
  */
 export const PRIMARY_INVERSE_CHIP = "bg-primary-foreground text-primary";
+
+/**
+ * Workspace v3 (2026-10-29): what IconChip actually draws. The owner approved a
+ * calm look where colour carries meaning, so a hue no longer paints its own
+ * colour: brand stays plum, gold stays gold (money), red and rose read as a
+ * warning, and every other hue is a quiet neutral square. The per-hue maps
+ * above are kept (their contrast is still tested, and call sites still pass a
+ * hue) so a later decision to bring colour back is one map, not 300 files.
+ */
+const CALM_NEUTRAL_SOLID = "bg-muted text-foreground/75 ring-1 ring-inset ring-border";
+const CALM_NEUTRAL_SOFT = "bg-muted text-muted-foreground";
+
+export const CALM_SOLID_CHIP: Readonly<Record<Hue, string>> = {
+  brand: "bg-primary text-primary-foreground",
+  gold: "bg-gold-soft text-gold ring-1 ring-inset ring-gold/25",
+  blue: CALM_NEUTRAL_SOLID,
+  indigo: CALM_NEUTRAL_SOLID,
+  amber: CALM_NEUTRAL_SOLID,
+  emerald: CALM_NEUTRAL_SOLID,
+  teal: CALM_NEUTRAL_SOLID,
+  pink: CALM_NEUTRAL_SOLID,
+  cyan: CALM_NEUTRAL_SOLID,
+  rose: "bg-destructive/10 text-destructive ring-1 ring-inset ring-destructive/20",
+  red: "bg-destructive/10 text-destructive ring-1 ring-inset ring-destructive/20",
+  slate: CALM_NEUTRAL_SOLID,
+};
+
+export const CALM_SOFT_CHIP: Readonly<Record<Hue, string>> = {
+  brand: "bg-primary-soft text-primary",
+  gold: "bg-gold-soft text-gold",
+  blue: CALM_NEUTRAL_SOFT,
+  indigo: CALM_NEUTRAL_SOFT,
+  amber: CALM_NEUTRAL_SOFT,
+  emerald: CALM_NEUTRAL_SOFT,
+  teal: CALM_NEUTRAL_SOFT,
+  pink: CALM_NEUTRAL_SOFT,
+  cyan: CALM_NEUTRAL_SOFT,
+  rose: "bg-destructive/10 text-destructive",
+  red: "bg-destructive/10 text-destructive",
+  slate: CALM_NEUTRAL_SOFT,
+};
+
+/** StatTile's progress ring under the calm rules: plum unless the hue means something. */
+export const CALM_RING_TEXT: Readonly<Record<Hue, string>> = {
+  brand: "text-primary",
+  gold: "text-gold",
+  blue: "text-primary",
+  indigo: "text-primary",
+  amber: "text-primary",
+  emerald: "text-primary",
+  teal: "text-primary",
+  pink: "text-primary",
+  cyan: "text-primary",
+  rose: "text-destructive",
+  red: "text-destructive",
+  slate: "text-primary",
+};
 
 export function isHue(value: unknown): value is Hue {
   return typeof value === "string" && (HUES as readonly string[]).includes(value);

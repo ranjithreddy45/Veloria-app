@@ -11,8 +11,8 @@
    * Loaded in layout.tsx via next/font (self-hosted, no CLS). We deliberately do
    * NOT lead with -apple-system — that rendered the app in the raw OS font, which
    * reads as unstyled and looked different on every platform. */
-  --font-sans: -apple-system, "SF Pro Text", system-ui, var(--font-geist), ui-sans-serif, "Segoe UI", Roboto, sans-serif;
-  --font-display: -apple-system, "SF Pro Display", system-ui, var(--font-geist), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-geist), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-serif: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --color-sidebar-ring: var(--sidebar-ring);
@@ -45,6 +45,10 @@
    * page background; `gold-bright` is the true metallic tone, only legible on the
    * emerald/dark surfaces it is meant for. See the note in :root. */
   --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-soft: var(--primary-soft);
+  --color-subtle-foreground: var(--subtle-foreground);
   --color-gold-bright: var(--gold-bright);
   --color-gold-foreground: var(--gold-foreground);
   --color-muted-foreground: var(--muted-foreground);
@@ -68,15 +72,12 @@
 
 /*
  * ============================================================
- * Apple design tokens
+ * Design tokens (Workspace v3, approved concept 2026-10-29)
  * ----------------------------------------------------------------
- * Inspired by macOS Sonoma / iOS / apple.com:
- *   - Faint cool-gray canvas (#f5f5f7) with pure-white cards
- *   - Emerald brand accent (#006742 light / lighter emerald dark) + gold metal
- *   - Near-black ink (#1d1d1f), hairline separators
- *   - Large continuous corner radii (12px) + soft diffuse shadows
- *   - Frosted-glass materials, SF system typography
- *   - Apple system color chart palette
+ *   - Warm canvas (#f5f3f4) with white sheets and hairline edges
+ *   - Plum is the only action colour; gold only for money and wins
+ *   - Geist for the interface, Fraunces only for page titles
+ *   - Sentence-case labels; no tracked uppercase
  * ============================================================
  */
 
@@ -89,143 +90,142 @@
 
   --radius: 0.75rem; /* 12px — Apple continuous corners */
 
-  /* Surfaces — Apple cool-gray canvas, pure-white elevated cards */
-  --background: oklch(0.968 0.0015 286);   /* #f5f5f7 */
-  --foreground: oklch(0.235 0.005 286);    /* #1d1d1f ink */
-  --card: oklch(1 0 0);                     /* pure white */
-  --card-foreground: oklch(0.235 0.005 286);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.235 0.005 286);
-
   /* ------------------------------------------------------------
-   * Brand: deep emerald + gold on white.
-   * WHY emerald carries `primary` and gold does not: `text-primary` is used on
-   * ~256 call sites, and not decoratively — it colours 11-13px links and money
-   * figures (e.g. `text-copy font-bold text-primary` on netPayable), plus
-   * avatar initials sitting on a `bg-primary/10` tint. True metallic gold
-   * (#d6a62e) scores 2.25:1 on white; a salary figure in it is unreadable, and
-   * gold dark enough to pass 4.5:1 is no longer gold, it is brown. So emerald
-   * takes the load-bearing role (6.93:1 as ink on white, 6.73:1 for white text
-   * on the button) and gold is freed to do what gold is for — accent.
+   * Workspace v3 (2026-10-29): calm palette.
+   * One action colour (plum), one money colour (gold), semantic colours only
+   * where they mean something. Neutrals carry a slight plum bias so the greys
+   * belong to the brand instead of looking like defaults.
+   *
+   * WHY plum carries `primary` and gold does not: `text-primary` colours
+   * 11-13px links and money figures on ~256 call sites. Metallic gold scores
+   * 2.25:1 on white and is unreadable at that size; plum is 11:1. Gold is for
+   * money collected and won bookings, where it is set large enough to pass.
    * ------------------------------------------------------------ */
-  /* Brand recolour: deep plum (#6d1b52) is the primary interactive colour —
-   * matching the revamped marketing site (plum ground + gold accent). Plum is
-   * dark/saturated enough for white-text buttons and legible links/focus on the
-   * light canvas; gold stays the accent metal. (Was emerald #006742.) */
-  --primary: #6d1b52;
+  --background: #f5f3f4;                   /* canvas */
+  --foreground: #1b1519;                   /* ink */
+  --card: #ffffff;
+  --card-foreground: #1b1519;
+  --popover: #ffffff;
+  --popover-foreground: #1b1519;
+
+  --primary: #6d1b52;                      /* plum, 11.3:1 on white */
   --primary-foreground: #fdf5f3;
+  --primary-hover: #5a1543;
+  --primary-soft: #f4e8f0;                 /* selected rows, active pills */
 
-  /* Gold. `--gold` is the deepened tone that still reads on white (3.29:1, clears
-   * the 3:1 bar for icons//UI components); `--gold-bright` is the true metal, for
-   * use ON emerald or dark surfaces only (3.68:1 on emerald) — it is deliberately
-   * NOT safe on white, which is why the two are separate tokens. */
-  --gold: oklch(0.65 0.13 80);             /* #b88513 */
-  --gold-bright: oklch(0.8 0.15 86);       /* #e8b631 */
-  --gold-foreground: oklch(0.22 0.03 80);  /* espresso ink on a gold fill */
+  /* `--gold` reads on white (3.6:1, large text and icons only);
+   * `--gold-bright` is the true metal, for plum or dark surfaces only. */
+  --gold: #a87a10;
+  --gold-bright: #e0ad2c;
+  --gold-soft: #fbf1da;
+  --gold-foreground: #2a1f05;              /* ink on a gold fill */
 
-  /* Quiet secondary / muted — cool gray fills */
-  --secondary: oklch(0.955 0.002 286);
-  --secondary-foreground: oklch(0.235 0.005 286);
-  --muted: oklch(0.955 0.002 286);
-  --muted-foreground: oklch(0.55 0.006 286);  /* Apple secondary label gray */
-  --accent: oklch(0.95 0.012 352);
-  --accent-foreground: oklch(0.235 0.005 286);
+  --secondary: #efeced;
+  --secondary-foreground: #1b1519;
+  --muted: #efeced;                        /* sunken wells, table header band */
+  --muted-foreground: #5d5560;             /* 7:1 on white: secondary text stays readable */
+  --subtle-foreground: #8b828d;            /* tertiary: timestamps, counts */
+  --accent: #f1ecef;                       /* hover fill */
+  --accent-foreground: #1b1519;
 
-  --destructive: oklch(0.585 0.21 27);     /* Apple red #ff3b30 ballpark */
-  /* Was MISSING while 7 call sites (incl. the shared Badge primitive) already used
-   * `text-destructive-foreground` — the class resolved to nothing, so text on a red
-   * destructive surface inherited its colour and could fall to near-black on red.
-   * Red stays saturated in both themes, so white reads correctly in each. */
-  --destructive-foreground: oklch(0.99 0 0);
+  /* Semantic. Deep enough to read as TEXT on white (each ≥ 5:1), so
+   * `text-warning` is no longer orange-on-white at 2:1, and white text still
+   * reads on each as a fill. */
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --success: #1f7a4d;
+  --success-foreground: #ffffff;
+  --warning: #9a5800;
+  --warning-foreground: #ffffff;
+  --info: #1f5fbf;
+  --info-foreground: #ffffff;
 
-  /* Semantic status — Apple green + orange + blue */
-  --success: oklch(0.66 0.16 150);         /* #34c759 */
-  --success-foreground: oklch(0.99 0 0);
-  --warning: oklch(0.78 0.16 70);          /* #ff9f0a */
-  --warning-foreground: oklch(0.28 0.05 70);
-  /* Informational (neutral notices: "Sent via …", tips). Completes the status set —
-   * without it, info banners had no token and stayed hard-coded blue. */
-  --info: oklch(0.6 0.16 250);             /* #0a84ff — Apple blue */
-  --info-foreground: oklch(0.99 0 0);
-
-  /* Hairline separators — cool, faint */
-  --border: oklch(0.9 0.002 286);
-  --input: oklch(0.9 0.002 286);
+  --border: #e7e2e5;
+  --input: #d6cfd4;
   --ring: #6d1b52;
 
-  /* Apple system color chart palette */
-  --chart-1: oklch(0.45 0.11 352);         /* emerald — brand */
-  /* Was a second green, which now collides with both --success and the emerald
-   * brand colour. Gold is the brand's other half, so it takes slot 2. */
-  --chart-2: oklch(0.65 0.13 80);          /* gold */
-  --chart-3: oklch(0.78 0.16 70);          /* orange */
-  --chart-4: oklch(0.62 0.2 320);          /* pink/purple */
-  --chart-5: oklch(0.68 0.13 200);         /* teal */
+  /* Charts: plum and gold lead; the rest are muted, distinguishable earth
+   * tones instead of a rainbow. */
+  --chart-1: #6d1b52;
+  --chart-2: #a87a10;
+  --chart-3: #9b6b8e;
+  --chart-4: #4f7a6a;
+  --chart-5: #b5745a;
 
-  /* Sidebar — frosted light tone */
-  --sidebar: oklch(0.978 0.0015 286);
-  --sidebar-foreground: oklch(0.36 0.005 286);
-  --sidebar-primary: oklch(0.45 0.11 352);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.93 0.012 352); /* hover */
-  --sidebar-accent-foreground: oklch(0.235 0.005 286);
-  --sidebar-border: oklch(0.91 0.002 286);
-  --sidebar-ring: oklch(0.45 0.11 352);
+  /* Sidebar sits on the canvas; the active row is a white pill. */
+  --sidebar: #f5f3f4;
+  --sidebar-foreground: #5d5560;
+  --sidebar-primary: #6d1b52;
+  --sidebar-primary-foreground: #fdf5f3;
+  --sidebar-accent: #ece7ea;               /* hover */
+  --sidebar-accent-foreground: #1b1519;
+  --sidebar-border: #e7e2e5;
+  --sidebar-ring: #6d1b52;
+
+  /* Elevation, tinted with the ink. */
+  --shadow-1: 0 1px 2px rgb(27 21 25 / 0.05);
+  --shadow-2: 0 1px 2px rgb(27 21 25 / 0.04), 0 8px 24px -6px rgb(27 21 25 / 0.10);
+  --shadow-3: 0 2px 6px rgb(27 21 25 / 0.06), 0 24px 60px -12px rgb(27 21 25 / 0.28);
 }
 
 .dark {
-  --background: oklch(0.16 0.003 286);     /* #1c1c1e — Apple dark base */
-  --foreground: oklch(0.965 0.002 286);
-  --card: oklch(0.205 0.004 286);          /* #2c2c2e elevated */
-  --card-foreground: oklch(0.965 0.002 286);
-  --popover: oklch(0.225 0.004 286);
-  --popover-foreground: oklch(0.965 0.002 286);
+  --background: #0f0c0e;
+  --foreground: #f4eff2;
+  --card: #181417;
+  --card-foreground: #f4eff2;
+  --popover: #1d181c;
+  --popover-foreground: #f4eff2;
 
-  /* Plum + gold (dark). On dark, plum lightens to a bright orchid so it stays
-   * visible; white on it is thin, so the foreground is dark plum ink (like
-   * --success/gold do). */
-  --primary: oklch(0.68 0.14 352);
-  --primary-foreground: #2c0b26;
+  --primary: #e7a2cf;
+  --primary-foreground: #2a0a1f;
+  --primary-hover: #f0b8db;
+  --primary-soft: #2c1726;
 
-  --gold: oklch(0.8 0.14 86);
-  --gold-bright: oklch(0.85 0.14 88);
-  --gold-foreground: oklch(0.18 0.03 80);
+  --gold: #e8b631;
+  --gold-bright: #f0c451;
+  --gold-soft: #2c2311;
+  --gold-foreground: #1f1704;
 
-  --secondary: oklch(0.255 0.004 286);
-  --secondary-foreground: oklch(0.965 0.002 286);
-  --muted: oklch(0.255 0.004 286);
-  --muted-foreground: oklch(0.68 0.005 286);
-  --accent: oklch(0.27 0.016 352);
-  --accent-foreground: oklch(0.965 0.002 286);
+  --secondary: #221c20;
+  --secondary-foreground: #f4eff2;
+  --muted: #1f1a1e;
+  --muted-foreground: #b6abb3;
+  --subtle-foreground: #85797f;
+  --accent: #262025;
+  --accent-foreground: #f4eff2;
 
-  --destructive: oklch(0.66 0.2 27);       /* #ff453a */
-  --destructive-foreground: oklch(0.99 0 0);
+  /* Mid red, not coral: ~46 call sites put `text-white` on bg-destructive. */
+  --destructive: #e5484d;
+  --destructive-foreground: #ffffff;
+  --success: #5fcf95;
+  --success-foreground: #06200f;
+  --warning: #f0b35a;
+  --warning-foreground: #2a1802;
+  --info: #7fb0ff;
+  --info-foreground: #06152e;
 
-  --success: oklch(0.72 0.16 150);         /* #30d158 */
-  --success-foreground: oklch(0.16 0.003 286);
-  --warning: oklch(0.81 0.15 70);          /* #ff9f0a */
-  --warning-foreground: oklch(0.2 0.03 70);
-  --info: oklch(0.7 0.15 250);             /* #64d2ff-ish — brighter blue on dark */
-  --info-foreground: oklch(0.16 0.003 286);
+  --border: #2a2328;
+  --input: #3b3238;
+  --ring: #e7a2cf;
 
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.68 0.14 352);
+  --chart-1: #e7a2cf;
+  --chart-2: #e8b631;
+  --chart-3: #b98aac;
+  --chart-4: #7fb39f;
+  --chart-5: #d99a7f;
 
-  --chart-1: oklch(0.66 0.13 352);         /* emerald — brand */
-  --chart-2: oklch(0.8 0.14 86);           /* gold */
-  --chart-3: oklch(0.81 0.15 70);          /* orange */
-  --chart-4: oklch(0.68 0.2 320);          /* pink */
-  --chart-5: oklch(0.72 0.13 200);         /* teal */
+  --sidebar: #0f0c0e;
+  --sidebar-foreground: #b6abb3;
+  --sidebar-primary: #e7a2cf;
+  --sidebar-primary-foreground: #2a0a1f;
+  --sidebar-accent: #1f1a1e;
+  --sidebar-accent-foreground: #f4eff2;
+  --sidebar-border: #2a2328;
+  --sidebar-ring: #e7a2cf;
 
-  --sidebar: oklch(0.185 0.003 286);
-  --sidebar-foreground: oklch(0.88 0.003 286);
-  --sidebar-primary: oklch(0.66 0.13 352);
-  --sidebar-primary-foreground: oklch(0.16 0.003 286);
-  --sidebar-accent: oklch(0.27 0.016 352);
-  --sidebar-accent-foreground: oklch(0.965 0.002 286);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.66 0.13 352);
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 1px 2px rgb(0 0 0 / 0.4), 0 10px 28px -8px rgb(0 0 0 / 0.6);
+  --shadow-3: 0 2px 8px rgb(0 0 0 / 0.5), 0 28px 70px -12px rgb(0 0 0 / 0.75);
 }
 
 @layer base {
@@ -233,8 +233,7 @@
     @apply border-border outline-ring/50;
   }
   html {
-    /* Inter fallback OpenType features (native SF ignores these harmlessly) */
-    font-feature-settings: "cv11" 1, "ss01" 1, "calt" 1;
+    font-feature-settings: "calt" 1;
     font-variant-ligatures: contextual;
     text-rendering: optimizeLegibility;
   }
@@ -242,7 +241,7 @@
     @apply bg-background text-foreground antialiased;
     font-size: 14px;
     line-height: 1.5;
-    letter-spacing: -0.01em;        /* optical tightening */
+    letter-spacing: -0.006em;       /* optical tightening for Geist */
     /* Real CSS custom properties for the brand type stack.
      * WHY: the families above live in `@theme inline`, and Tailwind v4's `inline`
      * mode substitutes theme values directly into generated utilities WITHOUT
@@ -251,10 +250,10 @@
      * font. next/font DOES set --font-geist / --font-fraunces / --font-geist-mono
      * as real properties on <body>, so we alias them here and every descendant
      * (including Radix portals, which mount inside body) can use them. */
-    /* Apple restraint: prefer the platform's own San Francisco on Apple
-     * devices (renders real SF Pro), fall back to Geist elsewhere so non-Apple
-     * platforms still get a clean, consistent grotesque. */
-    --brand-sans: -apple-system, "SF Pro Text", "SF Pro Display", system-ui, var(--font-geist), ui-sans-serif, "Segoe UI", Roboto, sans-serif;
+    /* Geist FIRST. This stack used to lead with -apple-system/system-ui, and
+     * every Mac and Windows machine has one, so the brand face never rendered
+     * anywhere but Linux. */
+    --brand-sans: var(--font-geist), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --brand-serif: var(--font-fraunces), ui-serif, Georgia, "Times New Roman", serif;
     --brand-mono: var(--font-geist-mono), ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
     padding-top: var(--sat);
@@ -273,8 +272,8 @@
     font-family: var(--brand-serif);
     font-size: 34px; /* text-h1 */
     line-height: 1.12;
-    letter-spacing: -0.015em;
-    font-weight: 600;
+    letter-spacing: -0.022em;
+    font-weight: 450;
     font-optical-sizing: auto;
     font-variation-settings: "SOFT" 0, "WONK" 0;
   }
@@ -299,15 +298,16 @@
 /* Premium layered elevation — tinted with the ink hue (not flat black) so it
  * reads crafted. Resting cards get a soft two-step shadow; hover lifts gently. */
 @utility shadow-card {
-  box-shadow:
-    0 0.5px 1px oklch(0.2 0.01 286 / 4%),
-    0 10px 30px -18px oklch(0.2 0.01 286 / 22%);
+  box-shadow: var(--shadow-1);
 }
 
 @utility shadow-card-hover {
-  box-shadow:
-    0 1px 2px oklch(0.2 0.01 286 / 5%),
-    0 16px 40px -20px oklch(0.2 0.01 286 / 30%);
+  box-shadow: var(--shadow-2);
+}
+
+/* Dialogs, sheets, the command palette: the one deep shadow. */
+@utility shadow-overlay {
+  box-shadow: var(--shadow-3);
 }
 
 /* --------------------------------------------------------------
@@ -383,24 +383,16 @@
  * minifier keeps only the last of the pair (see css-silently-dropped).
  * -------------------------------------------------------------- */
 .workspace-ground {
-  background:
-    radial-gradient(1100px 700px at 6% -8%, oklch(0.925 0.04 345), transparent 60%),
-    radial-gradient(900px 700px at 100% 0%, oklch(0.92 0.035 285), transparent 55%),
-    radial-gradient(800px 600px at 60% 110%, oklch(0.94 0.03 80), transparent 60%),
-    oklch(0.955 0.008 60);
-  background-attachment: fixed;
-}
-.dark .workspace-ground {
-  background:
-    radial-gradient(1100px 700px at 6% -8%, oklch(0.22 0.03 345), transparent 60%),
-    radial-gradient(900px 700px at 100% 0%, oklch(0.2 0.025 275), transparent 55%),
-    oklch(0.155 0.004 286);
-  background-attachment: fixed;
+  /* v3: the plain canvas. The tinted pink/violet wash is gone; sheets read as
+   * sheets because of their edge and shadow, not because of what is behind
+   * them. */
+  background: var(--background);
 }
 @utility surface-glass {
+  /* v3: a solid white sheet with a hairline edge. The name stays because ~300
+   * screens use it through Card; there is no blur any more, since an opaque
+   * fill makes the blur invisible and it cost a compositing layer per card. */
   background-color: var(--glass-fill);
-  -webkit-backdrop-filter: blur(22px) saturate(170%);
-  backdrop-filter: blur(22px) saturate(170%);
   /* The glass edge is an INSET RING in the shadow, not a `border`. This utility
    * compiles after Tailwind's border-colour/width/style utilities, so a border
    * shorthand here silently killed every Card's own border — 21 severity
@@ -415,14 +407,9 @@
  * the sidebar stayed white in dark mode. Variables follow the theme wherever
  * the utility ends up. */
 :root {
-  --glass-fill: oklch(1 0 0 / 78%);
-  --glass-edge: oklch(1 0 0 / 70%);
-  --glass-drop: 0 1px 1px oklch(0.2 0.02 340 / 4%), 0 18px 44px -24px oklch(0.3 0.09 340 / 32%);
-}
-.dark {
-  --glass-fill: oklch(0.24 0.008 300 / 72%);
-  --glass-edge: oklch(1 0 0 / 9%);
-  --glass-drop: 0 1px 1px oklch(0 0 0 / 30%), 0 22px 50px -26px oklch(0 0 0 / 80%);
+  --glass-fill: var(--card);
+  --glass-edge: var(--border);
+  --glass-drop: var(--shadow-1);
 }
 /* A card that IS a link or button lifts on hover with a slight spring. Cards
  * holding tables must not move under the pointer, so this is opt-in. */
@@ -446,8 +433,8 @@
  * Reserved for hero/greeting headlines; UI text below stays SF. */
 @utility large-title {
   font-family: var(--brand-serif);
-  font-weight: 600;
-  letter-spacing: -0.015em;
+  font-weight: 450;
+  letter-spacing: -0.022em;
   line-height: 1.08;
   font-optical-sizing: auto;
   font-variation-settings: "SOFT" 0, "WONK" 0;
@@ -512,13 +499,13 @@
 
 /* Glass topbar — blur over scrolling content, hairline border */
 @utility topbar-glass {
-  background-color: oklch(0.968 0.0015 286 / 72%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
+  /* Canvas-coloured and slightly translucent so rows scrolling beneath read as
+   * passing under it. Standard property after -webkit- (css-silently-dropped). */
+  background-color: color-mix(in srgb, var(--background) 84%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
 }
-.dark .topbar-glass {
-  background-color: oklch(0.16 0.003 286 / 72%);
-}
+
 
 /* Focus ring with brand color glow */
 @utility focus-glow {
@@ -700,7 +687,7 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible,
-[tabindex]:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible,
 [role="button"]:focus-visible,
 [role="tab"]:focus-visible,
 [role="menuitem"]:focus-visible,

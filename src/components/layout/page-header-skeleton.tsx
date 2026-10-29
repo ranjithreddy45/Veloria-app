@@ -6,12 +6,9 @@ import { PAGE_HEADER_CLASSES as C } from "@/components/layout/page-header";
 // PageHeaderSkeleton: PageHeader's shape while a route loads.
 // ------------------------------------------------------------
 // Built from PageHeader's own exported class strings (root, title column,
-// title row, chip spacing, meta row, action slot), so the placeholder and the
-// settled header cannot drift: the title box lands where the h1 will, at
-// every width. Every PageHeader under (dashboard) shows a module chip at sm
-// and above (the bespoke record headers render ModuleChip in their title
-// row too), so one neutral chip placeholder
-// fits every such route; like the real chip it is hidden below sm.
+// title row, meta row, action slot), so the placeholder and the settled
+// header cannot drift: the title box lands where the h1 will, at every width.
+// Since v3 no header has a module chip, so neither does the placeholder.
 //
 // Only reserve action pills where the route's settled header really has them;
 // a placeholder button that never arrives reads as jank.
@@ -61,20 +58,19 @@ export function PageHeaderSkeleton({
       <div className={C.titleColumn}>
         {eyebrow &&
           (eyebrowLines === 2 ? (
-            // Below sm: two 11px lines at line-height 1.45 (16px each) and the
-            // eyebrow row's 4px gap, 36px in all. From sm up: one line.
-            <div className="flex h-9 flex-col justify-center gap-1 sm:h-4">
+            // Below sm: two 20px lines and the eyebrow row's 4px gap, 44px in
+            // all. From sm up: one line.
+            <div className="flex h-11 flex-col justify-center gap-1 sm:h-5">
               <Skeleton className="h-2.5 w-40 rounded-full" />
               <Skeleton className="h-2.5 w-24 rounded-full sm:hidden" />
             </div>
           ) : (
-            // h-4 is the eyebrow's line box (11px text at line-height 1.45).
-            <div className="flex h-4 items-center">
+            // h-5 is the eyebrow's 20px line box (PAGE_HEADER_CLASSES.eyebrow).
+            <div className="flex h-5 items-center">
               <Skeleton className="h-2.5 w-40 rounded-full" />
             </div>
           ))}
         <div className={C.titleRow}>
-          <Skeleton className={cn("hidden shrink-0 sm:block", C.chipBox, C.chip)} />
           {/* The h1's line box: 26px type below sm, 34px at sm and above.
               data-skeleton-part marks it for header-geometry.spec.ts, which
               checks that it sits where the settled h1 lands. */}
