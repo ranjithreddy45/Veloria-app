@@ -20,23 +20,23 @@ const STATUS_CONFIG: Record<
   { label: string; color: string; bgColor: string }
 > = {
   TODO: {
-    label: "To Do",
-    color: "#71717a", // zinc-500
+    label: "To do",
+    color: "var(--color-zinc-500)",
     bgColor: "bg-muted/80",
   },
   IN_PROGRESS: {
-    label: "In Progress",
-    color: "#3b82f6", // blue-500
+    label: "In progress",
+    color: "var(--color-blue-500)",
     bgColor: "bg-blue-50/60",
   },
   IN_REVIEW: {
-    label: "In Review",
-    color: "#f59e0b", // amber-500
+    label: "In review",
+    color: "var(--color-amber-500)",
     bgColor: "bg-amber-50/60",
   },
   DONE: {
     label: "Done",
-    color: "#22c55e", // green-500
+    color: "var(--color-green-500)",
     bgColor: "bg-green-50/60",
   },
 };
