@@ -18,13 +18,15 @@ type CelebrateOptions = {
   spread?: number;
 };
 
+// The brand's own metals (Workspace v3): plum and gold, with a lighter tint
+// of each and a warm ivory, instead of a rainbow. Canvas confetti needs real
+// colours, not CSS variables.
 const COLORS = [
-  "#7c3aed", // brand violet
-  "#a78bfa",
-  "#f59e0b", // gold
-  "#34c759", // green
-  "#ff5a8a", // pink
-  "#22d3ee", // cyan
+  "#6d1b52", // plum
+  "#c77aa8", // plum, light
+  "#e0ad2c", // gold
+  "#f3d58a", // gold, light
+  "#fdf5f3", // ivory
 ];
 
 let lastFire = 0;
