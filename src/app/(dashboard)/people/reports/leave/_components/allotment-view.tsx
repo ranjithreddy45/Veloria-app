@@ -41,7 +41,7 @@ export function AllotmentView({ rows, year }: { rows: AllotmentRow[]; year: numb
         <div className="overflow-x-auto surface-glass rounded-[22px]">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border/60 text-left text-meta uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border/60 text-left text-detail text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Employee</th>
                 <th className="px-4 py-2.5 font-medium">Type</th>
                 <th className="px-4 py-2.5 text-right font-medium">Entitled</th>

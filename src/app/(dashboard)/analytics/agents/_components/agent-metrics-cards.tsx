@@ -63,7 +63,7 @@ export function AgentMetricsCards({ stats }: Props) {
           className="surface-glass rounded-[22px] p-5 transition-shadow hover:shadow-card-hover"
         >
           <div className="flex items-center justify-between gap-3">
-            <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-detail font-medium text-muted-foreground">
               {card.title}
             </p>
             <span

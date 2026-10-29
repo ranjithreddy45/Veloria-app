@@ -77,14 +77,14 @@ export default async function CampaignDetailPage({
 
           <dl className="mt-5 space-y-4">
             <div>
-              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+              <dt className="text-detail text-muted-foreground">
                 Subject line
               </dt>
               <dd className="mt-1 text-sm">{campaign.subject}</dd>
             </div>
 
             <div>
-              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+              <dt className="text-detail text-muted-foreground">
                 Audience
               </dt>
               <dd className="mt-1 text-sm">
@@ -103,7 +103,7 @@ export default async function CampaignDetailPage({
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+                <dt className="text-detail text-muted-foreground">
                   Created
                 </dt>
                 <dd className="numeric mt-1 text-sm">
@@ -112,7 +112,7 @@ export default async function CampaignDetailPage({
               </div>
               {campaign.scheduledAt && (
                 <div>
-                  <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-detail text-muted-foreground">
                     Scheduled for
                   </dt>
                   <dd className="numeric mt-1 text-sm">
@@ -122,7 +122,7 @@ export default async function CampaignDetailPage({
               )}
               {campaign.sentAt && (
                 <div>
-                  <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-detail text-muted-foreground">
                     Sent at
                   </dt>
                   <dd className="numeric mt-1 text-sm">

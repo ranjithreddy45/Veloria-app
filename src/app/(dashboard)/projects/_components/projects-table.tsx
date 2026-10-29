@@ -174,7 +174,7 @@ export function ProjectsTable({ rows }: { rows: ProjectRow[] }) {
                       <button
                         type="button"
                         onClick={() => toggleSort("phase")}
-                        className="inline-flex items-center gap-1 uppercase tracking-wider focus-ring rounded transition-premium hover:text-foreground"
+                        className="inline-flex items-center gap-1 focus-ring rounded transition-premium hover:text-foreground"
                       >
                         Phase {sortIcon("phase")}
                       </button>
@@ -183,7 +183,7 @@ export function ProjectsTable({ rows }: { rows: ProjectRow[] }) {
                       <button
                         type="button"
                         onClick={() => toggleSort("readiness")}
-                        className="ml-auto inline-flex items-center gap-1 uppercase tracking-wider focus-ring rounded transition-premium hover:text-foreground"
+                        className="ml-auto inline-flex items-center gap-1 focus-ring rounded transition-premium hover:text-foreground"
                       >
                         Readiness {sortIcon("readiness")}
                       </button>

@@ -304,13 +304,13 @@ export function InboundEventsViewer({ events, problemsOnly, canReplay, loadError
           {detail && (
             <div className="space-y-4">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-detail sm:grid-cols-3">
-                <div><dt className="text-meta uppercase tracking-wide text-muted-foreground">Received</dt><dd className="numeric">{formatDateTime(detail.receivedAt)}</dd></div>
-                <div><dt className="text-meta uppercase tracking-wide text-muted-foreground">Provider</dt><dd>{detail.provider}</dd></div>
-                <div><dt className="text-meta uppercase tracking-wide text-muted-foreground">Event type</dt><dd>{detail.eventType ?? "—"}</dd></div>
-                <div><dt className="text-meta uppercase tracking-wide text-muted-foreground">From</dt><dd className="font-mono">{detail.fromPhone ?? "—"}</dd></div>
-                <div><dt className="text-meta uppercase tracking-wide text-muted-foreground">Message id</dt><dd className="break-all font-mono">{detail.messageId ?? "—"}</dd></div>
+                <div><dt className="text-detail text-muted-foreground">Received</dt><dd className="numeric">{formatDateTime(detail.receivedAt)}</dd></div>
+                <div><dt className="text-detail text-muted-foreground">Provider</dt><dd>{detail.provider}</dd></div>
+                <div><dt className="text-detail text-muted-foreground">Event type</dt><dd>{detail.eventType ?? "—"}</dd></div>
+                <div><dt className="text-detail text-muted-foreground">From</dt><dd className="font-mono">{detail.fromPhone ?? "—"}</dd></div>
+                <div><dt className="text-detail text-muted-foreground">Message id</dt><dd className="break-all font-mono">{detail.messageId ?? "—"}</dd></div>
                 <div>
-                  <dt className="text-meta uppercase tracking-wide text-muted-foreground">Contact</dt>
+                  <dt className="text-detail text-muted-foreground">Contact</dt>
                   <dd>
                     {detail.matchedContactId ? (
                       <Link href={`/contacts/${detail.matchedContactId}`} className="text-primary hover:underline">
@@ -319,9 +319,9 @@ export function InboundEventsViewer({ events, problemsOnly, canReplay, loadError
                     ) : "—"}
                   </dd>
                 </div>
-                <div className="flex items-center gap-2"><dt className="text-meta uppercase tracking-wide text-muted-foreground">Signature</dt><dd><Tri value={detail.signatureValid} yes="Authenticated" no="Auth failed" /></dd></div>
-                <div className="flex items-center gap-2"><dt className="text-meta uppercase tracking-wide text-muted-foreground">Parsed</dt><dd><Tri value={detail.parsedOk} yes="Parsed" no="Not parsed" /></dd></div>
-                <div className="flex items-center gap-2"><dt className="text-meta uppercase tracking-wide text-muted-foreground">Handled</dt><dd><Tri value={detail.handled} yes="Handled" no="Not handled" /></dd></div>
+                <div className="flex items-center gap-2"><dt className="text-detail text-muted-foreground">Signature</dt><dd><Tri value={detail.signatureValid} yes="Authenticated" no="Auth failed" /></dd></div>
+                <div className="flex items-center gap-2"><dt className="text-detail text-muted-foreground">Parsed</dt><dd><Tri value={detail.parsedOk} yes="Parsed" no="Not parsed" /></dd></div>
+                <div className="flex items-center gap-2"><dt className="text-detail text-muted-foreground">Handled</dt><dd><Tri value={detail.handled} yes="Handled" no="Not handled" /></dd></div>
               </dl>
 
               {detail.parseError && (
@@ -334,11 +334,11 @@ export function InboundEventsViewer({ events, problemsOnly, canReplay, loadError
               )}
 
               <div>
-                <p className="mb-1 text-meta uppercase tracking-wide text-muted-foreground">Headers (redacted)</p>
+                <p className="mb-1 text-detail text-muted-foreground">Headers (redacted)</p>
                 <pre className="max-h-48 overflow-auto rounded-md border bg-muted/50 p-3 font-mono text-meta leading-relaxed">{prettyJson(detail.headers)}</pre>
               </div>
               <div>
-                <p className="mb-1 text-meta uppercase tracking-wide text-muted-foreground">Raw body</p>
+                <p className="mb-1 text-detail text-muted-foreground">Raw body</p>
                 <pre className="max-h-96 overflow-auto rounded-md border bg-muted/50 p-3 font-mono text-meta leading-relaxed">{prettyJson(detail.rawBody)}</pre>
               </div>
 

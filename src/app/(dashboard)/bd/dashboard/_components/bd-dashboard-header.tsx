@@ -15,7 +15,7 @@ export function BdDashboardHeader() {
   return (
     <div className="flex items-start justify-between gap-4 px-5 pt-5 pb-4 border-b border-border">
       <div>
-        <p className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-0.5">
+        <p className="text-detail font-semibold text-muted-foreground mb-0.5">
           Business Development · Acquisition
         </p>
         {/* The module chip leads the title row, as in PageHeader (top-aligned,

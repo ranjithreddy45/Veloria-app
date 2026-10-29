@@ -124,7 +124,7 @@ export default async function IntegrationHealthPage() {
                       )}
                     />
                     <span className="font-semibold text-foreground">{r.label}</span>
-                    <span className="text-meta uppercase tracking-wide text-muted-foreground">
+                    <span className="text-detail text-muted-foreground">
                       {tone.label}
                     </span>
                   </div>

@@ -249,19 +249,19 @@ export function TwoFactorSettings({
             <CardContent>
               <dl className="grid gap-3 sm:grid-cols-3">
                 <div>
-                  <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-detail text-muted-foreground">
                     Enabled on
                   </dt>
                   <dd className="text-body font-medium">{formatDate(status.enabledAt)}</dd>
                 </div>
                 <div>
-                  <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-detail text-muted-foreground">
                     Last used
                   </dt>
                   <dd className="text-body font-medium">{formatDate(status.lastUsedAt)}</dd>
                 </div>
                 <div>
-                  <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-detail text-muted-foreground">
                     Recovery codes left
                   </dt>
                   <dd className="text-body font-medium">

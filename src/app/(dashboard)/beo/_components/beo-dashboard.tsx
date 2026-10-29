@@ -111,7 +111,7 @@ export function BeoDashboard({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[680px] border-collapse text-body">
               <thead>
-                <tr className="border-b border-border bg-muted/40 text-left text-meta uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b border-border bg-muted/40 text-left text-detail text-muted-foreground">
                   <th className="px-3 py-2 font-medium">BEO #</th>
                   <th className="px-3 py-2 font-medium">Event</th>
                   <th className="px-3 py-2 font-medium">Date</th>

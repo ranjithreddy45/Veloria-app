@@ -129,7 +129,7 @@ export default async function MyPayslipsPage() {
 
               {m.computed && (
                 <div className="mt-auto">
-                  <div className="text-meta uppercase tracking-wide text-muted-foreground">Net pay</div>
+                  <div className="text-detail text-muted-foreground">Net pay</div>
                   <div className="numeric mt-1 text-h2 font-semibold leading-none">{inr.format(m.computed.net)}</div>
                 </div>
               )}

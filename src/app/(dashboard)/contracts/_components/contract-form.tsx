@@ -630,7 +630,7 @@ export function ContractForm({
                 <CardContent className="space-y-3 text-sm">
                   {/* Title Preview */}
                   <div>
-                    <div className="text-xs font-medium text-muted-foreground uppercase">
+                    <div className="text-xs font-medium text-muted-foreground">
                       Title
                     </div>
                     <div className="font-medium">
@@ -642,7 +642,7 @@ export function ContractForm({
 
                   {/* Signer Info */}
                   <div>
-                    <div className="text-xs font-medium text-muted-foreground uppercase">
+                    <div className="text-xs font-medium text-muted-foreground">
                       Signer
                     </div>
                     <div>
@@ -657,7 +657,7 @@ export function ContractForm({
 
                   {/* Content Preview */}
                   <div>
-                    <div className="text-xs font-medium text-muted-foreground uppercase mb-2">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">
                       Content Preview
                     </div>
                     <div className="max-h-64 overflow-y-auto rounded-md border bg-muted/30 p-3 text-xs whitespace-pre-wrap dark:bg-muted/10">
@@ -670,7 +670,7 @@ export function ContractForm({
                     <>
                       <Separator />
                       <div>
-                        <div className="text-xs font-medium text-muted-foreground uppercase mb-2">
+                        <div className="text-xs font-medium text-muted-foreground mb-2">
                           Variables ({detectedVariables.length})
                         </div>
                         {detectedVariables.map((v) => {

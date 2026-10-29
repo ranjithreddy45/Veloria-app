@@ -55,7 +55,7 @@ function Field({
 }) {
   return (
     <div>
-      <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.04em]">
+      <p className="text-muted-foreground text-xs font-medium">
         {label}
       </p>
       <div className="mt-1 text-sm font-medium text-foreground">{children}</div>
@@ -264,7 +264,7 @@ export default async function HallOwnerDetailPage({
           <div className="flex items-center gap-4">
             {o.numberOfHalls != null && (
               <div className="text-right">
-                <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.04em]">
+                <p className="text-muted-foreground text-xs font-medium">
                   On record
                 </p>
                 <p className="mt-0.5 inline-flex items-center justify-end gap-1.5 text-sm font-semibold text-foreground">
@@ -274,7 +274,7 @@ export default async function HallOwnerDetailPage({
               </div>
             )}
             <div className="text-right">
-              <p className="text-muted-foreground text-xs font-medium uppercase tracking-[0.04em]">
+              <p className="text-muted-foreground text-xs font-medium">
                 Linked BD
               </p>
               <p className="mt-0.5 text-lg font-semibold text-violet-700">

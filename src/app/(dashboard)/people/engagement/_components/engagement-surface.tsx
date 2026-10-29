@@ -382,7 +382,7 @@ export function EngagementSurface({
       )}
 
       <div className="space-y-4">
-        <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
           <HeartPulse className="size-4" /> Your pulse
         </h2>
         {surveys.length === 0 ? (

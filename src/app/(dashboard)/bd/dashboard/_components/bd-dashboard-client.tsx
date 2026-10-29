@@ -571,7 +571,7 @@ export function BdDashboardClient({ data: a }: { data: Analytics }) {
                   {["Employee","Leads","Deals","Won","Lost","Calls","Notes","Visits","Score"].map((h, idx) => (
                     <th
                       key={h}
-                      className={`py-1.5 sticky top-0 bg-card z-10 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground ${idx === 0 ? "text-left pr-3 w-32" : "text-right px-1.5"}`}
+                      className={`py-1.5 sticky top-0 bg-card z-10 text-[10px] font-semibold text-muted-foreground ${idx === 0 ? "text-left pr-3 w-32" : "text-right px-1.5"}`}
                     >
                       {h}
                     </th>

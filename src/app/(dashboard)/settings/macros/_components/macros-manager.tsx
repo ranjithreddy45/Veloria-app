@@ -279,7 +279,7 @@ export function MacrosManager() {
                                 ))}
                               </div>
 
-                              <p className="mt-2.5 text-meta uppercase tracking-wide text-muted-foreground">
+                              <p className="mt-2.5 text-detail text-muted-foreground">
                                 <span className="numeric font-medium text-foreground">
                                   {actions.length}
                                 </span>{" "}

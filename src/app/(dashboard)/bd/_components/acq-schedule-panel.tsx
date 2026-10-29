@@ -548,7 +548,7 @@ function OutcomeSummary({
 
   return (
     <div className="mt-2 space-y-1">
-      <Label className="text-meta uppercase tracking-[0.06em] text-muted-foreground">Outcome summary</Label>
+      <Label className="text-detail text-muted-foreground">Outcome summary</Label>
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -640,7 +640,7 @@ function NoteThread({
 
   return (
     <div className="mt-3 space-y-2 rounded-lg border border-border/50 bg-muted/20 p-2.5">
-      <div className="flex items-center gap-1.5 text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+      <div className="flex items-center gap-1.5 text-detail font-semibold text-muted-foreground">
         <MessageSquarePlus className="size-3.5" />
         Notes
         <span className="numeric font-normal normal-case tracking-normal">({notes.length})</span>

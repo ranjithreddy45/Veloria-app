@@ -44,7 +44,7 @@ export function SummaryView({ rows, year }: { rows: SummaryRow[]; year: number }
         <div className="overflow-x-auto surface-glass rounded-[22px]">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border/60 text-left text-meta uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border/60 text-left text-detail text-muted-foreground">
                 <th className="px-4 py-2.5 font-medium">Leave type</th>
                 <th className="px-4 py-2.5 text-right font-medium">Entitled</th>
                 <th className="px-4 py-2.5 text-right font-medium">Carried</th>

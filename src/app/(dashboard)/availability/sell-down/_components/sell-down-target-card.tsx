@@ -90,7 +90,7 @@ export function SellDownTargetCard({
           </div>
         </div>
         <div className="shrink-0 text-right">
-          <div className="text-meta font-medium uppercase tracking-wide text-muted-foreground">Occupancy</div>
+          <div className="text-detail font-medium text-muted-foreground">Occupancy</div>
           <div className="text-title font-bold tabular-nums leading-none">{pct}%</div>
         </div>
       </div>

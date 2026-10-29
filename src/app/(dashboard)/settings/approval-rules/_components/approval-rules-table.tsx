@@ -219,7 +219,7 @@ export function ApprovalRulesTable({ initialRules }: ApprovalRulesTableProps) {
                     </span>
                   </div>
 
-                  <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-meta uppercase tracking-wide text-muted-foreground">
+                  <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-detail text-muted-foreground">
                     <span>
                       Priority{" "}
                       <span className="numeric font-medium text-foreground">

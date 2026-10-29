@@ -84,7 +84,7 @@ function Field({
 }) {
   return (
     <div>
-      <p className="text-meta uppercase tracking-wide text-muted-foreground">
+      <p className="text-detail text-muted-foreground">
         {label}
       </p>
       <div className={cn("mt-1 text-sm", mono && "numeric")}>{children}</div>

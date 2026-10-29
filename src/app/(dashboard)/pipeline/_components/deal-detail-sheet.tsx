@@ -407,7 +407,7 @@ export function DealDetailSheet({
 
             {/* Contact Info */}
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <h4 className="text-xs font-semibold text-muted-foreground mb-3">
                 Contact Information
               </h4>
               <div className="space-y-2.5">
@@ -446,7 +446,7 @@ export function DealDetailSheet({
 
             {/* Lead Info */}
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <h4 className="text-xs font-semibold text-muted-foreground mb-3">
                 Lead Details
               </h4>
               <div className="space-y-2.5">
@@ -479,7 +479,7 @@ export function DealDetailSheet({
 
             {/* Key Dates */}
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <h4 className="text-xs font-semibold text-muted-foreground mb-3">
                 Key Dates
               </h4>
               <div className="space-y-2.5">
@@ -519,7 +519,7 @@ export function DealDetailSheet({
               <>
                 <Separator />
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">
                     Lost Reason
                   </h4>
                   <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">
@@ -532,7 +532,7 @@ export function DealDetailSheet({
             {/* Notes */}
             <Separator />
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              <h4 className="text-xs font-semibold text-muted-foreground mb-2">
                 Notes
               </h4>
               {isEditing ? (
@@ -552,7 +552,7 @@ export function DealDetailSheet({
             {/* Activity Timeline */}
             <Separator />
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <h4 className="text-xs font-semibold text-muted-foreground mb-3">
                 Activity Timeline
               </h4>
               <EntityActivityTimeline

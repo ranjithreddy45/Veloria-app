@@ -95,7 +95,7 @@ function signedPoints(type: string, points: number) {
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
-      <p className="text-meta uppercase tracking-wide text-muted-foreground">
+      <p className="text-detail text-muted-foreground">
         {label}
       </p>
       <div className="mt-1 text-sm">{value}</div>
@@ -193,7 +193,7 @@ export default async function LoyaltyAccountDetailPage({
 
           <div className="mt-5 space-y-2">
             <Progress value={tierProgress.progress} className="h-2.5" />
-            <div className="flex justify-between text-meta uppercase tracking-wide text-muted-foreground">
+            <div className="flex justify-between text-detail text-muted-foreground">
               <span>{account.tier}</span>
               <span>{tierProgress.nextTierName ?? "Max tier"}</span>
             </div>
@@ -325,16 +325,16 @@ export default async function LoyaltyAccountDetailPage({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-meta uppercase tracking-wide">
+                  <TableHead className="text-detail">
                     Activity
                   </TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide">
+                  <TableHead className="text-detail">
                     Type
                   </TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide">
+                  <TableHead className="text-detail">
                     Date
                   </TableHead>
-                  <TableHead className="text-right text-meta uppercase tracking-wide">
+                  <TableHead className="text-right text-detail">
                     Points
                   </TableHead>
                 </TableRow>

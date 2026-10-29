@@ -144,7 +144,7 @@ function SortHead({
         type="button"
         onClick={() => onToggle(k)}
         className={cn(
-          "inline-flex items-center gap-1 rounded px-1 -mx-1 text-meta font-medium uppercase tracking-wide hover:text-foreground",
+          "inline-flex items-center gap-1 rounded px-1 -mx-1 text-detail font-medium hover:text-foreground",
           active ? "text-foreground" : "text-muted-foreground",
         )}
       >
@@ -397,7 +397,7 @@ export function EventProfitabilityReport({ filters, venues, report, error }: Pro
                     <SortHead {...sortProps} k="staffCost" className="text-right">Staff (est.)</SortHead>
                     <SortHead {...sortProps} k="grossMargin" className="text-right">Margin</SortHead>
                     <SortHead {...sortProps} k="marginPct" className="text-right">Margin %</SortHead>
-                    <TableHead className="text-meta font-medium uppercase tracking-wide text-muted-foreground">Data</TableHead>
+                    <TableHead className="text-detail font-medium text-muted-foreground">Data</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

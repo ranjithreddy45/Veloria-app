@@ -599,12 +599,12 @@ export function OtaConfig({ baseUrl, channels, venues, canManage }: Props) {
                       <Table>
                         <TableHeader>
                           <TableRow className="hover:bg-transparent">
-                            <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">When</TableHead>
-                            <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Direction</TableHead>
-                            <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Status</TableHead>
-                            <TableHead className="text-right text-meta uppercase tracking-wide text-muted-foreground">Records</TableHead>
-                            <TableHead className="text-right text-meta uppercase tracking-wide text-muted-foreground">Errors</TableHead>
-                            <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Message</TableHead>
+                            <TableHead className="text-detail text-muted-foreground">When</TableHead>
+                            <TableHead className="text-detail text-muted-foreground">Direction</TableHead>
+                            <TableHead className="text-detail text-muted-foreground">Status</TableHead>
+                            <TableHead className="text-right text-detail text-muted-foreground">Records</TableHead>
+                            <TableHead className="text-right text-detail text-muted-foreground">Errors</TableHead>
+                            <TableHead className="text-detail text-muted-foreground">Message</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>

@@ -233,7 +233,7 @@ export default async function ContactDetailPage({
                 <div className="flex items-center gap-3">
                   <UserIcon className="text-muted-foreground size-4" />
                   <div>
-                    <p className="text-meta uppercase tracking-wide text-muted-foreground">Type</p>
+                    <p className="text-detail text-muted-foreground">Type</p>
                     <StatusBadge
                       status={contact.type}
                       colorMap={{
@@ -249,7 +249,7 @@ export default async function ContactDetailPage({
                     {/* min-w-0 + break-all: an address is one unbreakable token
                         and would otherwise widen the card past the viewport. */}
                     <div className="min-w-0">
-                      <p className="text-meta uppercase tracking-wide text-muted-foreground">Email</p>
+                      <p className="text-detail text-muted-foreground">Email</p>
                       <p className="break-all text-sm">{contact.email}</p>
                     </div>
                   </div>
@@ -258,7 +258,7 @@ export default async function ContactDetailPage({
                   <div className="flex items-center gap-3">
                     <PhoneIcon className="text-muted-foreground size-4" />
                     <div>
-                      <p className="text-meta uppercase tracking-wide text-muted-foreground">Phone</p>
+                      <p className="text-detail text-muted-foreground">Phone</p>
                       <p className="numeric text-sm">{contact.phone}</p>
                     </div>
                   </div>
@@ -267,7 +267,7 @@ export default async function ContactDetailPage({
                   <div className="flex items-center gap-3">
                     <BuildingIcon className="text-muted-foreground size-4" />
                     <div>
-                      <p className="text-meta uppercase tracking-wide text-muted-foreground">Company</p>
+                      <p className="text-detail text-muted-foreground">Company</p>
                       <p className="text-sm">
                         {contact.company}
                         {contact.designation && ` (${contact.designation})`}
@@ -279,7 +279,7 @@ export default async function ContactDetailPage({
                   <div className="flex items-center gap-3">
                     <MapPinIcon className="text-muted-foreground size-4" />
                     <div>
-                      <p className="text-meta uppercase tracking-wide text-muted-foreground">Address</p>
+                      <p className="text-detail text-muted-foreground">Address</p>
                       <p className="text-sm">
                         {[contact.address, contact.city, contact.state, contact.pincode]
                           .filter(Boolean)
@@ -291,7 +291,7 @@ export default async function ContactDetailPage({
                 <div className="flex items-center gap-3">
                   <CalendarIcon className="text-muted-foreground size-4" />
                   <div>
-                    <p className="text-meta uppercase tracking-wide text-muted-foreground">Created</p>
+                    <p className="text-detail text-muted-foreground">Created</p>
                     <p className="numeric text-sm">
                       {format(new Date(contact.createdAt), "dd MMM yyyy")}
                     </p>
@@ -307,7 +307,7 @@ export default async function ContactDetailPage({
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="mb-2 text-meta uppercase tracking-wide text-muted-foreground">Tags</p>
+                  <p className="mb-2 text-detail text-muted-foreground">Tags</p>
                   {contact.tags.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
                       {contact.tags.map((tag: string) => (
@@ -322,7 +322,7 @@ export default async function ContactDetailPage({
                 </div>
                 <Separator />
                 <div>
-                  <p className="mb-2 text-meta uppercase tracking-wide text-muted-foreground">Notes</p>
+                  <p className="mb-2 text-detail text-muted-foreground">Notes</p>
                   <p className="whitespace-pre-wrap text-body leading-relaxed text-muted-foreground">
                     {contact.notes || "No notes"}
                   </p>

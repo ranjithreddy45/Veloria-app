@@ -28,7 +28,7 @@ import {
 } from "@/app/(dashboard)/bd/reports/_components/report-primitives";
 
 /** Micro sub-heading inside a report section. */
-const SUB_HEAD = "mb-2 text-meta font-semibold uppercase tracking-wide text-muted-foreground";
+const SUB_HEAD = "mb-2 text-detail font-semibold text-muted-foreground";
 /** Shared body-row treatment for the hand-rolled report tables. */
 const ROW = "border-t border-border/60 transition-colors hover:bg-muted/40";
 
@@ -292,7 +292,7 @@ export default async function SalesReportsPage({
       <div className="sticky top-2 z-20 -mx-1 surface-glass rounded-2xl px-3 py-2.5">
         <div className="flex items-center gap-2">
           <Filter className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          <span className="hidden text-meta uppercase tracking-wide text-muted-foreground sm:inline">Filters</span>
+          <span className="hidden text-detail text-muted-foreground sm:inline">Filters</span>
           <BdFilterBar employees={execs} />
         </div>
       </div>
@@ -888,7 +888,7 @@ function AlertCard({
   return (
     <Card className="gap-0 py-0 transition-shadow hover:shadow-card-hover">
       <CardContent className="space-y-3 px-4 py-4">
-        <div className={`flex items-center justify-between text-meta font-semibold uppercase tracking-wide ${headTone}`}>
+        <div className={`flex items-center justify-between text-detail font-semibold ${headTone}`}>
           <span>{title}</span>
           <span className="numeric rounded-full bg-muted/60 px-2 py-0.5 text-foreground">{count}</span>
         </div>

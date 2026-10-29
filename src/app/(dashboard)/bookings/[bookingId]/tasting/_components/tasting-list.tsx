@@ -311,7 +311,7 @@ export function TastingList({
                 Array.isArray(tasting.selectedItems) &&
                 tasting.selectedItems.length > 0 && (
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">
                       Menu Items ({tasting.selectedItems.length})
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -334,7 +334,7 @@ export function TastingList({
               {/* Notes */}
               {tasting.notes && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1 uppercase tracking-wide">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">
                     Notes
                   </p>
                   <p className="text-sm whitespace-pre-wrap">{tasting.notes}</p>
@@ -344,7 +344,7 @@ export function TastingList({
               {/* Feedback (for completed tastings) */}
               {tasting.feedback && (
                 <div className="rounded-lg bg-success/10 border border-success/20 p-3">
-                  <p className="text-xs font-medium text-success mb-1 uppercase tracking-wide flex items-center gap-1.5">
+                  <p className="text-xs font-medium text-success mb-1 flex items-center gap-1.5">
                     <MessageSquareIcon className="size-3.5" />
                     Feedback
                   </p>

@@ -306,8 +306,8 @@ export function DataTable<TData, TValue>({
         {/* Column Visibility */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <SlidersHorizontalIcon className="mr-2 size-4" />
+            <Button variant="outline">
+              <SlidersHorizontalIcon className="size-4" />
               Columns
             </Button>
           </DropdownMenuTrigger>
@@ -357,7 +357,7 @@ export function DataTable<TData, TValue>({
                 <div
                   key={row.id}
                   data-state={row.getIsSelected() ? "selected" : undefined}
-                  className="rounded-2xl border border-border/60 bg-card/80 p-3.5 shadow-[0_1px_2px_oklch(0_0_0/0.04)] transition-colors data-[state=selected]:border-primary/40 data-[state=selected]:bg-primary/[0.04]"
+                  className="rounded-[14px] border border-border bg-card p-3.5 shadow-[var(--shadow-1)] transition-colors data-[state=selected]:border-primary/40 data-[state=selected]:bg-primary-soft"
                 >
                   <div className="flex items-start gap-3">
                     {selectCell && (
@@ -394,10 +394,10 @@ export function DataTable<TData, TValue>({
                     // value (not beside it) so arbitrary cell renderers
                     // (avatars, pills, multi-line) don't have to fit a
                     // right-aligned slot.
-                    <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-border/60 pt-3">
+                    <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-border pt-3">
                       {detailCells.map((cell) => (
                         <div key={cell.id} className="min-w-0">
-                          <dt className="text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground">
+                          <dt className="text-detail text-subtle-foreground">
                             {mobileLabelFor(cell.column)}
                           </dt>
                           <dd className="mt-0.5 text-body leading-snug text-foreground">
@@ -414,7 +414,7 @@ export function DataTable<TData, TValue>({
               );
             })
           ) : (
-            <div className="rounded-2xl border border-dashed border-border bg-card/40 px-4 py-10 text-center text-body text-muted-foreground">
+            <div className="rounded-[14px] border border-dashed border-input bg-card px-4 py-10 text-center text-body text-muted-foreground">
               No results.
             </div>
           )}
@@ -430,18 +430,18 @@ export function DataTable<TData, TValue>({
           // Glass at page level (the same material as Card). Inside a Card the
           // table goes flat — a second box with its own border and blur
           // inside a glass panel reads as a double frame.
-          "surface-glass rounded-[22px] overflow-x-auto in-data-[slot=card]:rounded-lg in-data-[slot=card]:border-0 in-data-[slot=card]:bg-transparent in-data-[slot=card]:shadow-none in-data-[slot=card]:backdrop-filter-none",
+          "surface-glass rounded-[14px] overflow-x-auto in-data-[slot=card]:rounded-lg in-data-[slot=card]:border-0 in-data-[slot=card]:bg-transparent in-data-[slot=card]:shadow-none in-data-[slot=card]:backdrop-filter-none",
           mobileCards && "hidden md:block"
         )}
       >
         <Table>
-          <TableHeader className="bg-muted/30">
+          <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="border-b border-border hover:bg-transparent">
                 {headerGroup.headers.map((header) => (
                   <TableHead
                     key={header.id}
-                    className="h-9 px-3 text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground"
+                    className="h-10 bg-transparent px-4 text-detail font-medium text-subtle-foreground"
                   >
                     {header.isPlaceholder
                       ? null
@@ -460,10 +460,10 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="group/row border-b border-border last:border-0 transition-colors hover:bg-muted/40 data-[state=selected]:bg-primary/[0.04]"
+                  className="group/row border-b border-border last:border-0 transition-colors hover:bg-muted/50 data-[state=selected]:bg-primary-soft"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="px-3 py-2.5 align-middle">
+                    <TableCell key={cell.id} className="h-[52px] px-4 py-2.5 align-middle">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -605,11 +605,11 @@ export function DataTableColumnHeader<TData, TValue>({
   return (
     <button
       type="button"
-      className="-ml-1 inline-flex items-center gap-1 rounded px-1 py-0.5 text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground hover:bg-muted hover:text-foreground/80 transition-colors"
+      className="-ml-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-detail font-medium text-subtle-foreground transition-colors hover:bg-muted hover:text-foreground"
       onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
     >
       {title}
-      <ArrowUpDownIcon className="size-3 opacity-60" />
+      <ArrowUpDownIcon className="size-3 opacity-50" />
     </button>
   );
 }

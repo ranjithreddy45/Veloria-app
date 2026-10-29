@@ -368,7 +368,7 @@ export function DrawRegister({ isAdmin, currentMonth }: { isAdmin: boolean; curr
             <div className="min-w-0 space-y-1">
               <div className="flex items-center gap-2 text-amber-600 dark:text-amber-300">
                 <Sparkles className="size-4" />
-                <span className="text-xs font-semibold uppercase tracking-wide">
+                <span className="text-xs font-semibold">
                   Winner · {monthLabel(month)}
                 </span>
               </div>

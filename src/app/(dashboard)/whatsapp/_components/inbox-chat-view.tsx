@@ -354,7 +354,7 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
           <p className="truncate text-sm font-medium">{conversation.contactName}</p>
           <p className="text-xs text-muted-foreground flex items-center gap-2">
             {conversation.contactPhone}
-            <span className="text-[10px] uppercase font-semibold tracking-wider text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">Open</span>
+            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">Open</span>
           </p>
         </div>
         <div className="flex items-center gap-1.5 hidden sm:flex">
@@ -374,7 +374,7 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56 p-0">
-              <div className="px-3 py-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground border-b">
+              <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground border-b">
                 Transfer To
               </div>
               <div className="max-h-64 overflow-y-auto">
@@ -542,7 +542,7 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
                       {msg.templateName && (
                         <div className="mb-1 flex items-center gap-1 border-b border-black/10 dark:border-white/10 pb-1">
                           <FileText className="size-3 opacity-60" />
-                          <span className="text-[10px] font-medium opacity-70 uppercase tracking-wider">
+                          <span className="text-[10px] font-medium opacity-70">
                             Template: {msg.templateName}
                           </span>
                         </div>

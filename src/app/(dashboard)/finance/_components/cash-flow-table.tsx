@@ -48,7 +48,7 @@ export function CashFlowTable({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-meta uppercase tracking-wide text-muted-foreground">
+            <tr className="border-b text-detail text-muted-foreground">
               <th className="px-2.5 py-2 sm:px-4 text-left font-medium">Week</th>
               <th className="px-2.5 py-2 sm:px-4 text-right font-medium">Inflow</th>
               <th className="px-2.5 py-2 sm:px-4 text-right font-medium">Outflow</th>

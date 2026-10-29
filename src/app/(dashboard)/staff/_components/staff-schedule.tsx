@@ -437,7 +437,7 @@ export function StaffSchedule({ shifts, staffProfiles }: StaffScheduleProps) {
         <div className="space-y-6">
           {sortedDates.map((date) => (
             <div key={date}>
-              <h3 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+              <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
                 {formatDate(date)}
               </h3>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

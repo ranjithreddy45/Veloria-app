@@ -55,7 +55,7 @@ export function FnfDetail({ fnf }: { fnf: Fnf }) {
     <div className="grid gap-5 lg:grid-cols-3">
       <div className="lg:col-span-2 space-y-4">
         <div className="surface-glass rounded-[22px] p-5">
-          <div className="mb-2 text-meta font-semibold uppercase tracking-wide text-muted-foreground">Settlement computation</div>
+          <div className="mb-2 text-detail font-semibold text-muted-foreground">Settlement computation</div>
           <Row label="Gratuity" value={formatINR(fnf.gratuityAmt)}
             sub={b ? `${b.gratuityEligibleYears} completed yr(s) · last-drawn basic ${formatINR(b.lastDrawnBasic)}` : undefined} sign="+" />
           <Row label="Leave encashment" value={formatINR(fnf.leaveEncashAmt)}
@@ -73,14 +73,14 @@ export function FnfDetail({ fnf }: { fnf: Fnf }) {
 
         {fnf.note && (
           <div className="surface-glass rounded-[22px] p-4">
-            <div className="mb-1 text-meta font-semibold uppercase tracking-wide text-muted-foreground">Note</div>
+            <div className="mb-1 text-detail font-semibold text-muted-foreground">Note</div>
             <p className="text-body whitespace-pre-wrap">{fnf.note}</p>
           </div>
         )}
 
         {b?.notes && b.notes.length > 0 && (
           <div className="surface-glass rounded-[22px] p-4">
-            <div className="mb-2 text-meta font-semibold uppercase tracking-wide text-muted-foreground">How this was calculated</div>
+            <div className="mb-2 text-detail font-semibold text-muted-foreground">How this was calculated</div>
             <ul className="space-y-1.5 text-detail text-muted-foreground">
               {b.notes.map((n, i) => <li key={i}>• {n}</li>)}
             </ul>
@@ -90,7 +90,7 @@ export function FnfDetail({ fnf }: { fnf: Fnf }) {
 
       <div className="space-y-4">
         <div className="surface-glass rounded-[22px] p-4">
-          <div className="mb-2 text-meta font-semibold uppercase tracking-wide text-muted-foreground">Details</div>
+          <div className="mb-2 text-detail font-semibold text-muted-foreground">Details</div>
           <dl className="space-y-2 text-body">
             <div className="flex justify-between"><dt className="text-muted-foreground">Employee</dt><dd className="font-medium">{fnf.name}</dd></div>
             <div className="flex justify-between"><dt className="text-muted-foreground">Emp code</dt><dd className="font-medium">{fnf.empCode}</dd></div>
@@ -102,7 +102,7 @@ export function FnfDetail({ fnf }: { fnf: Fnf }) {
         </div>
 
         <div className="surface-glass rounded-[22px] p-4 space-y-2">
-          <div className="mb-1 text-meta font-semibold uppercase tracking-wide text-muted-foreground">Actions</div>
+          <div className="mb-1 text-detail font-semibold text-muted-foreground">Actions</div>
           {fnf.status === "DRAFT" && (
             <Button onClick={doApprove} disabled={busy} className="w-full gap-1.5">
               {busy ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />} Approve settlement

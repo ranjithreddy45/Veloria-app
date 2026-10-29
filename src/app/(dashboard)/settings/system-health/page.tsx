@@ -297,7 +297,7 @@ export default async function SystemHealthPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <Icon className="size-4 shrink-0 text-muted-foreground" />
                 <span className="font-semibold text-foreground">{c.label}</span>
-                <span className="ml-auto inline-flex items-center gap-1 text-meta uppercase tracking-wide text-muted-foreground">
+                <span className="ml-auto inline-flex items-center gap-1 text-detail text-muted-foreground">
                   <StatusIcon className={cn("size-3.5", tone.iconCls)} />
                   {tone.label}
                 </span>
@@ -330,7 +330,7 @@ export default async function SystemHealthPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-muted-foreground border-b text-left text-xs uppercase tracking-wide">
+                <tr className="text-muted-foreground border-b text-left text-xs">
                   <th className="py-2 pr-4 font-medium">Lane</th>
                   <th className="py-2 pr-4 font-medium">State</th>
                   <th className="py-2 pr-4 font-medium">Last run</th>

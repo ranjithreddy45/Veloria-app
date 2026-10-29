@@ -76,7 +76,7 @@ export function CallInsightsDialog({ content, metadata }: CallInsightsDialogProp
               <section className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-6">
                 {typeof aiScore === "number" && (
                   <div className="space-y-1">
-                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">AI score</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground">AI score</h4>
                     <p className="numeric text-3xl font-semibold">
                       {aiScore}
                       {/* CallVibe sends 0–10 in practice (see scoreOf in lib/crm/call-insights). */}
@@ -86,7 +86,7 @@ export function CallInsightsDialog({ content, metadata }: CallInsightsDialogProp
                 )}
                 {actionList.length > 0 && (
                   <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Action items</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground">Action items</h4>
                     <ul className="list-disc space-y-1 pl-5 text-sm">
                       {actionList.map((a, i) => (
                         <li key={i} className="whitespace-pre-wrap">{a}</li>
@@ -99,7 +99,7 @@ export function CallInsightsDialog({ content, metadata }: CallInsightsDialogProp
 
             {insightEntries.length > 0 && (
               <section className="space-y-3">
-                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Insights</h4>
+                <h4 className="text-sm font-medium text-muted-foreground">Insights</h4>
                 <dl className="grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-[minmax(0,12rem)_1fr]">
                   {insightEntries.map(([k, v]) => (
                     <div key={k} className="contents">
@@ -116,13 +116,13 @@ export function CallInsightsDialog({ content, metadata }: CallInsightsDialogProp
               <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {keyQuestions && (
                   <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Key Questions</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground">Key Questions</h4>
                     <p className="text-sm whitespace-pre-wrap">{keyQuestions}</p>
                   </div>
                 )}
                 {issuesDiscussed && (
                   <div className="space-y-3">
-                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Issues Discussed</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground">Issues Discussed</h4>
                     <p className="text-sm whitespace-pre-wrap">{issuesDiscussed}</p>
                   </div>
                 )}
@@ -132,7 +132,7 @@ export function CallInsightsDialog({ content, metadata }: CallInsightsDialogProp
             {/* Chapters */}
             {chapters && (
               <section className="space-y-3">
-                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Chapters</h4>
+                <h4 className="text-sm font-medium text-muted-foreground">Chapters</h4>
                 <p className="text-sm whitespace-pre-wrap">{chapters}</p>
               </section>
             )}
@@ -153,7 +153,7 @@ export function CallInsightsDialog({ content, metadata }: CallInsightsDialogProp
                           isAgent ? "mr-auto" : "ml-auto items-end"
                         }`}
                       >
-                        <span className="text-xs text-muted-foreground mb-1 uppercase px-1">
+                        <span className="text-xs text-muted-foreground mb-1 px-1">
                           {t.speaker}
                         </span>
                         <div

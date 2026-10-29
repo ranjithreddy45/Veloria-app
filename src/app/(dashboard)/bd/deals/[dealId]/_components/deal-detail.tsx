@@ -641,7 +641,7 @@ function StagePanel({
     <div className="lg:sticky lg:top-4 lg:self-start">
       <Card>
         <CardHeader className="pb-3">
-          <CardDescription className="text-meta uppercase tracking-[0.08em]">
+          <CardDescription className="text-detail">
             Current stage
           </CardDescription>
           <div className="pt-1">
@@ -658,7 +658,7 @@ function StagePanel({
             const remaining = step.reqs.filter((r) => !r.met).length;
             return (
               <div className="mb-1 rounded-lg border border-border bg-muted/40 p-2.5">
-                <p className="mb-1.5 text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                <p className="mb-1.5 text-detail font-medium text-muted-foreground">
                   To reach {ACQ_DEAL_STAGE_LABEL[step.stage]}
                 </p>
                 <ul className="space-y-1">
@@ -714,7 +714,7 @@ function StagePanel({
               with the reason, and the guarded action still has the final say. */}
           {targets.length > 0 && (
             <div className="space-y-2 border-t border-border/60 pt-3">
-              <Label className="text-meta uppercase tracking-[0.06em] text-muted-foreground">
+              <Label className="text-detail text-muted-foreground">
                 Change stage
               </Label>
               <Select value={target} onValueChange={(v) => setTarget(v as AcqDealStage)}>
@@ -821,7 +821,7 @@ function StagePanel({
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <dt className="text-meta uppercase tracking-[0.06em] text-muted-foreground">
+      <dt className="text-detail text-muted-foreground">
         {label}
       </dt>
       {/* Emails and long owner names have no break opportunity, and this dl runs
@@ -941,7 +941,7 @@ function OverviewTab({
 
           {/* Owner & property — one grid, one Edit */}
           <div className="space-y-3">
-            <div className="text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
+            <div className="text-detail font-medium text-muted-foreground">
               Owner &amp; property
             </div>
             <dl className="grid grid-cols-2 gap-3.5 sm:grid-cols-3">
@@ -988,7 +988,7 @@ function OverviewTab({
 
             {lead && (
               <div className="border-t border-border/50 pt-3">
-                <div className="mb-1.5 text-meta uppercase tracking-[0.06em] text-muted-foreground">
+                <div className="mb-1.5 text-detail text-muted-foreground">
                   Qualification checklist
                 </div>
                 <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -1015,7 +1015,7 @@ function OverviewTab({
           {/* Commercial dates & TA fees (deal-level) */}
           <div className="space-y-3 rounded-md border border-border/60 p-3.5">
             <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
-              <div className="text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
+              <div className="text-detail font-medium text-muted-foreground">
                 Signing &amp; collection
               </div>
               {canEdit && (
@@ -1041,7 +1041,7 @@ function OverviewTab({
 
           {/* Transparent change log */}
           <div className="space-y-2">
-            <div className="text-meta uppercase tracking-[0.06em] text-muted-foreground">
+            <div className="text-detail text-muted-foreground">
               Change log
             </div>
             {changeLog.length === 0 ? (
@@ -1135,7 +1135,7 @@ function DealImagesSection({
   return (
     <div className="space-y-3 rounded-md border border-border/60 p-3.5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
+        <div className="flex items-center gap-2 text-detail font-medium text-muted-foreground">
           <Camera className="size-3.5" /> Property photos
         </div>
         {canEdit && dirty && (
@@ -1256,7 +1256,7 @@ function DealDatesEditDialog({
 // ------------------------------------------------------------
 function FormSection({ title }: { title: string }) {
   return (
-    <div className="pt-1 text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground sm:col-span-2">
+    <div className="pt-1 text-detail font-medium text-muted-foreground sm:col-span-2">
       {title}
     </div>
   );
@@ -1807,7 +1807,7 @@ function EvaluationTab({
 
   const history = deal.evaluations.length > 0 && (
     <div className="space-y-1.5">
-      <div className="text-meta uppercase tracking-[0.06em] text-muted-foreground">Scorecard history</div>
+      <div className="text-detail text-muted-foreground">Scorecard history</div>
       {deal.evaluations.map((ev) => (
         <div
           key={ev.id}
@@ -2608,7 +2608,7 @@ function AlignTeamsPanel({
 
       {/* Existing meetings */}
       <div className="space-y-2 border-t border-emerald-200/70 pt-3">
-        <div className="flex items-center gap-1.5 text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-detail font-medium text-muted-foreground">
           <Users className="size-3.5" /> Introduction meetings
         </div>
         {loadingMeetings ? (

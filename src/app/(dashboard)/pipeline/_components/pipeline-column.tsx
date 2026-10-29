@@ -100,7 +100,7 @@ export function PipelineColumn({
             style={{ backgroundColor: stage.color }}
             aria-hidden
           />
-          <h3 className="truncate text-detail font-semibold uppercase tracking-[0.04em] text-foreground">
+          <h3 className="truncate text-detail font-semibold text-foreground">
             {stage.name}
           </h3>
           <Badge

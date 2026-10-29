@@ -115,7 +115,7 @@ export function TopPerformers({
                     {initials(r.name)}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <div className="text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                    <div className="text-detail font-medium text-muted-foreground">
                       {r.tied ? `Joint ${ordinal(r.place)}` : ordinal(r.place)}
                     </div>
                     <div className="truncate text-body font-semibold text-foreground">
@@ -164,7 +164,7 @@ export function TopPerformers({
 
         {awards.length > 0 && (
           <div className="border-t border-border/60 pt-4">
-            <h3 className="mb-2 text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
+            <h3 className="mb-2 text-detail font-medium text-muted-foreground">
               Awards · {period}
             </h3>
             <ul className="flex flex-wrap gap-2">

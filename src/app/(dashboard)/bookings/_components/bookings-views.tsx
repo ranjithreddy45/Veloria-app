@@ -103,7 +103,7 @@ export function BookingsViews({ data }: BookingsViewsProps) {
                     <StatusPill label={meta.label} hue={meta.pillHue} size="xs" />
                   )}
                 </div>
-                <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
+                <p className="text-detail font-medium text-muted-foreground">
                   {b.bookingNumber}
                 </p>
                 <div className="space-y-1 text-meta text-muted-foreground">

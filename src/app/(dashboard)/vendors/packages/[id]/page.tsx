@@ -137,7 +137,7 @@ export default async function PackageDetailPage({
             ) : (
               <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted">
                 <ImageIcon className="size-10 text-muted-foreground/50" />
-                <span className="text-meta font-medium uppercase tracking-[0.14em] text-muted-foreground/60">
+                <span className="text-detail font-medium text-muted-foreground/60">
                   No photos on this package yet
                 </span>
               </div>
@@ -285,7 +285,7 @@ export default async function PackageDetailPage({
                           {item.type === "SINGLE_CHOICE" &&
                             item.options.length > 0 && (
                               <div className="ml-6 space-y-1">
-                                <p className="text-meta font-medium text-muted-foreground uppercase tracking-wide">
+                                <p className="text-detail font-medium text-muted-foreground">
                                   Choose one:
                                 </p>
                                 <div className="flex flex-wrap gap-1.5">
@@ -305,7 +305,7 @@ export default async function PackageDetailPage({
                           {item.type === "MULTI_CHOICE" &&
                             item.options.length > 0 && (
                               <div className="ml-6 space-y-1">
-                                <p className="text-meta font-medium text-muted-foreground uppercase tracking-wide">
+                                <p className="text-detail font-medium text-muted-foreground">
                                   Choose {item.chooseCount ?? 1}:
                                 </p>
                                 <div className="flex flex-wrap gap-1.5">
@@ -341,7 +341,7 @@ export default async function PackageDetailPage({
         <div className="space-y-4">
           {/* Price card */}
           <div className="space-y-1 surface-glass rounded-[22px] p-5">
-            <p className="text-meta font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+            <p className="text-detail font-semibold text-muted-foreground">
               Package price
             </p>
             <p className="numeric text-h1 font-semibold leading-tight tracking-[-0.02em] text-foreground">

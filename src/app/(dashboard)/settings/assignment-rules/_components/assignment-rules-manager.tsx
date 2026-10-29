@@ -269,7 +269,7 @@ export function AssignmentRulesManager() {
                         </span>
                       </div>
 
-                      <div className="mt-2.5 text-meta uppercase tracking-wide text-muted-foreground">
+                      <div className="mt-2.5 text-detail text-muted-foreground">
                         Priority{" "}
                         <span className="numeric font-medium text-foreground">
                           {rule.priority}

@@ -49,7 +49,7 @@ const inr = (n: number) => "₹" + Math.round(n || 0).toLocaleString("en-IN");
 /** Quiet card heading, shared by every panel on this page. */
 const PANEL_TITLE = "text-body font-semibold tracking-[-0.01em] text-foreground";
 /** Micro field label. */
-const MICRO_LABEL = "text-meta uppercase tracking-wide text-muted-foreground";
+const MICRO_LABEL = "text-detail text-muted-foreground";
 
 function FunnelBar({ label, count, max, conv }: { label: string; count: number; max: number; conv: string | null }) {
   const w = max > 0 ? Math.min(100, Math.round((count / max) * 100)) : 0;

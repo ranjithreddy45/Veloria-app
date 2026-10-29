@@ -41,7 +41,7 @@ function Field({
 }) {
   return (
     <div>
-      <p className="text-meta uppercase tracking-wide text-muted-foreground">
+      <p className="text-detail text-muted-foreground">
         {label}
       </p>
       <div className={`mt-1 text-sm${mono ? " numeric" : ""}`}>{children}</div>
@@ -306,7 +306,7 @@ export default async function ReferralDetailPage({
           </div>
 
           <div className="mt-5 border-t pt-4">
-            <p className="text-meta uppercase tracking-wide text-muted-foreground">
+            <p className="text-detail text-muted-foreground">
               Notes
             </p>
             {referral.notes ? (

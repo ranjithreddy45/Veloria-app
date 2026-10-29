@@ -691,8 +691,8 @@ export function AppSidebar() {
                     <span className="font-editorial text-copy font-semibold tracking-[-0.01em] text-sidebar-foreground">
                       Veloria Grand
                     </span>
-                    <span className="text-meta font-medium tracking-wide text-sidebar-foreground/45">
-                      Venue Management
+                    <span className="text-detail text-subtle-foreground">
+                      Venue management
                     </span>
                   </div>
                 </>
@@ -700,7 +700,6 @@ export function AppSidebar() {
             />
           </div>
         </Link>
-        <div className="divider-fade mt-3 group-data-[collapsible=icon]:hidden" />
       </SidebarHeader>
 
       {/* Navigation. */}
@@ -710,38 +709,30 @@ export function AppSidebar() {
             <SidebarMenu>
               {/* Pinned by you. Rendered only once the client store has been
                   read (`hydrated`): pins live in localStorage, which the server
-                  cannot see, so drawing anything earlier would either mismatch
-                  on hydration or flash the empty hint at people who have pins. */}
-              {hydrated && (
+                  cannot see, so drawing anything earlier would mismatch on
+                  hydration. With no pins the section is not drawn at all
+                  (Workspace v3: the empty label and hint were the first thing
+                  in the sidebar); the star on each row's hover offers it. */}
+              {hydrated && pinnedItems.length > 0 && (
                 <>
                   <SidebarGroupLabel className="mt-1 mb-0.5 px-2.5 text-detail font-medium text-subtle-foreground group-data-[collapsible=icon]:hidden">
                     Pinned by you
                   </SidebarGroupLabel>
-                  {pinnedItems.length === 0 ? (
-                    // The feature is hover-revealed on desktop, so without this
-                    // line nobody would ever discover it.
-                    <li className="px-2.5 pb-1 text-meta leading-snug text-sidebar-foreground/45 group-data-[collapsible=icon]:hidden">
-                      Star any module to keep it here.
-                    </li>
-                  ) : (
-                    <>
-                      {pinnedItems.map((item) => (
-                        <SidebarNavItem
-                          key={`pin:${item.href}`}
-                          item={item}
-                          isActive={currentPath === item.href || currentPath.startsWith(item.href + "/")}
-                          onNavigate={handleNavigate}
-                          pin={{ pinned: true, reveal: "hover", onToggle: () => handleTogglePin(item) }}
-                        />
-                      ))}
-                      {/* Icon-only mode hides the labels, so a hairline is the
-                          only thing separating pins from the full module list. */}
-                      <li
-                        aria-hidden
-                        className="mx-2 my-1.5 hidden h-px bg-sidebar-border group-data-[collapsible=icon]:block"
-                      />
-                    </>
-                  )}
+                  {pinnedItems.map((item) => (
+                    <SidebarNavItem
+                      key={`pin:${item.href}`}
+                      item={item}
+                      isActive={currentPath === item.href || currentPath.startsWith(item.href + "/")}
+                      onNavigate={handleNavigate}
+                      pin={{ pinned: true, reveal: "hover", onToggle: () => handleTogglePin(item) }}
+                    />
+                  ))}
+                  {/* Icon-only mode hides the labels, so a hairline is the
+                      only thing separating pins from the full module list. */}
+                  <li
+                    aria-hidden
+                    className="mx-2 my-1.5 hidden h-px bg-sidebar-border group-data-[collapsible=icon]:block"
+                  />
                 </>
               )}
               {(() => {

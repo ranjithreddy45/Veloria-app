@@ -53,7 +53,7 @@ export function AttentionFeed({
               <div className="flex min-w-0 flex-1 gap-3">
                 <span aria-hidden className={cn("w-1.5 shrink-0 self-stretch rounded-full", BAR[item.severity])} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-meta font-semibold uppercase tracking-[0.08em] text-foreground/70">
+                  <p className="text-detail font-semibold text-foreground/70">
                     {SEVERITY_LABEL[item.severity]}
                   </p>
                   <p className="text-copy font-medium text-foreground [overflow-wrap:anywhere]">{item.title}</p>

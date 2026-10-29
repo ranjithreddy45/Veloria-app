@@ -340,7 +340,7 @@ export function BookingCalendar({
               key={day}
               // px-2 + 0.08em tracking makes "WED" ~46px inside a ~49px cell on
               // a 375px phone — one character of drift from clipping.
-              className="px-0.5 py-2 text-center text-meta font-medium uppercase tracking-normal text-muted-foreground sm:px-2 sm:py-2.5 sm:text-meta sm:tracking-[0.08em]"
+              className="px-0.5 py-2 text-center text-detail font-medium tracking-normal text-muted-foreground sm:px-2 sm:py-2.5 sm:text-detail"
             >
               {day}
             </div>
@@ -423,7 +423,7 @@ export function BookingCalendar({
                         className="size-1.5 rounded-full bg-destructive sm:hidden"
                         aria-label="Blocked"
                       />
-                      <span className="hidden text-meta font-semibold uppercase tracking-wide text-red-500 sm:inline">
+                      <span className="hidden text-detail font-semibold text-red-500 sm:inline">
                         Blocked
                       </span>
                     </>

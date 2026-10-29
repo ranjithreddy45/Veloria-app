@@ -168,7 +168,7 @@ export function ClaimTrailDialog({
                     s.state === "returned" && "border-orange-500/30 bg-orange-500/5",
                   )}
                 >
-                  <div className="text-meta font-medium uppercase tracking-wide text-muted-foreground">Step {i + 1}</div>
+                  <div className="text-detail font-medium text-muted-foreground">Step {i + 1}</div>
                   <div className="text-detail font-medium">{s.label}</div>
                   <div className="text-meta text-muted-foreground">{s.who}</div>
                   {s.note && <div className="mt-0.5 text-meta text-foreground/80">{s.note}</div>}
@@ -179,7 +179,7 @@ export function ClaimTrailDialog({
 
             {/* Bills */}
             <div className="space-y-1.5">
-              <div className="text-meta font-medium uppercase tracking-wide text-muted-foreground">Supporting bills</div>
+              <div className="text-detail font-medium text-muted-foreground">Supporting bills</div>
               {detail.attachments.length === 0 && !detail.hasLegacyBill ? (
                 <p className="text-detail text-muted-foreground">No bills attached.</p>
               ) : (
@@ -208,7 +208,7 @@ export function ClaimTrailDialog({
 
             {/* Full trail */}
             <div className="space-y-1.5">
-              <div className="text-meta font-medium uppercase tracking-wide text-muted-foreground">History</div>
+              <div className="text-detail font-medium text-muted-foreground">History</div>
               {detail.events.length === 0 ? (
                 <p className="text-detail text-muted-foreground">No history recorded.</p>
               ) : (

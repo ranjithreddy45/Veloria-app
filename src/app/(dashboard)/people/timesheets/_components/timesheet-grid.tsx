@@ -232,7 +232,7 @@ export function TimesheetGrid({
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-meta uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b border-border text-left text-detail text-muted-foreground">
                   <th className="w-32 py-2 pr-3 font-medium">Day</th>
                   <th className="w-28 py-2 pr-3 font-medium">Hours</th>
                   <th className="w-48 py-2 pr-3 font-medium">Project</th>

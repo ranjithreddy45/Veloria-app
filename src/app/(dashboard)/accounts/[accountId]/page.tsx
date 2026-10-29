@@ -106,7 +106,7 @@ export default async function AccountDetailPage({
       {/* Identity strip — primary contact + ownership at a glance */}
       <div className="grid gap-5 surface-glass rounded-[22px] p-5 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="text-meta uppercase tracking-wide text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             Primary contact
           </p>
           <p className="mt-1 flex items-center gap-1.5 text-sm">
@@ -119,7 +119,7 @@ export default async function AccountDetailPage({
           </p>
         </div>
         <div>
-          <p className="text-meta uppercase tracking-wide text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             Reach
           </p>
           <div className="mt-1 space-y-0.5 text-sm">
@@ -141,13 +141,13 @@ export default async function AccountDetailPage({
           </div>
         </div>
         <div>
-          <p className="text-meta uppercase tracking-wide text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             Owner
           </p>
           <p className="mt-1 text-sm">{account.ownerName ?? "Unassigned"}</p>
         </div>
         <div>
-          <p className="text-meta uppercase tracking-wide text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             Next re-engage
           </p>
           <p className="numeric mt-1 text-sm">

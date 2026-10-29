@@ -25,7 +25,7 @@ const VISIBLE_CALLS = 5;
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string | null }) {
   return (
     <div className="rounded-xl border bg-muted/30 px-3 py-2.5">
-      <p className="text-meta uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-detail text-muted-foreground">{label}</p>
       <p className="numeric mt-0.5 text-copy font-semibold">{value}</p>
       {sub ? <p className="mt-0.5 truncate text-detail text-muted-foreground">{sub}</p> : null}
     </div>

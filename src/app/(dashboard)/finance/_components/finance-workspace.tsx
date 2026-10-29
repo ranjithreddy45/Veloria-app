@@ -63,7 +63,7 @@ export function FinanceWorkspace({
               * padding relax below sm:. */}
             <Table className="[&_td]:px-2.5 [&_th]:px-2.5 sm:[&_td]:px-4 sm:[&_th]:px-4">
               <TableHeader>
-                <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-meta [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
+                <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-detail [&>th]:font-medium [&>th]:text-muted-foreground">
                   <TableHead className="sm:w-24">Code</TableHead>
                   <TableHead>Account</TableHead>
                   <TableHead className="text-right sm:w-40">Debit</TableHead>
@@ -105,7 +105,7 @@ export function FinanceWorkspace({
           <div className="overflow-hidden surface-glass rounded-[22px]">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-meta [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground">
+                <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-detail [&>th]:font-medium [&>th]:text-muted-foreground">
                   <TableHead className="w-24">Code</TableHead>
                   <TableHead>Account</TableHead>
                   <TableHead className="w-32">Type</TableHead>

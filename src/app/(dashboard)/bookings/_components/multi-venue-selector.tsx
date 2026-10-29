@@ -363,7 +363,7 @@ export function MultiVenueSelector({
 
                 {/* Per-venue breakdown */}
                 <div className="space-y-2">
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <p className="text-xs font-medium text-muted-foreground">
                     Per-Venue Breakdown
                   </p>
                   {schedule.map((venueSchedule) => (

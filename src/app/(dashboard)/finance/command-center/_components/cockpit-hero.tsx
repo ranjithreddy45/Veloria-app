@@ -25,7 +25,7 @@ export function CockpitHero({ fy, cashPosition, mtdRevenue, mtdExpense, mtdNet }
       <div className="grid gap-8 sm:grid-cols-[1.4fr_1fr] sm:items-center">
         <div className="space-y-6">
           <div>
-            <p className="text-meta font-medium uppercase tracking-[0.08em] text-white/60">
+            <p className="text-detail font-medium text-white/60">
               Cash position · all bank accounts
             </p>
             {/* The hero band is overflow-hidden, so an over-long figure is
@@ -71,7 +71,7 @@ export function CockpitHero({ fy, cashPosition, mtdRevenue, mtdExpense, mtdNet }
 function HeroStat({ label, value, accent, sub }: { label: string; value: string; accent: string; sub?: string }) {
   return (
     <div>
-      <p className="text-meta font-medium uppercase tracking-[0.06em] text-white/55">{label}</p>
+      <p className="text-detail font-medium text-white/55">{label}</p>
       <p className={`mt-1 text-xl font-semibold numeric ${accent}`}>{value}</p>
       {sub && <p className="mt-0.5 text-meta text-white/45">{sub}</p>}
     </div>

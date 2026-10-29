@@ -132,7 +132,7 @@ export function BlackoutManager({ blackouts, venues }: BlackoutManagerProps) {
       <div className="overflow-x-auto surface-glass rounded-[22px]">
         <table className="w-full min-w-[480px] border-collapse text-body">
           <thead>
-            <tr className="border-b border-border bg-muted/40 text-left text-meta font-medium uppercase tracking-wide text-muted-foreground">
+            <tr className="border-b border-border bg-muted/40 text-left text-detail font-medium text-muted-foreground">
               <th className="px-3 py-2 font-medium">Venue</th>
               <th className="px-3 py-2 font-medium">Date</th>
               <th className="px-3 py-2 font-medium">Slot</th>

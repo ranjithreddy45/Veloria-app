@@ -207,7 +207,7 @@ export function PreviewCard({ b }: { b: FnfBreakdown }) {
   );
   return (
     <div className="rounded-xl border bg-muted/30 p-4">
-      <div className="mb-2 text-meta font-semibold uppercase tracking-wide text-muted-foreground">Computation</div>
+      <div className="mb-2 text-detail font-semibold text-muted-foreground">Computation</div>
       {line("Gratuity", formatINR(b.gratuityAmt),
         `${b.gratuityEligibleYears} completed yr(s) · last-drawn basic ${formatINR(b.lastDrawnBasic)}`, "+")}
       {line("Leave encashment", formatINR(b.leaveEncashAmt),

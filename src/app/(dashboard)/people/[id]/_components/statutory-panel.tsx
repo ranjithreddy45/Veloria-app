@@ -28,7 +28,7 @@ export function StatutoryPanel({ employeeId, masked }: { employeeId: string; mas
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-4 text-success" />
-          <h3 className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">Statutory &amp; bank</h3>
+          <h3 className="text-detail font-semibold text-muted-foreground">Statutory &amp; bank</h3>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={toggleReveal} disabled={revealing}>
@@ -60,7 +60,7 @@ export function StatutoryPanel({ employeeId, masked }: { employeeId: string; mas
 function SField({ label, value, mono }: { label: string; value: string | null; mono?: boolean }) {
   return (
     <div className="min-w-0 rounded-xl border border-border/60 bg-muted/30 px-3.5 py-2.5">
-      <dt className="text-meta uppercase tracking-wide text-muted-foreground">{label}</dt>
+      <dt className="text-detail text-muted-foreground">{label}</dt>
       <dd className={`mt-1 text-sm font-medium ${mono ? "numeric" : ""}`}>
         {value || <span className="font-sans text-muted-foreground/50">—</span>}
       </dd>

@@ -488,7 +488,7 @@ export function ClientReports({ range }: ClientReportsProps) {
 
               {/* Invoices Table */}
               <div>
-                <h4 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Invoices</h4>
+                <h4 className="mb-2 text-xs font-semibold text-muted-foreground">Invoices</h4>
                 {ledgerData.invoices.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -533,7 +533,7 @@ export function ClientReports({ range }: ClientReportsProps) {
 
               {/* Payments Table */}
               <div>
-                <h4 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Payments</h4>
+                <h4 className="mb-2 text-xs font-semibold text-muted-foreground">Payments</h4>
                 {ledgerData.payments.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">

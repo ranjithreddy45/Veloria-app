@@ -168,7 +168,7 @@ export function OperationsReports({ range }: OperationsReportsProps) {
               {/* Upcoming Events */}
               {dailyData.upcomingEvents.length > 0 && (
                 <div>
-                  <h4 className="mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <h4 className="mb-2 text-xs font-semibold text-muted-foreground">
                     Events for this Day
                   </h4>
                   <div className="space-y-2">

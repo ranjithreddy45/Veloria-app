@@ -117,7 +117,7 @@ export function AutoIncentivePanel() {
             <div className="overflow-x-auto rounded-lg border">
               <table className="w-full text-detail">
                 <thead>
-                  <tr className="border-b bg-muted/40 text-left text-meta uppercase tracking-wide text-muted-foreground">
+                  <tr className="border-b bg-muted/40 text-left text-detail text-muted-foreground">
                     <th className="w-8 px-2 py-2"></th>
                     <th className="px-2 py-2 font-medium">Rep</th>
                     <th className="px-2 py-2 text-right font-medium">Bookings</th>

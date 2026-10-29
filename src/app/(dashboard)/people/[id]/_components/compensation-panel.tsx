@@ -28,7 +28,7 @@ export function CompensationPanel({
         <div className="mb-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Wallet className="size-4 text-success" />
-            <h3 className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">Current compensation</h3>
+            <h3 className="text-detail font-semibold text-muted-foreground">Current compensation</h3>
           </div>
           {canWrite && (
             <div className="flex items-center gap-2">
@@ -50,7 +50,7 @@ export function CompensationPanel({
             </p>
 
             <div className="mt-5">
-              <h4 className="mb-2 text-meta font-semibold uppercase tracking-wide text-muted-foreground">Monthly breakdown</h4>
+              <h4 className="mb-2 text-detail font-semibold text-muted-foreground">Monthly breakdown</h4>
               <div className="divide-y overflow-hidden rounded-xl border">
                 {current.lines.map((l) => (
                   <div key={l.code} className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-body">
@@ -90,7 +90,7 @@ export function CompensationPanel({
         <div className="surface-glass rounded-[22px] p-5">
           <div className="mb-4 flex items-center gap-2">
             <History className="size-4 text-muted-foreground" />
-            <h3 className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">Revision history</h3>
+            <h3 className="text-detail font-semibold text-muted-foreground">Revision history</h3>
           </div>
           <div className="divide-y">
             {history.map((h) => (
@@ -118,7 +118,7 @@ export function CompensationPanel({
 function Stat({ label, value, big }: { label: string; value: string; big?: boolean }) {
   return (
     <div className="rounded-xl border border-border/60 bg-muted/30 px-3.5 py-3">
-      <div className="text-meta uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-detail text-muted-foreground">{label}</div>
       <div className={`numeric mt-1 font-semibold leading-none ${big ? "text-title" : "text-lede"}`}>{value}</div>
     </div>
   );

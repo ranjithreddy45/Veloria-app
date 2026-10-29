@@ -48,7 +48,7 @@ export function RevenueMarginGridView({ grid }: { grid: RevenueMarginGrid }) {
 
       {/* Secondary line: the spread only — deliberately NOT the headline. */}
       <div className="rounded-md border border-border/60 bg-muted/30 p-3.5">
-        <div className="text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
+        <div className="text-detail font-medium text-muted-foreground">
           Veloria&apos;s margin (spread only — not owner revenue)
         </div>
         <div className="mt-1.5 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -111,7 +111,7 @@ function Figure({
 }) {
   return (
     <div className="space-y-0.5">
-      <div className="text-meta uppercase tracking-[0.06em] text-muted-foreground">
+      <div className="text-detail text-muted-foreground">
         {label}
       </div>
       <div
@@ -148,7 +148,7 @@ function CaseTile({
           : "rounded-md border border-border/60 p-3.5"
       }
     >
-      <div className="text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
+      <div className="text-detail font-medium text-muted-foreground">
         {title}
       </div>
       <div className="mt-1 text-title font-semibold tracking-[-0.02em] text-foreground">

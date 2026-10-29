@@ -147,7 +147,7 @@ function StageStrip({ counts }: { counts: Record<string, number> }) {
             <span className="text-title font-semibold leading-none tabular-nums">
               {counts[stage] ?? 0}
             </span>
-            <span className="text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground">
+            <span className="text-detail font-medium text-muted-foreground">
               {STAGE_LABEL[stage]}
             </span>
           </div>

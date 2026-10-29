@@ -345,7 +345,7 @@ export function SmsConsole({ initialMessages, initialStats }: SmsConsoleProps) {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr className="border-b text-left text-xs text-muted-foreground">
                       <th className="pb-2 pr-3 font-medium">To</th>
                       <th className="pb-2 pr-3 font-medium">Message</th>
                       <th className="pb-2 pr-3 font-medium">Status</th>

@@ -330,7 +330,7 @@ export function ContractDetail({ contract }: ContractDetailProps) {
               <>
                 <Separator />
                 <div>
-                  <div className="text-xs font-medium text-muted-foreground uppercase mb-1">
+                  <div className="text-xs font-medium text-muted-foreground mb-1">
                     Linked Booking
                   </div>
                   <div className="font-medium">

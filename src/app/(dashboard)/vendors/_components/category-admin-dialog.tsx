@@ -160,7 +160,7 @@ export function CategoryAdminDialog({ trigger }: CategoryAdminDialogProps) {
 
           {/* Seed (built-in) categories — read-only reference */}
           <div className="space-y-2">
-            <p className="text-detail font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-detail font-medium text-muted-foreground">
               Built-in
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -177,7 +177,7 @@ export function CategoryAdminDialog({ trigger }: CategoryAdminDialogProps) {
 
           {/* Custom categories */}
           <div className="space-y-2">
-            <p className="text-detail font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-detail font-medium text-muted-foreground">
               Custom
             </p>
             {loading ? (

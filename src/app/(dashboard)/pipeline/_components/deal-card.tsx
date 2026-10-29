@@ -148,7 +148,7 @@ export function DealCard({
           <div className="flex items-center gap-2 pt-0.5">
             <div className="flex-1">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-meta uppercase tracking-[0.05em] text-muted-foreground/70 font-medium">
+                <span className="text-detail text-muted-foreground/70 font-medium">
                   Probability
                 </span>
                 <span className="text-meta font-medium tabular-nums text-foreground/80">

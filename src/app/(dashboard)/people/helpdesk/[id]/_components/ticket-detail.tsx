@@ -83,7 +83,7 @@ export function TicketDetail({
 
         {isAgent && (
           <div className="surface-glass rounded-[22px] p-4 space-y-2.5">
-            <div className="text-detail font-semibold uppercase tracking-wide text-muted-foreground">Agent controls</div>
+            <div className="text-detail font-semibold text-muted-foreground">Agent controls</div>
             <Button variant="outline" size="sm" className="w-full gap-1.5" disabled={busy} onClick={() => patch(() => assignTicket(ticket.id, myId))}><UserCheck className="size-3.5" /> Assign to me</Button>
             <Select value={ticket.status} onValueChange={(v) => patch(() => setTicketStatus(ticket.id, v))}>
               <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>

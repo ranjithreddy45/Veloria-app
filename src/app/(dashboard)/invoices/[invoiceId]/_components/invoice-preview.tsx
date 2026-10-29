@@ -177,7 +177,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
             <div className="font-editorial text-h1 font-semibold leading-tight text-zinc-900">
               Veloria Grand
             </div>
-            <p className="mt-1 text-meta font-semibold uppercase tracking-[0.08em] text-zinc-500">
+            <p className="mt-1 text-detail font-semibold text-zinc-500">
               {COMPANY_LEGAL_LINE}
             </p>
             <p className="mt-1.5 text-body text-zinc-500">
@@ -190,7 +190,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
             </p>
           </div>
           <div className="shrink-0 text-left sm:text-right">
-            <h2 className="text-body font-semibold uppercase tracking-[0.14em] text-zinc-400">
+            <h2 className="text-body font-semibold text-zinc-400">
               {docTitle}
             </h2>
             <p className="numeric mt-1.5 text-title font-semibold text-zinc-900">
@@ -226,7 +226,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
         {/* Bill To & Invoice Details */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div className="rounded-xl bg-zinc-50/80 p-4 print:bg-transparent print:p-0">
-            <h3 className="mb-2 text-meta font-semibold uppercase tracking-[0.12em] text-zinc-400">
+            <h3 className="mb-2 text-detail font-semibold text-zinc-400">
               Bill To
             </h3>
             <p className="text-copy font-semibold text-zinc-900">
@@ -261,7 +261,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
             )}
           </div>
           <div className="rounded-xl bg-zinc-50/80 p-4 print:bg-transparent print:p-0">
-            <h3 className="mb-2 text-meta font-semibold uppercase tracking-[0.12em] text-zinc-400">
+            <h3 className="mb-2 text-detail font-semibold text-zinc-400">
               Invoice Details
             </h3>
             <div className="space-y-1 text-body">
@@ -343,24 +343,24 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
           <table className="w-full text-body">
             <thead>
               <tr className="border-b border-zinc-300">
-                <th className="w-8 pb-2 text-left text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                <th className="w-8 pb-2 text-left text-detail font-semibold text-zinc-400">
                   #
                 </th>
-                <th className="pb-2 text-left text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                <th className="pb-2 text-left text-detail font-semibold text-zinc-400">
                   Description
                 </th>
                 {invoice.lineItems[0]?.sacCode && (
-                  <th className="pb-2 text-left text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                  <th className="pb-2 text-left text-detail font-semibold text-zinc-400">
                     SAC
                   </th>
                 )}
-                <th className="w-16 pb-2 text-right text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                <th className="w-16 pb-2 text-right text-detail font-semibold text-zinc-400">
                   Qty
                 </th>
-                <th className="w-32 pb-2 text-right text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                <th className="w-32 pb-2 text-right text-detail font-semibold text-zinc-400">
                   Unit Price
                 </th>
-                <th className="w-36 pb-2 text-right text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                <th className="w-36 pb-2 text-right text-detail font-semibold text-zinc-400">
                   Amount
                 </th>
               </tr>
@@ -467,7 +467,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
                 already says a refunded, cancelled or draft one owes nothing. */}
             {showProgress && (
               <div className="pt-3 print:hidden">
-                <div className="flex items-center justify-between text-meta font-semibold uppercase tracking-[0.1em] text-zinc-400">
+                <div className="flex items-center justify-between text-detail font-semibold text-zinc-400">
                   <span>Collection progress</span>
                   <span className="numeric tracking-normal">{paidPct}%</span>
                 </div>
@@ -508,7 +508,7 @@ export function InvoicePreview({ invoice }: InvoicePreviewProps) {
         {!fullyPaid && (
           <div className="mt-8 space-y-2">
             <Separator />
-            <h4 className="text-xs font-semibold uppercase text-zinc-400 mb-1">
+            <h4 className="text-xs font-semibold text-zinc-400 mb-1">
               Payment Terms
             </h4>
             <p className="text-sm text-zinc-600 whitespace-pre-line">
@@ -525,7 +525,7 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
             <Separator />
             {invoice.notes && (
               <div>
-                <h4 className="text-xs font-semibold uppercase text-zinc-400 mb-1">
+                <h4 className="text-xs font-semibold text-zinc-400 mb-1">
                   Notes
                 </h4>
                 <p className="text-sm text-zinc-600 whitespace-pre-line">
@@ -535,7 +535,7 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
             )}
             {customTerms && (
               <div>
-                <h4 className="text-xs font-semibold uppercase text-zinc-400 mb-1">
+                <h4 className="text-xs font-semibold text-zinc-400 mb-1">
                   Terms & Conditions
                 </h4>
                 <p className="text-sm text-zinc-600 whitespace-pre-line">
@@ -599,7 +599,7 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
             <div className="hidden overflow-x-auto sm:block">
               <table className="w-full text-body">
                 <thead>
-                  <tr className="border-b bg-muted/30 text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground">
+                  <tr className="border-b bg-muted/30 text-detail font-medium text-muted-foreground">
                     <th className="px-3 py-2.5 text-left">Receipt #</th>
                     <th className="px-3 py-2.5 text-left">Date</th>
                     <th className="px-3 py-2.5 text-left">Method</th>
@@ -684,7 +684,7 @@ This is a Proforma Invoice for advance/part payment and is not a tax document. A
             <div className="hidden overflow-x-auto sm:block">
               <table className="w-full text-body">
                 <thead>
-                  <tr className="border-b bg-muted/30 text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground">
+                  <tr className="border-b bg-muted/30 text-detail font-medium text-muted-foreground">
                     <th className="px-3 py-2.5 text-left">Installment</th>
                     <th className="px-3 py-2.5 text-left">Due Date</th>
                     <th className="px-3 py-2.5 text-right">Amount</th>

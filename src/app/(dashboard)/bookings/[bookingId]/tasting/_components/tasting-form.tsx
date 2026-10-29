@@ -365,7 +365,7 @@ export function TastingForm({
 
           {/* Add New Item */}
           <div className="rounded-lg border border-dashed p-4 space-y-3">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <p className="text-xs font-medium text-muted-foreground">
               Add Menu Item
             </p>
             <div className="grid gap-3 sm:grid-cols-3">

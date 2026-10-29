@@ -3,8 +3,6 @@ import Link from "next/link";
 import { ArrowRight, MoreHorizontal, Plus, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Permission } from "@/lib/permissions";
-import { HOVER_EDGE, type Hue } from "@/lib/ui/hues";
-import { IconChip } from "@/components/ui/icon-chip";
 import { MODULES, resolveModule, type ModuleKey } from "@/config/modules";
 
 // ============================================================
@@ -19,18 +17,18 @@ import { MODULES, resolveModule, type ModuleKey } from "@/config/modules";
 // - Labels are verbs in sentence case ("New lead", "Import"); ActionLabel
 //   makes a noun label a type error. Pills that only navigate are the
 //   sidebar's job. The /dashboard hub is the one exception (`hub`).
-// - A pill's chip is its DESTINATION's module chip, resolved from the href
+// - A pill's glyph is its DESTINATION's module glyph, resolved from the href
 //   through src/config/modules.ts. Pages never pick a pill's icon or colour.
-//   The primary pill's inverse chip differs by context: on a landing it
-//   carries a Plus (R6; the destination is the page's own module, whose chip
-//   already sits in the header), while on the /dashboard hub it carries the
-//   destination's glyph like every other hub pill (owner decision 3), so the
-//   hub's "New lead" shows the leads glyph. With no module it falls back to Plus.
+//   The primary pill's glyph differs by context: on a landing it is a Plus
+//   (R6), while on the /dashboard hub it is the destination's glyph like
+//   every other hub pill (owner decision 3), so the hub's "New lead" shows the
+//   leads glyph. With no module it falls back to Plus.
 // - Who sees a pill is decided by the page with visibleActions()
 //   (src/lib/permission-claims.ts), the same override-aware rule middleware
 //   uses. This file only renders what it is given (and drops `when: false`).
 // - The accessible name is the label alone; the hint is the description
-//   (aria-describedby). The row is a list labelled "Page actions".
+//   (aria-describedby), read to screen readers only since Workspace v3 so the
+//   row stays one quiet line. The row is a list labelled "Page actions".
 // - The row wraps; it never scrolls sideways and never clips a focus ring.
 //
 // Server-safe: no "use client" and no hooks, so a server page can render the
@@ -41,9 +39,9 @@ import { MODULES, resolveModule, type ModuleKey } from "@/config/modules";
 // 3.2 KB, React Flight serialises a server-built element as a lazy reference,
 // and Radix Slot (1.2.3) renders a lazy child as nothing, so the button
 // silently disappears.
-// Every class string is a literal; text-size utilities are never passed
-// through cn(), because tailwind-merge drops text-meta/text-detail when a
-// text colour follows them.
+// Every class string is a literal. (Text sizes once had to stay out of cn():
+// tailwind-merge dropped text-meta/text-detail beside a text colour until
+// src/lib/utils.ts taught it the type scale.)
 // ============================================================
 
 /** The verbs a page action label may start with. */
@@ -72,7 +70,7 @@ export function isActionLabel(label: string): label is ActionLabel {
 }
 
 type ActionSpecFields = {
-  /** Destination. Also decides the pill's chip (its module's glyph and hue). */
+  /** Destination. Also decides the pill's glyph (its module's icon). */
   href: string;
   /** One short line in a command voice ("Add an enquiry"), at most 24 characters. */
   hint?: string;
@@ -85,11 +83,11 @@ type ActionSpecFields = {
   /** false hides the pill (feature flag, module setup state). */
   when?: boolean;
   /**
-   * The page's main create action: the filled plum pill. Its chip carries a
+   * The page's main create action: the filled plum pill. Its glyph is a
    * Plus on a landing, and the destination's module glyph on the hub.
    */
   primary?: boolean;
-  /** Use this module's chip instead of the one resolved from `href`. */
+  /** Use this module's glyph instead of the one resolved from `href`. */
   module?: ModuleKey;
 };
 
@@ -108,23 +106,27 @@ export type HubActionSpec = ActionSpecFields & { label: string };
 // Classes
 // ---------------------------------------------------------------------------
 
+// Workspace v3: a pill is a plain one-line button (36px), the same anatomy as
+// <Button>: a white sheet with a hairline edge, or flat plum for the primary.
+// The glyph is a bare icon, not a coloured chip, and the hint is read to
+// screen readers only (aria-describedby), so a header row stays one quiet line.
 // pointer-coarse: a 44px touch target on phones and tablets, matching the
 // app-wide coarse-pointer minimum that buttons already get in globals.css, so
 // link pills, button pills and the More trigger share one row height there.
 const PILL_BASE =
-  "group flex shrink-0 items-center gap-2 rounded-xl border px-3 py-1.5 text-left transition-[background-color,border-color,scale] active:scale-95 disabled:pointer-events-none disabled:opacity-50 pointer-coarse:min-h-11";
-const PILL_SECONDARY = "border-border bg-card hover:bg-muted/40";
-const PILL_PRIMARY = "border-primary bg-primary hover:bg-primary/90";
+  "group flex h-9 shrink-0 items-center gap-2 rounded-[10px] border px-3.5 text-left transition-[background-color,border-color,scale] active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 pointer-coarse:min-h-11";
+const PILL_SECONDARY = "border-border bg-card shadow-[var(--shadow-1)] hover:border-input dark:hover:bg-accent";
+const PILL_PRIMARY =
+  "border-transparent bg-primary shadow-[0_1px_2px_rgb(109_27_82/0.22),inset_0_1px_0_rgb(255_255_255/0.12)] hover:bg-primary-hover dark:shadow-none";
 
-const LABEL_SECONDARY = "text-detail font-semibold leading-tight text-foreground";
-const LABEL_PRIMARY = "text-detail font-semibold leading-tight text-primary-foreground";
-const HINT_SECONDARY = "hidden text-meta leading-tight text-muted-foreground sm:block";
-const HINT_PRIMARY = "hidden text-meta leading-tight text-primary-foreground/80 sm:block";
+const LABEL_SECONDARY = "text-body font-medium leading-none text-foreground";
+const LABEL_PRIMARY = "text-body font-medium leading-none text-primary-foreground";
+const GLYPH_SECONDARY = "size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground";
+const GLYPH_PRIMARY = "size-4 shrink-0 text-primary-foreground";
 
-// Square, and the same height as a pill without a hint (1px border + 6px
-// padding + 28px box); 44px square on a coarse pointer.
+// Square, and the same height as a pill; 44px square on a coarse pointer.
 const MORE_TRIGGER =
-  "flex shrink-0 items-center justify-center rounded-xl border border-border bg-card p-1.5 text-muted-foreground transition-[background-color,border-color,scale] hover:bg-muted/40 hover:text-foreground active:scale-95 data-[state=open]:bg-muted/40 data-[state=open]:text-foreground disabled:pointer-events-none disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:min-w-11";
+  "flex size-9 shrink-0 items-center justify-center rounded-[10px] border border-border bg-card text-muted-foreground shadow-[var(--shadow-1)] transition-[background-color,border-color,scale] hover:border-input hover:text-foreground active:scale-[0.97] data-[state=open]:border-input data-[state=open]:text-foreground disabled:pointer-events-none disabled:opacity-50 pointer-coarse:min-h-11 pointer-coarse:min-w-11";
 
 const LIST =
   "flex flex-wrap items-center gap-2 [&:not(:has(a,button))]:hidden";
@@ -133,9 +135,8 @@ const LIST =
 const ITEM = "flex shrink-0 items-center gap-2 empty:hidden";
 
 // A pill whose destination belongs to no module (rare: the hub, an external
-// link) gets a neutral chip.
+// link) gets an arrow.
 const FALLBACK_GLYPH: LucideIcon = ArrowRight;
-const FALLBACK_HUE: Hue = "slate";
 
 // ---------------------------------------------------------------------------
 // Ids
@@ -171,35 +172,34 @@ function PillBody({
   primary,
   glyph,
   primaryGlyph = Plus,
-  hue,
   label,
   hint,
   hintId,
 }: {
   primary: boolean;
   glyph: LucideIcon | React.ReactElement;
-  /** The glyph in a primary pill's inverse chip: Plus, except on the hub. */
+  /** A primary pill's glyph: Plus, except on the hub. */
   primaryGlyph?: LucideIcon;
-  hue: Hue;
   label: string;
   hint?: string;
   hintId: string;
 }) {
+  const Glyph = primary ? primaryGlyph : glyph;
   return (
     <>
-      {primary ? (
-        <IconChip icon={primaryGlyph} hue="brand" size="sm" tone="inverse" />
+      {React.isValidElement(Glyph) ? (
+        <span className={primary ? GLYPH_PRIMARY : GLYPH_SECONDARY} aria-hidden>
+          {Glyph}
+        </span>
       ) : (
-        <IconChip icon={glyph} hue={hue} size="sm" tone="solid" />
+        <Glyph className={primary ? GLYPH_PRIMARY : GLYPH_SECONDARY} strokeWidth={primary ? 2.25 : 2} aria-hidden />
       )}
-      <span className="flex min-w-0 flex-col">
-        <span className={primary ? LABEL_PRIMARY : LABEL_SECONDARY}>{label}</span>
-        {hint && (
-          <span id={hintId} className={primary ? HINT_PRIMARY : HINT_SECONDARY}>
-            {hint}
-          </span>
-        )}
-      </span>
+      <span className={primary ? LABEL_PRIMARY : LABEL_SECONDARY}>{label}</span>
+      {hint && (
+        <span id={hintId} className="sr-only">
+          {hint}
+        </span>
+      )}
     </>
   );
 }
@@ -207,7 +207,6 @@ function PillBody({
 function PillLink({ action, hintId, hub }: { action: HubActionSpec; hintId: string; hub: boolean }) {
   const primary = Boolean(action.primary);
   const mod = chipFor(action.module, action.href);
-  const hue: Hue = mod?.hue ?? FALLBACK_HUE;
   // On the hub every pill, the primary included, shows where it goes (owner
   // decision 3). A landing's primary keeps R6's Plus.
   const primaryGlyph: LucideIcon = hub && mod ? mod.icon : Plus;
@@ -219,13 +218,12 @@ function PillLink({ action, hintId, hub }: { action: HubActionSpec; hintId: stri
       aria-describedby={action.hint ? hintId : undefined}
       data-slot="quick-action"
       data-variant={primary ? "primary" : "secondary"}
-      className={cn(PILL_BASE, primary ? PILL_PRIMARY : PILL_SECONDARY, !primary && HOVER_EDGE[hue])}
+      className={cn(PILL_BASE, primary ? PILL_PRIMARY : PILL_SECONDARY)}
     >
       <PillBody
         primary={primary}
         glyph={mod?.icon ?? FALLBACK_GLYPH}
         primaryGlyph={primaryGlyph}
-        hue={hue}
         label={action.label}
         hint={action.hint}
         hintId={hintId}
@@ -242,16 +240,16 @@ export interface QuickActionButtonProps
   extends Omit<React.ComponentPropsWithoutRef<"button">, "children"> {
   label: ActionLabel;
   hint?: string;
-  /** primary: a landing's main create action (filled plum, Plus chip). */
+  /** primary: a landing's main create action (filled plum, Plus glyph). */
   variant?: "primary" | "secondary";
   /**
-   * Secondary only: the chip glyph (a Lucide icon or an element, e.g. a
+   * Secondary only: the glyph (a Lucide icon or an element, e.g. a
    * spinner while pending). Defaults to `module`'s glyph. A primary button
    * pill always shows a Plus: it is a landing's create action (R6); the hub's
    * destination-glyph primary is a link pill (PillLink).
    */
   icon?: LucideIcon | React.ReactElement;
-  /** Secondary only: the module whose hue (and default glyph) the chip wears. */
+  /** Secondary only: the module whose glyph the pill shows by default. */
   module?: ModuleKey;
   /** Override the hint id when one page renders two pills with the same label. */
   hintId?: string;
@@ -273,7 +271,6 @@ export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickAction
   ) {
     const primary = variant === "primary";
     const mod = moduleKey ? MODULES[moduleKey] : null;
-    const hue: Hue = mod?.hue ?? FALLBACK_HUE;
     const id = hintId ?? quickActionHintId(label);
 
     return (
@@ -285,12 +282,11 @@ export const QuickActionButton = React.forwardRef<HTMLButtonElement, QuickAction
         {...rest}
         data-slot="quick-action"
         data-variant={primary ? "primary" : "secondary"}
-        className={cn(PILL_BASE, primary ? PILL_PRIMARY : PILL_SECONDARY, !primary && HOVER_EDGE[hue], className)}
+        className={cn(PILL_BASE, primary ? PILL_PRIMARY : PILL_SECONDARY, className)}
       >
         <PillBody
           primary={primary}
           glyph={icon ?? mod?.icon ?? FALLBACK_GLYPH}
-          hue={hue}
           label={label}
           hint={hint}
           hintId={id}
@@ -325,9 +321,7 @@ export const PageMoreMenuTrigger = React.forwardRef<HTMLButtonElement, PageMoreM
         data-slot="page-more-trigger"
         className={cn(MORE_TRIGGER, className)}
       >
-        <span className="flex size-7 items-center justify-center" aria-hidden>
-          <MoreHorizontal className="size-4" strokeWidth={2} aria-hidden />
-        </span>
+        <MoreHorizontal className="size-4" strokeWidth={2} aria-hidden />
       </button>
     );
   }

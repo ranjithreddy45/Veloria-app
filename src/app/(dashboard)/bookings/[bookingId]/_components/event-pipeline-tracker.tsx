@@ -47,7 +47,7 @@ export function EventPipelineTracker({ stages }: { stages: PipelineStage[] }) {
         </div>
         <div className="text-right">
           <div className={cn("text-2xl font-bold tabular-nums leading-none", healthColor)}>{health}%</div>
-          <div className="text-meta uppercase tracking-wide text-muted-foreground">event health</div>
+          <div className="text-detail text-muted-foreground">event health</div>
         </div>
       </div>
 

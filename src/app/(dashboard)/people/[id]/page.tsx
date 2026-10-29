@@ -127,7 +127,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">{initials || "?"}</AvatarFallback>
         </Avatar>
         <div className="min-w-0 flex-1">
-          <div className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          <div className="text-detail font-semibold text-muted-foreground">
             <span className="numeric tracking-[0.08em]">{emp.empCode}</span>
           </div>
           {/* The module chip leads the title row, as in PageHeader (top-aligned,
@@ -434,7 +434,7 @@ function InfoCard({
   return (
     <div className="surface-glass rounded-[22px] p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h3 className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</h3>
+        <h3 className="text-detail font-semibold text-muted-foreground">{title}</h3>
         {action}
       </div>
       {plain ? children : <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">{children}</dl>}
@@ -450,7 +450,7 @@ function Row({
 }) {
   return (
     <div className="min-w-0">
-      <dt className="flex items-center gap-1.5 text-meta uppercase tracking-wide text-muted-foreground">
+      <dt className="flex items-center gap-1.5 text-detail text-muted-foreground">
         {icon}{label}
       </dt>
       <dd className="mt-1 text-sm">

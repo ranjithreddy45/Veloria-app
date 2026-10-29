@@ -94,25 +94,25 @@ export function AgentActivityDashboard({ initialData }: Props) {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground w-[50px]">#</TableHead>
-                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground">Agent</TableHead>
-                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground text-right">
+                <TableHead className="h-9 text-detail font-medium text-muted-foreground w-[50px]">#</TableHead>
+                <TableHead className="h-9 text-detail font-medium text-muted-foreground">Agent</TableHead>
+                <TableHead className="h-9 text-detail font-medium text-muted-foreground text-right">
                   <Phone className="mr-1 inline size-3.5" />
                   Calls
                 </TableHead>
-                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground text-right">
+                <TableHead className="h-9 text-detail font-medium text-muted-foreground text-right">
                   <MessageSquare className="mr-1 inline size-3.5" />
                   Comms
                 </TableHead>
-                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground text-right">
+                <TableHead className="h-9 text-detail font-medium text-muted-foreground text-right">
                   <Users className="mr-1 inline size-3.5" />
                   Leads
                 </TableHead>
-                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground text-right">
+                <TableHead className="h-9 text-detail font-medium text-muted-foreground text-right">
                   <CheckCircle className="mr-1 inline size-3.5" />
                   Tasks
                 </TableHead>
-                <TableHead className="h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground text-right">Total Talk Time</TableHead>
+                <TableHead className="h-9 text-detail font-medium text-muted-foreground text-right">Total Talk Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

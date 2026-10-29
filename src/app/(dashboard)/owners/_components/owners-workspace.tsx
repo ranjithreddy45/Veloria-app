@@ -244,7 +244,7 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
 
           {/* Table */}
           <div className="overflow-hidden surface-glass rounded-[22px]">
-            <div className="flex items-center border-b border-border bg-muted/30 px-3 py-2 text-meta font-medium uppercase tracking-[0.05em] text-muted-foreground">
+            <div className="flex items-center border-b border-border bg-muted/30 px-3 py-2 text-detail font-medium text-muted-foreground">
               <div className="flex-1">Owner</div>
               <div className="hidden w-40 sm:block">Property</div>
               <div className="hidden w-44 md:block">Commercials</div>
@@ -333,7 +333,7 @@ export function OwnersWorkspace({ owners }: { owners: OwnerItem[] }) {
                 >
                   <div className="flex items-center gap-2 rounded-t-lg border-b border-border bg-card/60 px-3 py-2.5">
                     <span className={cn("size-2 rounded-full", col.dot)} />
-                    <h3 className="text-detail font-semibold uppercase tracking-[0.04em] text-foreground">
+                    <h3 className="text-detail font-semibold text-foreground">
                       {col.label}
                     </h3>
                     <span className="rounded bg-background px-1 text-meta font-medium tabular-nums text-muted-foreground ring-1 ring-border">

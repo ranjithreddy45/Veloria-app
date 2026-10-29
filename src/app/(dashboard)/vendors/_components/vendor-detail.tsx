@@ -188,7 +188,7 @@ export function VendorDetail({ vendor, availableBookings, packages = [] }: Vendo
                       >
                         {pkg.name}
                       </Link>
-                      <p className="text-muted-foreground mt-0.5 text-meta font-semibold uppercase tracking-[0.1em]">
+                      <p className="text-muted-foreground mt-0.5 text-detail font-semibold">
                         {VENDOR_MODULE_CATEGORY_LABELS[pkg.category] ?? pkg.category}
                       </p>
                     </div>

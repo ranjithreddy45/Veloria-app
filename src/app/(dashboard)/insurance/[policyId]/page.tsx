@@ -85,7 +85,7 @@ export default async function InsurancePolicyDetailPage({
           ============================================================ */}
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border bg-border shadow-card lg:grid-cols-4">
         <div className="bg-card p-5">
-          <p className="text-meta uppercase tracking-wide text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             Coverage amount
           </p>
           <p className="numeric mt-1.5 text-2xl font-semibold tracking-tight">
@@ -93,7 +93,7 @@ export default async function InsurancePolicyDetailPage({
           </p>
         </div>
         <div className="bg-card p-5">
-          <p className="text-meta uppercase tracking-wide text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             Premium
           </p>
           <p className="numeric mt-1.5 text-2xl font-semibold tracking-tight">
@@ -101,7 +101,7 @@ export default async function InsurancePolicyDetailPage({
           </p>
         </div>
         <div className="bg-card p-5">
-          <p className="text-meta uppercase tracking-wide text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             Cover starts
           </p>
           <p className="numeric mt-1.5 text-base font-medium">
@@ -109,7 +109,7 @@ export default async function InsurancePolicyDetailPage({
           </p>
         </div>
         <div className="bg-card p-5">
-          <p className="text-meta uppercase tracking-wide text-muted-foreground">
+          <p className="text-detail text-muted-foreground">
             Cover ends
           </p>
           <p className="numeric mt-1.5 text-base font-medium">
@@ -132,25 +132,25 @@ export default async function InsurancePolicyDetailPage({
 
           <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5">
             <div>
-              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+              <dt className="text-detail text-muted-foreground">
                 Provider
               </dt>
               <dd className="mt-1 text-sm">{policy.provider}</dd>
             </div>
             <div>
-              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+              <dt className="text-detail text-muted-foreground">
                 Policy number
               </dt>
               <dd className="numeric mt-1 text-sm">{policy.policyNumber}</dd>
             </div>
             <div>
-              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+              <dt className="text-detail text-muted-foreground">
                 Type
               </dt>
               <dd className="mt-1 text-sm">{typeLabel}</dd>
             </div>
             <div>
-              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+              <dt className="text-detail text-muted-foreground">
                 Status
               </dt>
               <dd className="mt-1.5">
@@ -176,7 +176,7 @@ export default async function InsurancePolicyDetailPage({
 
           <dl className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5">
             <div>
-              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+              <dt className="text-detail text-muted-foreground">
                 Booking
               </dt>
               <dd className="mt-1 text-sm">
@@ -193,7 +193,7 @@ export default async function InsurancePolicyDetailPage({
               </dd>
             </div>
             <div>
-              <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+              <dt className="text-detail text-muted-foreground">
                 Venue
               </dt>
               <dd className="mt-1 text-sm">

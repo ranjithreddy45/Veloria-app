@@ -92,7 +92,7 @@ export function MonthlySummaryView({
           <div className="overflow-x-auto">
             <table className="w-full text-body">
               <thead>
-                <tr className="border-b text-left text-meta uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b text-left text-detail text-muted-foreground">
                   <th className="px-5 py-2.5 font-medium">Employee</th>
                   <th className="px-3 py-2.5 text-right font-medium">Present</th>
                   <th className="px-3 py-2.5 text-right font-medium">Absent</th>

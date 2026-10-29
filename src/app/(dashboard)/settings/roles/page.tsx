@@ -47,7 +47,7 @@ export default async function RolesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-muted-foreground border-b text-left text-xs uppercase tracking-wide">
+                <tr className="text-muted-foreground border-b text-left text-xs">
                   <th className="py-2 pr-4 font-medium">BD capability</th>
                   <th className="py-2 font-medium">Roles with access</th>
                 </tr>

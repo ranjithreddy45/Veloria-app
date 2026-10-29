@@ -89,7 +89,7 @@ export default async function OfferLetterPage({
               Veloria Grand
             </div>
             <div
-              className="text-meta font-semibold uppercase tracking-[0.18em]"
+              className="text-detail font-semibold"
               style={{ color: GOLD }}
             >
               Premium Event Venues
@@ -141,7 +141,7 @@ export default async function OfferLetterPage({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5 border-b border-dashed border-[#e6dccb] pb-1.5">
-      <span className="text-meta font-semibold uppercase tracking-[0.06em] text-[#9a8ca3]">
+      <span className="text-detail font-semibold text-[#9a8ca3]">
         {label}
       </span>
       <span className="font-medium text-[#2D1B3D]">{value}</span>

@@ -254,7 +254,7 @@ export function ScoringRuleSetsTable({ initialData }: Props) {
                       </p>
                     )}
 
-                    <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-meta uppercase tracking-wide text-muted-foreground">
+                    <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-detail text-muted-foreground">
                       <span>
                         <span className="numeric font-medium text-foreground">
                           {set._count?.rules ?? 0}

@@ -58,7 +58,7 @@ export function Th({ children, className }: { children?: React.ReactNode; classN
   return (
     <th
       className={cn(
-        "whitespace-nowrap px-3 py-2 text-left text-meta font-semibold uppercase tracking-[0.04em] text-muted-foreground",
+        "whitespace-nowrap px-3 py-2 text-left text-detail font-semibold text-muted-foreground",
         className
       )}
     >

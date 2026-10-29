@@ -276,7 +276,7 @@ function RunOfShowCard({ beo, editable }: { beo: BeoDetail; editable: boolean })
           <p className="py-6 text-center text-body text-muted-foreground">No timeline yet.{editable ? " Add the first row." : ""}</p>
         ) : (
           <div className="space-y-2">
-            <div className="hidden grid-cols-[90px_1fr_140px_1fr_32px] gap-2 px-1 text-meta uppercase tracking-wide text-muted-foreground sm:grid">
+            <div className="hidden grid-cols-[90px_1fr_140px_1fr_32px] gap-2 px-1 text-detail text-muted-foreground sm:grid">
               <span>Time</span><span>Activity</span><span>Owner</span><span>Notes</span><span />
             </div>
             {rows.map((r, i) => (

@@ -31,7 +31,7 @@ export default async function MarketingAttributionPage() {
         <div className="overflow-x-auto surface-glass rounded-[22px]">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
-              <tr className="border-b bg-muted/30 text-left text-meta uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b bg-muted/30 text-left text-detail text-muted-foreground">
                 <th className="px-4 py-3 font-medium">Campaign</th>
                 <th className="px-4 py-3 text-right font-medium">Leads</th>
                 <th className="px-4 py-3 text-right font-medium">Qualified</th>

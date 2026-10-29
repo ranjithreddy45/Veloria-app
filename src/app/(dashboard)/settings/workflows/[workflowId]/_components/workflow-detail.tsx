@@ -301,19 +301,19 @@ export function WorkflowDetail({ workflow }: WorkflowDetailProps) {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <TableHead className="text-detail text-muted-foreground">
                     Date
                   </TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <TableHead className="text-detail text-muted-foreground">
                     Action
                   </TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <TableHead className="text-detail text-muted-foreground">
                     Status
                   </TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <TableHead className="text-detail text-muted-foreground">
                     Booking
                   </TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <TableHead className="text-detail text-muted-foreground">
                     Error
                   </TableHead>
                 </TableRow>

@@ -2,34 +2,27 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import {
-  TrendingUp,
-  Wallet,
-  Globe,
-  AlertCircle,
-  Users,
-  CalendarCheck,
-  ChevronRight,
-  ChevronLeft,
-  ChevronDown,
-} from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { DashboardFullData } from "@/actions/dashboard-full.actions";
 import { getHallOccupancyForDate, getEventsForDate } from "@/actions/dashboard-full.actions";
 import { format, addDays, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 import { QuickActions, type HubActionSpec } from "@/components/ui/quick-actions";
-import { StatTile, type StatTileTrend } from "@/components/ui/stat-tile";
+
+// ============================================================
+// The team home (Workspace v3, approved concept 2026-10-29).
+// ------------------------------------------------------------
+// Read top to bottom the way a morning goes:
+//   1. what needs you today (three numbers, each a way in)
+//   2. the month's figures, one quiet strip
+//   3. money over time and where the leads stand
+//   4. the day itself: what is waiting, what is on, which halls are free
+//   5. the longer view: event mix, receivables, proofs to check, the team
+// Plum is the only accent; gold marks money that has landed (cash collected);
+// red appears only when something is overdue. Every figure is a real one from
+// getDashboardFullData; nothing here is decorative.
+// ============================================================
 
 interface FullDashboardViewProps {
   data: DashboardFullData;
@@ -39,101 +32,206 @@ interface FullDashboardViewProps {
    * server/client boundary as is.
    */
   quickActions: readonly HubActionSpec[];
-  /** Whether the Open leads tile may link to /leads (leads:read, override-aware). */
+  /** Whether the Open leads figure may link to /leads (leads:read, override-aware). */
   canOpenLeads: boolean;
 }
 
-/**
- * A month-over-month change as a tile trend line. The arrow follows the sign,
- * and so does the text ("+12%", "−8%"): the arrow is decorative (aria-hidden),
- * so the words alone must say which way the figure moved.
- */
-function changeTrend(changePercent: number): StatTileTrend {
-  const tone = changePercent > 0 ? "up" : changePercent < 0 ? "down" : "neutral";
-  const sign = changePercent > 0 ? "+" : changePercent < 0 ? "−" : ""; // U+2212 minus sign
-  return { text: `${sign}${Math.abs(changePercent)}% vs last month`, tone };
-}
+type Period = "This Month" | "This Quarter" | "This Year" | "All Time";
+const PERIODS: { value: Period; label: string }[] = [
+  { value: "This Month", label: "Month" },
+  { value: "This Quarter", label: "Quarter" },
+  { value: "This Year", label: "Year" },
+  { value: "All Time", label: "All" },
+];
 
-// The hub's pill row: every pill stays a visible pill at every width, and the
-// row wraps instead of clipping (owner decision). On a 390px phone the five
-// pills take three rows; the hub is the one header allowed more than R10's
-// two, as it is the one allowed destination labels (R6). py-1 is the approved
-// row's own vertical padding, kept so the header's rhythm is unchanged.
-const HUB_ROW = "py-1 xl:justify-end";
+type Range = "12m" | "year" | "6m";
+const RANGES: { value: Range; label: string }[] = [
+  { value: "12m", label: "12 months" },
+  { value: "year", label: "This year" },
+  { value: "6m", label: "6 months" },
+];
 
-// The month the cash KPI covers: the current month in IST, which is the window
+// The month the cash figure covers: the current month in IST, the window
 // getDashboardFullData sums. Derived from the data's own timestamp so the
 // server render and the client hydrate agree.
 const IST_MONTH = new Intl.DateTimeFormat("en-IN", { month: "long", timeZone: "Asia/Kolkata" });
+const IST_HOUR = new Intl.DateTimeFormat("en-IN", { hour: "numeric", hourCycle: "h23", timeZone: "Asia/Kolkata" });
 
-// The KPI tiles keep the dashboard card's own 16px padding at every width
-// (StatTile's default steps up to 20px from sm), so a lakh figure fits a tile
-// in the five-across row at 1280px.
-const KPI_TILE = "sm:p-4";
-
-/**
- * A money figure that may wrap only after a digit-group comma. The approved
- * KPI row is five across from lg, and with the 256px sidebar and lg:px-8 a
- * tile is only 96px wide inside at 1024px (147px at 1279px), narrower than a
- * lakh figure at the tile's size until about 1240-1279px. StatTile never
- * truncates a value (a clipped figure is a wrong number), so the figure wraps
- * there; the <wbr> after each comma makes it wrap as "₹12,45," / "000" rather
- * than in the middle of a digit group.
- */
-function breakAtGroups(figure: string): React.ReactNode {
-  const groups = figure.split(",");
-  return groups.map((group, i) => (
-    <React.Fragment key={i}>
-      {group}
-      {i < groups.length - 1 && (
-        <>
-          ,<wbr />
-        </>
-      )}
-    </React.Fragment>
-  ));
+/** The greeting for the hour in IST (the old home said "Good afternoon" at any hour). */
+function greetingFor(asOf: string) {
+  const hour = Number(IST_HOUR.format(new Date(asOf)));
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
 }
 
-const FUNNEL_TRAPEZOIDS = [
-  { stage: "NEW", path: "M 8 0 L 132 0 Q 136 0 135 4 L 126 21 Q 125 25 121 25 L 19 25 Q 15 25 14 21 L 5 4 Q 4 0 8 0 Z", defaultColor: "#6366f1" },
-  { stage: "CONTACTED", path: "M 21 31 L 119 31 Q 123 31 122 35 L 115 52 Q 114 56 110 56 L 30 56 Q 26 56 25 52 L 18 35 Q 17 31 21 31 Z", defaultColor: "#38bdf8" },
-  { stage: "QUALIFIED", path: "M 32 62 L 108 62 Q 112 62 111 66 L 105 83 Q 104 87 100 87 L 40 87 Q 36 87 35 83 L 29 66 Q 28 62 32 62 Z", defaultColor: "#a855f7" },
-  { stage: "PROPOSAL_SENT", path: "M 42 93 L 98 93 Q 102 93 101 97 L 96 114 Q 95 118 91 118 L 49 118 Q 45 118 44 114 L 39 97 Q 38 93 42 93 Z", defaultColor: "#8b5cf6" },
-  { stage: "NEGOTIATION", path: "M 51 124 L 89 124 Q 93 124 92 128 L 88 145 Q 87 149 83 149 L 57 149 Q 53 149 52 145 L 48 128 Q 47 124 51 124 Z", defaultColor: "#f97316" },
-  { stage: "WON", path: "M 59 155 L 81 155 Q 85 155 84 159 L 81 176 Q 80 180 76 180 L 64 180 Q 60 180 59 176 L 56 159 Q 55 155 59 155 Z", defaultColor: "#10b981" },
-];
+const inr = (amount: number) => "₹" + Math.round(amount).toLocaleString("en-IN");
 
-const getTodayISO = () => {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-};
+/** ₹ in lakh for chart axes: ₹0, ₹15L, ₹1.2Cr. */
+function lakh(value: number) {
+  if (value === 0) return "₹0";
+  if (value >= 1_00_00_000) return `₹${+(value / 1_00_00_000).toFixed(1)}Cr`;
+  return `₹${Math.round(value / 1_00_000)}L`;
+}
+
+const getTodayISO = () => format(new Date(), "yyyy-MM-dd");
 
 function formatDateLabel(isoDate: string) {
-  const today = getTodayISO();
   const d = parseISO(isoDate);
-  const yestDate = format(addDays(new Date(), -1), "yyyy-MM-dd");
-  const tomDate = format(addDays(new Date(), 1), "yyyy-MM-dd");
-
-  if (isoDate === today) return "Today";
-  if (isoDate === yestDate) return "Yesterday";
-  if (isoDate === tomDate) return "Tomorrow";
-
-  const now = new Date();
-  if (d.getFullYear() === now.getFullYear()) {
-    return format(d, "d MMM");
-  }
-  return format(d, "d MMM yyyy");
+  if (isoDate === getTodayISO()) return "Today";
+  if (isoDate === format(addDays(new Date(), -1), "yyyy-MM-dd")) return "Yesterday";
+  if (isoDate === format(addDays(new Date(), 1), "yyyy-MM-dd")) return "Tomorrow";
+  return d.getFullYear() === new Date().getFullYear() ? format(d, "d MMM") : format(d, "d MMM yyyy");
 }
 
-export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDashboardViewProps) {
-  const [timeRange, setTimeRange] = useState("Last 12 Months");
-  const [pipelinePeriod, setPipelinePeriod] = useState<"This Month" | "This Quarter" | "This Year" | "All Time">("This Month");
-  const [eventTypePeriod, setEventTypePeriod] = useState<"This Month" | "This Quarter" | "This Year" | "All Time">("This Month");
+// ---------------------------------------------------------------------------
+// Building blocks
+// ---------------------------------------------------------------------------
 
-  // Dynamic Date States for Hall Occupancy & Events
+const SHEET = "min-w-0 rounded-[14px] border border-border bg-card shadow-[var(--shadow-1)]";
+const LINK = "shrink-0 text-body font-medium text-primary underline-offset-4 hover:underline";
+
+function Sheet({
+  title,
+  meta,
+  children,
+  className,
+  bodyClassName,
+}: {
+  title: string;
+  meta?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  bodyClassName?: string;
+}) {
+  return (
+    <section className={cn(SHEET, "flex flex-col", className)}>
+      <div className="flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2 px-5 pt-4">
+        <h2 className="mr-auto text-copy font-semibold tracking-[-0.01em] text-foreground">{title}</h2>
+        {meta}
+      </div>
+      <div className={cn("min-h-0 flex-1 px-5 pb-5 pt-3", bodyClassName)}>{children}</div>
+    </section>
+  );
+}
+
+/** A small segmented switch: a sunken well with the chosen option lifted out. */
+function Switcher<V extends string>({
+  value,
+  options,
+  onChange,
+  label,
+}: {
+  value: V;
+  options: { value: V; label: string }[];
+  onChange: (v: V) => void;
+  label: string;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="inline-flex rounded-[9px] border border-border bg-muted p-0.5">
+      {options.map((o) => {
+        const active = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(o.value)}
+            className={cn(
+              "h-6 rounded-[7px] px-2.5 text-detail font-medium transition-[background-color,color,box-shadow]",
+              active
+                ? "bg-card text-foreground shadow-[var(--shadow-1),inset_0_0_0_1px_var(--border)] dark:bg-accent"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Previous day · label (opens a date picker) · next day. */
+function DayStepper({ value, onChange }: { value: string; onChange: (iso: string) => void }) {
+  const step = (days: number) => onChange(format(addDays(parseISO(value), days), "yyyy-MM-dd"));
+  return (
+    <div className="inline-flex h-7 items-center rounded-[9px] border border-border bg-card text-detail font-medium shadow-[var(--shadow-1)]">
+      <button type="button" onClick={() => step(-1)} aria-label="Previous day" className="grid h-full w-7 place-items-center rounded-l-[9px] text-muted-foreground hover:bg-muted hover:text-foreground">
+        <ChevronLeft className="size-3.5" />
+      </button>
+      <label className="relative grid h-full min-w-16 cursor-pointer place-items-center px-1.5 text-foreground">
+        {formatDateLabel(value)}
+        <input
+          type="date"
+          value={value}
+          onChange={(e) => e.target.value && onChange(e.target.value)}
+          aria-label="Choose a date"
+          className="absolute inset-0 cursor-pointer opacity-0"
+        />
+      </label>
+      <button type="button" onClick={() => step(1)} aria-label="Next day" className="grid h-full w-7 place-items-center rounded-r-[9px] text-muted-foreground hover:bg-muted hover:text-foreground">
+        <ChevronRight className="size-3.5" />
+      </button>
+    </div>
+  );
+}
+
+function Delta({ percent }: { percent: number }) {
+  if (percent === 0) return <span className="text-subtle-foreground">No change</span>;
+  const up = percent > 0;
+  const Icon = up ? ArrowUpRight : ArrowDownRight;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-detail font-medium tabular-nums",
+        up ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+      )}
+    >
+      <Icon className="size-3" aria-hidden />
+      {/* The arrow is decorative, so the words carry the direction. */}
+      {up ? "+" : "−"}
+      {Math.abs(percent)}%
+    </span>
+  );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return <p className="py-8 text-center text-body text-subtle-foreground">{children}</p>;
+}
+
+/** A horizontal bar: the share of the largest value, in plum. */
+function Bar({ value, max, strong }: { value: number; max: number; strong?: boolean }) {
+  const pct = max > 0 ? Math.max(value > 0 ? 3 : 0, Math.round((value / max) * 100)) : 0;
+  return (
+    <div className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-muted">
+      <div
+        className={cn("h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500", strong ? "bg-primary" : "bg-primary/55")}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+}
+
+// ---------------------------------------------------------------------------
+// The page
+// ---------------------------------------------------------------------------
+
+export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDashboardViewProps) {
+  const [range, setRange] = useState<Range>("12m");
+  const [pipelinePeriod, setPipelinePeriod] = useState<Period>("This Month");
+  const [eventTypePeriod, setEventTypePeriod] = useState<Period>("This Month");
+
   const [occupancyDate, setOccupancyDate] = useState(getTodayISO());
   const [occupancyList, setOccupancyList] = useState(data.hallOccupancy);
   const [isOccupancyLoading, setIsOccupancyLoading] = useState(false);
@@ -142,14 +240,12 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
   const [eventsList, setEventsList] = useState(data.todaysEvents);
   const [isEventsLoading, setIsEventsLoading] = useState(false);
 
-  const handleOccupancyDateChange = async (newDateISO: string) => {
-    setOccupancyDate(newDateISO);
+  const changeOccupancyDate = async (iso: string) => {
+    setOccupancyDate(iso);
     setIsOccupancyLoading(true);
     try {
-      const res = await getHallOccupancyForDate(newDateISO);
-      if (res.success && res.data) {
-        setOccupancyList(res.data);
-      }
+      const res = await getHallOccupancyForDate(iso);
+      if (res.success && res.data) setOccupancyList(res.data);
     } catch (err) {
       console.error("Failed to fetch occupancy for date:", err);
     } finally {
@@ -157,26 +253,12 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
     }
   };
 
-  const handlePrevOccupancyDate = () => {
-    const current = parseISO(occupancyDate);
-    const prev = addDays(current, -1);
-    handleOccupancyDateChange(format(prev, "yyyy-MM-dd"));
-  };
-
-  const handleNextOccupancyDate = () => {
-    const current = parseISO(occupancyDate);
-    const next = addDays(current, 1);
-    handleOccupancyDateChange(format(next, "yyyy-MM-dd"));
-  };
-
-  const handleEventsDateChange = async (newDateISO: string) => {
-    setEventsDate(newDateISO);
+  const changeEventsDate = async (iso: string) => {
+    setEventsDate(iso);
     setIsEventsLoading(true);
     try {
-      const res = await getEventsForDate(newDateISO);
-      if (res.success && res.data) {
-        setEventsList(res.data);
-      }
+      const res = await getEventsForDate(iso);
+      if (res.success && res.data) setEventsList(res.data);
     } catch (err) {
       console.error("Failed to fetch events for date:", err);
     } finally {
@@ -184,824 +266,569 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
     }
   };
 
-  const handlePrevEventsDate = () => {
-    const current = parseISO(eventsDate);
-    const prev = addDays(current, -1);
-    handleEventsDateChange(format(prev, "yyyy-MM-dd"));
-  };
-
-  const handleNextEventsDate = () => {
-    const current = parseISO(eventsDate);
-    const next = addDays(current, 1);
-    handleEventsDateChange(format(next, "yyyy-MM-dd"));
-  };
-
-
-  const activeLeadPipeline = React.useMemo(() => {
-    return data.leadPipeline?.[pipelinePeriod] || data.leadPipeline?.["This Month"] || { total: 0, stages: [] };
-  }, [data.leadPipeline, pipelinePeriod]);
-
-  const activeBookingsByType = React.useMemo(() => {
-    return data.bookingsByType?.[eventTypePeriod] || data.bookingsByType?.["This Month"] || { total: 0, types: [] };
-  }, [data.bookingsByType, eventTypePeriod]);
+  const pipeline = data.leadPipeline?.[pipelinePeriod] ?? data.leadPipeline?.["This Month"] ?? { total: 0, stages: [] };
+  const eventTypes = data.bookingsByType?.[eventTypePeriod] ?? data.bookingsByType?.["This Month"] ?? { total: 0, types: [] };
 
   const chartData = React.useMemo(() => {
-    if (timeRange === "Last 6 Months") {
-      return data.revenueTrend.slice(-6);
-    }
-    if (timeRange === "This Year") {
-      const currentYear = new Date().getFullYear().toString();
-      const filtered = data.revenueTrend.filter((item) => item.monthKey.startsWith(currentYear));
+    if (range === "6m") return data.revenueTrend.slice(-6);
+    if (range === "year") {
+      const year = new Date(data.asOf).getFullYear().toString();
+      const filtered = data.revenueTrend.filter((item) => item.monthKey.startsWith(year));
       return filtered.length > 0 ? filtered : data.revenueTrend;
     }
     return data.revenueTrend;
-  }, [data.revenueTrend, timeRange]);
+  }, [data.revenueTrend, data.asOf, range]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
+  const { kpis } = data;
+  const firstName = data.user.name.split(" ")[0];
+  const nextEvent = data.todaysEvents[0];
+  const firstAttention = data.attentionItems[0];
+  const pipelineMax = Math.max(0, ...pipeline.stages.map((s) => s.count));
+  const typeMax = Math.max(0, ...eventTypes.types.map((t) => t.count));
 
-  const formattedKpiCurrency = (amount: number) => {
-    return "₹" + Math.round(amount).toLocaleString("en-IN");
-  };
+  const today = [
+    {
+      n: data.attentionItems.length,
+      title: data.attentionItems.length === 1 ? "Thing needs you" : "Things need you",
+      detail: firstAttention ? firstAttention.title : "Nothing is waiting on you",
+      href: "/my-work",
+      tone: "default" as const,
+    },
+    {
+      n: kpis.overdue.count,
+      title: kpis.overdue.count === 1 ? "Invoice overdue" : "Invoices overdue",
+      detail: kpis.overdue.count > 0 ? `${inr(kpis.overdue.amount)} still to collect` : "Every invoice is on time",
+      href: "/invoices",
+      tone: kpis.overdue.count > 0 ? ("bad" as const) : ("default" as const),
+    },
+    {
+      n: kpis.eventsThisWeek.todayCount,
+      title: kpis.eventsThisWeek.todayCount === 1 ? "Event today" : "Events today",
+      detail: nextEvent
+        ? `${nextEvent.formattedTime} · ${nextEvent.eventName}`
+        : `${kpis.eventsThisWeek.upcomingCount} more later this week`,
+      href: "/calendar",
+      tone: "default" as const,
+    },
+  ];
 
-  const openLeadsTile = (
-    <StatTile
-      label="Open leads"
-      value={data.kpis.openLeads.count}
-      accent="blue"
-      icon={<Users className="size-4" />}
-      trend={{
-        text:
-          data.kpis.openLeads.breachedCount === 0
-            ? "None past response deadline"
-            : `${data.kpis.openLeads.breachedCount} past deadline`,
-        tone: "neutral",
-      }}
-      className="h-full sm:p-4"
-    />
-  );
+  const kpiCells: { label: string; value: React.ReactNode; foot: React.ReactNode; href?: string; valueClass?: string }[] = [
+    {
+      label: `Cash collected, ${IST_MONTH.format(new Date(data.asOf))}`,
+      value: inr(kpis.cashCollected.amount),
+      valueClass: "text-gold",
+      foot: (
+        <>
+          <Delta percent={kpis.cashCollected.changePercent} />
+          <span>vs last month</span>
+        </>
+      ),
+    },
+    {
+      label: "Booked value, this month",
+      value: inr(kpis.bookedValue.amount),
+      foot: (
+        <>
+          <Delta percent={kpis.bookedValue.changePercent} />
+          <span>vs last month</span>
+        </>
+      ),
+    },
+    {
+      label: "Overdue",
+      value: inr(kpis.overdue.amount),
+      valueClass: kpis.overdue.amount > 0 ? "text-destructive" : undefined,
+      foot: `${kpis.overdue.count} ${kpis.overdue.count === 1 ? "invoice" : "invoices"}`,
+    },
+    {
+      label: "Open leads",
+      value: kpis.openLeads.count.toLocaleString("en-IN"),
+      foot: kpis.openLeads.breachedCount === 0 ? "None past the response deadline" : `${kpis.openLeads.breachedCount} past the response deadline`,
+      href: canOpenLeads ? "/leads" : undefined,
+    },
+    {
+      label: "Events this week",
+      value: kpis.eventsThisWeek.total,
+      foot: `${kpis.eventsThisWeek.todayCount} today · ${kpis.eventsThisWeek.upcomingCount} upcoming`,
+    },
+  ];
 
   return (
-    <div className="flex w-full flex-col gap-6">
-      {/* ============================================================ */}
-      {/* 1. HEADER BAR: Greeting + the hub's shortcut pills */}
-      {/* ============================================================ */}
-      {/* No overflow clipping here: the pill cluster wraps onto a second row
-          when it doesn't fit beside the greeting, and every pill's focus ring
-          stays whole. */}
-      <header className="flex flex-col gap-4 pb-1 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex flex-col gap-0.5 shrink-0">
-          <p className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-            {data.todayFormatted}
-          </p>
-          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl sm:whitespace-nowrap">
-            Good afternoon, {data.user.name.split(" ")[0]}.
+    <div className="flex w-full flex-col gap-4 sm:gap-5">
+      {/* 1. Greeting + the hub's shortcuts */}
+      <header className="flex flex-col gap-4 pb-1 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0 space-y-2">
+          <p className="text-body font-medium leading-5 text-subtle-foreground">{data.todayFormatted}</p>
+          <h1 className="large-title text-h2 leading-tight text-foreground sm:text-h1">
+            {greetingFor(data.asOf)}, {firstName}
           </h1>
-          <p className="text-xs text-muted-foreground sm:whitespace-nowrap">
-            Here&apos;s what&apos;s happening across your venues today.
-          </p>
         </div>
-
-        {/* The shared action cluster (src/components/ui/quick-actions.tsx) in
-            hub mode: the dashboard is not a module landing, so it keeps its
-            five shortcuts. Order, labels and permissions come from page.tsx;
-            each pill's chip is its destination's module chip. */}
-        <QuickActions hub actions={quickActions} className={HUB_ROW} />
+        {/* The shared action cluster in hub mode: order, labels and permissions
+            come from page.tsx. */}
+        <QuickActions hub actions={quickActions} className="xl:justify-end" />
       </header>
 
-      {/* ============================================================ */}
-      {/* 2. TOP METRICS BAND: 5 KPI tiles in a row (the shared StatTile) */}
-      {/* ============================================================ */}
-      {/* The approved grid: five across from lg, as on the original dashboard
-          (owner decision 8). The tiles are narrow at the low end of lg: 96px
-          inside at 1024px, 124px at about 1166px, 147px at 1279px. Measured
-          in Chromium with Geist:
-          - Money values wrap at a digit-group comma (breakAtGroups) below
-            about 1240-1279px, instead of being cut off.
-          - Below about 1166px the tiles show no icon chip. StatTile (R12)
-            keeps the label whole: never `truncate`, never a word broken
-            mid-word, at least 80px wide. That plus the gap and the 36px chip
-            needs 124px, so the chip wraps onto the label band's clipped
-            second line. The original card kept its chip there by truncating
-            the label ("CASH C…"). "COLLECTED" alone is 70px, so no
-            label-plus-chip layout that R12 allows fits the cash tile at
-            1024px. Keeping the chip at these widths is an owner call: a
-            smaller chip or truncated labels at lg only, or chipless tiles
-            from 1024px to about 1166px as now. */}
-      <section className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
-        <StatTile
-          label={`Cash collected · ${IST_MONTH.format(new Date(data.asOf))}`}
-          value={breakAtGroups(formattedKpiCurrency(data.kpis.cashCollected.amount))}
-          accent="emerald"
-          icon={<Wallet className="size-4" />}
-          trend={changeTrend(data.kpis.cashCollected.changePercent)}
-          className={KPI_TILE}
-        />
-
-        <StatTile
-          label="Booked value · this month"
-          value={breakAtGroups(formattedKpiCurrency(data.kpis.bookedValue.amount))}
-          accent="brand"
-          icon={<Globe className="size-4" />}
-          trend={changeTrend(data.kpis.bookedValue.changePercent)}
-          className={KPI_TILE}
-        />
-
-        <StatTile
-          label="Overdue"
-          value={breakAtGroups(formattedKpiCurrency(data.kpis.overdue.amount))}
-          accent="rose"
-          icon={<AlertCircle className="size-4" />}
-          trend={{
-            text: `${data.kpis.overdue.count} ${data.kpis.overdue.count === 1 ? "invoice" : "invoices"} overdue`,
-            tone: "neutral",
-          }}
-          className={KPI_TILE}
-        />
-
-        {/* The whole tile opens the leads list, for anyone who can open it. */}
-        {canOpenLeads ? (
-          <Link href="/leads" className="block rounded-[22px]">
-            {openLeadsTile}
+      {/* 2. What needs you today */}
+      <section aria-label="Today" className={cn(SHEET, "grid grid-cols-1 overflow-hidden md:grid-cols-3")}>
+        {today.map((item, i) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "group flex items-start gap-3.5 px-5 py-4 transition-colors hover:bg-muted/60",
+              i > 0 && "border-t border-border md:border-l md:border-t-0"
+            )}
+          >
+            <span
+              className={cn(
+                "min-w-7 text-h2 font-medium leading-none tracking-[-0.03em] tabular-nums",
+                item.tone === "bad" && item.n > 0 ? "text-destructive" : "text-foreground"
+              )}
+            >
+              {item.n}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-copy font-medium text-foreground">{item.title}</span>
+              <span className="mt-0.5 block truncate text-body text-subtle-foreground">{item.detail}</span>
+            </span>
+            <ChevronRight className="mt-1 size-4 shrink-0 text-subtle-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" aria-hidden />
           </Link>
-        ) : (
-          openLeadsTile
-        )}
-
-        <StatTile
-          label="Events this week"
-          value={data.kpis.eventsThisWeek.total}
-          accent="indigo"
-          icon={<CalendarCheck className="size-4" />}
-          trend={{
-            text: `${data.kpis.eventsThisWeek.todayCount} today · ${data.kpis.eventsThisWeek.upcomingCount} upcoming`,
-            tone: "neutral",
-          }}
-          className={KPI_TILE}
-        />
+        ))}
       </section>
 
-      {/* ============================================================ */}
-      {/* 3. MIDDLE ANALYTICS BAND: Revenue Trend | Lead Pipeline | Bookings Type */}
-      {/* ============================================================ */}
-      <section className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-        {/* Card 1: Revenue Trend (5 cols) */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 lg:col-span-5">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <h2 className="text-sm sm:text-base font-bold text-foreground tracking-tight">Revenue Trend</h2>
-
-            <div className="relative shrink-0">
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="no-ring appearance-none rounded-xl border border-border bg-background/80 pl-2 pr-6 py-1 text-meta font-medium text-foreground outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 cursor-pointer shadow-sm hover:bg-muted/90 transition-colors whitespace-nowrap"
-              >
-                <option value="Last 12 Months" className="bg-background text-foreground">Last 12 Months</option>
-                <option value="This Year" className="bg-background text-foreground">This Year</option>
-                <option value="Last 6 Months" className="bg-background text-foreground">Last 6 Months</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
+      {/* 3. The month's figures */}
+      <section
+        aria-label="This month"
+        className={cn(SHEET, "grid grid-cols-2 overflow-hidden lg:grid-cols-5 [&>*]:border-border")}
+      >
+        {kpiCells.map((cell, i) => {
+          const body = (
+            <>
+              <span className="block truncate text-body text-muted-foreground">{cell.label}</span>
+              <span className={cn("mt-2 block whitespace-nowrap text-title font-semibold tracking-[-0.03em] tabular-nums sm:text-h2", cell.valueClass ?? "text-foreground")}>
+                {cell.value}
+              </span>
+              <span className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5 text-detail text-subtle-foreground">{cell.foot}</span>
+            </>
+          );
+          const edge = cn(
+            "min-w-0 px-5 py-4",
+            // Two across below lg (a hairline between and under), five across from lg.
+            i % 2 === 1 && "border-l lg:border-l",
+            i >= 2 && "border-t lg:border-t-0",
+            i > 0 && "lg:border-l",
+            i === 4 && "col-span-2 lg:col-span-1"
+          );
+          return cell.href ? (
+            <Link key={cell.label} href={cell.href} className={cn(edge, "transition-colors hover:bg-muted/60")}>
+              {body}
+            </Link>
+          ) : (
+            <div key={cell.label} className={edge}>
+              {body}
             </div>
-          </div>
+          );
+        })}
+      </section>
 
-          <div className="h-72 sm:h-[305px] w-full my-auto">
+      {/* 4. Money over time · where the leads stand */}
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-12">
+        <Sheet
+          title="Booked and collected"
+          className="lg:col-span-8"
+          meta={<Switcher label="Range" value={range} options={RANGES} onChange={setRange} />}
+        >
+          <div className="mb-2 flex flex-wrap items-center gap-4 text-detail text-muted-foreground">
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-primary" aria-hidden />
+              Booked value
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <span className="size-2 rounded-full bg-gold" aria-hidden />
+              Cash collected
+            </span>
+          </div>
+          <div className="h-60 w-full sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 6, right: 6, left: -12, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="bookedGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.0} />
+                  <linearGradient id="home-booked" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.16} />
+                    <stop offset="100%" stopColor="var(--primary)" stopOpacity={0} />
                   </linearGradient>
-                  <linearGradient id="collectedGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0.0} />
+                  <linearGradient id="home-collected" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--gold)" stopOpacity={0.18} />
+                    <stop offset="100%" stopColor="var(--gold)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="#ffffff" strokeOpacity={0.06} vertical={true} horizontal={true} />
-                <XAxis dataKey="month" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} dy={4} />
-                <YAxis
-                  stroke="#64748b"
-                  fontSize={11}
+                <CartesianGrid vertical={false} stroke="var(--border)" />
+                <XAxis
+                  dataKey="month"
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(val) => (val === 0 ? "0" : `₹${Math.round(val / 100000)}L`)}
+                  tick={{ fill: "var(--subtle-foreground)", fontSize: 11 }}
+                  dy={6}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  width={52}
+                  tick={{ fill: "var(--subtle-foreground)", fontSize: 11 }}
+                  tickFormatter={lakh}
                 />
                 <Tooltip
-                  cursor={{ stroke: "#10b981", strokeWidth: 1.5, strokeDasharray: "3 3" }}
+                  cursor={{ stroke: "var(--input)", strokeWidth: 1 }}
                   content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const item = payload[0].payload as { month: string; monthKey: string; booked: number; collected: number };
-                      const y = item.monthKey ? item.monthKey.split("-")[0] : new Date().getFullYear().toString();
-                      const formattedMonthYear = `${item.month} ${y}`;
-                      return (
-                        <div className="rounded-xl border border-border bg-card/95 p-3.5 text-xs text-foreground shadow-2xl backdrop-blur-md min-w-[170px]">
-                          <p className="font-semibold text-muted-foreground mb-2 border-b border-border pb-1.5">{formattedMonthYear}</p>
-                          <div className="flex items-center justify-between gap-5 py-1">
-                            <span className="flex items-center gap-2 text-muted-foreground font-medium">
-                              <span className="size-2.5 rounded-full bg-[#10b981] shadow-sm shadow-emerald-500/50" />
-                              Booked
-                            </span>
-                            <span className="font-bold text-foreground font-mono">
-                              {formattedKpiCurrency(item.booked)}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between gap-5 py-1">
-                            <span className="flex items-center gap-2 text-muted-foreground font-medium">
-                              <span className="size-2.5 rounded-full bg-[#a855f7] shadow-sm shadow-purple-500/50" />
-                              Collected
-                            </span>
-                            <span className="font-bold text-foreground font-mono">
-                              {formattedKpiCurrency(item.collected)}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    }
-                    return null;
+                    if (!active || !payload?.length) return null;
+                    const item = payload[0].payload as { month: string; monthKey: string; booked: number; collected: number };
+                    const year = item.monthKey ? item.monthKey.split("-")[0] : "";
+                    return (
+                      <div className="min-w-44 rounded-[10px] border border-border bg-popover px-3 py-2.5 text-body shadow-[var(--shadow-2)]">
+                        <p className="mb-1.5 text-detail text-subtle-foreground">
+                          {item.month} {year}
+                        </p>
+                        <p className="flex items-center justify-between gap-4">
+                          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                            <span className="size-2 rounded-full bg-primary" aria-hidden />
+                            Booked
+                          </span>
+                          <span className="font-medium tabular-nums text-foreground">{inr(item.booked)}</span>
+                        </p>
+                        <p className="mt-1 flex items-center justify-between gap-4">
+                          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                            <span className="size-2 rounded-full bg-gold" aria-hidden />
+                            Collected
+                          </span>
+                          <span className="font-medium tabular-nums text-foreground">{inr(item.collected)}</span>
+                        </p>
+                      </div>
+                    );
                   }}
                 />
                 <Area
                   type="monotone"
                   dataKey="booked"
-                  name="Booked Value"
-                  stroke="#10b981"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#bookedGrad)"
-                  dot={{ r: 3.5, fill: "#10b981", stroke: "#090d16", strokeWidth: 1.5 }}
-                  activeDot={{ r: 6, fill: "#10b981", stroke: "#ffffff", strokeWidth: 2 }}
+                  name="Booked value"
+                  stroke="var(--primary)"
+                  strokeWidth={2}
+                  fill="url(#home-booked)"
+                  dot={false}
+                  activeDot={{ r: 4, fill: "var(--primary)", stroke: "var(--card)", strokeWidth: 2 }}
                 />
                 <Area
                   type="monotone"
                   dataKey="collected"
-                  name="Cash Collected"
-                  stroke="#a855f7"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#collectedGrad)"
-                  dot={{ r: 3.5, fill: "#a855f7", stroke: "#090d16", strokeWidth: 1.5 }}
-                  activeDot={{ r: 6, fill: "#a855f7", stroke: "#ffffff", strokeWidth: 2 }}
+                  name="Cash collected"
+                  stroke="var(--gold)"
+                  strokeWidth={2}
+                  fill="url(#home-collected)"
+                  dot={false}
+                  activeDot={{ r: 4, fill: "var(--gold)", stroke: "var(--card)", strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
+        </Sheet>
 
-          {/* Bottom Legend */}
-          <div className="mt-1 flex items-center justify-center gap-5 text-meta font-medium pt-1 border-t border-border/50">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <span className="size-2 rounded-full bg-[#10b981] shadow-sm shadow-emerald-500/50 shrink-0" />
-              Booked Value
-            </span>
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <span className="size-2 rounded-full bg-[#a855f7] shadow-sm shadow-purple-500/50 shrink-0" />
-              Cash Collected
-            </span>
-          </div>
-        </div>
-
-        {/* Card 2: Lead Pipeline (4 cols) */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 lg:col-span-4">
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <h2 className="text-base font-bold text-foreground">Lead Pipeline</h2>
-            <div className="relative">
-              <select
-                value={pipelinePeriod}
-                onChange={(e) => setPipelinePeriod(e.target.value as any)}
-                className="no-ring appearance-none rounded-xl border border-border bg-background/80 pl-3 pr-7 py-1 text-xs font-medium text-foreground outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 cursor-pointer shadow-sm hover:bg-muted/90 transition-colors"
-              >
-                <option value="This Month" className="bg-background text-foreground">This Month</option>
-                <option value="This Quarter" className="bg-background text-foreground">This Quarter</option>
-                <option value="This Year" className="bg-background text-foreground">This Year</option>
-                <option value="All Time" className="bg-background text-foreground">All Time</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between gap-3 my-auto py-2">
-            {/* Left Side: Tapered 3D Funnel Graphic */}
-            <div className="relative w-32 sm:w-36 shrink-0 flex items-center justify-center">
-              <svg viewBox="0 0 140 186" className="w-full h-auto max-h-[240px] overflow-visible">
-                <defs>
-                  <filter id="funnelShadow" x="-20%" y="-10%" width="140%" height="140%">
-                    <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000000" floodOpacity="0.45" />
-                  </filter>
-                </defs>
-                {FUNNEL_TRAPEZOIDS.map((trap, idx) => {
-                  const stg = activeLeadPipeline.stages[idx];
-                  const color = stg?.color || trap.defaultColor;
-                  return (
-                    <path
-                      key={trap.stage}
-                      d={trap.path}
-                      fill={color}
-                      filter="url(#funnelShadow)"
-                      className="transition-all duration-300 hover:opacity-90 cursor-pointer"
-                    >
-                      <title>{`${stg?.label || trap.stage}: ${stg?.count || 0} (${stg?.percentage || 0}%)`}</title>
-                    </path>
-                  );
-                })}
-              </svg>
-            </div>
-
-            {/* Right Side: Stage Rows */}
-            <div className="flex flex-col justify-between h-[230px] w-full min-w-0 pl-2">
-              {activeLeadPipeline.stages.map((stg) => (
-                <div key={stg.stage} className="flex items-center justify-between gap-2 text-xs py-1">
-                  <span className="flex-1 min-w-0 font-medium text-muted-foreground text-xs sm:text-sm truncate">
-                    {stg.label}
-                  </span>
-                  <div className="flex items-center gap-2.5 shrink-0">
-                    <span className="font-bold text-foreground text-xs sm:text-sm text-right font-mono min-w-[28px]">
-                      {stg.count}
-                    </span>
-                    <span className="font-medium text-muted-foreground text-xs text-right font-mono min-w-[36px]">
-                      {stg.percentage}%
-                    </span>
-                  </div>
-                </div>
+        <Sheet
+          title="Lead pipeline"
+          className="lg:col-span-4"
+          meta={<Switcher label="Period" value={pipelinePeriod} options={PERIODS} onChange={setPipelinePeriod} />}
+        >
+          {pipeline.stages.length === 0 ? (
+            <Empty>No leads in this period</Empty>
+          ) : (
+            <ul className="flex flex-col gap-3.5">
+              {pipeline.stages.map((stage, i) => (
+                <li key={stage.stage} className="grid grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)_2.25rem] items-center gap-3 text-body">
+                  <span className="truncate text-muted-foreground">{stage.label}</span>
+                  <Bar value={stage.count} max={pipelineMax} strong={i === pipeline.stages.length - 1} />
+                  <span className="text-right font-medium tabular-nums text-foreground">{stage.count}</span>
+                </li>
               ))}
-            </div>
-          </div>
-        </div>
+            </ul>
+          )}
+          <p className="mt-4 text-detail text-subtle-foreground">
+            {pipeline.total.toLocaleString("en-IN")} {pipeline.total === 1 ? "lead" : "leads"} in this period
+          </p>
+        </Sheet>
+      </div>
 
-        {/* Card 3: Bookings by Event Type (3 cols) */}
-        <div className="flex flex-col justify-between rounded-2xl border border-border bg-card p-5 lg:col-span-3">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <h2 className="text-base font-bold text-foreground">Bookings by Event Type</h2>
-            <div className="relative">
-              <select
-                value={eventTypePeriod}
-                onChange={(e) => setEventTypePeriod(e.target.value as any)}
-                className="no-ring appearance-none rounded-xl border border-border bg-background/80 pl-3 pr-7 py-1 text-xs font-medium text-muted-foreground outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 ring-0 cursor-pointer"
-              >
-                <option value="This Month" className="bg-background text-foreground">This Month</option>
-                <option value="This Quarter" className="bg-background text-foreground">This Quarter</option>
-                <option value="This Year" className="bg-background text-foreground">This Year</option>
-                <option value="All Time" className="bg-background text-foreground">All Time</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
-            </div>
-          </div>
-
-          <div className="flex flex-col items-center justify-center my-auto w-full">
-            {/* Donut Chart on Top */}
-            <div className="relative size-40 shrink-0 my-1">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={activeBookingsByType.types}
-                    dataKey="count"
-                    nameKey="type"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={46}
-                    outerRadius={66}
-                    paddingAngle={3}
-                  >
-                    {activeBookingsByType.types.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} stroke="transparent" />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-                <span className="text-xl font-bold text-foreground font-mono">{activeBookingsByType.total}</span>
-                <span className="text-meta text-muted-foreground font-medium">Total Bookings</span>
-              </div>
-            </div>
-
-            {/* Legend List Below Chart */}
-            <div className="flex flex-col gap-1 w-full mt-2 max-h-48 overflow-y-auto pr-1">
-              {activeBookingsByType.types.map((t) => (
-                <div key={t.type} className="flex items-center justify-between text-xs py-1 border-b border-border/50 last:border-0">
-                  <span className="flex items-center gap-2 text-muted-foreground font-medium text-xs truncate min-w-0">
-                    <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: t.fill }} />
-                    {t.type}
-                  </span>
-                  <span className="font-semibold text-foreground text-xs whitespace-nowrap shrink-0 font-mono ml-2">
-                    {t.count} <span className="text-meta text-muted-foreground font-normal">({t.percentage}%)</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ============================================================ */}
-      {/* 4. LOWER MIDDLE BAND: Needs You Now | Today's Events | Hall Occupancy */}
-      {/* ============================================================ */}
-      <section className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-        {/* Needs You Now (4 cols) */}
-        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 h-[380px] lg:col-span-4">
-          <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-foreground">Needs You Now</h2>
-              <span className="flex items-center gap-1 text-meta font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full ring-1 ring-emerald-500/20">
-                <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Live
-              </span>
-            </div>
-            <Link
-              href="/my-work"
-              className="text-detail font-semibold text-purple-400 hover:text-purple-300 transition-colors"
-            >
-              View all ({data.attentionItems.length})
+      {/* 5. The day: what is waiting · what is on */}
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-12">
+        <Sheet
+          title="Needs you now"
+          className="lg:col-span-7"
+          bodyClassName="px-2 pb-2"
+          meta={
+            <Link href="/my-work" className={LINK}>
+              View all{data.attentionItems.length > 0 ? ` (${data.attentionItems.length})` : ""}
             </Link>
-          </div>
-
-          <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-3 flex flex-col gap-2.5 mt-1">
-            {data.attentionItems.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-6 text-center">No urgent attention items right now 🎉</p>
-            ) : (
-              data.attentionItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between gap-2.5 rounded-xl border border-border/50 bg-muted/40 dark:bg-muted/30 p-2.5 transition-all hover:bg-muted/60 dark:hover:bg-muted/50 shrink-0 w-full"
-                >
-                  <div className="flex-1 min-w-0 flex flex-col gap-1">
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <span
-                        className={`text-meta font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md shrink-0 ${item.badge === "URGENT"
-                          ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                          : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                          }`}
-                      >
-                        {item.badge}
-                      </span>
-                      <span className="text-xs font-medium text-foreground truncate min-w-0 flex-1">{item.title}</span>
-                    </div>
-                    <span className="text-meta text-muted-foreground truncate min-w-0">{item.subtitle}</span>
-                  </div>
-
+          }
+        >
+          {data.attentionItems.length === 0 ? (
+            <Empty>Nothing urgent right now</Empty>
+          ) : (
+            <ul className="max-h-[22rem] overflow-y-auto">
+              {data.attentionItems.map((item) => (
+                <li key={item.id} className="flex items-center gap-3 rounded-[10px] px-3 py-2.5 transition-colors hover:bg-muted/60">
+                  <span
+                    className={cn(
+                      "inline-flex h-[22px] shrink-0 items-center gap-1.5 rounded-full px-2 text-detail font-medium",
+                      item.badge === "URGENT"
+                        ? "bg-destructive/10 text-destructive"
+                        : item.badge === "WARNING"
+                          ? "bg-warning/10 text-warning"
+                          : "bg-primary-soft text-primary"
+                    )}
+                  >
+                    <span className="size-1.5 rounded-full bg-current" aria-hidden />
+                    {item.badge === "URGENT" ? "Urgent" : item.badge === "WARNING" ? "Warning" : "Today"}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-body font-medium text-foreground">{item.title}</span>
+                    <span className="block truncate text-detail text-subtle-foreground">{item.subtitle}</span>
+                  </span>
                   <Link
                     href={item.actionHref}
-                    className="shrink-0 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-md transition-transform hover:scale-105 active:scale-95 whitespace-nowrap"
+                    className="inline-flex h-8 shrink-0 items-center rounded-[9px] border border-border bg-card px-3 text-body font-medium text-foreground shadow-[var(--shadow-1)] transition-colors hover:border-input"
                   >
                     {item.actionLabel}
                   </Link>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Sheet>
 
-        {/* Today's Events (4 cols) */}
-        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 h-[380px] lg:col-span-4">
-          <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
-            <h2 className="text-base font-bold text-foreground shrink-0">Events</h2>
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="relative flex items-center gap-1.5 text-xs font-medium text-foreground bg-muted/80 px-2.5 py-1 rounded-full border border-border hover:border-purple-500/40 transition-colors shadow-sm shrink-0 whitespace-nowrap">
-                <button
-                  type="button"
-                  onClick={handlePrevEventsDate}
-                  className="no-ring outline-none hover:text-foreground p-0.5 rounded-full hover:bg-accent text-muted-foreground transition-colors z-10 cursor-pointer"
-                  title="Previous day"
-                >
-                  <ChevronLeft className="size-3.5" />
-                </button>
-
-                <div className="relative flex items-center px-1 font-semibold text-foreground whitespace-nowrap">
-                  <span className="whitespace-nowrap">{formatDateLabel(eventsDate)}</span>
-                  <input
-                    type="date"
-                    value={eventsDate}
-                    onChange={(e) => e.target.value && handleEventsDateChange(e.target.value)}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20 outline-none no-ring"
-                    title="Choose date"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleNextEventsDate}
-                  className="no-ring outline-none hover:text-foreground p-0.5 rounded-full hover:bg-accent text-muted-foreground transition-colors z-10 cursor-pointer"
-                  title="Next day"
-                >
-                  <ChevronRight className="size-3.5" />
-                </button>
-              </div>
-
-              <Link
-                href="/calendar"
-                className="text-detail font-semibold text-purple-400 hover:text-purple-300 transition-colors shrink-0 whitespace-nowrap"
-              >
-                View all
+        <Sheet
+          title="Events"
+          className="lg:col-span-5"
+          bodyClassName="px-2 pb-2"
+          meta={
+            <>
+              <DayStepper value={eventsDate} onChange={changeEventsDate} />
+              <Link href="/calendar" className={LINK}>
+                Calendar
               </Link>
-            </div>
-          </div>
-
-          <div className={`custom-scrollbar flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-3 flex flex-col gap-2.5 mt-1 ${isEventsLoading ? "opacity-40 transition-opacity" : ""}`}>
+            </>
+          }
+        >
+          <div className={cn("transition-opacity", isEventsLoading && "opacity-40")}>
             {eventsList.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-6 text-center">No events scheduled for {formatDateLabel(eventsDate)}</p>
+              <Empty>
+                Nothing on{" "}
+                {["Today", "Tomorrow", "Yesterday"].includes(formatDateLabel(eventsDate))
+                  ? formatDateLabel(eventsDate).toLowerCase()
+                  : formatDateLabel(eventsDate)}
+              </Empty>
             ) : (
-              eventsList.map((evt) => (
-                <div key={evt.id} className="flex items-center justify-between gap-2.5 rounded-xl border border-border/50 bg-muted/40 dark:bg-muted/30 p-2.5 shrink-0 w-full hover:bg-muted/60 dark:hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    <span className="text-xs font-bold text-emerald-400 shrink-0">{evt.formattedTime}</span>
-                    <div className="flex flex-col min-w-0 flex-1">
-                      <span className="text-xs font-bold text-foreground truncate min-w-0">{evt.eventName}</span>
-                      <span className="text-meta text-muted-foreground truncate min-w-0">{evt.hall}</span>
-                    </div>
-                  </div>
-
-                  <span
-                    className={`shrink-0 text-meta font-semibold px-2 py-0.5 rounded-full border ${evt.statusTone === "success"
-                      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                      : evt.statusTone === "info"
-                        ? "bg-blue-500/15 text-blue-400 border-blue-500/30"
-                        : "bg-amber-500/15 text-amber-400 border-amber-500/30"
-                      }`}
-                  >
-                    {evt.statusBadgeText}
-                  </span>
-                </div>
-              ))
+              <ul className="max-h-[22rem] overflow-y-auto">
+                {eventsList.map((evt) => (
+                  <li key={evt.id} className="grid grid-cols-[4rem_minmax(0,1fr)_auto] items-center gap-3 rounded-[10px] px-3 py-2.5 transition-colors hover:bg-muted/60">
+                    <span className="text-detail font-medium tabular-nums text-muted-foreground">{evt.formattedTime}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-body font-medium text-foreground">{evt.eventName}</span>
+                      <span className="block truncate text-detail text-subtle-foreground">
+                        {evt.hall}
+                        {evt.guestCount > 0 ? ` · ${evt.guestCount.toLocaleString("en-IN")} guests` : ""}
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        "inline-flex h-[22px] items-center gap-1.5 rounded-full px-2 text-detail font-medium",
+                        evt.statusTone === "success"
+                          ? "bg-success/10 text-success"
+                          : evt.statusTone === "warning"
+                            ? "bg-warning/10 text-warning"
+                            : "bg-muted text-muted-foreground"
+                      )}
+                    >
+                      <span className="size-1.5 rounded-full bg-current" aria-hidden />
+                      {evt.statusBadgeText}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
-        </div>
+        </Sheet>
+      </div>
 
-        {/* Hall Occupancy (4 cols) */}
-        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 h-[380px] lg:col-span-4">
-          <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
-            <h2 className="text-base font-bold text-foreground shrink-0">Hall Occupancy</h2>
-            <div className="relative flex items-center gap-1.5 text-xs font-medium text-foreground bg-muted/80 px-2.5 py-1 rounded-full border border-border hover:border-purple-500/40 transition-colors shadow-sm shrink-0 whitespace-nowrap">
-              <button
-                type="button"
-                onClick={handlePrevOccupancyDate}
-                className="no-ring outline-none hover:text-foreground p-0.5 rounded-full hover:bg-accent text-muted-foreground transition-colors z-10 cursor-pointer"
-                title="Previous day"
-              >
-                <ChevronLeft className="size-3.5" />
-              </button>
-
-              <div className="relative flex items-center px-1 font-semibold text-foreground whitespace-nowrap">
-                <span className="whitespace-nowrap">{formatDateLabel(occupancyDate)}</span>
-                <input
-                  type="date"
-                  value={occupancyDate}
-                  onChange={(e) => e.target.value && handleOccupancyDateChange(e.target.value)}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-20 outline-none no-ring"
-                  title="Choose date"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={handleNextOccupancyDate}
-                className="no-ring outline-none hover:text-foreground p-0.5 rounded-full hover:bg-accent text-muted-foreground transition-colors z-10 cursor-pointer"
-                title="Next day"
-              >
-                <ChevronRight className="size-3.5" />
-              </button>
-            </div>
-          </div>
-
-          <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-2 w-full mt-1">
-            <table className="w-full text-left text-xs text-muted-foreground">
-              <thead className="sticky top-0 bg-card z-10">
-                <tr className="border-b border-border text-meta font-semibold uppercase tracking-wider text-muted-foreground">
-                  <th className="py-2 pr-2">Hall</th>
-                  <th className="py-2 px-1">Morning</th>
-                  <th className="py-2 px-1">Evening</th>
-                  <th className="py-2 pl-1">Full Day</th>
-                </tr>
-              </thead>
-              <tbody className={`divide-y divide-white/5 ${isOccupancyLoading ? "opacity-40 transition-opacity" : ""}`}>
-                {occupancyList.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-4 text-center text-muted-foreground">
-                      No active venues found
-                    </td>
-                  </tr>
-                ) : (
-                  occupancyList.map((h) => (
-                    <tr key={h.venueId} className="hover:bg-muted/30">
-                      <td className="py-2.5 pr-2 font-medium text-foreground truncate max-w-[100px]">{h.venueName}</td>
-                      <td className="py-2.5 px-1">
-                        <span
-                          className={`inline-block px-1.5 py-1 rounded-lg text-meta font-medium border ${h.morning.status === "FREE"
-                            ? "bg-muted/50 text-muted-foreground border-border/50"
-                            : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30 font-semibold shadow-sm"
-                            }`}
-                          title={h.morning.label || undefined}
-                        >
-                          {h.morning.status === "FREE" ? "Available" : "Booked"}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-1">
-                        <span
-                          className={`inline-block px-1.5 py-1 rounded-lg text-meta font-medium border ${h.evening.status === "FREE"
-                            ? "bg-muted/50 text-muted-foreground border-border/50"
-                            : "bg-purple-500/20 text-purple-300 border-purple-500/30 font-semibold shadow-sm"
-                            }`}
-                          title={h.evening.label || undefined}
-                        >
-                          {h.evening.status === "FREE" ? "Available" : "Booked"}
-                        </span>
-                      </td>
-                      <td className="py-2.5 pl-1">
-                        <span
-                          className={`inline-block px-1.5 py-1 rounded-lg text-meta font-medium border ${h.fullDay.status === "FREE"
-                            ? "bg-muted/50 text-muted-foreground border-border/50"
-                            : "bg-amber-500/20 text-amber-300 border-amber-500/30 font-semibold shadow-sm"
-                            }`}
-                          title={h.fullDay.label || undefined}
-                        >
-                          {h.fullDay.status === "FREE" ? "Available" : "Booked"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </section>
-
-      {/* ============================================================ */}
-      {/* 5. BOTTOM BAND: Team Performance (Velos) | Overdue Invoices | Pending Payment Proofs */}
-      {/* ============================================================ */}
-      <section className="grid grid-cols-1 gap-5 lg:grid-cols-12">
-        {/* Card 1: Team Performance Velos (5 cols) */}
-        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 h-[200px] lg:col-span-5">
-          <div className="flex items-center justify-between gap-2 mb-4 shrink-0">
-            <h2 className="text-base font-bold text-foreground">Team Performance (Velos)</h2>
-            <Link
-              href="/performance/velos"
-              className="text-detail font-semibold text-purple-400 hover:text-purple-300 transition-colors shrink-0"
-            >
-              View leaderboard
-            </Link>
-          </div>
-
-          <div className="flex-1 min-h-0 flex items-center w-full overflow-hidden">
-            {data.velosLeaderboard.length === 0 ? (
-              <p className="text-xs text-muted-foreground mx-auto">No leaderboard activity yet</p>
+      {/* 6. Which halls are free · what kind of events */}
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-12">
+        <Sheet title="Hall occupancy" className="lg:col-span-7" meta={<DayStepper value={occupancyDate} onChange={changeOccupancyDate} />}>
+          <div className={cn("-mx-1 overflow-x-auto transition-opacity", isOccupancyLoading && "opacity-40")}>
+            {occupancyList.length === 0 ? (
+              <Empty>No active halls</Empty>
             ) : (
-              (() => {
-                const winner = data.velosLeaderboard[0];
-                const others = data.velosLeaderboard.slice(1, 5);
-                return (
-                  <div className="flex items-center gap-4 w-full">
-                    {/* Left Side: #1 Featured Leader */}
-                    {winner && (
-                      <div className="flex items-center gap-3 shrink-0">
-                        {/* Avatar with gold ring */}
-                        <div className="relative shrink-0">
-                          <div className="size-14 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-200 p-[2.5px] shadow-lg shadow-amber-500/40">
-                            {winner.image ? (
-                              <img src={winner.image} alt={winner.name} className="size-full rounded-full object-cover" />
-                            ) : (
-                              <div className="size-full rounded-full bg-background flex items-center justify-center text-sm font-black text-amber-300 uppercase">
-                                {winner.name.substring(0, 2)}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        {/* Info */}
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-meta font-extrabold text-amber-400 tracking-wider leading-none">#1</span>
-                          <span className="text-sm font-bold text-foreground leading-tight whitespace-nowrap">{winner.name}</span>
-                          <span className="text-sm font-extrabold text-emerald-400 flex items-center gap-1 font-mono whitespace-nowrap">
-                            {winner.points.toLocaleString("en-IN")} pts
-                            <TrendingUp className="size-3.5 text-emerald-400 shrink-0" />
-                          </span>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Divider */}
-                    <div className="h-14 w-px bg-border shrink-0" />
-
-                    {/* Right Side: Ranks #2 to #5 — equal flex columns */}
-                    <div className="flex flex-1 items-center justify-around gap-2 min-w-0">
-                      {others.map((user) => {
-                        const badgeColors =
-                          user.rank === 2
-                            ? "bg-blue-600 text-white"
-                            : user.rank === 3
-                              ? "bg-amber-700 text-amber-100"
-                              : "bg-slate-700 text-white";
-
+              <table className="w-full min-w-[26rem] text-left text-body">
+                <thead>
+                  <tr className="border-b border-border text-detail text-subtle-foreground">
+                    <th className="px-1 pb-2 font-medium">Hall</th>
+                    <th className="px-1 pb-2 font-medium">Morning</th>
+                    <th className="px-1 pb-2 font-medium">Evening</th>
+                    <th className="px-1 pb-2 font-medium">Full day</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {occupancyList.map((hall) => (
+                    <tr key={hall.venueId} className="border-b border-border last:border-0">
+                      <td className="max-w-[10rem] truncate px-1 py-2.5 font-medium text-foreground">{hall.venueName}</td>
+                      {[hall.morning, hall.evening, hall.fullDay].map((slot, i) => {
+                        const free = slot.status === "FREE";
                         return (
-                          <div key={user.userId} className="flex flex-col items-center text-center gap-1 flex-1 min-w-0">
-                            {/* Avatar */}
-                            <div className="relative shrink-0">
-                              <div className="size-11 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shadow-md">
-                                {user.image ? (
-                                  <img src={user.image} alt={user.name} className="size-full object-cover" />
-                                ) : (
-                                  <span className="text-xs font-bold text-foreground uppercase">
-                                    {user.name.substring(0, 2)}
-                                  </span>
-                                )}
-                              </div>
-                              {/* Rank badge — bottom-left of avatar */}
-                              <span className={`absolute -bottom-1 -left-0.5 flex items-center justify-center text-meta leading-none font-extrabold min-w-5 h-4 px-1 rounded-full shadow ${badgeColors}`}>
-                                #{user.rank}
-                              </span>
-                            </div>
-                            {/* Name */}
-                            <span className="text-meta font-semibold text-foreground whitespace-nowrap">
-                              {user.name.split(" ")[0]}
+                          <td key={i} className="px-1 py-2.5">
+                            <span
+                              title={slot.label ?? undefined}
+                              className={cn(
+                                "inline-flex h-[22px] items-center rounded-full px-2 text-detail font-medium",
+                                free ? "bg-primary-soft text-primary" : "bg-muted text-muted-foreground"
+                              )}
+                            >
+                              {free ? "Open" : "Booked"}
                             </span>
-                            {/* Points */}
-                            <span className="text-meta tracking-normal font-bold text-muted-foreground font-mono whitespace-nowrap">
-                              {user.points.toLocaleString("en-IN")} pts
-                            </span>
-                          </div>
+                          </td>
                         );
                       })}
-                    </div>
-                  </div>
-                );
-              })()
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
-        </div>
+        </Sheet>
 
-        {/* Card 2: Receivables & Overdue Invoices (4 cols) */}
-        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 h-[200px] lg:col-span-4">
-          <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
-            <h2 className="text-base font-bold text-foreground">Receivables & Overdue Invoices</h2>
-            <Link
-              href="/invoices"
-              className="text-detail font-semibold text-purple-400 hover:text-purple-300 transition-colors"
-            >
-              View all ({data.overdueInvoices.length})
+        <Sheet
+          title="Bookings by event"
+          className="lg:col-span-5"
+          meta={<Switcher label="Period" value={eventTypePeriod} options={PERIODS} onChange={setEventTypePeriod} />}
+        >
+          {eventTypes.types.length === 0 ? (
+            <Empty>No bookings in this period</Empty>
+          ) : (
+            <ul className="flex flex-col gap-3.5">
+              {eventTypes.types.map((t, i) => (
+                <li key={t.type} className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_3.75rem] items-center gap-3 text-body">
+                  <span className="truncate text-muted-foreground">{t.type}</span>
+                  <Bar value={t.count} max={typeMax} strong={i === 0} />
+                  <span className="text-right tabular-nums">
+                    <span className="font-medium text-foreground">{t.count}</span>
+                    <span className="ml-1 text-detail text-subtle-foreground">{t.percentage}%</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-4 text-detail text-subtle-foreground">
+            {eventTypes.total.toLocaleString("en-IN")} {eventTypes.total === 1 ? "booking" : "bookings"} in this period
+          </p>
+        </Sheet>
+      </div>
+
+      {/* 7. Money to chase · proofs to check · the team */}
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-3">
+        <Sheet
+          title="Overdue invoices"
+          bodyClassName="px-2 pb-2"
+          meta={
+            <Link href="/invoices" className={LINK}>
+              View all
             </Link>
-          </div>
+          }
+        >
+          {data.overdueInvoices.length === 0 ? (
+            <Empty>No overdue invoices</Empty>
+          ) : (
+            <ul className="max-h-64 overflow-y-auto">
+              {data.overdueInvoices.map((inv) => (
+                <li key={inv.id} className="flex items-center gap-3 rounded-[10px] px-3 py-2 hover:bg-muted/60">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-body font-medium text-foreground">{inv.clientName}</span>
+                    <span className="block text-detail text-subtle-foreground">Due {inv.dueDateFormatted}</span>
+                  </span>
+                  <span className="shrink-0 text-body font-medium tabular-nums text-destructive">{inr(inv.balanceDue)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Sheet>
 
-          <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-3 flex flex-col gap-2 mt-1">
-            {data.overdueInvoices.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">No overdue invoices 👍</p>
-            ) : (
-              data.overdueInvoices.map((inv) => (
-                <div key={inv.id} className="flex items-center justify-between gap-2 text-xs py-1.5 border-b border-border/50 last:border-0 shrink-0 w-full">
-                  <div className="flex-1 min-w-0 flex items-center gap-2">
-                    <span className="font-bold text-foreground shrink-0">{formatCurrency(inv.balanceDue)}</span>
-                    <span className="text-muted-foreground truncate min-w-0 flex-1">{inv.clientName}</span>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-meta text-muted-foreground whitespace-nowrap">Due {inv.dueDateFormatted}</span>
-                    <span className="px-2 py-0.5 rounded-full text-meta font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30 whitespace-nowrap">
-                      Overdue
+        <Sheet
+          title="Payment proofs to check"
+          bodyClassName="px-2 pb-2"
+          meta={
+            <Link href="/payments" className={LINK}>
+              View all
+            </Link>
+          }
+        >
+          {data.pendingPaymentProofs.length === 0 ? (
+            <Empty>Every proof is verified</Empty>
+          ) : (
+            <ul className="max-h-64 overflow-y-auto">
+              {data.pendingPaymentProofs.map((proof) => (
+                <li key={proof.id} className="flex items-center gap-3 rounded-[10px] px-3 py-2 hover:bg-muted/60">
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-body font-medium text-foreground">{proof.clientName}</span>
+                    <span className="block text-detail text-subtle-foreground">
+                      {inr(proof.amount)} · {proof.uploadedAgo}
                     </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+                  </span>
+                  <Link
+                    href="/payments"
+                    className="inline-flex h-8 shrink-0 items-center rounded-[9px] border border-border bg-card px-3 text-body font-medium text-foreground shadow-[var(--shadow-1)] transition-colors hover:border-input"
+                  >
+                    Verify
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Sheet>
 
-        {/* Card 3: Pending Payment Proofs (4 cols) */}
-        <div className="flex flex-col rounded-2xl border border-border bg-card p-5 h-[200px] lg:col-span-3">
-          <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
-            <h2 className="text-base font-bold text-foreground">Pending Payment Proofs</h2>
-            <Link
-              href="/payments"
-              className="text-detail font-semibold text-purple-400 hover:text-purple-300 transition-colors"
-            >
-              View all ({data.pendingPaymentProofs.length})
+        <Sheet
+          title="Team this month"
+          bodyClassName="px-2 pb-2"
+          meta={
+            <Link href="/performance/velos" className={LINK}>
+              Leaderboard
             </Link>
-          </div>
-
-          <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto overflow-x-hidden pr-3 flex flex-col gap-2 mt-1">
-            {data.pendingPaymentProofs.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">All payment proofs verified 👍</p>
-            ) : (
-              data.pendingPaymentProofs.map((proof) => (
-                <div key={proof.id} className="flex items-center justify-between gap-2 text-xs py-1.5 border-b border-border/50 last:border-0 shrink-0 w-full">
-                  <div className="flex-1 min-w-0 flex flex-col">
-                    <span className="font-bold text-foreground truncate min-w-0">{proof.clientName}</span>
-                    <span className="text-meta text-muted-foreground truncate min-w-0">{proof.uploadedAgo}</span>
-                  </div>
-
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="font-bold text-emerald-400 whitespace-nowrap">{formatCurrency(proof.amount)}</span>
-                    <Link
-                      href="/payments"
-                      className="rounded-xl bg-rose-600/80 hover:bg-rose-600 px-3 py-1 text-xs font-semibold text-white shadow transition-all whitespace-nowrap"
+          }
+        >
+          {data.velosLeaderboard.length === 0 ? (
+            <Empty>No points earned yet</Empty>
+          ) : (
+            <ol className="max-h-64 overflow-y-auto">
+              {data.velosLeaderboard.slice(0, 5).map((user) => (
+                <li key={user.userId} className="flex items-center gap-3 rounded-[10px] px-3 py-2 hover:bg-muted/60">
+                  <span className={cn("w-4 text-detail font-medium tabular-nums", user.rank === 1 ? "text-gold" : "text-subtle-foreground")}>
+                    {user.rank}
+                  </span>
+                  {user.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={user.image} alt="" className="size-7 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <span
+                      className={cn(
+                        "grid size-7 shrink-0 place-items-center rounded-full text-meta font-semibold",
+                        user.rank === 1 ? "bg-gold-soft text-gold" : "bg-muted text-muted-foreground"
+                      )}
+                      aria-hidden
                     >
-                      Verify
-                    </Link>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
+                      {initials(user.name)}
+                    </span>
+                  )}
+                  <span className="min-w-0 flex-1 truncate text-body font-medium text-foreground">{user.name}</span>
+                  <span className="shrink-0 text-body tabular-nums text-muted-foreground">
+                    {user.points.toLocaleString("en-IN")} pts
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </Sheet>
+      </div>
     </div>
   );
 }

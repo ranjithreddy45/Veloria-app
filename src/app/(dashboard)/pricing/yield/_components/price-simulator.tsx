@@ -199,7 +199,7 @@ export function PriceSimulator({ venues }: PriceSimulatorProps) {
 
             {result.appliedRules.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <p className="text-xs font-medium text-muted-foreground">
                   Applied rules ({result.appliedRules.length})
                 </p>
                 {result.appliedRules.map((r) => (

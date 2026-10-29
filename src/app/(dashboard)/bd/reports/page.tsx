@@ -318,7 +318,7 @@ export default async function BdReportsPage({
 
           {/* Lead sources */}
           <div className="lg:col-span-2">
-            <h3 className="mb-2 text-detail font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            <h3 className="mb-2 text-detail font-semibold text-muted-foreground">
               Lead sources
             </h3>
             {a.leadSources.length === 0 ? (
@@ -534,7 +534,7 @@ export default async function BdReportsPage({
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Loss reasons */}
           <div>
-            <h3 className="mb-2 text-detail font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            <h3 className="mb-2 text-detail font-semibold text-muted-foreground">
               Reasons
             </h3>
             {lost.reasons.length === 0 ? (
@@ -565,7 +565,7 @@ export default async function BdReportsPage({
 
           {/* Win-rate trend */}
           <div>
-            <h3 className="mb-2 text-detail font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            <h3 className="mb-2 text-detail font-semibold text-muted-foreground">
               Win-rate trend (6 months)
             </h3>
             {lost.trend.length === 0 ? (
@@ -601,7 +601,7 @@ export default async function BdReportsPage({
 
         {/* Lost rows */}
         <div>
-          <h3 className="mb-2 text-detail font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+          <h3 className="mb-2 text-detail font-semibold text-muted-foreground">
             Lost deals
           </h3>
           {lost.rows.length === 0 ? (
@@ -695,7 +695,7 @@ export default async function BdReportsPage({
 
           {/* Leaderboard */}
           <div>
-            <h3 className="mb-2 text-detail font-semibold uppercase tracking-[0.04em] text-muted-foreground">
+            <h3 className="mb-2 text-detail font-semibold text-muted-foreground">
               Leaderboard · Task score
             </h3>
             {a.leaderboard.length === 0 ? (
@@ -754,7 +754,7 @@ function FollowupList({
   return (
     <Card className="gap-0 py-0">
       <CardContent className="space-y-3 px-4 py-4">
-        <div className={`flex items-center justify-between text-detail font-semibold uppercase tracking-[0.04em] ${headTone}`}>
+        <div className={`flex items-center justify-between text-detail font-semibold ${headTone}`}>
           <span>{title}</span>
           <span className="tabular-nums">{items.length}</span>
         </div>

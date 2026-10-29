@@ -333,9 +333,9 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, redu
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-muted/30">
-                    <th className="px-4 py-2.5 text-left text-meta font-semibold uppercase tracking-wide text-muted-foreground">Particulars</th>
-                    <th className="px-4 py-2.5 text-left text-meta font-semibold uppercase tracking-wide text-muted-foreground">Plan</th>
-                    <th className="px-4 py-2.5 text-right text-meta font-semibold uppercase tracking-wide text-muted-foreground">Amount</th>
+                    <th className="px-4 py-2.5 text-left text-detail font-semibold text-muted-foreground">Particulars</th>
+                    <th className="px-4 py-2.5 text-left text-detail font-semibold text-muted-foreground">Plan</th>
+                    <th className="px-4 py-2.5 text-right text-detail font-semibold text-muted-foreground">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -352,7 +352,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, redu
 
             {quote.notes && (
               <div className="rounded-xl border bg-muted/30 p-4">
-                <p className="mb-1 text-meta uppercase tracking-wide text-muted-foreground">Remarks</p>
+                <p className="mb-1 text-detail text-muted-foreground">Remarks</p>
                 <p className="text-body leading-relaxed text-muted-foreground">{quote.notes}</p>
               </div>
             )}
@@ -391,7 +391,7 @@ export function QuotationDetail({ quote, perms, leads, venues, advancePaid, redu
                 value={inr(result.tax)}
               />
               <div className="mt-2 flex items-baseline justify-between gap-4 border-t pt-3">
-                <span className="text-meta font-semibold uppercase tracking-wide text-muted-foreground">Grand Total</span>
+                <span className="text-detail font-semibold text-muted-foreground">Grand Total</span>
                 <span className="numeric text-lg font-bold tracking-[-0.02em]">{inr(result.grandTotal)}</span>
               </div>
             </CardContent>
@@ -536,7 +536,7 @@ function Header({ quote }: { quote: QuoteRow }) {
 function Detail({ label, value, numeric }: { label: string; value: string; numeric?: boolean }) {
   return (
     <div className="space-y-1">
-      <div className="text-meta uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-detail text-muted-foreground">{label}</div>
       <div className={numeric ? "numeric font-medium" : "font-medium"}>{value}</div>
     </div>
   );

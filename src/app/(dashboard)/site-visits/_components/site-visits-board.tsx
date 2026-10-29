@@ -126,7 +126,7 @@ function VisitList({
     <div className="space-y-6">
       {groups.map(([day, dayRows]) => (
         <div key={day} className="space-y-2">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <CalendarClock className="size-3.5" />
             {day}
           </p>

@@ -68,7 +68,7 @@ export function ReassignOwnerPopover({
         className="w-56 p-1.5"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="px-2 pb-1 pt-1 text-meta font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="px-2 pb-1 pt-1 text-detail font-medium text-muted-foreground">
           Move lead to
         </p>
         <div className="max-h-64 overflow-y-auto">

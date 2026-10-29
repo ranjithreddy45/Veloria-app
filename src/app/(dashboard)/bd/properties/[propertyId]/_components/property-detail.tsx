@@ -240,7 +240,7 @@ export function PropertyDetail({ property, managers, userRole }: PropertyDetailP
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-4">
             {/* Owner links back to its originating deal when one exists. */}
             <div className="flex flex-col gap-0.5">
-              <dt className="text-meta uppercase tracking-[0.04em] text-muted-foreground">
+              <dt className="text-detail text-muted-foreground">
                 Owner
               </dt>
               <dd className="text-detail text-foreground">
@@ -691,7 +691,7 @@ function StatutoryDocRow({
 
       <div className="grid gap-2 sm:grid-cols-2">
         <div className="flex flex-col gap-1">
-          <label className="text-meta uppercase tracking-[0.04em] text-muted-foreground">{numberLabel}</label>
+          <label className="text-detail text-muted-foreground">{numberLabel}</label>
           <Input
             value={num}
             onChange={(e) => setNum(e.target.value)}
@@ -701,7 +701,7 @@ function StatutoryDocRow({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-meta uppercase tracking-[0.04em] text-muted-foreground">Expiry date</label>
+          <label className="text-detail text-muted-foreground">Expiry date</label>
           <Input
             type="date"
             value={exp}
@@ -746,7 +746,7 @@ function StatutoryDocRow({
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <dt className="text-meta uppercase tracking-[0.04em] text-muted-foreground">
+      <dt className="text-detail text-muted-foreground">
         {label}
       </dt>
       {/* Emails, URLs and long owner names have no break opportunity, and this

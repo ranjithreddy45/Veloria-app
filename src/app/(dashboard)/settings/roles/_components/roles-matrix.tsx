@@ -109,7 +109,7 @@ export function RolesPermissionsMatrix({
         <CardContent className="overflow-x-auto p-0">
           <table className="w-full min-w-[760px] border-collapse text-detail">
             <thead className="sticky top-0 z-10 bg-card">
-              <tr className="border-b border-border text-left text-meta uppercase tracking-wide text-muted-foreground">
+              <tr className="border-b border-border text-left text-detail text-muted-foreground">
                 <th className="px-3 py-2 font-medium">Permission</th>
                 {roles.map((r) => (
                   <th key={r} className="px-2 py-2 text-center font-medium">{ROLE_LABEL[r] ?? r}</th>

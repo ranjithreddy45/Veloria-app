@@ -209,7 +209,7 @@ export function KraDetail({
                     <h2 className="text-sm font-semibold">
                       {sec.ref}. {sec.title}
                     </h2>
-                    <p className="text-meta uppercase tracking-wide text-muted-foreground">
+                    <p className="text-detail text-muted-foreground">
                       {sec.focus}
                     </p>
                   </div>

@@ -128,7 +128,7 @@ function Section<T>({
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {icon}
-          <h3 className="text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">{title}</h3>
+          <h3 className="text-detail font-semibold text-muted-foreground">{title}</h3>
         </div>
         {canWrite && (
           <>

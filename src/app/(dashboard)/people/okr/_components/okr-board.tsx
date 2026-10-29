@@ -236,7 +236,7 @@ function ObjectiveCard({
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-meta font-semibold uppercase tracking-wide text-muted-foreground">
+          <span className="text-detail font-semibold text-muted-foreground">
             Key results ({objective.keyResults.length})
           </span>
           {canManage && <AddKeyResultDialog objectiveId={objective.id} onDone={onDone} />}

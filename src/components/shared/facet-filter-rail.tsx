@@ -76,7 +76,7 @@ function FacetSection<T>({
         className="flex w-full items-center justify-between text-left focus-ring rounded"
         aria-expanded={open}
       >
-        <span className="text-meta font-semibold uppercase tracking-[0.05em] text-muted-foreground">{facet.label}</span>
+        <span className="text-detail font-semibold text-muted-foreground">{facet.label}</span>
         <ChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", !open && "-rotate-90")} />
       </button>
       {open && (

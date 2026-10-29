@@ -93,7 +93,7 @@ export function PtRegisterView({
               {reg.groups.map((g) => (
                 <React.Fragment key={g.state}>
                   <TableRow className="bg-muted/40">
-                    <TableCell colSpan={4} className="text-detail font-semibold uppercase tracking-wide text-muted-foreground">
+                    <TableCell colSpan={4} className="text-detail font-semibold text-muted-foreground">
                       State: {g.state} · {g.rows.length} employee{g.rows.length === 1 ? "" : "s"}
                     </TableCell>
                   </TableRow>

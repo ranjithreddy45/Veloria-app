@@ -90,7 +90,7 @@ export function Importer() {
     <div className="space-y-4">
       <div className="surface-glass rounded-[22px] p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-body font-semibold uppercase tracking-wide text-muted-foreground">
+          <h3 className="flex items-center gap-2 text-body font-semibold text-muted-foreground">
             <FileSpreadsheet className="size-4" /> Paste or upload CSV
           </h3>
           <div className="flex gap-2">

@@ -127,7 +127,7 @@ export function AIScoreCard({
               <>
                 <Separator className="my-4" />
                 <div>
-                  <p className="mb-2 text-meta font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="mb-2 text-detail font-medium text-muted-foreground">
                     AI Analysis
                   </p>
                   <p className="whitespace-pre-wrap text-body leading-relaxed text-muted-foreground">

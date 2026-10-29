@@ -166,7 +166,7 @@ function TaskRow({
         >
           {format(due, "h:mm")}
         </div>
-        <div className="text-meta font-medium uppercase text-muted-foreground">
+        <div className="text-detail font-medium text-muted-foreground">
           {format(due, "a")}
         </div>
       </div>
@@ -353,7 +353,7 @@ export function MyCalendar({
                 <div className="flex items-center gap-2.5 px-1">
                   <h2
                     className={cn(
-                      "text-body font-semibold uppercase tracking-[0.06em]",
+                      "text-body font-semibold",
                       today ? "text-primary" : "text-muted-foreground"
                     )}
                   >

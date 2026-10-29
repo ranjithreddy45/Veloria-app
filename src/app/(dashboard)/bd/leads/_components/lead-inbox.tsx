@@ -330,7 +330,7 @@ function LeadStagePipeline({
               className="flex flex-col gap-2 flex-1 min-w-0"
             >
               <div className="flex items-center gap-1.5 truncate">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
+                <span className="text-[11px] font-semibold text-muted-foreground truncate">
                   {s.label} <span className="text-foreground">({c})</span>
                 </span>
               </div>
@@ -585,7 +585,7 @@ export function LeadInbox({
       <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden">
         <table className="w-full min-w-[860px] border-collapse">
           <thead>
-            <tr className="border-b border-border/50 text-left text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+            <tr className="border-b border-border/50 text-left text-[11px] font-medium text-muted-foreground">
               <th className="px-3 py-3">Lead / Property</th>
               <th className="px-3 py-3">Location</th>
               <th className="px-3 py-3">Stage</th>
@@ -1741,7 +1741,7 @@ function QualifyLeadDialog({
             Convert to Deal
           </Button>
 
-          <div className="flex items-center gap-3 text-meta uppercase tracking-wide text-muted-foreground">
+          <div className="flex items-center gap-3 text-detail text-muted-foreground">
             <span className="h-px flex-1 bg-border" />
             or disqualify
             <span className="h-px flex-1 bg-border" />

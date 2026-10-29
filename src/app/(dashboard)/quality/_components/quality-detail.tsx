@@ -326,7 +326,7 @@ export function QualityDetail({ ctqs }: QualityDetailProps) {
       {/* Active metric strip */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 surface-glass rounded-[22px] px-5 py-3.5">
         <div>
-          <p className="text-meta uppercase tracking-[0.08em] text-muted-foreground">{active.domain}</p>
+          <p className="text-detail text-muted-foreground">{active.domain}</p>
           <p className="text-copy font-semibold text-foreground">{active.label}</p>
         </div>
         <div className="h-8 w-px bg-border/70" />

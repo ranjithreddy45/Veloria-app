@@ -200,7 +200,7 @@ export function ArrearFormFields({
       </div>
 
       <div className="rounded-lg border p-3">
-        <div className="mb-2 text-meta uppercase tracking-wide text-muted-foreground">
+        <div className="mb-2 text-detail text-muted-foreground">
           Statutory treatment
         </div>
         <div className="space-y-2.5">

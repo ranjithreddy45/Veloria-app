@@ -332,7 +332,7 @@ export function LeadDetail({
 
             {(lead.referrerName || lead.referrerPhone || lead.referrerEmail || lead.brokerageDemand) && (
               <div className="mt-4 rounded-md border border-border/60 bg-muted/30 p-3">
-                <div className="mb-2 text-meta uppercase tracking-wide text-muted-foreground">
+                <div className="mb-2 text-detail text-muted-foreground">
                   Referral / broker
                 </div>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
@@ -345,7 +345,7 @@ export function LeadDetail({
             )}
             {lead.notes && (
               <div className="mt-4 rounded-md border border-border/60 bg-muted/30 p-3 text-body">
-                <div className="mb-1 text-meta uppercase tracking-wide text-muted-foreground">
+                <div className="mb-1 text-detail text-muted-foreground">
                   Notes
                 </div>
                 {lead.notes}
@@ -518,7 +518,7 @@ export function LeadDetail({
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <dt className="text-meta uppercase tracking-[0.06em] text-muted-foreground">{label}</dt>
+      <dt className="text-detail text-muted-foreground">{label}</dt>
       {/* Emails and long owner names have no break opportunity, and this dl runs
         * two columns (~165px) on a phone — without break-words they push the
         * card past the viewport edge. */}
@@ -601,7 +601,7 @@ function StatusChanger({ lead, onDone }: { lead: AcqLeadFull; onDone: () => void
 
   return (
     <div className="space-y-2 rounded-md border border-border/60 p-3">
-      <Label className="text-meta uppercase tracking-[0.06em] text-muted-foreground">
+      <Label className="text-detail text-muted-foreground">
         Change status
       </Label>
       <Select value={target ?? undefined} onValueChange={pick}>
@@ -687,7 +687,7 @@ function LeadImagesSection({
   return (
     <div className="space-y-3 rounded-md border border-border/60 p-3.5">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-meta font-medium uppercase tracking-[0.06em] text-muted-foreground">
+        <div className="flex items-center gap-2 text-detail font-medium text-muted-foreground">
           <Camera className="size-3.5" /> Property photos
         </div>
         {canWrite && dirty && (

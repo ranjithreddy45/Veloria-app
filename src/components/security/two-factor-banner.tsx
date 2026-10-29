@@ -53,27 +53,23 @@ export function TwoFactorBanner() {
   return (
     <div
       role="status"
-      className="flex items-center gap-3 border-b border-amber-300/60 bg-amber-50 px-4 py-2 text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-100 sm:px-6 lg:px-8"
+      className="flex items-center gap-3 border-b border-amber-200/70 bg-amber-50 px-4 py-2 text-foreground dark:border-amber-500/20 dark:bg-amber-950/30 sm:px-6 lg:px-8"
     >
-      <ShieldAlert className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-      <p className="min-w-0 flex-1 text-detail">
+      <ShieldAlert className="size-4 shrink-0 text-warning" />
+      <p className="min-w-0 flex-1 text-body">
         <span className="font-medium">
           Two-factor authentication is required for your role
         </span>
-        <span className="hidden sm:inline"> — set it up now to keep your account protected.</span>
+        <span className="hidden text-muted-foreground sm:inline">. Set it up to keep your account protected.</span>
       </p>
-      <Button
-        asChild
-        size="sm"
-        className="h-7 shrink-0 rounded-md bg-amber-600 px-2.5 text-meta font-semibold text-white hover:bg-amber-700 dark:bg-amber-500 dark:text-amber-950 dark:hover:bg-amber-400"
-      >
-        <Link href={TWO_FACTOR_SETUP_PATH}>Set it up now</Link>
+      <Button asChild size="sm" variant="outline" className="h-7 shrink-0 px-2.5">
+        <Link href={TWO_FACTOR_SETUP_PATH}>Set it up</Link>
       </Button>
       <button
         type="button"
         onClick={dismiss}
         aria-label="Dismiss for this session"
-        className="shrink-0 rounded-md p-1 text-amber-700 transition-colors hover:bg-amber-100 hover:text-amber-900 dark:text-amber-300 dark:hover:bg-amber-900/50 dark:hover:text-amber-100"
+        className="shrink-0 rounded-md p-1 text-muted-foreground transition-colors hover:bg-amber-100 hover:text-foreground dark:hover:bg-amber-900/40"
       >
         <X className="size-4" />
       </button>

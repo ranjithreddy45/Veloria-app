@@ -117,7 +117,7 @@ export function AttendanceHome({
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="surface-glass rounded-[22px] p-3 sm:p-5">
-      <div className="text-meta uppercase leading-tight tracking-wide text-muted-foreground sm:text-meta">{label}</div>
+      <div className="text-detail leading-tight text-muted-foreground sm:text-detail">{label}</div>
       <div className="numeric mt-2 text-title font-semibold leading-none sm:mt-2.5 sm:text-h2">{value}</div>
     </div>
   );
@@ -217,18 +217,18 @@ function CheckInCard({ today }: { today: Rec | null }) {
 
   return (
     <div className="surface-glass rounded-[22px] p-4 sm:p-5">
-      <div className="flex items-center gap-2 text-meta font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+      <div className="flex items-center gap-2 text-detail font-semibold text-muted-foreground">
         <Clock className="size-3.5" /> Today
       </div>
       {/* Wraps at 375px: in-time + out-time + the status pill overflow a phone
        * row, and an un-wrapped flex would push the pill off the card edge. */}
       <div className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-3">
         <div>
-          <div className="text-meta uppercase tracking-wide text-muted-foreground">Check-in</div>
+          <div className="text-detail text-muted-foreground">Check-in</div>
           <div className="numeric mt-1 text-title font-semibold leading-none">{fmtTime(today?.checkInAt ?? null)}</div>
         </div>
         <div>
-          <div className="text-meta uppercase tracking-wide text-muted-foreground">Check-out</div>
+          <div className="text-detail text-muted-foreground">Check-out</div>
           <div className="numeric mt-1 text-title font-semibold leading-none">{fmtTime(today?.checkOutAt ?? null)}</div>
         </div>
         {today && (

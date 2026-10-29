@@ -179,7 +179,7 @@ export function DayDetailPanel({
           {fullDayBooking && (
             <div className="rounded-lg border p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground uppercase">
+                <span className="text-xs font-medium text-muted-foreground">
                   Full Day Booking
                 </span>
                 <StatusBadge
@@ -211,7 +211,7 @@ export function DayDetailPanel({
             <>
               <Separator />
               <div>
-                <h3 className="text-body font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                <h3 className="text-body font-semibold text-muted-foreground">
                   Time slots
                 </h3>
                 <p className="mt-0.5 text-body text-muted-foreground">
@@ -330,7 +330,7 @@ export function DayDetailPanel({
           {bookings.length > 0 && !fullDayBooking && (
             <>
               <Separator />
-              <h3 className="text-body font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+              <h3 className="text-body font-semibold text-muted-foreground">
                 All bookings (<span className="numeric">{bookings.length}</span>)
               </h3>
               <div className="space-y-2">
@@ -363,7 +363,7 @@ export function DayDetailPanel({
           {leads.length > 0 && (
             <>
               <Separator />
-              <h3 className="flex items-center gap-1.5 text-body font-semibold uppercase tracking-[0.06em] text-sky-700">
+              <h3 className="flex items-center gap-1.5 text-body font-semibold text-sky-700">
                 <InboxIcon className="size-4" />
                 Enquiries / leads (<span className="numeric">{leads.length}</span>)
               </h3>

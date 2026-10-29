@@ -99,7 +99,7 @@ function getUtilizationColor(percent: number) {
 
 // Shared chrome so every panel on this page reads as one system.
 const CARD = "surface-glass rounded-[22px]";
-const TH = "h-9 text-meta font-medium uppercase tracking-wide text-muted-foreground";
+const TH = "h-9 text-detail font-medium text-muted-foreground";
 
 // ============================================================
 // Simple Bar Chart Component
@@ -182,7 +182,7 @@ function TrendChart({
     <div className={cn("w-full", className)}>
       {/* Peak reference — gives the bars a scale to read against */}
       <div className="mb-2 flex items-baseline justify-between">
-        <span className="text-meta uppercase tracking-wide text-muted-foreground">
+        <span className="text-detail text-muted-foreground">
           Peak
         </span>
         <span className="numeric text-detail text-muted-foreground">

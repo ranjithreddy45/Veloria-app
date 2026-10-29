@@ -244,12 +244,12 @@ const SKELETON_VIEWPORTS = [
   { label: "390", width: 390, height: 844 },
 ] as const;
 
-/** Tailwind's sm breakpoint: below it the chip is hidden and a count eyebrow may wrap. */
+/** Tailwind's sm breakpoint: below it a count eyebrow may wrap. */
 const SM = 640;
 /** R15's tolerance between the skeleton's title box and the settled h1. */
 const TITLE_MATCH = 2;
-/** The eyebrow's height: one 11px line at line-height 1.45, or two plus the eyebrow row's 4px gap. */
-const EYEBROW_HEIGHT = { 1: 16, 2: 36 } as const;
+/** The eyebrow's height (Workspace v3): one 13px line on a 20px line box, or two plus the eyebrow row's 4px gap. */
+const EYEBROW_HEIGHT = { 1: 20, 2: 44 } as const;
 
 /**
  * The pairs /style-guide must render, by `data-header-pair`, and the state
@@ -390,10 +390,10 @@ for (const { label, width, height } of SKELETON_VIEWPORTS) {
         expect.soft(m.h1, `${at}: no h1 in the PageHeader`).not.toBeNull();
         expect.soft(m.title, `${at}: no data-skeleton-part="title" box in the PageHeaderSkeleton`).not.toBeNull();
 
-        // The pair shows the state it is there for. Chip: on screen from sm up,
-        // hidden below, in both.
-        expect.soft(m.headerChip, `${at}: the module chip should be ${phone ? "hidden" : "on screen"}`).toBe(!phone);
-        expect.soft(m.skeletonChip, `${at}: the skeleton's chip placeholder should be ${phone ? "hidden" : "on screen"}`).toBe(!phone);
+        // The pair shows the state it is there for. No module chip at any
+        // width since Workspace v3, in the header or its skeleton.
+        expect.soft(m.headerChip, `${at}: the header should draw no module chip`).toBe(false);
+        expect.soft(m.skeletonChip, `${at}: the skeleton should draw no chip placeholder`).toBe(false);
         // Eyebrow: one line, or two below sm for the count eyebrow.
         const lines = phone ? pair.phoneEyebrowLines : 1;
         expect.soft(m.headerEyebrow, `${at}: no eyebrow above the PageHeader's title row`).not.toBeNull();

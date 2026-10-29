@@ -68,7 +68,7 @@ export function PackageCard({ data, href }: PackageCardProps) {
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 bg-muted">
             <ImageIcon className="size-7 text-muted-foreground/50" />
-            <span className="text-meta font-medium uppercase tracking-[0.14em] text-muted-foreground/60">
+            <span className="text-detail font-medium text-muted-foreground/60">
               No photo yet
             </span>
           </div>
@@ -91,7 +91,7 @@ export function PackageCard({ data, href }: PackageCardProps) {
       <div className="flex flex-1 flex-col gap-3 p-4">
         {/* Vendor eyebrow → package name hierarchy */}
         <div className="space-y-1">
-          <p className="truncate text-meta font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          <p className="truncate text-detail font-semibold text-muted-foreground">
             {data.vendor.name}
           </p>
           <div className="flex items-start justify-between gap-2">

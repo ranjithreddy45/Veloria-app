@@ -276,7 +276,7 @@ export function TransitionMap({ entityType, transitions }: TransitionMapProps) {
           {/* Terminal States */}
           {terminalNodes.length > 0 && (
             <div className="flex items-center justify-center gap-6 pt-2 border-t border-dashed">
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">
+              <span className="text-xs text-muted-foreground">
                 Terminal States
               </span>
               {terminalNodes.map((node) => {
@@ -455,7 +455,7 @@ function NonSequentialTransitions({
 
   return (
     <div className="space-y-2 pt-2 border-t border-dashed">
-      <p className="text-xs text-muted-foreground uppercase tracking-wider">
+      <p className="text-xs text-muted-foreground">
         All Defined Transitions
       </p>
       <div className="flex flex-wrap gap-2">

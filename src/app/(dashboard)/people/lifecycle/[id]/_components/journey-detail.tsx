@@ -46,7 +46,7 @@ export function JourneyDetail({ journey, canWrite }: { journey: Journey; canWrit
       {/* Checklist by category */}
       {Object.entries(grouped).map(([cat, tasks]) => (
         <div key={cat} className="surface-glass rounded-[22px] p-4">
-          <h3 className="mb-2 text-detail font-semibold uppercase tracking-wide text-muted-foreground">{cat}</h3>
+          <h3 className="mb-2 text-detail font-semibold text-muted-foreground">{cat}</h3>
           <div className="divide-y">
             {tasks.map((t) => (
               <TaskRow key={t.id} task={t} canWrite={canWrite && !closed} />
@@ -143,7 +143,7 @@ function ExitInterviewCard({
 
   return (
     <div className="surface-glass rounded-[22px] p-4">
-      <h3 className="mb-3 text-detail font-semibold uppercase tracking-wide text-muted-foreground">Exit interview</h3>
+      <h3 className="mb-3 text-detail font-semibold text-muted-foreground">Exit interview</h3>
       <div className="space-y-3">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5"><Label className="text-detail">Reason for leaving</Label>

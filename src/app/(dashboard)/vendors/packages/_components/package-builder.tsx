@@ -1389,7 +1389,7 @@ export function PackageBuilder({ vendors, categories, venues, templates, initial
 
         {/* Live preview */}
         <div className="space-y-2">
-          <h2 className="text-body font-semibold text-muted-foreground uppercase tracking-wide">
+          <h2 className="text-body font-semibold text-muted-foreground">
             Live preview
           </h2>
           <PackageCard data={previewData} />

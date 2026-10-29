@@ -226,7 +226,7 @@ export function MyMonthCalendar({
       {/* Weekday headers */}
       <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
         {WEEKDAYS.map((w) => (
-          <div key={w} className="pb-1 text-center text-meta font-medium uppercase tracking-wide text-muted-foreground">
+          <div key={w} className="pb-1 text-center text-detail font-medium text-muted-foreground">
             {w}
           </div>
         ))}

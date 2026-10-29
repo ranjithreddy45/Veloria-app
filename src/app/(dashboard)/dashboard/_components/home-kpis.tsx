@@ -30,7 +30,7 @@ export function HomeKpis({ kpis }: { kpis: HomeKpi[] }) {
               className="group block h-full rounded-[22px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             >
               <Card className="surface-lift h-full gap-1 p-[18px]">
-                <span className="text-meta flex items-start justify-between gap-2 font-medium uppercase tracking-[0.08em] text-foreground/70">
+                <span className="text-detail flex items-start justify-between gap-2 font-medium text-foreground/70">
                   {k.label}
                   <ArrowUpRight
                     aria-hidden

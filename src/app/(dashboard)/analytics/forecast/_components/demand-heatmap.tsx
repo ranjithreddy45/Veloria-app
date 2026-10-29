@@ -109,7 +109,7 @@ export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
       <CardContent>
         {/* Legend */}
         <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-detail">
-          <span className="text-meta uppercase tracking-wide text-muted-foreground">
+          <span className="text-detail text-muted-foreground">
             Demand
           </span>
           {(["high", "medium", "low"] as const).map((level) => (
@@ -129,13 +129,13 @@ export function DemandHeatmap({ data, year }: DemandHeatmapProps) {
           <div className="min-w-[700px]">
             {/* Header Row - Month Labels */}
             <div className="grid grid-cols-[180px_repeat(12,1fr)] gap-1 mb-1">
-              <div className="px-2 py-1 text-meta font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="px-2 py-1 text-detail font-medium text-muted-foreground">
                 Venue
               </div>
               {MONTH_LABELS.map((label) => (
                 <div
                   key={label}
-                  className="py-1 text-center text-meta font-medium uppercase tracking-wide text-muted-foreground"
+                  className="py-1 text-center text-detail font-medium text-muted-foreground"
                 >
                   {label}
                 </div>

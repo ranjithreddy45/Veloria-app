@@ -394,7 +394,7 @@ export function MenuBuilder({
                   .filter((cat) => selectionCountByCategory[cat])
                   .map((cat) => (
                     <div key={cat}>
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                      <p className="text-xs font-semibold text-muted-foreground mb-1.5">
                         {cat}
                       </p>
                       {selections

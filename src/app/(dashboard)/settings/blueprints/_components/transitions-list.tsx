@@ -238,11 +238,11 @@ export function TransitionsList({
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Transition</TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Name</TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Requirements</TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Roles</TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide text-muted-foreground">Active</TableHead>
+                  <TableHead className="text-detail text-muted-foreground">Transition</TableHead>
+                  <TableHead className="text-detail text-muted-foreground">Name</TableHead>
+                  <TableHead className="text-detail text-muted-foreground">Requirements</TableHead>
+                  <TableHead className="text-detail text-muted-foreground">Roles</TableHead>
+                  <TableHead className="text-detail text-muted-foreground">Active</TableHead>
                   <TableHead className="w-[50px]" />
                 </TableRow>
               </TableHeader>

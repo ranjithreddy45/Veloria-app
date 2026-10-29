@@ -1,6 +1,19 @@
 import type { Decimal } from "@prisma/client/runtime/library";
 import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
+
+// tailwind-merge has to be told about the app's nine-step type scale
+// (globals.css: text-meta … text-display). Unknown, it filed `text-detail` as
+// a text COLOUR, so cn("text-detail …", "text-muted-foreground") silently
+// dropped the size and the text fell back to whatever it inherited, on every
+// call site that mixed a size with a colour.
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "font-size": [{ text: ["meta", "detail", "body", "copy", "lede", "title", "h2", "h1", "display"] }],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

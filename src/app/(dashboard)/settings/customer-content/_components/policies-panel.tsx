@@ -186,7 +186,7 @@ function PolicyCard({ policy }: { policy: TeamPolicy }) {
       <CardContent className="space-y-4">
         <dl className="grid gap-4 text-sm sm:grid-cols-2">
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Customers see</dt>
+            <dt className="text-xs font-medium text-muted-foreground">Customers see</dt>
             <dd className="mt-1">
               {isLive && live ? (
                 <>
@@ -203,7 +203,7 @@ function PolicyCard({ policy }: { policy: TeamPolicy }) {
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Draft</dt>
+            <dt className="text-xs font-medium text-muted-foreground">Draft</dt>
             <dd className="mt-1">
               {draft ? (
                 <>

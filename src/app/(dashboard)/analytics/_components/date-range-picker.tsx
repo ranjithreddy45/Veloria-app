@@ -128,7 +128,7 @@ export function DateRangePicker({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <CalendarIcon className="size-3.5" />
-            <span className="text-meta font-medium uppercase tracking-wide">
+            <span className="text-detail font-medium">
               Period
             </span>
           </div>
@@ -158,7 +158,7 @@ export function DateRangePicker({
           {showCustom && (
             <div className="flex items-end gap-2 mt-1 sm:mt-0">
               <div className="space-y-1">
-                <Label htmlFor="dr-start" className="text-meta uppercase tracking-wide text-muted-foreground">
+                <Label htmlFor="dr-start" className="text-detail text-muted-foreground">
                   From
                 </Label>
                 <Input
@@ -170,7 +170,7 @@ export function DateRangePicker({
                 />
               </div>
               <div className="space-y-1">
-                <Label htmlFor="dr-end" className="text-meta uppercase tracking-wide text-muted-foreground">
+                <Label htmlFor="dr-end" className="text-detail text-muted-foreground">
                   To
                 </Label>
                 <Input

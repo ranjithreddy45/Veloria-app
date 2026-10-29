@@ -5,22 +5,24 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-body font-medium tracking-[-0.01em] transition-press active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[10px] text-body font-medium tracking-[-0.01em] transition-press active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
+        // Flat plum with a hairline of light on top: the one action colour.
         default:
-          "button-sheen text-primary-foreground hover:brightness-[1.04]",
+          "bg-primary text-primary-foreground shadow-[0_1px_2px_rgb(109_27_82/0.22),inset_0_1px_0_rgb(255_255_255/0.12)] hover:bg-primary-hover dark:shadow-none",
         gradient:
-          "button-sheen text-primary-foreground hover:brightness-[1.04]",
+          "bg-primary text-primary-foreground shadow-[0_1px_2px_rgb(109_27_82/0.22),inset_0_1px_0_rgb(255_255_255/0.12)] hover:bg-primary-hover dark:shadow-none",
         destructive:
           "bg-destructive text-white shadow-[inset_0_1px_0_oklch(1_0_0/15%),0_1px_2px_oklch(0_0_0/10%)] hover:brightness-105 focus-visible:ring-destructive/30",
+        // A white sheet on the canvas: hairline edge, the lightest shadow.
         outline:
-          "border border-border bg-card/70 text-foreground backdrop-blur-sm shadow-[0_1px_0_oklch(1_0_0/40%)_inset,0_1px_2px_oklch(0_0_0/4%)] hover:bg-muted/60 hover:border-border dark:bg-input/30 dark:border-input dark:hover:bg-input/50 dark:shadow-none",
+          "border border-border bg-card text-foreground shadow-[var(--shadow-1)] hover:border-input hover:bg-card dark:hover:bg-accent",
         secondary:
-          "bg-secondary text-secondary-foreground border border-border/70 shadow-[0_1px_1px_oklch(0_0_0/3%)] hover:bg-secondary/70",
+          "bg-muted text-foreground hover:bg-accent",
         ghost:
-          "text-foreground/80 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
+          "text-muted-foreground hover:bg-muted hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

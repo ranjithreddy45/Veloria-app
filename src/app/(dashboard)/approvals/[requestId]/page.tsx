@@ -98,7 +98,7 @@ export default async function ApprovalRequestPage({
 
             <dl className="mt-5 space-y-4">
               <div>
-                <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+                <dt className="text-detail text-muted-foreground">
                   Status
                 </dt>
                 <dd className="mt-1.5">
@@ -107,7 +107,7 @@ export default async function ApprovalRequestPage({
               </div>
 
               <div>
-                <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+                <dt className="text-detail text-muted-foreground">
                   Submitted by
                 </dt>
                 <dd className="mt-1 text-sm">
@@ -118,7 +118,7 @@ export default async function ApprovalRequestPage({
               </div>
 
               <div>
-                <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+                <dt className="text-detail text-muted-foreground">
                   Submitted at
                 </dt>
                 <dd className="numeric mt-1 text-sm">
@@ -128,7 +128,7 @@ export default async function ApprovalRequestPage({
 
               {request.resolvedAt && (
                 <div>
-                  <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-detail text-muted-foreground">
                     Resolved at
                   </dt>
                   <dd className="numeric mt-1 text-sm">
@@ -139,7 +139,7 @@ export default async function ApprovalRequestPage({
 
               <div className="grid grid-cols-2 gap-4 border-t pt-4">
                 <div>
-                  <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-detail text-muted-foreground">
                     Current step
                   </dt>
                   <dd className="numeric mt-1 text-sm">
@@ -147,7 +147,7 @@ export default async function ApprovalRequestPage({
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-meta uppercase tracking-wide text-muted-foreground">
+                  <dt className="text-detail text-muted-foreground">
                     Decisions
                   </dt>
                   <dd className="numeric mt-1 text-sm">

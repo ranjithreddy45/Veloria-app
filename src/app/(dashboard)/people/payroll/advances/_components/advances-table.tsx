@@ -218,12 +218,12 @@ export function AdvancesTable({ rows }: { rows: AdvanceListRow[] }) {
               </div>
               {detail.reason && (
                 <div className="text-body">
-                  <div className="text-meta uppercase tracking-wide text-muted-foreground">Reason</div>
+                  <div className="text-detail text-muted-foreground">Reason</div>
                   <div>{detail.reason}</div>
                 </div>
               )}
               <div>
-                <div className="mb-1.5 text-meta uppercase tracking-wide text-muted-foreground">
+                <div className="mb-1.5 text-detail text-muted-foreground">
                   Recovery history
                 </div>
                 {detail.recoveries.length === 0 ? (
@@ -313,7 +313,7 @@ export function AdvancesTable({ rows }: { rows: AdvanceListRow[] }) {
 function Field({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div>
-      <div className="text-meta uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="text-detail text-muted-foreground">{label}</div>
       <div className={strong ? "font-semibold tabular-nums" : "tabular-nums"}>{value}</div>
     </div>
   );

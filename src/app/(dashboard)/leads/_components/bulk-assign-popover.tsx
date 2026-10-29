@@ -79,7 +79,7 @@ export function BulkAssignPopover({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="center" side="top" className="w-56 p-1.5">
-        <p className="px-2 pb-1 pt-1 text-meta font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="px-2 pb-1 pt-1 text-detail font-medium text-muted-foreground">
           Assign {selectedIds.length} lead{selectedIds.length === 1 ? "" : "s"} to
         </p>
         <div className="max-h-64 overflow-y-auto">

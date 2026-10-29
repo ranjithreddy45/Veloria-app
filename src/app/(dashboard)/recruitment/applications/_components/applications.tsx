@@ -444,11 +444,11 @@ export function Applications({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-meta uppercase tracking-wide">Application Name</TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide">Candidate Name</TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide">Application Stage</TableHead>
-                  <TableHead className="text-meta uppercase tracking-wide">Status</TableHead>
-                  <TableHead className="text-right text-meta uppercase tracking-wide">Change Stage</TableHead>
+                  <TableHead className="text-detail">Application Name</TableHead>
+                  <TableHead className="text-detail">Candidate Name</TableHead>
+                  <TableHead className="text-detail">Application Stage</TableHead>
+                  <TableHead className="text-detail">Status</TableHead>
+                  <TableHead className="text-right text-detail">Change Stage</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -73,7 +73,7 @@ export function DealList({ deals }: { deals: AcqDealCard[] }) {
                 <TableHead
                   key={h}
                   className={
-                    "text-meta uppercase tracking-[0.04em] text-muted-foreground" +
+                    "text-detail text-muted-foreground" +
                     (i === 4 ? " text-right" : "")
                   }
                 >

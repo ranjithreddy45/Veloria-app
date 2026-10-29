@@ -119,15 +119,15 @@ export function SplitPaymentsPanel({ target, canCreate, requesterName, variant =
       {/* ---- Money strip ---- */}
       <div className="grid grid-cols-3 divide-x border-b text-center">
         <div className="p-3">
-          <p className="text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground">Still due</p>
+          <p className="text-detail font-medium text-muted-foreground">Still due</p>
           <p className="numeric mt-1 text-sm font-semibold text-foreground">{formatPaise(target.outstandingPaise)}</p>
         </div>
         <div className="p-3">
-          <p className="text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground">In pending links</p>
+          <p className="text-detail font-medium text-muted-foreground">In pending links</p>
           <p className="numeric mt-1 text-sm font-semibold text-amber-700 dark:text-amber-400">{formatPaise(target.reservedPaise)}</p>
         </div>
         <div className="p-3">
-          <p className="text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground">Paid via splits</p>
+          <p className="text-detail font-medium text-muted-foreground">Paid via splits</p>
           <p className="numeric mt-1 text-sm font-semibold text-emerald-700 dark:text-emerald-400">{formatPaise(paidPaise)}</p>
         </div>
       </div>

@@ -133,7 +133,7 @@ function Fact({
 }) {
   return (
     <div className="bg-card p-4">
-      <p className="text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground">
+      <p className="text-detail font-medium text-muted-foreground">
         {label}
       </p>
       <p
@@ -416,15 +416,15 @@ export default async function BookingDetailPage({
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                   <div>
-                    <p className="text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground">Total invoiced</p>
+                    <p className="text-detail font-medium text-muted-foreground">Total invoiced</p>
                     <p className="numeric mt-1 text-lg font-semibold">{formatINR(totalInvoiced)}</p>
                   </div>
                   <div>
-                    <p className="text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground">Collected</p>
+                    <p className="text-detail font-medium text-muted-foreground">Collected</p>
                     <p className="numeric mt-1 text-lg font-semibold text-success">{formatINR(collected)}</p>
                   </div>
                   <div>
-                    <p className="text-meta font-medium uppercase tracking-[0.08em] text-muted-foreground">Pending</p>
+                    <p className="text-detail font-medium text-muted-foreground">Pending</p>
                     <p className={cn("numeric mt-1 text-lg font-semibold", pending > 0 ? "text-warning" : "text-muted-foreground")}>{formatINR(pending)}</p>
                   </div>
                 </div>

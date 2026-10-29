@@ -85,7 +85,7 @@ export function EmployeePayslips({ payslips }: { payslips: EmployeePayslipRow[] 
             </div>
 
             <div className="mt-auto">
-              <div className="text-meta uppercase tracking-wide text-muted-foreground">Net pay</div>
+              <div className="text-detail text-muted-foreground">Net pay</div>
               <div className="numeric mt-1 text-h2 font-semibold leading-none">{inr.format(p.net)}</div>
               <div className="numeric mt-2 text-meta text-muted-foreground">
                 Gross {inr.format(p.gross)} · {p.paidDays} paid

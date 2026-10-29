@@ -360,7 +360,7 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm">
                   <div>
-                    <div className="text-xs font-medium text-muted-foreground uppercase">
+                    <div className="text-xs font-medium text-muted-foreground">
                       Name
                     </div>
                     <div className="font-medium">
@@ -380,7 +380,7 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
 
                   {/* Detected Variables */}
                   <div>
-                    <div className="text-xs font-medium text-muted-foreground uppercase mb-2">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">
                       Detected Variables ({detectedVariables.length})
                     </div>
                     {detectedVariables.length > 0 ? (
@@ -406,7 +406,7 @@ export function TemplateForm({ initialData, templateId }: TemplateFormProps) {
 
                   {/* Content Preview */}
                   <div>
-                    <div className="text-xs font-medium text-muted-foreground uppercase mb-2">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">
                       Content Preview
                     </div>
                     <div className="max-h-64 overflow-y-auto rounded-md border bg-muted/30 p-3 text-xs whitespace-pre-wrap dark:bg-muted/10">

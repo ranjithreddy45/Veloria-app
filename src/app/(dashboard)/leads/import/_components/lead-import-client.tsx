@@ -105,7 +105,7 @@ export function LeadImportClient() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-muted-foreground border-b text-left text-xs uppercase">
+                  <tr className="text-muted-foreground border-b text-left text-xs">
                     <th className="py-2 pr-3 font-medium">Name</th>
                     <th className="py-2 pr-3 font-medium">Phone</th>
                     <th className="py-2 pr-3 font-medium">Event</th>

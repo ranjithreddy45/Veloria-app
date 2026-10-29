@@ -57,7 +57,7 @@ export default async function PrivacySettingsPage() {
         {STATUS_ORDER.map((s) => (
           <Card key={s} className="py-4">
             <CardContent className="px-4">
-              <p className="text-meta uppercase tracking-wide text-muted-foreground">
+              <p className="text-detail text-muted-foreground">
                 {PRIVACY_REQUEST_STATUS_LABEL[s]}
               </p>
               <p className="numeric mt-1 text-h2 font-semibold text-foreground">{counts[s]}</p>
@@ -116,7 +116,7 @@ export default async function PrivacySettingsPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-body">
                     <thead>
-                      <tr className="border-b text-left text-meta uppercase tracking-wide text-muted-foreground">
+                      <tr className="border-b text-left text-detail text-muted-foreground">
                         <th className="py-2 pr-4 font-medium">Form</th>
                         <th className="py-2 pr-4 font-medium">Purpose</th>
                         <th className="py-2 pr-4 text-right font-medium">Records</th>

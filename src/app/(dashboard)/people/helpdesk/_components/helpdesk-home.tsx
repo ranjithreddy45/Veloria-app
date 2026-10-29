@@ -43,12 +43,12 @@ export function HelpdeskHome({
         <div className="flex justify-end"><RaiseDialog categories={categories} /></div>
         {isAgent && assigned.length > 0 && (
           <div>
-            <div className="mb-1.5 text-detail font-semibold uppercase tracking-wide text-muted-foreground">Assigned to you</div>
+            <div className="mb-1.5 text-detail font-semibold text-muted-foreground">Assigned to you</div>
             <TicketList tickets={assigned} />
           </div>
         )}
         <div>
-          {isAgent && <div className="mb-1.5 text-detail font-semibold uppercase tracking-wide text-muted-foreground">Raised by you</div>}
+          {isAgent && <div className="mb-1.5 text-detail font-semibold text-muted-foreground">Raised by you</div>}
           {mine.length === 0 ? (
             <div className="rounded-[22px] border border-dashed bg-card/40 p-10 text-center text-body text-muted-foreground">No tickets yet. Raise one and HR will pick it up.</div>
           ) : <TicketList tickets={mine} />}

@@ -142,7 +142,7 @@ export function BeoPackageSnapshots({ beoId, locked }: { beoId: string; locked: 
                 <div className="mt-2.5 space-y-2 border-t border-border/60 pt-2.5">
                   {s.sections.map((sec, si) => (
                     <div key={si} className="space-y-1">
-                      <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground">{sec.title}</p>
+                      <p className="text-detail font-medium text-muted-foreground">{sec.title}</p>
                       <ul className="space-y-0.5">
                         {sec.items.map((it, ii) => (
                           <li key={ii} className="flex flex-wrap items-baseline gap-x-1.5 text-detail text-foreground">

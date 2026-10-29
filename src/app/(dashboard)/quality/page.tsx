@@ -40,7 +40,7 @@ function CtqCard({ ctq }: { ctq: CtqResult }) {
           <p className="truncate text-body font-semibold tracking-[-0.01em] text-foreground">
             {ctq.label}
           </p>
-          <p className="mt-0.5 text-meta uppercase tracking-[0.08em] text-muted-foreground">
+          <p className="mt-0.5 text-detail text-muted-foreground">
             {ctq.domain}
           </p>
         </div>
@@ -128,7 +128,7 @@ export default async function QualityPage() {
               <Gauge className="size-6" />
             </span>
             <div>
-              <p className="text-detail font-medium uppercase tracking-[0.1em] text-muted-foreground">
+              <p className="text-detail font-medium text-muted-foreground">
                 Overall process sigma
               </p>
               <div className="mt-1 flex items-end gap-2">

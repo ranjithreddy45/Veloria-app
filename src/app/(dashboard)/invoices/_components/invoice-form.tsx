@@ -769,7 +769,7 @@ export function InvoiceForm({
                   {/* Bill To */}
                   {selectedContact && (
                     <div>
-                      <div className="text-xs font-medium text-muted-foreground uppercase">
+                      <div className="text-xs font-medium text-muted-foreground">
                         Bill To
                       </div>
                       <div className="font-medium">
@@ -792,7 +792,7 @@ export function InvoiceForm({
 
                   {/* Line Items */}
                   <div>
-                    <div className="text-xs font-medium text-muted-foreground uppercase mb-2">
+                    <div className="text-xs font-medium text-muted-foreground mb-2">
                       Items ({watchedLineItems.length})
                     </div>
                     {watchedLineItems.map((item, i) => {

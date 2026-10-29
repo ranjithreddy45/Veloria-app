@@ -39,7 +39,7 @@ export interface CoversPanelProps {
 function Figure({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="min-w-0">
-      <div className="text-meta text-muted-foreground uppercase tracking-[0.06em]">{label}</div>
+      <div className="text-detail text-muted-foreground">{label}</div>
       <div className="numeric text-title font-semibold tabular-nums">{value}</div>
       {hint && <div className="text-meta text-muted-foreground mt-0.5">{hint}</div>}
     </div>

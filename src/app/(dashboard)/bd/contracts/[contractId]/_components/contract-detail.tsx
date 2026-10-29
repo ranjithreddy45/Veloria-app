@@ -362,7 +362,7 @@ function ContractAuthoring({ contract }: { contract: ContractFull }) {
 function F({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="space-y-0.5">
-      <dt className="text-meta uppercase tracking-[0.06em] text-muted-foreground">{label}</dt>
+      <dt className="text-detail text-muted-foreground">{label}</dt>
       {/* Emails and long owner names have no break opportunity, and this dl runs
         * two columns (~165px) on a phone — without break-words they push the
         * card past the viewport edge. */}

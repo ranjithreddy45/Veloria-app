@@ -88,7 +88,7 @@ export function FinanceReports({
             {/* The 26px net-profit figure plus its caption is wider than a phone
               * card; wrapping keeps the number whole instead of clipping it. */}
             <CardContent className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-4">
-              <span className="text-meta font-semibold uppercase tracking-[0.1em] text-muted-foreground">Net {pl.netProfit >= 0 ? "profit" : "loss"} · <span className="numeric tracking-normal">FY {fy}</span></span>
+              <span className="text-detail font-semibold text-muted-foreground">Net {pl.netProfit >= 0 ? "profit" : "loss"} · <span className="numeric tracking-normal">FY {fy}</span></span>
               <span className={`numeric text-h2 font-bold ${pl.netProfit >= 0 ? "text-success" : "text-destructive"}`}>{formatINR(pl.netProfit)}</span>
             </CardContent>
           </Card>
@@ -119,7 +119,7 @@ export function FinanceReports({
                 * relaxed on mobile so the name isn't squeezed to nothing. */}
               <Table className="[&_td]:px-2.5 [&_th]:px-2.5 sm:[&_td]:px-4 sm:[&_th]:px-4">
                 <TableHeader>
-                  <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-meta [&>th]:font-medium [&>th]:uppercase [&>th]:tracking-[0.05em] [&>th]:text-muted-foreground"><TableHead>Account</TableHead><TableHead className="text-right sm:w-40">Debit</TableHead><TableHead className="text-right sm:w-40">Credit</TableHead></TableRow>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30 [&>th]:h-9 [&>th]:text-detail [&>th]:font-medium [&>th]:text-muted-foreground"><TableHead>Account</TableHead><TableHead className="text-right sm:w-40">Debit</TableHead><TableHead className="text-right sm:w-40">Credit</TableHead></TableRow>
                 </TableHeader>
                 <TableBody>
                   {tb.rows.length === 0 ? (

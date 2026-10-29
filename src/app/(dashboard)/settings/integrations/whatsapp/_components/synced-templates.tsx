@@ -109,7 +109,7 @@ export function SyncedTemplates({ templates }: { templates: SyncedTemplate[] }) 
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-medium">{t.name}</span>
-                    <span className="text-meta uppercase text-muted-foreground">{t.language}</span>
+                    <span className="text-detail text-muted-foreground">{t.language}</span>
                     {t.variableCount > 0 && (
                       <span className="text-meta text-muted-foreground">
                         {t.variableCount} variable{t.variableCount === 1 ? "" : "s"}

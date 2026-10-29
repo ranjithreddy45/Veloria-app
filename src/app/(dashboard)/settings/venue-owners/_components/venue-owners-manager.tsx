@@ -365,7 +365,7 @@ function VisibilityNote() {
       <h2 className="text-copy font-semibold text-foreground">What an owner sees</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <p className="text-meta font-semibold uppercase tracking-[0.06em] text-emerald-700 dark:text-emerald-300">Shown</p>
+          <p className="text-detail font-semibold text-emerald-700 dark:text-emerald-300">Shown</p>
           <ul className="list-disc space-y-1 pl-4 text-detail text-muted-foreground">
             <li>Lead and booking counts for their venues</li>
             <li>A calendar of how many events fall on each date</li>
@@ -373,7 +373,7 @@ function VisibilityNote() {
           </ul>
         </div>
         <div className="space-y-1.5">
-          <p className="text-meta font-semibold uppercase tracking-[0.06em] text-muted-foreground">Never shown</p>
+          <p className="text-detail font-semibold text-muted-foreground">Never shown</p>
           <ul className="list-disc space-y-1 pl-4 text-detail text-muted-foreground">
             <li>Customer names, phone numbers, emails or addresses</li>
             <li>Notes, event names or record numbers</li>
