@@ -8,6 +8,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { EMPLOYEE_STATUS_LABELS } from "@/lib/hr/constants";
+import { pluralNoun } from "@/lib/plural";
 
 type Lookup = { id: string; name: string; shortCode?: string | null };
 
@@ -133,7 +134,7 @@ function FilterSelect({
           <SelectValue placeholder={label} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={ALL}>All {label.toLowerCase()}s</SelectItem>
+          <SelectItem value={ALL}>All {pluralNoun(label.toLowerCase())}</SelectItem>
           {options.map((o) => (
             <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
           ))}

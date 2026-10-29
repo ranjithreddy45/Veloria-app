@@ -12,6 +12,7 @@ import {
 import { EMPLOYEE_STATUS_LABELS, EMPLOYEE_STATUS_HUE } from "@/lib/hr/constants";
 import type { OrgNode } from "@/actions/hr-employee.actions";
 import type { EmployeeStatus } from "@prisma/client";
+import { pluralNoun } from "@/lib/plural";
 
 type Lookup = { id: string; name: string; shortCode?: string | null };
 const ALL = "__all__";
@@ -125,7 +126,7 @@ function Picker({
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger className="h-9 w-auto min-w-[8.5rem]"><SelectValue placeholder={label} /></SelectTrigger>
       <SelectContent>
-        <SelectItem value="__all__">All {label.toLowerCase()}s</SelectItem>
+        <SelectItem value="__all__">All {pluralNoun(label.toLowerCase())}</SelectItem>
         {options.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
       </SelectContent>
     </Select>
