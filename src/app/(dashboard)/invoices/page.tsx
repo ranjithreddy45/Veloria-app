@@ -71,7 +71,7 @@ export default async function InvoicesPage() {
       <PageHeader
         eyebrow={
           <span>
-            FINANCE ·{" "}
+            Finance ·{" "}
             <span className="numeric">{invoices.length}</span> invoice
             {invoices.length === 1 ? "" : "s"} ·{" "}
             <span className="numeric">{formatINR(outstanding)}</span> outstanding

@@ -3,9 +3,8 @@
 import * as React from "react";
 import dynamic from "next/dynamic";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
+import { ViewTabs } from "@/components/ui/view-tabs";
 import type { DateRange } from "@/actions/report.actions";
 
 // Each report tab pulls in recharts (~250KB). Load only the tab the user opens
@@ -25,10 +24,10 @@ const OperationsReports = dynamic(() => import("./operations-reports").then((m) 
 // ============================================================
 
 const DATE_RANGES: { value: DateRange; label: string }[] = [
-  { value: "7d", label: "7 Days" },
-  { value: "30d", label: "30 Days" },
-  { value: "90d", label: "90 Days" },
-  { value: "12m", label: "12 Months" },
+  { value: "7d", label: "7 days" },
+  { value: "30d", label: "30 days" },
+  { value: "90d", label: "90 days" },
+  { value: "12m", label: "12 months" },
 ];
 
 // ============================================================
@@ -41,21 +40,7 @@ export function ReportsDashboard() {
   return (
     <div className="space-y-6">
       {/* Date Range Selector */}
-      <div className="flex items-center gap-2">
-        {DATE_RANGES.map((dr) => (
-          <Button
-            key={dr.value}
-            size="sm"
-            variant={range === dr.value ? "default" : "outline"}
-            className={cn(
-              range === dr.value && "bg-indigo-600 hover:bg-indigo-700"
-            )}
-            onClick={() => setRange(dr.value)}
-          >
-            {dr.label}
-          </Button>
-        ))}
-      </div>
+      <ViewTabs value={range} onValueChange={setRange} options={DATE_RANGES} />
 
       {/* Tabs for report sections */}
       <Tabs defaultValue="revenue" className="space-y-6">

@@ -191,63 +191,68 @@ export type BookingsBySourceReportData = {
 // Helpers
 // ============================================================
 
+// Chart colours are the workspace palette's calm hues (globals.css,
+// scripts/workspace-palette.mjs) read as CSS variables, so the charts follow
+// the theme and dark mode: eight distinguishable hues — plum, info blue,
+// success green, ember, mauve, sage, amber, stone — instead of a rainbow.
+// Every consumer renders inside the team workspace, where these resolve.
 const EVENT_TYPE_COLORS: Record<string, string> = {
-  Wedding: "hsl(262, 83%, 58%)",
-  Reception: "hsl(221, 83%, 53%)",
-  "Corporate Event": "hsl(142, 71%, 45%)",
-  "Birthday Party": "hsl(25, 95%, 53%)",
-  Engagement: "hsl(330, 81%, 60%)",
-  Anniversary: "hsl(199, 89%, 48%)",
-  Conference: "hsl(47, 100%, 50%)",
-  Other: "hsl(215, 14%, 55%)",
+  Wedding: "var(--color-violet-500)",
+  Reception: "var(--color-blue-500)",
+  "Corporate Event": "var(--color-green-500)",
+  "Birthday Party": "var(--color-orange-500)",
+  Engagement: "var(--chart-3)",
+  Anniversary: "var(--color-teal-500)",
+  Conference: "var(--color-amber-500)",
+  Other: "var(--color-slate-500)",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  HOLD: "hsl(45, 93%, 47%)",
-  TENTATIVE: "hsl(217, 91%, 60%)",
-  CONFIRMED: "hsl(142, 71%, 45%)",
-  IN_PROGRESS: "hsl(262, 83%, 58%)",
-  COMPLETED: "hsl(215, 14%, 55%)",
-  CANCELLED: "hsl(0, 84%, 60%)",
+  HOLD: "var(--color-amber-500)",
+  TENTATIVE: "var(--color-blue-500)",
+  CONFIRMED: "var(--color-green-500)",
+  IN_PROGRESS: "var(--color-violet-500)",
+  COMPLETED: "var(--color-slate-500)",
+  CANCELLED: "var(--color-red-500)",
 };
 
 const SOURCE_COLORS: Record<string, string> = {
-  WEBSITE: "hsl(217, 91%, 60%)",
-  REFERRAL: "hsl(142, 71%, 45%)",
-  SOCIAL_MEDIA: "hsl(330, 81%, 60%)",
-  WALK_IN: "hsl(25, 95%, 53%)",
-  PHONE_INQUIRY: "hsl(199, 89%, 48%)",
-  EMAIL: "hsl(262, 83%, 58%)",
-  EVENT: "hsl(47, 100%, 50%)",
-  PARTNER: "hsl(172, 66%, 50%)",
-  ADVERTISEMENT: "hsl(0, 84%, 60%)",
-  OTHER: "hsl(215, 14%, 55%)",
+  WEBSITE: "var(--color-blue-500)",
+  REFERRAL: "var(--color-green-500)",
+  SOCIAL_MEDIA: "var(--chart-3)",
+  WALK_IN: "var(--color-orange-500)",
+  PHONE_INQUIRY: "var(--color-teal-500)",
+  EMAIL: "var(--color-violet-500)",
+  EVENT: "var(--color-amber-500)",
+  PARTNER: "var(--chart-4)",
+  ADVERTISEMENT: "var(--color-red-500)",
+  OTHER: "var(--color-slate-500)",
 };
 
 const PAYMENT_METHOD_COLORS: Record<string, string> = {
-  CASH: "hsl(45, 93%, 47%)",
-  BANK_TRANSFER: "hsl(217, 91%, 60%)",
-  UPI: "hsl(262, 83%, 58%)",
-  RAZORPAY: "hsl(142, 71%, 45%)",
-  CREDIT_CARD: "hsl(330, 81%, 60%)",
-  CHEQUE: "hsl(25, 95%, 53%)",
-  OTHER: "hsl(215, 14%, 55%)",
+  CASH: "var(--color-amber-500)",
+  BANK_TRANSFER: "var(--color-blue-500)",
+  UPI: "var(--color-violet-500)",
+  RAZORPAY: "var(--color-green-500)",
+  CREDIT_CARD: "var(--chart-3)",
+  CHEQUE: "var(--color-orange-500)",
+  OTHER: "var(--color-slate-500)",
 };
 
 const CLIENT_TYPE_COLORS: Record<string, string> = {
-  INDIVIDUAL: "hsl(262, 83%, 58%)",
-  CORPORATE: "hsl(142, 71%, 45%)",
+  INDIVIDUAL: "var(--color-violet-500)",
+  CORPORATE: "var(--color-green-500)",
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  "Venue Rental": "hsl(262, 83%, 58%)",
-  "Catering": "hsl(142, 71%, 45%)",
-  "Décor": "hsl(330, 81%, 60%)",
-  "Photography": "hsl(25, 95%, 53%)",
-  "Entertainment": "hsl(199, 89%, 48%)",
-  "Sound & AV": "hsl(217, 91%, 60%)",
-  "Coordination": "hsl(47, 100%, 50%)",
-  "Other": "hsl(215, 14%, 55%)",
+  "Venue Rental": "var(--color-violet-500)",
+  "Catering": "var(--color-green-500)",
+  "Décor": "var(--chart-3)",
+  "Photography": "var(--color-orange-500)",
+  "Entertainment": "var(--color-teal-500)",
+  "Sound & AV": "var(--color-blue-500)",
+  "Coordination": "var(--color-amber-500)",
+  "Other": "var(--color-slate-500)",
 };
 
 function getDateBounds(range: DateRange) {
