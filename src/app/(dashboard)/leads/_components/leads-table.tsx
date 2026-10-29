@@ -174,6 +174,7 @@ function IdentityCell({ lead }: { lead: LeadWithContact }) {
       <div className="min-w-0 leading-tight">
         <Link
           href={`/leads/${lead.id}`}
+          data-morph={`lead-title-${lead.id}`}
           className="block truncate text-body font-medium text-foreground hover:underline"
         >
           {lead.title}

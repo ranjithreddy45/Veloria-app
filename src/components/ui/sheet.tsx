@@ -36,7 +36,7 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/40 backdrop-blur-sm",
+        "motion-pop data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/40 backdrop-blur-sm",
         className
       )}
       {...props}
@@ -60,7 +60,7 @@ function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "bg-card/80 backdrop-blur-xl backdrop-saturate-150 data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col shadow-card-hover transition ease-[cubic-bezier(0.4,0,0.2,1)] data-[state=closed]:duration-300 data-[state=open]:duration-500",
+          "bg-card/80 backdrop-blur-xl backdrop-saturate-150 data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-50 flex flex-col shadow-card-hover motion-sheet",
           // Side sheets: 3/4 of a 375px phone is 281px, which is genuinely
           // cramped for the forms and detail panels these hold. Go to 88% on a
           // phone (the 12% strip left over is also the tap-to-dismiss target,

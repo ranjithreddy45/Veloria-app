@@ -176,6 +176,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
           </div>
         }
         title={lead.title}
+        morphId={`lead-title-${lead.id}`}
         help={<StatusBadge status={lead.status} colorMap={LEAD_STATUS_COLORS} />}
         description={
           lead.createdBy
