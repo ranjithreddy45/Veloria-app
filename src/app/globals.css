@@ -537,6 +537,93 @@
   transition-duration: 150ms;
 }
 
+/* ============================================================
+   Motion system.
+   One set of speeds and curves for the whole app, so a dialog, a
+   menu and a tab all move like parts of the same thing. Staff use
+   this all day: everyday motion finishes inside a quarter second
+   and never stands between someone and their data.
+
+   --motion-spring      a real damped spring (~4% overshoot): things
+                      that pop in from a point (menus, dialogs, tabs).
+   --motion-spring-soft critically damped, no overshoot: things that
+                      travel a long way (sheets) or carry text.
+   The springs are `linear()` curves sampled from the spring
+   equation; browsers without linear() get the cubic fallbacks.
+
+   Two rules every animation here follows (both were real bugs):
+   - An entrance ends with fill-mode `backwards`, never `both`. A
+     kept transform makes the element the containing block of every
+     position:fixed descendant, so bars and toasts inside it land
+     relative to the page instead of the screen.
+   - Nothing on first paint starts at opacity 0 (it ghosts headings
+     on load). Page entrances run on navigation only.
+   ============================================================ */
+:root {
+  --motion-quick: 140ms;
+  --motion-base: 220ms;
+  --motion-slow: 340ms;
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --motion-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+  --motion-spring-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --motion-spring: linear(0, 0.0277, 0.0978, 0.1938, 0.3028, 0.4153, 0.5243, 0.6252, 0.7152, 0.7928, 0.8578, 0.9106, 0.9521, 0.9835, 1.0063, 1.0219, 1.0316, 1.0367, 1.0384, 1.0376, 1.035, 1.0314, 1.0272, 1.0229, 1.0187, 1.0148, 1.0113, 1.0083, 1.0057, 1.0036, 1.002, 1.0007, 0.9998, 0.9992, 0.9988, 0.9986, 1);
+    --motion-spring-soft: linear(0, 0.0239, 0.0819, 0.1587, 0.2438, 0.3303, 0.4139, 0.4919, 0.5631, 0.6268, 0.683, 0.7321, 0.7745, 0.811, 0.8421, 0.8685, 0.8907, 0.9094, 0.9251, 0.9382, 0.9491, 0.9581, 0.9656, 0.9718, 0.9769, 0.9811, 0.9846, 0.9874, 0.9898, 0.9917, 0.9932, 0.9945, 0.9955, 0.9964, 0.9971, 0.9976, 1);
+  }
+}
+
+/* Floating surfaces that open from a point: menus, popovers, selects,
+ * tooltips, dialogs and their scrims. Pairs with tw-animate's
+ * animate-in/out classes, which read --tw-duration and --tw-ease. Opening
+ * springs; closing is quicker and accelerates away, so dismissing never
+ * feels like waiting. */
+@utility motion-pop {
+  --tw-duration: var(--motion-base);
+  --tw-ease: var(--motion-spring);
+  &[data-state="closed"] {
+    --tw-duration: var(--motion-quick);
+    --tw-ease: var(--motion-ease-in);
+  }
+}
+
+/* Sheets travel their full width, so no overshoot (it would open a gap at
+ * the screen edge) and a little longer to cover the distance. */
+@utility motion-sheet {
+  --tw-duration: var(--motion-slow);
+  --tw-ease: var(--motion-spring-soft);
+  &[data-state="closed"] {
+    --tw-duration: var(--motion-base);
+    --tw-ease: var(--motion-ease-in);
+  }
+}
+
+/* Pressable controls. Colours ease (a spring would overshoot the colour);
+ * the press goes in fast and the release springs back, so a click has a
+ * small physical give. */
+@utility transition-press {
+  transition:
+    color var(--motion-quick) var(--motion-ease-out),
+    background-color var(--motion-quick) var(--motion-ease-out),
+    border-color var(--motion-quick) var(--motion-ease-out),
+    box-shadow var(--motion-quick) var(--motion-ease-out),
+    opacity var(--motion-quick) var(--motion-ease-out),
+    transform var(--motion-base) var(--motion-spring);
+  &:active {
+    transition-duration: 75ms;
+  }
+}
+
+/* A chip or row that has just been added. */
+@keyframes chip-in {
+  from { opacity: 0; transform: scale(0.85); }
+}
+@utility animate-chip-in {
+  animation: chip-in var(--motion-base) var(--motion-spring) backwards;
+}
+
 /* Entrance animations — kept, but subtler */
 @keyframes fade-in-scale {
   from { opacity: 0; transform: translateY(4px); }
@@ -554,10 +641,10 @@
  * Now the whole sequence completes in ~260ms: present enough to feel alive,
  * short enough that nobody perceives it as waiting. The easing is a gentle
  * overshoot-free curve; motion at this speed should be felt, not watched. */
-@utility animate-stagger-1 { animation: fade-in-scale 0.2s cubic-bezier(0.22, 1, 0.36, 1) 0.02s both; }
-@utility animate-stagger-2 { animation: fade-in-scale 0.2s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both; }
-@utility animate-stagger-3 { animation: fade-in-scale 0.2s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both; }
-@utility animate-stagger-4 { animation: fade-in-scale 0.2s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both; }
+@utility animate-stagger-1 { animation: fade-in-scale 0.2s cubic-bezier(0.22, 1, 0.36, 1) 0.02s backwards; }
+@utility animate-stagger-2 { animation: fade-in-scale 0.2s cubic-bezier(0.22, 1, 0.36, 1) 0.04s backwards; }
+@utility animate-stagger-3 { animation: fade-in-scale 0.2s cubic-bezier(0.22, 1, 0.36, 1) 0.06s backwards; }
+@utility animate-stagger-4 { animation: fade-in-scale 0.2s cubic-bezier(0.22, 1, 0.36, 1) 0.08s backwards; }
 
 /* Top-performers race bar: grows from the left once, on first paint. */
 @keyframes race-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
@@ -568,7 +655,7 @@
 }
 
 @utility animate-fade-in-up {
-  animation: fade-in-up 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: fade-in-up 0.22s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 @keyframes slide-in-left {
@@ -577,7 +664,7 @@
 }
 
 @utility animate-slide-in-left {
-  animation: slide-in-left 0.25s ease-out both;
+  animation: slide-in-left 0.25s ease-out backwards;
 }
 
 @keyframes slide-in-right {
@@ -586,7 +673,7 @@
 }
 
 @utility animate-slide-in-right {
-  animation: slide-in-right 0.25s ease-out both;
+  animation: slide-in-right 0.25s ease-out backwards;
 }
 
 /* Focus ring */
@@ -795,7 +882,7 @@ select.no-ring:focus-visible {
   to { opacity: 1; transform: translateY(0); }
 }
 @utility animate-rise-in {
-  animation: rise-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: rise-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
 /* --------------------------------------------------------------
@@ -829,13 +916,13 @@ select.no-ring:focus-visible {
   100% { opacity: 1; transform: scale(1); }
 }
 @utility animate-check-pop {
-  animation: check-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: check-pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
 }
 
 /* Stagger helpers for node / row entrance (fade-up). Pair with inline
  * animation-delay set per index. */
 @utility animate-node-in {
-  animation: fade-in-up 0.3s ease-out both;
+  animation: fade-in-up 0.3s ease-out backwards;
 }
 
 /* Two-line clamp for long standards text */
@@ -855,17 +942,6 @@ select.no-ring:focus-visible {
   scroll-snap-align: center;
 }
 
-/* Global reduced-motion guard — honour the user's OS setting everywhere. */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
-}
 
 /* Scrollbar — kept, slightly toned down */
 @layer base {
@@ -1103,5 +1179,12 @@ select.no-ring:focus-visible {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+/* A spinner is information ("still working"), not decoration: it keeps turning. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
   }
 }

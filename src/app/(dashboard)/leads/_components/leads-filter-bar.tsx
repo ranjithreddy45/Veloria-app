@@ -172,7 +172,7 @@ export function LeadsFilterBar({
     <button
       type="button"
       onClick={() => push({ due: null })}
-      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 text-detail font-medium text-primary hover:bg-primary/15"
+      className="inline-flex h-9 shrink-0 animate-chip-in items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/10 px-3 text-detail font-medium text-primary hover:bg-primary/15"
       aria-label={`Remove filter: ${DUE_LABEL[due]}`}
     >
       {DUE_LABEL[due]}
@@ -393,7 +393,7 @@ export function LeadsFilterBar({
               <SlidersHorizontal className="size-4" />
               Filters
               {filtersActive && (
-                <span className="numeric ml-auto rounded-full bg-primary/12 px-2 py-0.5 text-meta font-semibold text-primary">
+                <span key={activeCount} className="numeric ml-auto animate-chip-in rounded-full bg-primary/12 px-2 py-0.5 text-meta font-semibold text-primary">
                   {activeCount}
                 </span>
               )}
@@ -430,7 +430,7 @@ export function LeadsFilterBar({
             variant="ghost"
             size="icon"
             aria-label="Clear filters"
-            className="shrink-0 text-muted-foreground"
+            className="shrink-0 animate-chip-in text-muted-foreground"
             onClick={clearFilters}
           >
             <X className="size-4" />
@@ -455,7 +455,7 @@ export function LeadsFilterBar({
               <SlidersHorizontal className="size-4" />
               Filters
               {filtersActive && (
-                <span className="numeric rounded-full bg-primary/12 px-2 py-0.5 text-meta font-semibold text-primary">
+                <span key={activeCount} className="numeric animate-chip-in rounded-full bg-primary/12 px-2 py-0.5 text-meta font-semibold text-primary">
                   {activeCount}
                 </span>
               )}

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import type { Hue } from "@/lib/ui/hues";
 import type { ModuleKey } from "@/config/modules";
 import { ModuleChip, ModuleEyebrow } from "@/components/layout/module-chip";
+import { MorphIn } from "@/components/motion/morph-in";
 
 // ============================================================
 // PageHeader: the one header every page under src/app/(dashboard) uses.
@@ -140,6 +141,12 @@ interface PageHeaderProps {
   help?: React.ReactNode;
   /** @deprecated No-op. The header always sits on the plain canvas. */
   aura?: boolean;
+  /**
+   * Shared-element morph id: when the previous page was left by clicking an
+   * element with the same data-morph (a list row's title), the title glides
+   * from there into this heading. See lib/ui/morph.ts.
+   */
+  morphId?: string;
   className?: string;
 }
 
@@ -151,6 +158,7 @@ export function PageHeader({
   actions,
   children,
   help,
+  morphId,
   className,
 }: PageHeaderProps) {
   const hasActions = Boolean(actions);
@@ -167,7 +175,7 @@ export function PageHeader({
             title takes the min-w-0/wrap and the hint stays shrink-0. */}
         <div className={C.titleRow}>
           <ModuleChip module={moduleKey} className={C.chip} />
-          <h1 className={C.title}>{title}</h1>
+          <h1 className={C.title}>{morphId ? <MorphIn id={morphId}>{title}</MorphIn> : title}</h1>
           {help && <span className={C.help}>{help}</span>}
         </div>
         {description && <p className={C.description}>{description}</p>}

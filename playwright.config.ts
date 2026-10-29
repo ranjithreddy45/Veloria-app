@@ -50,6 +50,10 @@ export default defineConfig({
   use: {
     baseURL,
     storageState,
+    // Tests (and the visual tour's screenshots) see the app at rest: every
+    // page entrance, dialog spring and tab glide collapses under reduced
+    // motion, so nothing is ever caught mid-animation or clicked mid-flight.
+    reducedMotion: "reduce",
     // Failure evidence, kept for every failed attempt. "retain-on-failure"
     // records a trace on each run and keeps it when that run fails, even if a
     // retry then passes, so a flaky test (fails, then passes on retry) still
