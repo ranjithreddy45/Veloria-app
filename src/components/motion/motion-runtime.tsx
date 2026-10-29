@@ -6,16 +6,24 @@ import { captureMorphs } from "@/lib/ui/morph";
 
 /** Fast navigations (cached pages) finish before the bar would be noticed; don't flash it. */
 const SHOW_AFTER_MS = 120;
-/** A navigation that never lands (offline, server error page) must not leave the bar up. */
-const GIVE_UP_MS = 15000;
+/** A navigation that never lands (offline, a cancelled leave-page prompt) must not leave the bar up. */
+const GIVE_UP_MS = 10000;
 
 /** The URL a plain left-click on an internal link will navigate to, or null. */
 function internalNavigation(e: MouseEvent): URL | null {
   if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return null;
   const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
   if (!a || (a.target && a.target !== "_self") || a.hasAttribute("download")) return null;
-  const url = new URL(a.href, window.location.href);
+  let url: URL;
+  try {
+    url = new URL(a.getAttribute("href") ?? "", window.location.href);
+  } catch {
+    return null;
+  }
   if (url.origin !== window.location.origin) return null;
+  // API routes answer with a file (payslip / Form 16 / capex PDFs open in the
+  // same tab): the page never changes, so there is nothing to wait for.
+  if (url.pathname.startsWith("/api/")) return null;
   // Same page, or only the #hash changes: nothing will load.
   if (url.pathname === window.location.pathname && url.search === window.location.search) return null;
   return url;

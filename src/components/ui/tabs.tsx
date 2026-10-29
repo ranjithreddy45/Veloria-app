@@ -88,7 +88,8 @@ function useTabsIndicator(
       indicator.dataset.ready = ""
     }, 50)
     const mo = new MutationObserver(place)
-    mo.observe(list, { subtree: true, attributes: true, attributeFilter: ["data-state"] })
+    // Tabs added or removed later move the active one without resizing the list.
+    mo.observe(list, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-state"] })
     const ro = new ResizeObserver(place)
     ro.observe(list)
     for (const child of Array.from(list.children)) ro.observe(child)
