@@ -109,11 +109,12 @@ export function ActiveAlertsPopup() {
     }
   }, []);
 
-  // ---- Chime: the shared "notify" bell, so the menu's Sounds switch and
-  // volume apply here too. This popup's own mute still wins. ----
+  // ---- Chime: the shared "notify" bell, played as an alert: it sounds in a
+  // background tab and at a fixed level, and only this popup's own mute
+  // silences it (the menu's Sounds switch is for interface clicks). ----
   const playChime = useCallback(() => {
     if (mutedRef.current || !interactedRef.current) return;
-    playSound("notify");
+    playSound("notify", { alert: true });
   }, []);
 
   const load = useCallback(async () => {

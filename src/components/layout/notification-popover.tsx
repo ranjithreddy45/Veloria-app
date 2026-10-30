@@ -179,22 +179,26 @@ export function NotificationPopover() {
   const userId = user?.id;
 
   // Fetch unread count with polling every 30 seconds
-  const { data: unreadCount = 0 } = useQuery({
+  const { data: unreadData } = useQuery({
     queryKey: ["notifications", "unread-count", userId],
     queryFn: () => (userId ? getUnreadCount(userId) : Promise.resolve(0)),
     enabled: !!userId,
     refetchInterval: 30000,
   });
 
+  const unreadCount = unreadData ?? 0;
+
   // A bell when the unread count goes UP while the app is open. The first
-  // value after load is the baseline, not news.
+  // FETCHED value is the baseline, not news: until the query resolves the
+  // count reads 0, and taking that as the baseline rang the bell on every
+  // page load for anyone with unread notifications.
   const lastUnreadRef = useRef<number | null>(null);
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || unreadData === undefined) return;
     const prev = lastUnreadRef.current;
-    lastUnreadRef.current = unreadCount;
-    if (prev !== null && unreadCount > prev) playSound("notify");
-  }, [unreadCount, userId]);
+    lastUnreadRef.current = unreadData;
+    if (prev !== null && unreadData > prev) playSound("notify");
+  }, [unreadData, userId]);
 
   // Fetch recent notifications when popover opens
   const { data: notificationsData } = useQuery({

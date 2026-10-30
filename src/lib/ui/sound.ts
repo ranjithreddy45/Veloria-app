@@ -9,12 +9,21 @@
 // 2026-10-29); each person can switch them off or turn them down from the menu
 // under their initials. The choice is per browser (localStorage).
 //
-// Rules the runtime follows (src/components/motion/sound-runtime.tsx):
+// Rules:
+// - Only the team workspace makes sounds: SoundRuntime (mounted once in the
+//   dashboard layout) registers itself, and playSound is silent anywhere it is
+//   not mounted (vendor and venue portals, the guest app, public pages), which
+//   have no Sounds switch.
 // - Only pointer presses make a click sound. Typing never does.
-// - Outcome sounds (success, error, notify, win) come from what happened, not
-//   from the click that caused it.
-// - Browsers refuse audio until the first gesture, so the AudioContext is made
-//   lazily on the first play, which is always inside a gesture.
+// - Outcome sounds (success, error, notify) come from what happened, not from
+//   the click that caused it.
+// - Browsers refuse audio until the person has interacted with the page. A
+//   sound asked for before that is dropped, never queued: a queued sound would
+//   play late, all at once, on the first click.
+// - Alerts (`alert: true`) are the follow-up popup's chime: they play in a
+//   background tab, ignore the Sounds switch (the popup has its own mute), and
+//   play at a fixed level rather than the interface volume, as the popup's
+//   own chime did before.
 // ============================================================
 
 export type SoundName =
@@ -32,12 +41,20 @@ export type SoundName =
   | "notify"
   | "win";
 
+export type PlayOptions = {
+  /** An alert the person must not miss: see the rules above. */
+  alert?: boolean;
+};
+
 const ENABLED_KEY = "vg:sound:on";
 const VOLUME_KEY = "vg:sound:volume";
-const DEFAULT_VOLUME = 0.55;
+export const DEFAULT_VOLUME = 0.55;
 // The same sound twice inside this window is one sound (a double-fired
 // pointerdown, two toasts landing together).
 const REPEAT_MS = 45;
+// The alert bus's gain: brings the "notify" bell's partials to roughly the
+// 0.18 peak of the popup's previous chime.
+const ALERT_GAIN = 2.4;
 
 type Prefs = { enabled: boolean; volume: number };
 
@@ -91,39 +108,73 @@ export const getSoundPrefs = getPrefs;
 const SERVER_PREFS: Prefs = { enabled: true, volume: DEFAULT_VOLUME };
 export const getServerSoundPrefs = () => SERVER_PREFS;
 
+// ---------------------------------------------------------------- scope
+
+let runtimes = 0;
+
+/** Called by SoundRuntime on mount; returns the unregister for its cleanup. */
+export function registerSoundRuntime(): () => void {
+  runtimes++;
+  return () => {
+    runtimes = Math.max(0, runtimes - 1);
+  };
+}
+
 // ---------------------------------------------------------------- engine
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
+let alertBus: GainNode | null = null;
+// Where tone()/noise() connect: the master bus, or the alert bus while an
+// alert is being scheduled (scheduling is synchronous, so a swap is safe).
+let out: GainNode | null = null;
 let noiseBuf: AudioBuffer | null = null;
 
-function ensure(): AudioContext | null {
-  if (!ctx) {
-    const AC =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AC) return null;
-    ctx = new AC();
-    master = ctx.createGain();
-    master.gain.value = getPrefs().volume * 0.5;
-    // A gentle compressor keeps the chords from clipping when two sounds overlap.
-    const comp = ctx.createDynamicsCompressor();
-    comp.threshold.value = -18;
-    comp.ratio.value = 3;
-    master.connect(comp).connect(ctx.destination);
-    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
-    const d = noiseBuf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-  }
-  if (ctx.state === "suspended") void ctx.resume();
+function createContext(): AudioContext | null {
+  if (ctx) return ctx;
+  const AC =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AC) return null;
+  ctx = new AC();
+  // A gentle compressor keeps the chords from clipping when two sounds overlap.
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -18;
+  comp.ratio.value = 3;
+  comp.connect(ctx.destination);
+  master = ctx.createGain();
+  master.gain.value = getPrefs().volume * 0.5;
+  master.connect(comp);
+  alertBus = ctx.createGain();
+  alertBus.gain.value = ALERT_GAIN;
+  alertBus.connect(comp);
+  noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return ctx;
+}
+
+/**
+ * Create (or wake) the AudioContext from inside a user gesture. Installed once
+ * by SoundRuntime on pointerdown, keydown, click and touchend: iOS Safari only
+ * counts touchend/click as activation, so a pointerdown alone may not unlock.
+ */
+export function unlockSound() {
+  const c = createContext();
+  if (c && c.state === "suspended") void c.resume();
+}
+
+/** A running context, or null: a sound asked for before audio is unlocked is dropped, not queued. */
+function running(): AudioContext | null {
+  if (!ctx || ctx.state !== "running") return null;
   return ctx;
 }
 
 type ToneOpts = { f: number; f2?: number; type?: OscillatorType; t?: number; dur?: number; gain?: number; attack?: number };
 
 function tone({ f, f2, type = "sine", t = 0, dur = 0.08, gain = 0.2, attack = 0.004 }: ToneOpts) {
-  const c = ensure();
-  if (!c || !master) return;
+  const c = running();
+  if (!c || !out) return;
   const o = c.createOscillator();
   const g = c.createGain();
   const now = c.currentTime + t;
@@ -133,7 +184,7 @@ function tone({ f, f2, type = "sine", t = 0, dur = 0.08, gain = 0.2, attack = 0.
   g.gain.setValueAtTime(0.0001, now);
   g.gain.exponentialRampToValueAtTime(gain, now + attack);
   g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-  o.connect(g).connect(master);
+  o.connect(g).connect(out);
   o.start(now);
   o.stop(now + dur + 0.03);
 }
@@ -148,8 +199,8 @@ function bell(f: number, t = 0, dur = 0.6, gain = 0.12) {
 type NoiseOpts = { t?: number; dur?: number; gain?: number; freq?: number; to?: number; q?: number };
 
 function noise({ t = 0, dur = 0.05, gain = 0.06, freq = 3000, to, q = 0.8 }: NoiseOpts) {
-  const c = ensure();
-  if (!c || !master || !noiseBuf) return;
+  const c = running();
+  if (!c || !out || !noiseBuf) return;
   const s = c.createBufferSource();
   const bp = c.createBiquadFilter();
   const g = c.createGain();
@@ -162,7 +213,7 @@ function noise({ t = 0, dur = 0.05, gain = 0.06, freq = 3000, to, q = 0.8 }: Noi
   g.gain.setValueAtTime(0.0001, now);
   g.gain.exponentialRampToValueAtTime(gain, now + dur * 0.3);
   g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-  s.connect(bp).connect(g).connect(master);
+  s.connect(bp).connect(g).connect(out);
   s.start(now);
   s.stop(now + dur + 0.02);
 }
@@ -194,20 +245,25 @@ export const SOUND_NAMES = Object.keys(LIBRARY) as SoundName[];
 const lastPlayed: Partial<Record<SoundName, number>> = {};
 
 /**
- * Play one interface sound. Silent when the person has switched sounds off,
- * when the tab is in the background, or when the browser has no Web Audio.
- * Never throws.
+ * Play one interface sound. Silent outside the team workspace, when the person
+ * has switched sounds off, when the tab is in the background, before audio is
+ * unlocked, or when the browser has no Web Audio (alerts: see the rules at the
+ * top). Never throws.
  */
-export function playSound(name: SoundName) {
-  if (typeof window === "undefined") return;
-  if (!getPrefs().enabled || document.visibilityState === "hidden") return;
+export function playSound(name: SoundName, opts: PlayOptions = {}) {
+  if (typeof window === "undefined" || runtimes === 0) return;
+  if (!opts.alert && (!getPrefs().enabled || document.visibilityState === "hidden")) return;
   const now = performance.now();
   const last = lastPlayed[name];
   if (last && now - last < REPEAT_MS) return;
+  if (!running()) return;
   lastPlayed[name] = now;
+  out = opts.alert ? alertBus : master;
   try {
     LIBRARY[name]();
   } catch {
     /* audio unavailable */
+  } finally {
+    out = master;
   }
 }
