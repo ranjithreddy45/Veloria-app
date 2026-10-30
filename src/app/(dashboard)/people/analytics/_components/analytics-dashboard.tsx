@@ -9,6 +9,7 @@ import { Users, UserMinus, CalendarCheck, ClipboardCheck, UserPlus, UserCheck } 
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { pluralNoun } from "@/lib/plural";
 
 type Pair = { name: string; value: number };
 type GenderSlice = { name: string; value: number; pct: number };
@@ -195,7 +196,7 @@ function Picker({ label, value, onChange, options }: { label: string; value: str
     <Select value={value} onValueChange={onChange}>
       <SelectTrigger className="h-9 w-auto min-w-[9rem]"><SelectValue placeholder={label} /></SelectTrigger>
       <SelectContent>
-        <SelectItem value="__all__">All {label.toLowerCase()}s</SelectItem>
+        <SelectItem value="__all__">All {pluralNoun(label.toLowerCase())}</SelectItem>
         {options.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
       </SelectContent>
     </Select>

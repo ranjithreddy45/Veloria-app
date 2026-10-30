@@ -65,6 +65,15 @@ const HUB_ROW = "py-1 xl:justify-end";
 // getDashboardFullData sums. Derived from the data's own timestamp so the
 // server render and the client hydrate agree.
 const IST_MONTH = new Intl.DateTimeFormat("en-IN", { month: "long", timeZone: "Asia/Kolkata" });
+const IST_HOUR = new Intl.DateTimeFormat("en-IN", { hour: "numeric", hourCycle: "h23", timeZone: "Asia/Kolkata" });
+
+/** The greeting for the hour in IST; it used to say "Good afternoon" at any hour. */
+function greetingFor(asOf: string) {
+  const hour = Number(IST_HOUR.format(new Date(asOf)));
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 // The KPI tiles keep the dashboard card's own 16px padding at every width
 // (StatTile's default steps up to 20px from sm), so a lakh figure fits a tile
@@ -260,7 +269,7 @@ export function FullDashboardView({ data, quickActions, canOpenLeads }: FullDash
             {data.todayFormatted}
           </p>
           <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl sm:whitespace-nowrap">
-            Good afternoon, {data.user.name.split(" ")[0]}.
+            {greetingFor(data.asOf)}, {data.user.name.split(" ")[0]}.
           </h1>
           <p className="text-xs text-muted-foreground sm:whitespace-nowrap">
             Here&apos;s what&apos;s happening across your venues today.

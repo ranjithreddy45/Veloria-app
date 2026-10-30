@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Bell,
@@ -28,6 +28,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PushToggle } from "@/components/shared/push-toggle";
 import { cn } from "@/lib/utils";
+import { playSound } from "@/lib/ui/sound";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import {
   getNotifications,
@@ -184,6 +185,16 @@ export function NotificationPopover() {
     enabled: !!userId,
     refetchInterval: 30000,
   });
+
+  // A bell when the unread count goes UP while the app is open. The first
+  // value after load is the baseline, not news.
+  const lastUnreadRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!userId) return;
+    const prev = lastUnreadRef.current;
+    lastUnreadRef.current = unreadCount;
+    if (prev !== null && unreadCount > prev) playSound("notify");
+  }, [unreadCount, userId]);
 
   // Fetch recent notifications when popover opens
   const { data: notificationsData } = useQuery({

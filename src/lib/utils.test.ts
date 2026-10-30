@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatINR, serialize } from "./utils";
+import { cn, formatINR, serialize } from "./utils";
 
 describe("formatINR", () => {
   it("formats a number as Indian Rupees", () => {
@@ -46,5 +46,18 @@ describe("serialize", () => {
   it("leaves plain values untouched", () => {
     const data = { name: "Veloria", count: 5, active: true };
     expect(serialize(data)).toEqual(data);
+  });
+});
+
+describe("cn", () => {
+  it("keeps a type-scale size next to a text colour", () => {
+    // tailwind-merge used to read text-detail as a colour and drop it here.
+    expect(cn("text-detail font-medium", "text-muted-foreground")).toBe("text-detail font-medium text-muted-foreground");
+    expect(cn("text-h2", "text-destructive")).toBe("text-h2 text-destructive");
+  });
+
+  it("still lets a later size replace an earlier one", () => {
+    expect(cn("text-meta", "text-body")).toBe("text-body");
+    expect(cn("text-sm", "text-copy")).toBe("text-copy");
   });
 });

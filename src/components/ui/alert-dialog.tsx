@@ -4,6 +4,7 @@ import * as React from "react"
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { OpenCloseSound } from "@/components/motion/sound-runtime"
 import { Button } from "@/components/ui/button"
 
 function AlertDialog({
@@ -47,6 +48,7 @@ function AlertDialogOverlay({
 function AlertDialogContent({
   className,
   size = "default",
+  children,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
   size?: "default" | "sm"
@@ -62,7 +64,10 @@ function AlertDialogContent({
           className
         )}
         {...props}
-      />
+      >
+        <OpenCloseSound />
+        {children}
+      </AlertDialogPrimitive.Content>
     </AlertDialogPortal>
   )
 }
