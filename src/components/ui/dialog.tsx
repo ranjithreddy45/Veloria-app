@@ -5,6 +5,7 @@ import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { OpenCloseSound } from "@/components/motion/sound-runtime"
 import { Button } from "@/components/ui/button"
 
 function Dialog({
@@ -74,6 +75,9 @@ function DialogContent({
         )}
         {...props}
       >
+        {/* Content exists only while open (the wrapper mounts closed), so the
+            open/close sound lives here. Renders nothing. */}
+        <OpenCloseSound />
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close

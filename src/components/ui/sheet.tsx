@@ -5,6 +5,7 @@ import { XIcon } from "lucide-react"
 import { Dialog as SheetPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
+import { OpenCloseSound } from "@/components/motion/sound-runtime"
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -91,6 +92,7 @@ function SheetContent({
             SheetContent — so it remains pinned to the panel instead of
             scrolling away, and callers' `[&>button]:hidden` selectors (the
             mobile sidebar uses one) still match. */}
+        <OpenCloseSound />
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain">
           {children}
         </div>

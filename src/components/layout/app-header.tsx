@@ -53,6 +53,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { SoundMenuItems } from "@/components/layout/sound-settings";
 
 // ============================================================
 // Breadcrumb helpers
@@ -415,6 +416,11 @@ export function AppHeader() {
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
+
+            {/* Click sounds: on for everyone by default, switched off or
+                turned down here (per browser). */}
+            <DropdownMenuSeparator />
+            <SoundMenuItems />
 
             {/* Phone-only rescue of the two header controls that get hidden
                 below `sm`. This menu is already the one thing every user can

@@ -9,6 +9,7 @@ import { TwoFactorGate } from "@/components/security/two-factor-gate";
 import { SessionRevalidator } from "@/components/auth/session-revalidator";
 import { RouteStage } from "@/components/motion/route-stage";
 import { MotionRuntime } from "@/components/motion/motion-runtime";
+import { SoundRuntime } from "@/components/motion/sound-runtime";
 
 export default async function DashboardLayout({
   children,
@@ -36,6 +37,7 @@ export default async function DashboardLayout({
     <SidebarProvider className="workspace-ground">
       <SessionRevalidator />
       <MotionRuntime />
+      <SoundRuntime />
       {/* First focusable element — lets keyboard users jump past the nav (SC-03). */}
       <a href="#main-content" className="skip-link">
         Skip to main content
