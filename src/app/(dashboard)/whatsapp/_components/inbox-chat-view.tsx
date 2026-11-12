@@ -86,10 +86,20 @@ interface TemplateDef {
   params: string[];
 }
 
+const KNOWN_TEMPLATE_BODIES: Record<string, string> = {
+  lead_welcome:
+    "Hi {{1}}, we've received your enquiry at Veloria Grand. One of our event consultants will contact you shortly. Reply to this message if you need anything sooner.",
+  veloria_enquiry_followup:
+    "Hi {{1}}, thank you for reaching out to Veloria Grand. Our event team is preparing your enquiry details. Please reply to this chat if you have any questions.",
+  winback_event_proximity:
+    "Hi {{1}}, your celebration on {{2}} is just around the corner!\n\nIf you're still looking for a venue, Veloria Grand may have availability for your date. Reply to this message and we'll check it for you right away.\n\n— Team Veloria Grand",
+};
+
 function renderMessageContent(msg: WhatsAppMsg, templates: TemplateDef[]): string {
   if (!msg.templateName) return msg.content;
   const tpl = templates.find((t) => t.name === msg.templateName);
-  if (tpl?.body && (msg.content.includes(" — ") || msg.content.startsWith("[Template:"))) {
+  const body = tpl?.body || KNOWN_TEMPLATE_BODIES[msg.templateName];
+  if (body && (msg.content.includes(" — ") || msg.content.startsWith("[Template:"))) {
     let values: string[] = [];
     if (msg.content.startsWith("[Template:")) {
       try {
@@ -103,12 +113,12 @@ function renderMessageContent(msg: WhatsAppMsg, templates: TemplateDef[]): strin
       if (parts[1]) values = parts[1].split(" · ").map((s) => s.trim());
     }
     if (values.length > 0) {
-      return tpl.body.replace(/\{\{\s*(\d+)\s*\}\}/g, (_, idx) => {
+      return body.replace(/\{\{\s*(\d+)\s*\}\}/g, (_, idx) => {
         const i = parseInt(idx, 10) - 1;
         return values[i] !== undefined ? values[i] : `{{${idx}}}`;
       });
     }
-    return tpl.body;
+    return body;
   }
   return msg.content;
 }

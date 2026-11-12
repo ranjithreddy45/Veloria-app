@@ -655,17 +655,20 @@ export const WHATSAPP_TEMPLATES = [
     name: "lead_welcome",
     label: "Lead Welcome",
     params: ["customerName"],
+    body: "Hi {{1}}, we've received your enquiry at Veloria Grand. One of our event consultants will contact you shortly. Reply to this message if you need anything sooner.",
   },
   {
     name: "veloria_enquiry_followup",
     label: "Veloria Enquiry Follow-up",
     params: ["customerName"],
+    body: "Hi {{1}}, thank you for reaching out to Veloria Grand. Our event team is preparing your enquiry details. Please reply to this chat if you have any questions.",
   },
   {
     name: "winback_event_proximity",
     label: "Winback Event Proximity",
     // {{1}}, {{2}} — the same two, in the same order, the win-back engine sends.
     params: ["customerName", "eventDate"],
+    body: "Hi {{1}}, your celebration on {{2}} is just around the corner!\n\nIf you're still looking for a venue, Veloria Grand may have availability for your date. Reply to this message and we'll check it for you right away.\n\n— Team Veloria Grand",
   },
   {
     name: "winback_lost_lead",

@@ -27,21 +27,32 @@ async function resolveTemplateMessageContent(
   params?: Record<string, string>
 ): Promise<string> {
   const p = params || {};
+  let body: string | null = null;
   try {
     const tpl = await prisma.whatsAppTemplate.findFirst({
       where: { name: templateName },
       select: { body: true },
     });
-    if (tpl?.body) {
-      const values = Object.values(p);
-      return tpl.body.replace(/\{\{\s*(\d+)\s*\}\}/g, (_, idx) => {
-        const i = parseInt(idx, 10) - 1;
-        return values[i] !== undefined && values[i] !== "" ? String(values[i]) : `{{${idx}}}`;
-      });
-    }
+    if (tpl?.body) body = tpl.body;
   } catch {
     // fallback
   }
+
+  if (!body) {
+    const staticTpl = WHATSAPP_TEMPLATES.find((k) => k.name === templateName);
+    if (staticTpl && "body" in staticTpl && (staticTpl as any).body) {
+      body = (staticTpl as any).body;
+    }
+  }
+
+  if (body) {
+    const values = Object.values(p);
+    return body.replace(/\{\{\s*(\d+)\s*\}\}/g, (_, idx) => {
+      const i = parseInt(idx, 10) - 1;
+      return values[i] !== undefined && values[i] !== "" ? String(values[i]) : `{{${idx}}}`;
+    });
+  }
+
   return humanizeWhatsAppContent(`[Template: ${templateName}] ${JSON.stringify(p)}`);
 }
 

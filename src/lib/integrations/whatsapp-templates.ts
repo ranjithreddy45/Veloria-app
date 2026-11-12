@@ -56,9 +56,15 @@ export function countTemplateVariables(body: string | null | undefined): number 
 }
 
 /** The BODY component's text, which is the part that carries the variables. */
-function bodyTextOf(t: MetaTemplate): string | null {
-  const body = t.components?.find((c) => (c.type ?? "").toUpperCase() === "BODY");
-  return body?.text ?? null;
+function bodyTextOf(t: { components?: any; text?: any; body?: any; message?: any }): string | null {
+  if (Array.isArray(t.components)) {
+    const body = t.components.find((c: any) => String(c?.type ?? "").toUpperCase() === "BODY");
+    if (body?.text) return String(body.text);
+  }
+  if (typeof t.text === "string" && t.text.trim()) return t.text.trim();
+  if (typeof t.body === "string" && t.body.trim()) return t.body.trim();
+  if (typeof t.message === "string" && t.message.trim()) return t.message.trim();
+  return null;
 }
 
 export interface TemplateSyncResult {
@@ -117,7 +123,7 @@ export async function syncWhatsAppTemplates(): Promise<TemplateSyncResult> {
       const status = String(t.status || "APPROVED").toUpperCase();
       if (status === "APPROVED") approvedCount++;
 
-      const body = String(t.text ?? t.body ?? (typeof t.message === "string" ? t.message : "") ?? "");
+      const body = bodyTextOf(t);
       const variableCount = t.total_parameters ?? countTemplateVariables(body);
       const metaId = String(t.id ?? t._id ?? `aisensy_${name}_${language}`);
 
@@ -126,7 +132,7 @@ export async function syncWhatsAppTemplates(): Promise<TemplateSyncResult> {
         language,
         category: String(t.category ?? "MARKETING").toUpperCase(),
         status,
-        body: body || null,
+        body,
         variableCount: Number.isFinite(variableCount) ? Number(variableCount) : 0,
         components: (t.components ?? []) as object,
         syncedAt: new Date(),
