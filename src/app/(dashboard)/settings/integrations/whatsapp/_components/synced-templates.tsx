@@ -50,9 +50,9 @@ export function SyncedTemplates({ templates }: { templates: SyncedTemplate[] }) 
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
         <div className="min-w-0">
-          <CardTitle className="text-base">Approved templates (from Meta)</CardTitle>
+          <CardTitle className="text-base">Approved templates</CardTitle>
           <p className="mt-1 text-detail text-muted-foreground">
-            Pulled straight from your WhatsApp Business Account.{" "}
+            Pulled straight from your WhatsApp Business Account / AiSensy.{" "}
             {templates.length > 0 && (
               <>
                 <span className="numeric font-medium text-foreground">{approved}</span> of{" "}

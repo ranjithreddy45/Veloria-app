@@ -178,6 +178,32 @@ export async function getWhatsAppTemplates() {
       return { success: false as const, error: "You do not have permission to view WhatsApp templates" };
     }
 
+    // Check synced templates in DB first
+    const synced = await prisma.whatsAppTemplate.findMany({
+      where: { status: "APPROVED" },
+      orderBy: { name: "asc" },
+      select: { name: true, variableCount: true },
+    });
+
+    if (synced.length > 0) {
+      return {
+        success: true as const,
+        data: synced.map((t) => {
+          const known = WHATSAPP_TEMPLATES.find((k) => k.name === t.name);
+          const label = known?.label || t.name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+          const params = known?.params
+            ? [...known.params]
+            : Array.from({ length: t.variableCount }, (_, i) => `param_${i + 1}`);
+
+          return {
+            name: t.name,
+            label,
+            params,
+          };
+        }),
+      };
+    }
+
     return {
       success: true as const,
       data: WHATSAPP_TEMPLATES.map((t) => ({
@@ -436,9 +462,16 @@ export async function bulkSendWhatsApp(data: BulkSendWhatsAppInput) {
     const { templateName } = parsed.data;
     const params = orderTemplateParams(templateName, parsed.data.params);
 
-    // Whitelist the template against the known set so callers can't push an
-    // arbitrary/unknown template name through the bulk path.
-    if (!WHATSAPP_TEMPLATES.some((t) => t.name === templateName)) {
+    // Whitelist the template against the known set or synced approved set
+    const isKnown = WHATSAPP_TEMPLATES.some((t) => t.name === templateName);
+    const isSyncedApproved = !isKnown
+      ? await prisma.whatsAppTemplate.findFirst({
+          where: { name: templateName, status: "APPROVED" },
+          select: { id: true },
+        })
+      : true;
+
+    if (!isKnown && !isSyncedApproved) {
       return { success: false as const, error: "Unknown WhatsApp template" };
     }
 

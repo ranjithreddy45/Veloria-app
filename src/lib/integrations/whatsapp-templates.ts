@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { AiSensyClient, type AiSensyTemplate } from "@/lib/whatsapp/aisensy/client";
 
 // ============================================================
 // Pulling the approved template list out of Meta.
@@ -79,6 +80,84 @@ export interface TemplateSyncResult {
 export async function syncWhatsAppTemplates(): Promise<TemplateSyncResult> {
   const config = await prisma.whatsAppConfig.findFirst({ where: { isActive: true } });
   if (!config) return { ok: false, error: "No active WhatsApp configuration." };
+
+  if (config.provider === "AISENSY") {
+    const projectId = config.aisensyProjectId?.trim();
+    const apiPassword = config.aisensyApiPassword?.trim();
+    if (!projectId || !apiPassword) {
+      return {
+        ok: false,
+        error: "AiSensy Project ID or API password missing in Settings → Integrations → WhatsApp.",
+      };
+    }
+
+    const client = new AiSensyClient({
+      projectId,
+      apiPassword,
+      ...(config.aisensyApiEndpoint ? { baseUrl: config.aisensyApiEndpoint } : {}),
+    });
+
+    let rawTemplates: AiSensyTemplate[] = [];
+    try {
+      rawTemplates = await client.listTemplates();
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : "Failed to fetch templates from AiSensy.",
+      };
+    }
+
+    const seenMetaIds: string[] = [];
+    let approvedCount = 0;
+
+    for (const t of rawTemplates) {
+      if (!t.name) continue;
+      const name = String(t.name).trim();
+      const language = String(t.language || "en").trim();
+      const status = String(t.status || "APPROVED").toUpperCase();
+      if (status === "APPROVED") approvedCount++;
+
+      const body = String(t.text ?? t.body ?? (typeof t.message === "string" ? t.message : "") ?? "");
+      const variableCount = t.total_parameters ?? countTemplateVariables(body);
+      const metaId = String(t.id ?? t._id ?? `aisensy_${name}_${language}`);
+
+      const data = {
+        name,
+        language,
+        category: String(t.category ?? "MARKETING").toUpperCase(),
+        status,
+        body: body || null,
+        variableCount: Number.isFinite(variableCount) ? Number(variableCount) : 0,
+        components: (t.components ?? null) as object | null,
+        syncedAt: new Date(),
+      };
+
+      await prisma.whatsAppTemplate.upsert({
+        where: { name_language: { name, language } },
+        create: { metaId, ...data },
+        update: { metaId, ...data },
+      });
+      seenMetaIds.push(metaId);
+    }
+
+    const removed = await prisma.whatsAppTemplate.deleteMany({
+      where: seenMetaIds.length ? { metaId: { notIn: seenMetaIds } } : {},
+    });
+
+    return {
+      ok: true,
+      synced: seenMetaIds.length,
+      approved: approvedCount,
+      removed: removed.count,
+    };
+  }
+
+  if (config.provider === "WEFLUX") {
+    return {
+      ok: false,
+      error: "Weflux does not provide a template listing API. Use AiSensy or Meta.",
+    };
+  }
 
   if (!config.businessAccountId) {
     return {

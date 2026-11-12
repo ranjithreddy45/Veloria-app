@@ -652,10 +652,80 @@ export async function testWhatsAppConnection(
 
 export const WHATSAPP_TEMPLATES = [
   {
+    name: "lead_welcome",
+    label: "Lead Welcome",
+    params: ["customerName"],
+  },
+  {
+    name: "veloria_enquiry_followup",
+    label: "Veloria Enquiry Follow-up",
+    params: ["customerName"],
+  },
+  {
     name: "winback_event_proximity",
     label: "Winback Event Proximity",
     // {{1}}, {{2}} — the same two, in the same order, the win-back engine sends.
     params: ["customerName", "eventDate"],
+  },
+  {
+    name: "winback_lost_lead",
+    label: "Winback Lost Lead",
+    params: ["customerName"],
+  },
+  {
+    name: "winback_quote_followup",
+    label: "Winback Quote Follow-up",
+    params: ["customerName"],
+  },
+  {
+    name: "day_of_welcome",
+    label: "Day of Welcome",
+    params: ["customerName"],
+  },
+  {
+    name: "tomorrow_reminder",
+    label: "Tomorrow Reminder",
+    params: ["customerName", "eventDate"],
+  },
+  {
+    name: "final_countdown",
+    label: "Final Countdown",
+    params: ["customerName", "eventDate"],
+  },
+  {
+    name: "excitement_builder",
+    label: "Excitement Builder",
+    params: ["customerName", "eventDate"],
+  },
+  {
+    name: "save_the_date",
+    label: "Save the Date",
+    params: ["customerName", "eventDate"],
+  },
+  {
+    name: "event_invite",
+    label: "Event Invite",
+    params: ["customerName", "eventName", "eventDate"],
+  },
+  {
+    name: "event_reminder",
+    label: "Event Reminder",
+    params: ["customerName", "eventDate"],
+  },
+  {
+    name: "referral_invite",
+    label: "Referral Invite",
+    params: ["customerName"],
+  },
+  {
+    name: "invoice_created",
+    label: "Invoice Created",
+    params: ["customerName", "invoiceNumber", "amount"],
+  },
+  {
+    name: "paymentlink_created",
+    label: "Payment Link Created",
+    params: ["customerName", "amount", "paymentUrl"],
   },
   {
     name: "message_1",

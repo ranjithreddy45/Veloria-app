@@ -41,6 +41,5 @@ If you encounter `Permission denied` or `Operation not permitted` errors during 
 
 Run the following command from your local machine to fix the permissions on the server:
 ```bash
-ssh -t -i ./id_rsa theveloriagrand@43.225.53.88 "sudo chown -R theveloriagrand:theveloriagrand ~/veloria-app-prod"
-ssh -i ./id_rsa -N -L 5433:localhost:5432 theveloriagrand@43.225.53.88 #Testing DB locally
+ssh -i ./id_rsa -N -L 5433:localhost:5432 theveloriagrand@43.225.53.88
 ```
