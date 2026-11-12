@@ -82,7 +82,35 @@ interface WhatsAppMsg {
 interface TemplateDef {
   name: string;
   label: string;
+  body?: string | null;
   params: string[];
+}
+
+function renderMessageContent(msg: WhatsAppMsg, templates: TemplateDef[]): string {
+  if (!msg.templateName) return msg.content;
+  const tpl = templates.find((t) => t.name === msg.templateName);
+  if (tpl?.body && (msg.content.includes(" — ") || msg.content.startsWith("[Template:"))) {
+    let values: string[] = [];
+    if (msg.content.startsWith("[Template:")) {
+      try {
+        const m = /^\[Template:\s*[^\]]+\]\s*(\{[\s\S]*\})$/.exec(msg.content);
+        if (m) values = Object.values(JSON.parse(m[1])).map((v) => String(v ?? ""));
+      } catch {
+        /* ignore */
+      }
+    } else if (msg.content.includes(" — ")) {
+      const parts = msg.content.split(" — ");
+      if (parts[1]) values = parts[1].split(" · ").map((s) => s.trim());
+    }
+    if (values.length > 0) {
+      return tpl.body.replace(/\{\{\s*(\d+)\s*\}\}/g, (_, idx) => {
+        const i = parseInt(idx, 10) - 1;
+        return values[i] !== undefined ? values[i] : `{{${idx}}}`;
+      });
+    }
+    return tpl.body;
+  }
+  return msg.content;
 }
 
 interface InboxChatViewProps {
@@ -550,7 +578,7 @@ export function InboxChatView({ conversation, onBack }: InboxChatViewProps) {
 
                       {/* Message content */}
                       <p className="whitespace-pre-wrap text-[14px] leading-relaxed pr-12 pb-1">
-                        {msg.content}
+                        {renderMessageContent(msg, templates)}
                       </p>
 
                       {/* Failure reason */}

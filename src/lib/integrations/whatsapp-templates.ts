@@ -128,7 +128,7 @@ export async function syncWhatsAppTemplates(): Promise<TemplateSyncResult> {
         status,
         body: body || null,
         variableCount: Number.isFinite(variableCount) ? Number(variableCount) : 0,
-        components: (t.components ?? null) as object | null,
+        components: (t.components ?? []) as object,
         syncedAt: new Date(),
       };
 

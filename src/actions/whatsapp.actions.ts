@@ -21,6 +21,30 @@ import {
 } from "@/lib/integrations/whatsapp";
 import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 
+// Helper to interpolate template body with params
+async function resolveTemplateMessageContent(
+  templateName: string,
+  params?: Record<string, string>
+): Promise<string> {
+  const p = params || {};
+  try {
+    const tpl = await prisma.whatsAppTemplate.findFirst({
+      where: { name: templateName },
+      select: { body: true },
+    });
+    if (tpl?.body) {
+      const values = Object.values(p);
+      return tpl.body.replace(/\{\{\s*(\d+)\s*\}\}/g, (_, idx) => {
+        const i = parseInt(idx, 10) - 1;
+        return values[i] !== undefined && values[i] !== "" ? String(values[i]) : `{{${idx}}}`;
+      });
+    }
+  } catch {
+    // fallback
+  }
+  return humanizeWhatsAppContent(`[Template: ${templateName}] ${JSON.stringify(p)}`);
+}
+
 // ============================================================
 // Send WhatsApp Message
 // ============================================================
@@ -63,12 +87,14 @@ export async function sendWhatsAppMessage(data: SendWhatsAppMessageInput) {
       return { success: false as const, error: "Contact does not have a phone number" };
     }
 
-    // Build message content — store a readable line, never a raw JSON params blob.
-    const messageContent = content
-      ? content
-      : templateName
-        ? humanizeWhatsAppContent(`[Template: ${templateName}] ${JSON.stringify(params || {})}`)
-        : "WhatsApp message";
+    // Build message content — use the full interpolated template body when available.
+    let messageContent = content;
+    if (!messageContent && templateName) {
+      messageContent = await resolveTemplateMessageContent(templateName, params);
+    }
+    if (!messageContent) {
+      messageContent = "WhatsApp message";
+    }
 
     // Call the placeholder WhatsApp integration
     const result = await sendWhatsApp({
@@ -182,7 +208,7 @@ export async function getWhatsAppTemplates() {
     const synced = await prisma.whatsAppTemplate.findMany({
       where: { status: "APPROVED" },
       orderBy: { name: "asc" },
-      select: { name: true, variableCount: true },
+      select: { name: true, body: true, variableCount: true },
     });
 
     if (synced.length > 0) {
@@ -198,6 +224,7 @@ export async function getWhatsAppTemplates() {
           return {
             name: t.name,
             label,
+            body: t.body,
             params,
           };
         }),
