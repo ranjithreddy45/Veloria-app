@@ -28,12 +28,14 @@ export interface ReimbursementClaim {
   payFy: string | null;
   payMonth: number | null;
   paidAt: Date | string | null;
+  /** "Paid 14 Nov 2026 · UPI · ₹1,200 · Ref …", once Finance has paid it. */
+  payment?: string | null;
   createdAt: Date | string;
   /** The stage the claim is waiting at ("2nd approval"), or null once decided. */
   stage?: string | null;
   /** Who holds it at that stage. */
   awaitingName?: string | null;
-  /** "Awaiting final approval" — the stage in words, from the claim's own route. */
+  /** "Pending Approval" — the stage in words, from the claim's own route. */
   statusLabel?: string | null;
 }
 
@@ -55,21 +57,21 @@ const INR = new Intl.NumberFormat("en-IN", {
 // Status → Badge variant + label. PENDING awaits HR, APPROVED is queued for a pay
 // run, PAID has been disbursed, REJECTED (incl. employee-withdrawn) is closed.
 const STATUS: Record<string, { variant: "warning" | "success" | "destructive" | "secondary"; label: string; className?: string }> = {
-  PENDING: { variant: "warning", label: "Awaiting 1st approval" },
+  PENDING: { variant: "warning", label: "Pending Approval" },
   PENDING_L2: {
     variant: "secondary",
-    label: "Awaiting 2nd approval",
+    label: "Pending Approval",
     className: "bg-violet-500/12 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300",
   },
   // Without this entry the badge printed the raw code "PENDING_L3".
   PENDING_L3: {
     variant: "secondary",
-    label: "Awaiting 3rd approval",
+    label: "Pending Approval",
     className: "bg-fuchsia-500/12 text-fuchsia-700 dark:bg-fuchsia-400/15 dark:text-fuchsia-300",
   },
   PENDING_L4: {
     variant: "secondary",
-    label: "Awaiting 4th approval",
+    label: "Pending Approval",
     className: "bg-sky-500/12 text-sky-700 dark:bg-sky-400/15 dark:text-sky-300",
   },
   // The ball is with the EMPLOYEE here, not HR — labelled so it reads as an
@@ -77,7 +79,7 @@ const STATUS: Record<string, { variant: "warning" | "success" | "destructive" | 
   NEEDS_INFO: { variant: "warning", label: "Needs your input" },
   APPROVED: {
     variant: "secondary",
-    label: "Approved · with Finance",
+    label: "Approved – Pending Payment",
     className: "bg-blue-500/12 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300",
   },
   PAID: { variant: "success", label: "Paid" },
@@ -154,8 +156,8 @@ export function MyReimbursementsList({ claims }: { claims: ReimbursementClaim[] 
                       <div className="mt-0.5 text-detail break-words text-destructive">{c.decisionNote}</div>
                     )}
                     {c.status === "PAID" && c.paidAt && (
-                      <div className="mt-0.5 text-detail text-success">
-                        Paid {formatDate(c.paidAt)}
+                      <div className="mt-0.5 text-detail break-words text-success">
+                        {c.payment ?? `Paid ${formatDate(c.paidAt)}`}
                       </div>
                     )}
                     {c.status === "APPROVED" && c.payFy && c.payMonth && (

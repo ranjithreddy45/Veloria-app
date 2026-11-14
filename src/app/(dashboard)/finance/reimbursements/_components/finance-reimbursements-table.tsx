@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StatusPill } from "@/components/shared/status-pill";
 import { ClaimTrailDialog } from "@/components/hr/claim-trail-dialog";
 import { CLAIM_STATUS_HUE, CLAIM_STATUS_LABEL } from "@/lib/hr/claim-labels";
+import { PAYMENT_MODES, PAYMENT_MODE_LABEL, todayIst } from "@/lib/hr/claim-payment";
 import {
   markReimbursementPaid,
   scheduleReimbursementPayment,
@@ -36,7 +37,8 @@ function fyOptions(): string[] {
   return out;
 }
 
-export function FinanceReimbursementsTable({ rows }: { rows: Row[] }) {
+/** `canPay`: the FINANCE role. Everyone else who can read this page only sees it. */
+export function FinanceReimbursementsTable({ rows, canPay }: { rows: Row[]; canPay: boolean }) {
   const router = useRouter();
   const [filter, setFilter] = React.useState<"APPROVED" | "PAID" | "ALL">("APPROVED");
   const [trailId, setTrailId] = React.useState<string | null>(null);
@@ -48,8 +50,18 @@ export function FinanceReimbursementsTable({ rows }: { rows: Row[] }) {
   const [fy, setFy] = React.useState(fys[1] ?? fys[0]);
   const [month, setMonth] = React.useState(String(new Date().getMonth() + 1));
   const [taxable, setTaxable] = React.useState(false);
-  const [paidOn, setPaidOn] = React.useState(new Date().toISOString().slice(0, 10));
+  const [paidOn, setPaidOn] = React.useState(todayIst());
+  const [paidAmount, setPaidAmount] = React.useState("");
+  const [mode, setMode] = React.useState("");
   const [reference, setReference] = React.useState("");
+
+  function openPay(r: Row) {
+    setPaidOn(todayIst());
+    setPaidAmount(String(r.amount));
+    setMode("");
+    setReference("");
+    setPay(r);
+  }
 
   const visible = filter === "ALL" ? rows : rows.filter((r) => r.status === filter);
 
@@ -66,12 +78,11 @@ export function FinanceReimbursementsTable({ rows }: { rows: Row[] }) {
   async function doPay() {
     if (!pay) return;
     setBusy(true);
-    const res = await markReimbursementPaid(pay.id, { paidOn, reference });
+    const res = await markReimbursementPaid(pay.id, { paidOn, amount: paidAmount, mode, reference });
     setBusy(false);
     if (!res.success) { toast.error(res.error); return; }
     toast.success("Marked as paid — the employee has been notified.");
     setPay(null);
-    setReference("");
     router.refresh();
   }
 
@@ -80,7 +91,7 @@ export function FinanceReimbursementsTable({ rows }: { rows: Row[] }) {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3.5">
         <div>
           <h3 className="text-copy font-semibold">Approved claims</h3>
-          <p className="text-detail text-muted-foreground">Every claim here carries both approvals — open History to see who signed off and when.</p>
+          <p className="text-detail text-muted-foreground">Every claim here is approved. Open Bills &amp; history for the receipts and who approved it, and when.</p>
         </div>
         <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
           <SelectTrigger className="w-[160px]" size="sm"><SelectValue /></SelectTrigger>
@@ -136,9 +147,9 @@ export function FinanceReimbursementsTable({ rows }: { rows: Row[] }) {
                       ))
                     )}
                   </TableCell>
-                  <TableCell className="text-detail text-muted-foreground">
+                  <TableCell className="max-w-[220px] whitespace-normal text-detail text-muted-foreground">
                     {r.status === "PAID"
-                      ? `Paid ${when(r.paidAt) ?? ""}${r.paymentRef ? ` · ${r.paymentRef}` : r.runId ? " · payroll" : ""}`
+                      ? r.payment ?? `Paid ${when(r.paidAt) ?? ""}`
                       : r.payFy && r.payMonth
                         ? `Pay run ${MONTHS[r.payMonth]} · FY ${r.payFy}${r.runId ? " · on the computed run, paid with it" : ""}`
                         : "Not scheduled"}
@@ -148,18 +159,18 @@ export function FinanceReimbursementsTable({ rows }: { rows: Row[] }) {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      {r.status === "APPROVED" && !r.runId && (
+                      {canPay && r.status === "APPROVED" && !r.runId && (
                         <>
                           <Button size="sm" variant="outline" className="h-8 gap-1" onClick={() => { setTaxable(r.taxable); setSchedule(r); }}>
                             <CalendarClock className="size-4" /> {r.payFy ? "Reschedule" : "Pay run"}
                           </Button>
-                          <Button size="sm" className="h-8 gap-1" onClick={() => setPay(r)}>
-                            <BadgeCheck className="size-4" /> Mark paid
+                          <Button size="sm" className="h-8 gap-1" onClick={() => openPay(r)}>
+                            <BadgeCheck className="size-4" /> Mark as Paid
                           </Button>
                         </>
                       )}
                       <Button size="sm" variant="ghost" className="h-8 gap-1 text-muted-foreground" onClick={() => setTrailId(r.id)}>
-                        <History className="size-4" /> History
+                        <History className="size-4" /> Bills &amp; history
                       </Button>
                     </div>
                   </TableCell>
@@ -209,12 +220,12 @@ export function FinanceReimbursementsTable({ rows }: { rows: Row[] }) {
         </DialogContent>
       </Dialog>
 
-      {/* Direct payment */}
+      {/* Mark as Paid — every field required (lib/hr/claim-payment.ts checks it again on the server). */}
       <Dialog open={pay !== null} onOpenChange={(o) => { if (!o && !busy) setPay(null); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Record payment</DialogTitle>
-            <DialogDescription>For a claim paid directly (bank transfer, UPI, cash) rather than through payroll.</DialogDescription>
+            <DialogTitle>Mark as Paid</DialogTitle>
+            <DialogDescription>Record how this claim was paid. The employee and the approver will see these details.</DialogDescription>
           </DialogHeader>
           {pay && (
             <div className="rounded-lg border bg-muted/40 px-3.5 py-2.5 text-body">
@@ -223,18 +234,31 @@ export function FinanceReimbursementsTable({ rows }: { rows: Row[] }) {
           )}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-detail">Paid on</Label>
-              <Input type="date" value={paidOn} onChange={(e) => setPaidOn(e.target.value)} />
+              <Label htmlFor="pay-date" className="text-detail">Payment date</Label>
+              <Input id="pay-date" type="date" value={paidOn} max={todayIst()} onChange={(e) => setPaidOn(e.target.value)} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-detail">Reference (optional)</Label>
-              <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="UTR / cheque no." />
+              <Label htmlFor="pay-amount" className="text-detail">Amount paid (₹)</Label>
+              <Input id="pay-amount" inputMode="decimal" value={paidAmount} onChange={(e) => setPaidAmount(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-detail">Payment mode</Label>
+              <Select value={mode} onValueChange={setMode}>
+                <SelectTrigger aria-label="Payment mode"><SelectValue placeholder="Choose…" /></SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_MODES.map((m) => <SelectItem key={m} value={m}>{PAYMENT_MODE_LABEL[m]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="pay-ref" className="text-detail">{mode === "CASH" ? "Receipt / voucher no." : "Transaction / UTR no."}</Label>
+              <Input id="pay-ref" value={reference} onChange={(e) => setReference(e.target.value)} placeholder={mode === "CASH" ? "Voucher no." : "UTR / transaction ref"} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPay(null)} disabled={busy}>Cancel</Button>
-            <Button onClick={doPay} disabled={busy} className="gap-1.5">
-              {busy && <Loader2 className="size-4 animate-spin" />} Mark paid
+            <Button onClick={doPay} disabled={busy || !paidOn || !paidAmount.trim() || !mode || !reference.trim()} className="gap-1.5">
+              {busy && <Loader2 className="size-4 animate-spin" />} Mark as Paid
             </Button>
           </DialogFooter>
         </DialogContent>

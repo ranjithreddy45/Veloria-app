@@ -3,10 +3,11 @@
 // ============================================================
 // Employee expense reimbursements — IO layer.
 // Lifecycle: employee SUBMITS (ESS) → the claim's approval chain, one stage at
-// a time (e.g. reporting manager → HR → Venkat → Finance; chosen by
-// lib/hr/claim-chain.ts and snapshotted on the claim) → APPROVED, now visible
-// to Finance → Finance schedules it on a pay run (payroll disburses and stamps
-// PAID) or records a direct payment → PAID. Every step writes an HrClaimEvent
+// a time (since 2026-11-14 a single approval by Meghana; chosen by
+// lib/hr/claim-chain.ts and snapshotted on the claim) → APPROVED ("Approved –
+// Pending Payment"), now visible to Finance → Finance records the payment
+// (date, amount, mode, UTR) or schedules it on a pay run → PAID. Only the
+// FINANCE role can do either (lib/hr/claim-payment.ts). Every step writes an HrClaimEvent
 // with actor + timestamp and notifies the employee and the next approver
 // (in-app + email). Finance cannot see a claim before every stage is approved.
 // Self-service reads/writes are strictly scoped to the signed-in user's own
@@ -31,6 +32,7 @@ import {
 } from "@/lib/hr/reimbursement";
 import { AWAITING_STATUSES } from "@/lib/hr/claim-labels";
 import { isEmployeeRouteScope } from "@/lib/hr/claim-routing";
+import { checkPayment, mayMarkClaimPaid, paymentSummary } from "@/lib/hr/claim-payment";
 import {
   MAX_STAGES,
   canActOnStage,
@@ -89,7 +91,7 @@ type ClaimRow = {
   level1ById: string | null; level1At: Date | null; level1Note: string | null;
   level2ById: string | null; level2At: Date | null; level2Note: string | null;
   level3At: Date | null; level3Note: string | null;
-  paymentRef: string | null;
+  paymentRef: string | null; paymentMode: string | null; paidAmount: Prisma.Decimal | null;
 };
 const serialize = (r: ClaimRow) => ({
   id: r.id, employeeId: r.employeeId, category: r.category, title: r.title, amount: Number(r.amount),
@@ -99,6 +101,10 @@ const serialize = (r: ClaimRow) => ({
   level1At: r.level1At, level1Note: r.level1Note, level2At: r.level2At, level2Note: r.level2Note,
   level3At: r.level3At, level3Note: r.level3Note,
   paymentRef: r.paymentRef,
+  paymentMode: r.paymentMode,
+  paidAmount: r.paidAmount == null ? null : Number(r.paidAmount),
+  /** "Paid 14 Nov 2026 · UPI · ₹1,200 · Ref …" — shown to Finance, the approver and the employee. */
+  payment: paymentSummary({ paidAt: r.paidAt, paymentMode: r.paymentMode, paidAmount: r.paidAmount == null ? null : Number(r.paidAmount), paymentRef: r.paymentRef }),
 });
 
 async function recordClaimEvent(
@@ -171,7 +177,7 @@ function trackerFields(state: ClaimChainState) {
     /** "Final approval with Amrutha" — where an approval here sends it; null at the last stage. */
     nextStep: next ? `${next.label.toLowerCase()} with ${stageHolder(next)}` : null,
     awaitingName: st ? stageHolder(st) : null,
-    statusLabel: st ? `Awaiting ${st.label.toLowerCase()}` : null,
+    statusLabel: st ? (state.chain.length <= 1 ? "Pending Approval" : `Pending Approval (${st.label.toLowerCase()})`) : null,
     route: state.chain.length ? chainSummary(state.chain) : null,
   };
 }
@@ -568,12 +574,12 @@ export async function decideReimbursement(
   });
   await notifyClaimStep(await financeRecipients(), {
     title: "Reimbursement approved — ready for payment",
-    body: `${summary} has completed every approval and is ready for Finance to pay.`,
+    body: `${summary} was approved by ${actor} and is ready for Finance to pay.`,
     actionUrl: "/finance/reimbursements",
     claimId: id,
   });
   await notifyOwner(claim.employeeId, id, "Reimbursement claim approved",
-    `Your claim "${claim.title}" received its final approval from ${actor}. Status: Approved — with Finance for payment. You will be told when it is paid.`);
+    `Your claim "${claim.title}" was approved by ${actor}. Status: Approved – Pending Payment — with Finance. You will be told when it is paid.`);
   revalidateAll();
   return { success: true, data: { id, status: "APPROVED", nextStage: null, nextHolder: null } };
 }
@@ -722,7 +728,7 @@ export async function scheduleReimbursementPayment(
 ): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!u?.id) return { success: false, error: "Not signed in." };
-  if (!canFinance(u.role)) return { success: false, error: "Not authorized." };
+  if (!mayMarkClaimPaid(u.role)) return { success: false, error: "Only Finance can schedule a claim's payment." };
   const payFy = input.payFy?.trim();
   const payMonth = Number(input.payMonth);
   if (!payFy || !/^\d{4}-\d{2}$/.test(payFy)) return { success: false, error: "Pick the financial year of the pay run." };
@@ -751,36 +757,46 @@ export async function scheduleReimbursementPayment(
   return { success: true, data: { id } };
 }
 
-/** Finance records a payment made outside payroll (bank transfer / cash). */
+/**
+ * Finance marks an approved claim Paid, recording the payment date, the amount
+ * paid, the mode (bank transfer / UPI / cash) and the transaction or UTR
+ * reference — all required (lib/hr/claim-payment.ts). Only the FINANCE role
+ * may. The employee is told, with the same details Finance entered.
+ */
 export async function markReimbursementPaid(
   id: string,
-  input: { paidOn?: string; reference?: string; note?: string }
+  input: { paidOn?: string; amount?: number | string; mode?: string; reference?: string; note?: string }
 ): Promise<Result<{ id: string }>> {
   const u = await requireUser();
   if (!u?.id) return { success: false, error: "Not signed in." };
-  if (!canFinance(u.role)) return { success: false, error: "Not authorized." };
+  if (!mayMarkClaimPaid(u.role)) return { success: false, error: "Only Finance can mark a claim as paid." };
 
-  const claim = await prisma.hrReimbursementClaim.findUnique({ where: { id }, select: { status: true, employeeId: true, title: true, runId: true } });
+  const claim = await prisma.hrReimbursementClaim.findUnique({
+    where: { id },
+    select: { status: true, employeeId: true, title: true, runId: true, amount: true },
+  });
   if (!claim) return { success: false, error: "Claim not found." };
-  if (claim.status !== "APPROVED") return { success: false, error: "Only a fully approved, unpaid claim can be marked paid." };
+  if (claim.status !== "APPROVED") return { success: false, error: "Only an approved, unpaid claim can be marked paid." };
   // On a computed payroll it is paid with that run; paying it here too would pay it twice.
   if (claim.runId) return { success: false, error: "This claim is on a computed payroll run — it is marked paid when that run is paid." };
 
-  const paidAt = input.paidOn ? new Date(input.paidOn) : new Date();
-  if (Number.isNaN(paidAt.getTime())) return { success: false, error: "Pick a valid payment date." };
-  const reference = input.reference?.trim() || null;
+  const checked = checkPayment(input, Number(claim.amount));
+  if (!checked.ok) return { success: false, error: checked.error };
+  const { paidAt, amount, mode, reference } = checked;
 
   const upd = await prisma.hrReimbursementClaim.updateMany({
     where: { id, status: "APPROVED", runId: null },
-    data: { status: "PAID", paidAt, paymentRef: reference },
+    data: { status: "PAID", paidAt, paymentRef: reference, paymentMode: mode, paidAmount: new Prisma.Decimal(amount) },
   });
   if (upd.count === 0) return { success: false, error: "This claim was already paid." };
+  const summary = paymentSummary({ paidAt, paymentMode: mode, paidAmount: amount, paymentRef: reference })!;
   await recordClaimEvent(id, "PAID", {
     from: "APPROVED", to: "PAID", actorId: u.id, actorName: u.name ?? null,
-    note: [reference ? `Ref ${reference}` : null, input.note?.trim() || null].filter(Boolean).join(" · ") || null,
+    note: [summary, input.note?.trim() || null].filter(Boolean).join(" · "),
   });
+  const short = amount < Number(claim.amount) ? ` (claimed ${new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(Number(claim.amount))})` : "";
   await notifyOwner(claim.employeeId, id, "Reimbursement paid",
-    `Your claim "${claim.title}" was paid on ${paidAt.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" })}${reference ? ` (ref ${reference})` : ""}. Status: Paid — this claim is complete.`);
+    `Your claim "${claim.title}" has been paid. ${summary}${short}. Status: Paid — this claim is complete.`);
   revalidateAll();
   return { success: true, data: { id } };
 }
@@ -1081,7 +1097,7 @@ export async function getClaimDetail(claimId: string) {
       approvalChain: true, stageIndex: true, updatedAt: true, decidedAt: true, decidedById: true,
       level1ById: true, level1At: true, level1Note: true, level2ById: true, level2At: true, level2Note: true,
       level3ById: true, level3At: true, level3Note: true,
-      payFy: true, payMonth: true, paidAt: true, paymentRef: true, runId: true,
+      payFy: true, payMonth: true, paidAt: true, paymentRef: true, paymentMode: true, paidAmount: true, runId: true,
       attachments: {
         orderBy: { createdAt: "asc" },
         select: { id: true, fileName: true, mimeType: true, sizeBytes: true, createdAt: true },
@@ -1107,6 +1123,9 @@ export async function getClaimDetail(claimId: string) {
       id: claim.id, employeeId: claim.employeeId, title: claim.title, category: claim.category,
       claimDate: claim.claimDate, note: claim.note, decisionNote: claim.decisionNote,
       payFy: claim.payFy, payMonth: claim.payMonth, paidAt: claim.paidAt, paymentRef: claim.paymentRef, runId: claim.runId,
+      paymentMode: claim.paymentMode,
+      paidAmount: claim.paidAmount == null ? null : Number(claim.paidAmount),
+      payment: paymentSummary({ paidAt: claim.paidAt, paymentMode: claim.paymentMode, paidAmount: claim.paidAmount == null ? null : Number(claim.paidAmount), paymentRef: claim.paymentRef }),
       attachments: claim.attachments, events: claim.events,
       amount: Number(claim.amount),
       hasLegacyBill: !!claim.billUrl,

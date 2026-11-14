@@ -8,8 +8,9 @@ import {
   uniqueName,
 } from "./helpers";
 
-// /me/reimbursements → "New claim" dialog → listed as "Awaiting 1st approval"
-// → History dialog → /me/approvals → Approve → status moves on.
+// /me/reimbursements → "New claim" dialog → listed as "Pending Approval"
+// → History dialog → /me/approvals → Approve → "Approved – Pending Payment"
+// (one approval, then Finance pays — no Finance approval stage).
 //
 // Precondition the seed does NOT provide: the admin User must be linked to an
 // Employee record (submitReimbursement looks up employee.userId). The first
@@ -68,9 +69,9 @@ test.describe("HR — reimbursement claim & approval", () => {
 
     const row = () => page.getByRole("row").filter({ hasText: title }).first();
 
-    await test.step("listed as awaiting first approval", async () => {
+    await test.step("listed as pending approval", async () => {
       await expect(row()).toBeVisible();
-      await expect(row()).toContainText("Awaiting 1st approval");
+      await expect(row()).toContainText("Pending Approval");
       await expect(row()).toContainText("Travel");
     });
 
@@ -89,33 +90,24 @@ test.describe("HR — reimbursement claim & approval", () => {
 
       const approvalRow = page.getByRole("row").filter({ hasText: title }).first();
       await expect(approvalRow).toBeVisible();
-      await expect(approvalRow).toContainText("1st approval");
+      // A single-approval route labels its one stage "Approval".
+      await expect(approvalRow).toContainText(/Approval|1st approval/);
       await approvalRow.getByRole("button", { name: "Approve", exact: true }).click();
 
-      const decision = page.getByRole("dialog").filter({ hasText: /Give .* approval/ });
+      const decision = page.getByRole("dialog").filter({ hasText: /Approve claim|Give .* approval/ });
       await expect(decision).toBeVisible();
       await decision.getByRole("button", { name: "Approve", exact: true }).click();
       await expectToast(page, /^Approved — /);
       await expect(decision).toBeHidden();
     });
 
-    await test.step("status has moved past first approval", async () => {
+    await test.step("one approval sends it to Finance", async () => {
       await page.goto("/me/reimbursements");
       await expect(row()).toBeVisible();
-      await expect(row()).not.toContainText("Awaiting 1st approval");
-      // The default route is 1st approval → (2nd approval, when configured) →
-      // Finance. It never jumps straight to "Approved": the final approval is
-      // a stage of its own.
-      await expect(row()).toContainText(/Awaiting 2nd approval|Awaiting final approval/);
-      await expect(row()).toContainText("With ");
-    });
-
-    await test.step("cleanup: withdraw while still withdrawable", async () => {
-      const withdraw = row().getByRole("button", { name: "Withdraw" });
-      if (await withdraw.isVisible().catch(() => false)) {
-        await withdraw.click();
-        await expect(row()).not.toContainText(/Awaiting/, { timeout: 15_000 }).catch(() => {});
-      }
+      // The default route is a single approval, then Finance pays: Finance is
+      // not an approval stage, so the claim goes straight to "Approved –
+      // Pending Payment".
+      await expect(row()).toContainText("Approved – Pending Payment");
     });
   });
 });
