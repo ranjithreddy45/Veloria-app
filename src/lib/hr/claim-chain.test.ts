@@ -82,8 +82,53 @@ describe("buildChain", () => {
   });
 
   it("caps a chain at four stages", () => {
-    const five = Array.from({ length: 5 }, () => ({ type: "USER" as const, role: "x", candidates: [meghana] }));
+    const five = [meghana, venkat, amrutha, ranjith, dilkash].map((p) => ({ type: "USER" as const, role: "x", candidates: [p] }));
     expect(buildChain(five, { claimantUserId: null, superAdmins: [] })).toHaveLength(4);
+  });
+});
+
+describe("one person, one approval", () => {
+  const supers = [venkat, ranjith];
+  it("a reporting manager who is also the named approver approves once", () => {
+    const c = buildChain(
+      [
+        { type: "MANAGER", role: "Reporting manager", candidates: [meghana] },
+        { type: "USER", role: "Meghana", candidates: [meghana] },
+      ],
+      { claimantUserId: "u-nayana", superAdmins: supers },
+    );
+    expect(c).toHaveLength(1);
+    expect(c[0]).toMatchObject({ type: "MANAGER", label: "Approval", approverNames: ["Meghana"], fallback: false });
+  });
+  it("keeps a later stage when the earlier one could be decided by someone else", () => {
+    const c = buildChain(
+      [
+        { type: "DEFAULT", role: "1st approver", candidates: [meghana, venkat] },
+        { type: "USER", role: "Meghana", candidates: [meghana] },
+      ],
+      { claimantUserId: "u-x", superAdmins: supers },
+    );
+    expect(c).toHaveLength(2);
+  });
+  it("never drops a Finance stage", () => {
+    const c = buildChain(
+      [
+        { type: "USER", role: "HR", candidates: [amrutha] },
+        { type: "FINANCE", role: "Finance", candidates: [amrutha] },
+      ],
+      { claimantUserId: "u-x", superAdmins: supers },
+    );
+    expect(c.map((s) => s.type)).toEqual(["USER", "FINANCE"]);
+  });
+  it("the default flow is a single approval: Meghana, then Finance pays", () => {
+    const c = buildChain([{ type: "DEFAULT", role: "1st approver", candidates: [meghana] }], { claimantUserId: "u-srinivas", superAdmins: supers });
+    expect(c).toHaveLength(1);
+    expect(c[0]).toMatchObject({ label: "Approval", approverIds: ["u-meghana"], fallback: false });
+  });
+  it("Meghana's own claim goes to the Super Admins", () => {
+    const c = buildChain([{ type: "DEFAULT", role: "1st approver", candidates: [meghana] }], { claimantUserId: "u-meghana", superAdmins: supers });
+    expect(c[0].approverIds).not.toContain("u-meghana");
+    expect(c[0].fallback).toBe(true);
   });
 });
 

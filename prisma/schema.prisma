@@ -9639,8 +9639,13 @@ model HrReimbursementClaim {
   level3ById   String?
   level3At     DateTime?
   level3Note   String?
-  // Finance's payment reference when paid outside a payroll run.
+  // Finance's payment reference when paid outside a payroll run (UTR /
+  // transaction no.), or "Payroll M/FY" when paid with a run.
   paymentRef   String?
+  /// BANK_TRANSFER | UPI | CASH (recorded by Finance) | PAYROLL (paid with a run).
+  paymentMode  String?
+  /// What Finance actually paid. Null on claims paid before this was recorded.
+  paidAmount   Decimal?  @db.Decimal(18, 2)
   // The run that should PAY it (set on approval; mirrors HrArrear).
   payFy        String?
   payMonth     Int?

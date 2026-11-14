@@ -2,8 +2,9 @@
 // Reimbursement approval workflow — the rules in one place.
 // ------------------------------------------------------------
 // Flow: employee submits → the claim's approval CHAIN, one stage at a time
-// (see ./claim-chain.ts for how the chain is chosen) → APPROVED (Finance
-// schedules it on a pay run or records a direct payment) → PAID. The chain is
+// (see ./claim-chain.ts for how the chain is chosen; since 2026-11-14 the
+// default is a single approval by Meghana) → APPROVED, "Approved – Pending
+// Payment" (Finance records the payment, or schedules it on a pay run) → PAID. The chain is
 // snapshotted on the claim when it is submitted. Claims raised before chains
 // existed get one the first time they are touched (ensureClaimChain).
 //
@@ -109,7 +110,7 @@ export async function financeRecipients(): Promise<ApproverUser[]> {
 /**
  * The approval chain for a claim from this employee, right now: their own
  * route, else their reporting manager's team route, else the default rules
- * (1st approver → 2nd approver if configured → Finance). Self-approval rule
+ * (1st approver → 2nd approver if configured; Finance then pays). Self-approval rule
  * applied (claim-chain.ts buildChain).
  */
 export async function resolveClaimChain(employeeId: string, category?: string | null): Promise<ChainStage[]> {
@@ -166,9 +167,10 @@ export async function resolveClaimChain(employeeId: string, category?: string | 
   // An unconfigured (or inactive) 1st approver resolves to every Super Admin;
   // pass none instead so buildChain's fallback leaves out the claimant AND the
   // later stages' approvers, rather than listing them twice.
+  // Finance does not approve on the default route: the last approval sends the
+  // claim to Finance's list, where it is paid (Approved – Pending Payment → Paid).
   const specs: StageSpec[] = [{ type: "DEFAULT", role: "1st approver", candidates: a.level1FromRule ? a.level1 : [] }];
   if (a.level2.length) specs.push({ type: "DEFAULT", role: "2nd approver", candidates: a.level2 });
-  specs.push({ type: "FINANCE", role: "Finance", candidates: a.level3 });
   return buildChain(specs, ctx);
 }
 
@@ -355,7 +357,7 @@ export async function settleRunReimbursements(runId: string, actor: { id: string
   const run = await prisma.hrPayrollRun.findUnique({ where: { id: runId }, select: { fy: true, month: true } });
   const claims = await prisma.hrReimbursementClaim.findMany({
     where: { runId, status: "APPROVED" },
-    select: { id: true, employeeId: true, title: true },
+    select: { id: true, employeeId: true, title: true, amount: true },
   });
   if (claims.length === 0 || !run) return 0;
   const payroll = `${run.month}/${run.fy}`;
@@ -371,7 +373,7 @@ export async function settleRunReimbursements(runId: string, actor: { id: string
     // old-code compute stamp and pay/notify it twice.
     const flipped = await prisma.hrReimbursementClaim.updateMany({
       where: { id: c.id, status: "APPROVED", runId },
-      data: { status: "PAID", paidAt: new Date(), paymentRef: `Payroll ${payroll}` },
+      data: { status: "PAID", paidAt: new Date(), paymentRef: `Payroll ${payroll}`, paymentMode: "PAYROLL", paidAmount: c.amount },
     });
     if (flipped.count === 0) continue;
     settled++;

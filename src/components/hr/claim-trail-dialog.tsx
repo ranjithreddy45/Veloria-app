@@ -108,13 +108,14 @@ export function ClaimTrailDialog({
         {
           label: "Payment",
           who: detail.paidAt
-            ? `Paid · ${when(detail.paidAt)}`
+            ? detail.payment ?? `Paid · ${when(detail.paidAt)}`
             : detail.status === "APPROVED"
               ? detail.runId ? `Waiting: paid when the ${detail.payMonth}/${detail.payFy} payroll is paid`
               : detail.payFy ? `Waiting: Finance · pay run ${detail.payMonth}/${detail.payFy}` : "Waiting: Finance"
               : "Finance",
           state: detail.paidAt ? "done" : detail.status === "APPROVED" ? "current" : "waiting",
-          note: detail.paymentRef ? `Ref ${detail.paymentRef}` : null,
+          // The summary above already carries the reference when there is one.
+          note: detail.payment || !detail.paymentRef ? null : `Ref ${detail.paymentRef}`,
         },
       ]
     : [];

@@ -8,8 +8,9 @@
 //   2. else the TEAM route of their reporting manager
 //                                          (e.g. Dilkash's team: Manager → HR →
 //                                           Venkat → Finance)
-//   3. else the default rules              (configured 1st/2nd approvers, then
-//                                           Finance)
+//   3. else the default rules              (the configured 1st approver, and a
+//                                           2nd one if set; Finance then pays —
+//                                           it does not approve)
 //
 // The resolved chain is snapshotted on the claim, so a claim keeps the route it
 // was given even if someone changes teams halfway through.
@@ -132,6 +133,26 @@ export interface StageSpec {
 const nameOf = (p: Person) => p.name ?? p.email;
 
 /**
+ * One person, one approval. A stage held by exactly one person who is also
+ * the sole holder of an earlier stage is dropped, so someone who is both the
+ * claimant's reporting manager and the named approver approves once. Only a
+ * sole holder counts: if the earlier stage could be decided by someone else,
+ * the later approval is still needed. Finance stages are never dropped.
+ */
+function collapseRepeatedApprovers(specs: StageSpec[], notClaimant: (p: Person) => boolean): StageSpec[] {
+  const soleHolders = new Set<string>();
+  const out: StageSpec[] = [];
+  for (const spec of specs) {
+    const people = spec.candidates.filter(notClaimant);
+    const sole = people.length === 1 ? people[0].id : null;
+    if (spec.type !== "FINANCE" && sole && soleHolders.has(sole)) continue;
+    if (sole) soleHolders.add(sole);
+    out.push(spec);
+  }
+  return out;
+}
+
+/**
  * Turn stage specs into a chain, applying the self-approval rule. A stage's
  * approvers are its candidates minus the claimant and minus anyone already
  * approving an earlier stage. If that leaves nobody, the
@@ -141,9 +162,9 @@ const nameOf = (p: Person) => p.name ?? p.email;
  * are, so the claim is never stranded.
  */
 export function buildChain(specs: StageSpec[], ctx: { claimantUserId: string | null; superAdmins: Person[] }): ChainStage[] {
-  const used = specs.slice(0, MAX_STAGES);
-  const total = used.length;
   const notClaimant = (p: Person) => p.id !== ctx.claimantUserId;
+  const used = collapseRepeatedApprovers(specs, notClaimant).slice(0, MAX_STAGES);
+  const total = used.length;
   // A later stage never repeats someone who already approves an earlier one
   // (e.g. Finance falling back to HR when HR is also the 1st approver).
   const primary: Person[][] = [];

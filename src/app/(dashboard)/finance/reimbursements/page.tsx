@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Receipt, BadgeIndianRupee, CheckCircle2 } from "lucide-react";
 import { auth } from "@/../auth";
 import { hasPermission } from "@/lib/permissions";
+import { mayMarkClaimPaid } from "@/lib/hr/claim-payment";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { listFinanceReimbursements } from "@/actions/hr-reimbursement.actions";
@@ -14,9 +15,11 @@ const inr = (n: number) =>
   new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
 
 // ============================================================
-// Finance's view of expense claims: ONLY claims that have completed every
-// approval reach this page. Finance schedules them on a payroll run (payroll
-// disburses and stamps PAID) or records a direct payment.
+// Finance's view of expense claims: ONLY approved claims reach this page
+// ("Approved – Pending Payment"). Finance opens the bills, records the payment
+// (date, amount, mode, UTR) and the claim becomes Paid — or schedules it on a
+// payroll run. Others who can read finance (Admins, HR) see the list and the
+// payment details but get no payment buttons: only the FINANCE role pays.
 // ============================================================
 
 export default async function FinanceReimbursementsPage() {
@@ -33,18 +36,18 @@ export default async function FinanceReimbursementsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Reimbursement payments"
-        description="Employee expense claims that have completed first- and second-level approval. Schedule each on a pay run, or record a direct payment. Claims still in approval never appear here."
+        description="Approved employee expense claims. Open the bills and approval history, then mark each one paid with the payment date, amount, mode and UTR reference. Claims still awaiting approval never appear here."
         icon={Receipt}
         accent="emerald"
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatTile label="Ready to pay" value={awaiting.length} accent="indigo" icon={<CheckCircle2 />} sub="Fully approved, unpaid" />
+        <StatTile label="Ready to pay" value={awaiting.length} accent="indigo" icon={<CheckCircle2 />} sub="Approved – Pending Payment" />
         <StatTile label="Amount to pay" value={inr(awaitingAmount)} accent="emerald" icon={<BadgeIndianRupee />} sub="Across approved claims" />
         <StatTile label="Paid" value={paid.length} accent="blue" icon={<Receipt />} sub="Settled claims" />
       </div>
 
-      <FinanceReimbursementsTable rows={rows} />
+      <FinanceReimbursementsTable rows={rows} canPay={mayMarkClaimPaid(role)} />
     </div>
   );
 }

@@ -5,13 +5,16 @@
 
 import type { Hue } from "@/components/shared/status-pill";
 
+// Pending Approval → Approved – Pending Payment → Paid (or Rejected). A claim
+// still on an older multi-stage route carries PENDING_L2…L4; it is still just
+// "Pending Approval" (the tracker adds which stage).
 export const CLAIM_STATUS_LABEL: Record<string, string> = {
-  PENDING: "Awaiting 1st approval",
-  PENDING_L2: "Awaiting 2nd approval",
-  PENDING_L3: "Awaiting 3rd approval",
-  PENDING_L4: "Awaiting 4th approval",
+  PENDING: "Pending Approval",
+  PENDING_L2: "Pending Approval",
+  PENDING_L3: "Pending Approval",
+  PENDING_L4: "Pending Approval",
   NEEDS_INFO: "Sent back",
-  APPROVED: "Approved",
+  APPROVED: "Approved – Pending Payment",
   REJECTED: "Rejected",
   PAID: "Paid",
 };
