@@ -296,27 +296,6 @@ export async function getIntegrationHealth(): Promise<IntegrationStatus[]> {
     impact: "Paid social leads are lost silently — they never reach the CRM at all.",
   });
 
-  const wefluxPush = has(waConfig?.crmWebhookUrl) || has(process.env.WEFLUX_CRM_WEBHOOK_URL);
-  // Pushing leads to Weflux while someone else sends our WhatsApp is not a
-  // feature, it is a second number messaging the same customer: Weflux fires
-  // its own first-message automations on every lead it receives. Flag it.
-  const wefluxPushStranded = wefluxPush && !!waConfig?.provider && waConfig.provider !== "WEFLUX";
-  out.push({
-    key: "weflux-crm",
-    label: "Weflux CRM push",
-    category: "Lead capture",
-    state: !wefluxPush ? "NOT_CONFIGURED" : wefluxPushStranded ? "PARTIAL" : "LIVE",
-    detail: !wefluxPush
-      ? "No Weflux CRM webhook URL, so new leads are not pushed and Weflux automations never fire."
-      : wefluxPushStranded
-        ? `New leads are still pushed to Weflux, but WhatsApp now sends through ${waConfig?.provider}. If any Weflux automation is still switched on, the customer gets a first message from BOTH numbers. Turn the Weflux automations off, or clear this webhook URL.`
-        : "New leads are pushed to Weflux.",
-    missing: wefluxPush ? [] : ["WhatsAppConfig.crmWebhookUrl (or WEFLUX_CRM_WEBHOOK_URL)"],
-    impact: wefluxPushStranded
-      ? "Duplicate first messages to new leads, from a number the team no longer watches."
-      : "Weflux-side automations on a new lead do not run.",
-  });
-
   // ---- AI ----------------------------------------------------------------
   const aiKeys = ["GOOGLE_AI_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY"];
   const anyAi = aiKeys.some((k) => has(process.env[k]));
