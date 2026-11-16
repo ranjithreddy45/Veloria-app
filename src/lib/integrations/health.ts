@@ -95,15 +95,22 @@ export async function getIntegrationHealth(): Promise<IntegrationStatus[]> {
   const out: IntegrationStatus[] = [];
 
   // ---- Messaging ---------------------------------------------------------
-  const emailMissing = absent(["RESEND_API_KEY"]);
+  const smtpUser = process.env.SMTP_USER?.trim() || process.env.GOOGLE_EMAIL?.trim();
+  const smtpPass = process.env.SMTP_PASS?.trim() || process.env.GOOGLE_APP_PASSWORD?.trim();
+  const hasSmtp = Boolean(smtpUser && smtpPass);
+  const hasResend = has(process.env.RESEND_API_KEY);
+  const emailLive = hasSmtp || hasResend;
+  const emailMissing = emailLive ? [] : ["SMTP_USER + SMTP_PASS (Google Business Email) or RESEND_API_KEY"];
   out.push({
     key: "email",
-    label: "Email (Resend)",
+    label: hasSmtp ? "Email (Google Business Email)" : "Email (Resend / SMTP)",
     category: "Messaging",
-    state: emailMissing.length ? "NOT_CONFIGURED" : "LIVE",
-    detail: emailMissing.length
-      ? "No mail provider key. sendEmail() returns “Email not configured” for every call in the app."
-      : "Mail provider key present.",
+    state: emailLive ? "LIVE" : "NOT_CONFIGURED",
+    detail: hasSmtp
+      ? `Google Business Email (${smtpUser}) configured via SMTP.`
+      : hasResend
+        ? "Resend API key configured."
+        : "No mail provider configured. sendEmail() returns “Email not configured” for every call in the app.",
     missing: emailMissing,
     impact:
       "Lead-assignment emails, quotation sends, invoice emails, auto-replies and review requests all silently send nothing.",

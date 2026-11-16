@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, isEmailConfigured } from "@/lib/email";
 
 // ============================================================
 // Telling a rep, by email, that a lead is theirs.
@@ -153,5 +153,5 @@ export async function sendLeadAssignedEmail(
  * problem because nothing surfaces it.
  */
 export function emailDeliveryConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
+  return isEmailConfigured();
 }

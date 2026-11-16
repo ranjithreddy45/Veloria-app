@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { isEmailConfigured } from "@/lib/email";
 import { getHostScope, isStaffUser, staffCan, type HostBooking, type HostScope } from "@/lib/guest/host-scope";
 import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
@@ -313,7 +314,7 @@ export async function getGuestAccountDetails(): Promise<GuestAccountDetails | nu
     email,
     emailVerified: !!email && !!me.emailVerified,
     pendingEmail,
-    emailDeliveryConfigured: Boolean(process.env.RESEND_API_KEY),
+    emailDeliveryConfigured: isEmailConfigured(),
     phone: me.phone ?? bookingPhone,
     phoneVerified: !!me.phone && !!me.phoneVerifiedAt,
     phoneSource: me.phone ? "ACCOUNT" : bookingPhone ? "BOOKING" : null,

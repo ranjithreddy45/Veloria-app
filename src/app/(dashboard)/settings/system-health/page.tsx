@@ -182,7 +182,10 @@ export default async function SystemHealthPage() {
   // ---- configuration checks (presence only) --------------------------------
   const sentryOn = present("NEXT_PUBLIC_SENTRY_DSN");
   const sentryEnv = process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || "development";
-  const emailOn = present("RESEND_API_KEY");
+  const smtpUser = process.env.SMTP_USER?.trim() || process.env.GOOGLE_EMAIL?.trim();
+  const smtpPass = process.env.SMTP_PASS?.trim() || process.env.GOOGLE_APP_PASSWORD?.trim();
+  const hasSmtp = Boolean(smtpUser && smtpPass);
+  const emailOn = hasSmtp || present("RESEND_API_KEY");
   const whatsappOn = Boolean(waConfig?.accessToken?.trim());
   const pushPublic = present("NEXT_PUBLIC_VAPID_PUBLIC_KEY");
   const pushFull = pushPublic && present("VAPID_PRIVATE_KEY") && present("VAPID_SUBJECT");
@@ -216,12 +219,14 @@ export default async function SystemHealthPage() {
     },
     {
       key: "email",
-      label: "Email (Resend)",
+      label: hasSmtp ? "Email (Google Business Email)" : "Email (Resend)",
       icon: Mail,
       tone: emailOn ? "ok" : "off",
       summary: emailOn
-        ? "RESEND_API_KEY present — transactional email and uptime/backup alerts can send"
-        : "RESEND_API_KEY not set — no email leaves the system (OTPs, invoices, alerts)",
+        ? hasSmtp
+          ? `Google Business Email (${smtpUser}) configured via SMTP`
+          : "RESEND_API_KEY present — transactional email and uptime/backup alerts can send"
+        : "No email provider configured (set SMTP_USER/SMTP_PASS or RESEND_API_KEY) — no email leaves the system",
     },
     {
       key: "whatsapp",

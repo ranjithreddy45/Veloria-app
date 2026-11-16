@@ -10,6 +10,7 @@ import {
   twoFactorErrorCode,
   twoFactorErrorMessage,
 } from "@/lib/security/two-factor-errors";
+import { isEmailConfigured } from "@/lib/email";
 
 // ============================================================
 // Sign Up Action
@@ -174,7 +175,7 @@ export async function forgotPasswordAction(formData: FormData) {
     // Without a mail provider no reset link can be delivered. Say so rather than
     // showing "check your email" for a message that will never arrive. The answer
     // doesn't depend on the address entered, so it reveals nothing about accounts.
-    if (!process.env.RESEND_API_KEY?.trim()) {
+    if (!isEmailConfigured()) {
       console.warn("[auth] password reset requested but email is not configured");
       return {
         success: false as const,
