@@ -1,4 +1,5 @@
 import { sendLeadAssignedEmail } from "@/lib/crm/lead-assigned-email";
+import { sendLeadWelcomeEmail } from "@/lib/crm/lead-welcome-email";
 import { canonicalPhone } from "@/lib/phone";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -731,6 +732,14 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         const mail = await sendLeadAssignedEmail(lead.id, assignedToId);
         if (!mail.sent) {
           console.warn(`[CAPTURE] assignment email not sent: ${mail.reason}`);
+        }
+      }
+
+      // Automated Welcome Email to customer if email is provided
+      if (contact.email && !data.historical) {
+        const welcomeMail = await sendLeadWelcomeEmail(lead.id);
+        if (!welcomeMail.sent) {
+          console.warn(`[CAPTURE] welcome email not sent: ${welcomeMail.reason}`);
         }
       }
 

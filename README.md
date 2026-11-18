@@ -43,3 +43,8 @@ Run the following command from your local machine to fix the permissions on the 
 ```bash
 ssh -i ./id_rsa -N -L 5433:localhost:5432 theveloriagrand@43.225.53.88
 ```
+
+TO LOGIN TO THE SERVER
+```bash
+ssh -t -i ./id_rsa theveloriagrand@43.225.53.88
+```
