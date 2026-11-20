@@ -50,7 +50,10 @@ export interface CallVibeResult<T> {
 /** Shared with the write client (src/lib/integrations/callvibe/write-client.ts). */
 export function apiBase(baseUrl?: string | null): string {
   const raw = (baseUrl || "").trim().replace(/\/+$/, "");
-  return raw || DEFAULT_BASE;
+  if (!raw || raw.includes("theveloriagrand.com")) {
+    return DEFAULT_BASE;
+  }
+  return raw;
 }
 
 // ---- token cache -------------------------------------------------------

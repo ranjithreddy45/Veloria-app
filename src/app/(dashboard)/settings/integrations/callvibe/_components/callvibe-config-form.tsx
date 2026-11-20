@@ -107,7 +107,7 @@ export function CallVibeConfigForm({ initialConfig }: Props) {
     setTesting(true);
     setReport(null);
     try {
-      const result = await testCallVibeConnection();
+      const result = await testCallVibeConnection({ baseUrl, email, password });
       if (result.success && result.data) {
         setReport(result.data);
         if (result.data.tenantId) setTenantId(result.data.tenantId);
@@ -188,7 +188,14 @@ export function CallVibeConfigForm({ initialConfig }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label>API address</Label>
-              <Input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
+              <Input
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+                placeholder="https://api.callvibe.ai"
+              />
+              <p className="text-xs text-muted-foreground">
+                CallVibe API endpoint (keep as <code>https://api.callvibe.ai</code>).
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label>Tenant ID</Label>

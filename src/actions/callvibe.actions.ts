@@ -123,11 +123,20 @@ export async function saveCallVibeConfig(input: CallVibeConfigInput) {
       data: { isActive: false },
     });
 
+    const sanitizeBase = (url?: string | null) => {
+      const u = (url || "").trim().replace(/\/+$/, "");
+      if (!u || u.includes("theveloriagrand.com") || u.includes("localhost") || u.includes("127.0.0.1")) {
+        return "https://api.callvibe.ai";
+      }
+      return u;
+    };
+    const targetBaseUrl = sanitizeBase(data.baseUrl);
+
     const saved = data.id
       ? await prisma.callVibeConfig.update({
           where: { id: data.id },
           data: {
-            baseUrl: data.baseUrl || "https://api.callvibe.ai",
+            baseUrl: targetBaseUrl,
             email: data.email,
             password,
             tenantId: data.tenantId || null,
@@ -139,7 +148,7 @@ export async function saveCallVibeConfig(input: CallVibeConfigInput) {
         })
       : await prisma.callVibeConfig.create({
           data: {
-            baseUrl: data.baseUrl || "https://api.callvibe.ai",
+            baseUrl: targetBaseUrl,
             email: data.email,
             password,
             tenantId: data.tenantId || null,
@@ -177,20 +186,40 @@ export async function deleteCallVibeConfig(id: string) {
  * came back. CallVibe publishes no response schema, so this is how the mapping
  * is confirmed against a real account instead of assumed.
  */
-export async function testCallVibeConnection() {
+export async function testCallVibeConnection(draft?: {
+  baseUrl?: string;
+  email?: string;
+  password?: string;
+}) {
   const gate = await requireSession("settings:read");
   if (gate.error) return { success: false as const, error: gate.error };
 
   const active = await activeCreds();
-  if (!active) return { success: false as const, error: "Save the CallVibe settings first" };
 
-  const res = await testConnection(active.creds);
+  let credsToTest: CallVibeCreds | null = null;
+  if (draft?.email && draft?.password && !draft.password.includes("*")) {
+    credsToTest = {
+      baseUrl: draft.baseUrl,
+      email: draft.email,
+      password: draft.password,
+    };
+  } else if (active) {
+    credsToTest = {
+      baseUrl: draft?.baseUrl || active.creds.baseUrl,
+      email: draft?.email || active.creds.email,
+      password: active.creds.password,
+    };
+  }
+
+  if (!credsToTest) return { success: false as const, error: "Save the CallVibe settings first" };
+
+  const res = await testConnection(credsToTest);
   if (!res.success || !res.data) {
     return { success: false as const, error: res.error ?? "CallVibe did not accept the credentials" };
   }
 
   // Learning the tenant id here saves the operator hunting for it.
-  if (res.data.tenantId && !active.tenantId) {
+  if (res.data.tenantId && active && !active.tenantId) {
     await prisma.callVibeConfig
       .update({ where: { id: active.configId }, data: { tenantId: res.data.tenantId } })
       .catch(() => undefined);
