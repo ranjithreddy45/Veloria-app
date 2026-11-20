@@ -80,6 +80,11 @@ async function readJson(res: Response): Promise<unknown> {
   try {
     return JSON.parse(text);
   } catch {
+    if (text.trim().startsWith("<") || text.includes("<html")) {
+      return {
+        detail: `Received HTML response (HTTP ${res.status}) instead of JSON. Ensure the API Base URL is set to https://api.callvibe.ai (and not the CRM address).`,
+      };
+    }
     return { detail: text.slice(0, 500) };
   }
 }
