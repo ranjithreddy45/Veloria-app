@@ -9,6 +9,7 @@ import { captureLeadFromExternal } from "@/lib/lead-capture";
 import { parseAttributionFromRequest } from "@/lib/attribution";
 import { prisma } from "@/lib/prisma";
 import { fieldValue, LEAD_VALUE_KEYS } from "@/lib/webhook-field";
+import { routeLeadToProperty } from "@/lib/crm/property-routing";
 
 /**
  * POST /api/webhooks/google-ads — Google Ads **lead form extension** webhook.
@@ -173,6 +174,26 @@ export async function POST(request: NextRequest) {
     }
     const extraNote = unmappedNote(mapped.unmapped, mapped.timeframe);
 
+    // Property. All nine campaigns share ONE lead form, so the campaign id is
+    // what says which property the enquiry is for. Google sends it as a JSON
+    // number. The Wedding and Brand campaigns cover every property: for those
+    // a "location" answer on the form, if there is one, decides instead.
+    const campaignId = body.campaign_id != null && body.campaign_id !== "" ? String(body.campaign_id) : undefined;
+    const locationHint = answers.find((a) => /location|venue|area|property|branch|locality/i.test(a.key))?.value;
+    // Logged for every delivery, "Send test data" included, so the mapping can
+    // be checked campaign by campaign before the ads go live.
+    const route = await routeLeadToProperty({
+      campaignId,
+      hints: [locationHint],
+      eventType: mapped.eventType ?? undefined,
+    });
+    console.info(
+      `[GoogleAdsWebhook] lead=${leadId || "-"} test=${isTest} form=${String(body.form_id ?? "-")} ` +
+        `campaign=${campaignId ?? "-"} adgroup=${String(body.adgroup_id ?? "-")} -> property=${route.propertyKey ?? "-"} ` +
+        `via=${route.via ?? "-"} flag=${route.flag ?? "-"} owner=${route.ownerId ?? "-"}` +
+        (route.active ? "" : " (property routing not set up yet)")
+    );
+
     const capture = await captureLeadFromExternal({
       name,
       email: email || undefined,
@@ -181,6 +202,7 @@ export async function POST(request: NextRequest) {
       guestCount: mapped.guestCount ?? undefined,
       eventType: mapped.eventType ?? undefined,
       source: "google_ads",
+      propertyHint: locationHint,
       message: isTest
         ? `Google Ads TEST lead (Send test data) — safe to delete.${body.form_id ? ` Form ${String(body.form_id)}.` : ""}`
         : `Google Ads lead form${body.form_id ? ` (form ${String(body.form_id)})` : ""}${

@@ -247,7 +247,8 @@ export async function bulkAssignLeads(
 
     const result = await prisma.lead.updateMany({
       where: { id: { in: parsed.data.ids } },
-      data: { assignedToId: parsed.data.assignedToId },
+      // A person chose the owner: clear property routing's "reassign" flag.
+      data: { assignedToId: parsed.data.assignedToId, routingFlag: null },
     });
 
     await Promise.all(

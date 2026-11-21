@@ -36,6 +36,26 @@ export function venueMatchKey(raw: string | null | undefined): string | null {
   return key.length >= 3 ? key : null;
 }
 
+/**
+ * The CRM venue a visitor's wording points at, or null when none matches.
+ *
+ * Shared by the create path (the landing page's `venue`, e.g. "Yelahanka") and
+ * the step-2 enrich (`venueLocation`), so both resolve the same words to the
+ * same hall. A lookup failure is treated as "no match": the lead is still
+ * worth having with the venue kept as text.
+ */
+export async function resolveVenueId(raw: string | null | undefined): Promise<string | null> {
+  const key = venueMatchKey(raw);
+  if (!key) return null;
+  const v = await prisma.venue
+    .findFirst({
+      where: { isActive: true, name: { contains: key, mode: "insensitive" } },
+      select: { id: true },
+    })
+    .catch(() => null);
+  return v?.id ?? null;
+}
+
 /** "50–100" / "Not sure yet" → a usable number (midpoint), or undefined. */
 function parseGuests(v: unknown): number | undefined {
   const s = String(v ?? "").replace(/[–—]/g, "-");
@@ -87,18 +107,7 @@ export async function enrichLandingLead(leadId: string, input: EnrichInput): Pro
   // — a rep can read "Begur" and act on it even when no Venue row exists yet.
   let preferredVenueId: string | undefined;
   const venueText = input.venueLocation?.trim();
-  if (venueText) {
-    const key = venueMatchKey(venueText);
-    if (key) {
-      const v = await prisma.venue
-        .findFirst({
-          where: { isActive: true, name: { contains: key, mode: "insensitive" } },
-          select: { id: true },
-        })
-        .catch(() => null);
-      if (v) preferredVenueId = v.id;
-    }
-  }
+  if (venueText) preferredVenueId = (await resolveVenueId(venueText)) ?? undefined;
 
   const guests = parseGuests(input.guests);
   const eventDate = parseEventDate(input.date);
@@ -112,7 +121,8 @@ export async function enrichLandingLead(leadId: string, input: EnrichInput): Pro
   if (guests != null && !lead.guestCount) leadData.guestCount = guests;
   if (preferredVenueId && !lead.preferredVenueId) leadData.preferredVenueId = preferredVenueId;
   // Keep the visitor's own words when we could not resolve them to a hall.
-  if (venueText && !preferredVenueId && !lead.description?.includes("Preferred venue:")) {
+  // (A lead created with the page's own `venue` already carries "Venue: …".)
+  if (venueText && !preferredVenueId && !/(?:Preferred venue|Venue):/.test(lead.description ?? "")) {
     leadData.description = `${lead.description ? lead.description + "\n" : ""}Preferred venue: ${venueText}`;
   }
 

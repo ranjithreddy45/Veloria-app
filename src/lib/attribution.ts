@@ -43,7 +43,16 @@ export interface AttributionInput {
 }
 
 // Trim + collapse empty strings to undefined so we never persist "".
+//
+// Numbers are accepted too. Google's lead-form webhook sends campaign_id,
+// adgroup_id and creative_id as JSON NUMBERS ("campaign_id": 24526650623), and
+// the old string-only check threw every one of them away: gadsCampaignId and
+// gadsAdgroupId stayed empty on every Google lead, so the campaign (and with it
+// the property, since all campaigns share one form) could not be read back.
+// Ids are well inside 2^53, so String(n) is exact.
 function clean(value: unknown): string | undefined {
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : undefined;
+  if (typeof value === "bigint") return value.toString();
   if (typeof value !== "string") return undefined;
   const t = value.trim();
   return t.length ? t : undefined;

@@ -56,6 +56,7 @@ const CATEGORIES: Category[] = [
       { label: "Pipeline Stages", href: "/settings/pipeline", icon: Kanban, desc: "Deal stages & flow" },
       { label: "Scoring Rules", href: "/settings/scoring-rules", icon: Target, desc: "Lead scoring" },
       { label: "Assignment Rules", href: "/settings/assignment-rules", icon: UserCheck, desc: "Auto-route leads" },
+      { label: "Property Routing", href: "/settings/property-routing", icon: Route, desc: "Campaign → property → owner, shared queue" },
       { label: "Sales Teams", href: "/settings/sales-teams", icon: Users, desc: "Wedding, Corporate & Social teams: members, heads, routing", salesTeams: true },
       { label: "Smart Routing", href: "/settings/routing", icon: Route, desc: "Route to the available, lightest-loaded, best-matched rep" },
       { label: "Rep Availability", href: "/settings/rep-availability", icon: UserCheck, desc: "Live rep availability & load" },

@@ -7,6 +7,7 @@ import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { calculateLeadScore } from "@/lib/lead-scoring";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
+import { campaignIdFrom, routeLeadToProperty } from "@/lib/crm/property-routing";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
@@ -123,6 +124,16 @@ interface ExternalLeadData {
   estimatedValue?: number; // budget — feeds scoring
   perPlateBudget?: number; // ×guestCount estimates value when no budget given
   venueId?: string; // preferred venue
+  /**
+   * Property key or name, when the caller knows it (the website form's hidden
+   * field / dropdown). See src/lib/crm/property-routing.ts.
+   */
+  property?: string;
+  /**
+   * Free text that may name the property — a landing page's venue, a Meta
+   * ad-set venue, a lead form's "location" answer. Matched, never trusted.
+   */
+  propertyHint?: string;
   customFields?: Record<string, unknown>;
   /** First-touch marketing attribution (utm/gclid/fbclid/referrer) — best-effort. */
   attribution?: AttributionInput;
@@ -420,6 +431,17 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     // fields, and return that lead. A closed lead does NOT block — a past
     // customer enquiring for a new event correctly gets a fresh lead.
     // ------------------------------------------------------------------
+    // Property routing (Google Ads brief): which property this enquiry is for,
+    // and who owns it. Read-only and never throws; `active` is false until the
+    // routing table has owners, in which case nothing below changes behaviour.
+    const routing = await routeLeadToProperty({
+      property: data.property,
+      campaignId: campaignIdFrom(data.attribution?.gadsCampaignId, data.attribution?.campaign),
+      hints: [data.propertyHint],
+      venueId: data.venueId,
+      eventType: data.eventType,
+    });
+
     if (isExistingContact && !data.skipOpenLeadFold) {
       const receivedAt = data.historical?.receivedAt;
       const openLead = await prisma.lead.findFirst({
@@ -483,7 +505,9 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
                 openLead.eventDate ??
                 (data.eventDate ? new Date(data.eventDate) : undefined),
               guestCount: openLead.guestCount ?? data.guestCount ?? undefined,
-              preferredVenueId: openLead.preferredVenueId ?? data.venueId ?? undefined,
+              preferredVenueId: openLead.preferredVenueId ?? data.venueId ?? routing.venueId ?? undefined,
+              // Record the property if the open lead has none; never re-route it.
+              ...(!openLead.property && routing.propertyKey ? { property: routing.propertyKey } : {}),
               // An event type filled in here also sorts the lead into its team,
               // unless a person already placed it.
               ...(filledEventType && !openLead.salesTeam && !openLead.salesTeamManual
@@ -515,18 +539,28 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       }
     }
 
-    // Evaluate assignment rules to auto-assign
-    let assignedToId: string | null = null;
-    try {
-      const assignResult = await evaluateAssignmentRules({
-        source: data.source,
-        eventType: data.eventType,
-      });
-      if (assignResult) {
-        assignedToId = assignResult;
+    // Property routing first: the property's owner, or the shared queue.
+    // Falls through to the sales-team / assignment-rule chain below when the
+    // table is not set up yet or no usable owner was found.
+    let assignedToId: string | null = routing.active && routing.ownerId ? routing.ownerId : null;
+    if (routing.active) {
+      console.info(
+        `[PropertyRouting] ${data.source}: property=${routing.propertyKey ?? "-"} via=${routing.via ?? "-"} ` +
+          `flag=${routing.flag ?? "-"} owner=${routing.ownerId ?? "(fallback chain)"}`
+      );
+    }
+    if (!assignedToId) {
+      try {
+        const assignResult = await evaluateAssignmentRules({
+          source: data.source,
+          eventType: data.eventType,
+        });
+        if (assignResult) {
+          assignedToId = assignResult;
+        }
+      } catch {
+        // Assignment rules are optional; proceed without assignment
       }
-    } catch {
-      // Assignment rules are optional; proceed without assignment
     }
 
     // Fallback owner — an inbound lead must NEVER land orphaned. The Leads list
@@ -598,7 +632,10 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         eventDate: data.eventDate ? new Date(data.eventDate) : null,
         guestCount: data.guestCount || null,
         estimatedValue,
-        preferredVenueId: data.venueId || null,
+        preferredVenueId: data.venueId || routing.venueId || null,
+        property: routing.propertyKey,
+        // Only flag when routing is live; before that the queue does not exist.
+        routingFlag: routing.active ? routing.flag : null,
         // A past enquiry keeps its real date and starts no speed-to-lead clock.
         firstContactDue: data.historical ? null : leadSlaDeadline(),
         ...(enquiryAt ? { createdAt: enquiryAt } : {}),
