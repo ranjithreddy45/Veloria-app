@@ -243,6 +243,8 @@ export async function getLeads(params?: LeadListFilters & {
           assignedTo: {
             select: { id: true, name: true, email: true },
           },
+          // The list's Venue column.
+          preferredVenue: { select: { id: true, name: true } },
           // Ad attribution for the list's Campaign + Click-ID-present columns.
           attribution: {
             select: {

@@ -111,6 +111,8 @@ export interface LeadWithContact {
     email: string;
   } | null;
   leadQuality?: string;
+  description?: string | null;
+  preferredVenue?: { id: string; name: string } | null;
   attribution?: {
     gadsCampaignId: string | null;
     utmCampaign: string | null;
@@ -120,6 +122,15 @@ export interface LeadWithContact {
     wbraid: string | null;
     campaignRef: { name: string } | null;
   } | null;
+}
+
+// The venue a lead is for: the matched Venue row, else the words the landing
+// page or the visitor sent ("Venue: Yelahanka" / "Preferred venue: Yelahanka
+// area" in the description), so a location with no Venue row yet still shows.
+function venueLabel(l: LeadWithContact): string {
+  if (l.preferredVenue?.name) return l.preferredVenue.name;
+  const m = /(?:Preferred venue|Venue):\s*([^·\n]+)/.exec(l.description ?? "");
+  return m ? m[1].trim().replace(/\s+area$/i, "") : "";
 }
 
 // Campaign label + whether any Google click id was captured — used by the
@@ -555,6 +566,21 @@ const columns: ColumnDef<LeadWithContact>[] = [
     cell: ({ row }) => <LeadSourcePill source={row.getValue<string>("source")} size="xs" />,
   },
   {
+    id: "venue",
+    header: "Venue",
+    accessorFn: (row) => venueLabel(row),
+    cell: ({ row }) => {
+      const name = venueLabel(row.original);
+      return name ? (
+        <span className="block max-w-[140px] truncate text-detail text-foreground/90" title={name}>
+          {name}
+        </span>
+      ) : (
+        <span className="text-muted-foreground/60 text-detail">—</span>
+      );
+    },
+  },
+  {
     accessorKey: "eventDate",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Event" />
@@ -792,6 +818,12 @@ const leadFacets: FacetDef<LeadWithContact>[] = [
     label: "Source",
     get: (l) => l.source,
     format: titleCase,
+  },
+  {
+    key: "venue",
+    label: "Venue",
+    get: (l) => venueLabel(l) || "Unassigned",
+    max: 12,
   },
   {
     key: "owner",

@@ -13,6 +13,12 @@
 // Payload (from the live page):
 //   { name, phone, eventType, guests, date, page, submittedAt,
 //     utm_source, utm_medium, utm_campaign, utm_term, utm_content, gclid }
+//
+// Single-location landing pages (yelahanka.html, krpuram.html) also send
+//   venue: "Yelahanka"
+// — the location the page is about. It is matched to a Venue row (the lead's
+// preferred venue + the contact's Hall / Property); when no venue of that
+// name exists yet it is kept as a contact tag and as "Venue: …" on the lead.
 // ============================================================
 
 import { headers } from "next/headers";
@@ -21,7 +27,8 @@ import { captureLeadFromExternal } from "@/lib/lead-capture";
 import { clientIpFromHeaders } from "@/lib/hr/geo";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { mintEnrichToken, readEnrichToken } from "@/lib/enquiry-enrich-token";
-import { enrichLandingLead } from "@/lib/landing-lead-enrich";
+import { enrichLandingLead, resolveVenueId } from "@/lib/landing-lead-enrich";
+import { prisma } from "@/lib/prisma";
 import { CONSENT_TEXT_ENQUIRY } from "@/lib/privacy/consent-text";
 
 /**
@@ -209,6 +216,11 @@ export async function POST(req: Request) {
     return s || undefined;
   };
 
+  // The venue the landing page is about. Resolved here, at creation, so the
+  // list pages show it from the first second rather than after step 2.
+  const venueText = str("venue")?.slice(0, 80);
+  const venueId = venueText ? await resolveVenueId(venueText) : null;
+
   try {
     const res = await captureLeadFromExternal({
       // A real person is watching a spinner on their phone. Answer them the
@@ -230,6 +242,7 @@ export async function POST(req: Request) {
       eventType,
       eventDate,
       guestCount,
+      venueId: venueId ?? undefined,
       message: [
         // Consent is EVIDENCE. Store the sentence the visitor actually ticked
         // and when — "consented: true" on its own proves nothing later if a
@@ -240,6 +253,7 @@ export async function POST(req: Request) {
             }`
           : null,
         eventType ? `Event: ${eventType}` : null,
+        venueText ? `Venue: ${venueText}` : null,
         body.guests ? `Guests: ${String(body.guests)}` : null,
         eventDate ? `Preferred date: ${eventDate}` : null,
         body.page ? `Page: ${String(body.page)}` : null,
@@ -279,6 +293,26 @@ export async function POST(req: Request) {
     if (!res?.success) {
       console.error("[LANDING_LEAD_CAPTURE_FAILED]", res);
       return NextResponse.json({ ok: false, error: "Could not save the enquiry." }, { status: 500, headers: cors });
+    }
+    // Show the venue on /contacts too. Fill a blank Hall / Property with the
+    // matched venue; with no matching venue, tag the contact with the page's
+    // own word so it is still visible and filterable. Never fails the lead.
+    if (venueText && res.contactId) {
+      try {
+        if (venueId) {
+          await prisma.contact.updateMany({
+            where: { id: res.contactId, enquiryVenueId: null },
+            data: { enquiryVenueId: venueId },
+          });
+        } else {
+          await prisma.contact.updateMany({
+            where: { id: res.contactId, NOT: { tags: { has: venueText } } },
+            data: { tags: { push: venueText } },
+          });
+        }
+      } catch (e) {
+        console.error("[LANDING_LEAD_VENUE_TAG_ERROR]", e);
+      }
     }
     // The two-step form saves the lead after step 1, then adds event details
     // in step 2. Hand back a short-lived token authorising exactly that.
