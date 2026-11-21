@@ -134,7 +134,8 @@ export function buildLeadWelcomeHtml(data: LeadWelcomeEmailData): string {
  * Best-effort: lead capture must never fail if email cannot be sent or provider is unconfigured.
  */
 export async function sendLeadWelcomeEmail(
-  leadId: string
+  leadId: string,
+  overrideEmail?: string
 ): Promise<LeadWelcomeEmailResult> {
   try {
     if (!isEmailConfigured()) {
@@ -168,10 +169,11 @@ export async function sendLeadWelcomeEmail(
     });
 
     if (!lead) return { sent: false, reason: "Lead not found" };
-    if (!lead.contact?.email) return { sent: false, reason: "Contact has no email address" };
+    const recipientEmail = lead.contact?.email || overrideEmail;
+    if (!recipientEmail) return { sent: false, reason: "Contact has no email address" };
 
     const html = buildLeadWelcomeHtml({
-      firstName: lead.contact.firstName ?? undefined,
+      firstName: lead.contact?.firstName ?? undefined,
       eventType: lead.eventType,
       eventDate: lead.eventDate,
       guestCount: lead.guestCount,
@@ -179,7 +181,7 @@ export async function sendLeadWelcomeEmail(
     });
 
     const res = await sendEmail({
-      to: lead.contact.email,
+      to: recipientEmail,
       subject: `Thank you for reaching out to Veloria Grand | Enquiry Received`,
       html,
     });

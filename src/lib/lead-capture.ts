@@ -392,6 +392,27 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       contact.enquirySource = channel;
     }
 
+    // If an existing contact was missing email or phone, enrich the contact record with the newly provided info
+    if (contact && cleanEmail && !contact.email) {
+      await Promise.resolve(
+        prisma.contact.update({ where: { id: contact.id }, data: { email: cleanEmail } })
+      ).catch(() => {});
+      contact.email = cleanEmail;
+    }
+    if (contact && cleanPhone && !contact.phone) {
+      await Promise.resolve(
+        prisma.contact.update({ where: { id: contact.id }, data: { phone: cleanPhone } })
+      ).catch(() => {});
+      contact.phone = cleanPhone;
+    }
+    if (contact && (!contact.firstName || contact.firstName === "Unknown") && firstName !== "Unknown") {
+      await Promise.resolve(
+        prisma.contact.update({ where: { id: contact.id }, data: { firstName, lastName } })
+      ).catch(() => {});
+      contact.firstName = firstName;
+      contact.lastName = lastName;
+    }
+
     // Consent ledger (DPDP). Recorded once the contact is known — every path
     // below (fold into an open lead, create, or lose the race) keeps this same
     // contact, so the evidence is attached to the right person either way.
@@ -736,8 +757,9 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       }
 
       // Automated Welcome Email to customer if email is provided
-      if (contact.email && !data.historical) {
-        const welcomeMail = await sendLeadWelcomeEmail(lead.id);
+      const customerEmail = contact.email || cleanEmail;
+      if (customerEmail && !data.historical) {
+        const welcomeMail = await sendLeadWelcomeEmail(lead.id, customerEmail);
         if (!welcomeMail.sent) {
           console.warn(`[CAPTURE] welcome email not sent: ${welcomeMail.reason}`);
         }
