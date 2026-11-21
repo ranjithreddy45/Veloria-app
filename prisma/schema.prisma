@@ -786,7 +786,18 @@ model Lead {
   /// True once a person moved the lead between teams — auto-sorting then
   /// never overrides that choice.
   salesTeamManual  Boolean   @default(false)
+  /// Property this enquiry is for (LeadProperty.key: hosa_road, electronic_city,
+  /// hsr, indiranagar, bellandur, yelahanka, kr_puram, other). Set at intake
+  /// from the website's property field, the Google Ads campaign id or the
+  /// venue / location answer (src/lib/crm/property-routing.ts). Null = unknown.
+  property         String?
+  /// Why property routing sent this lead to the shared queue instead of a
+  /// property owner: NO_PROPERTY | NOT_CORPORATE | NO_OWNER. Null = routed
+  /// normally. Shown as a flag so the queue owner reassigns it.
+  routingFlag      String?
   @@index([salesTeam])
+  @@index([property])
+  @@index([routingFlag])
   @@index([preferredVenueId]) // venue portal: leads per venue
   @@index([status])
   @@index([assignedToId])
@@ -3666,6 +3677,48 @@ model SavedView {
 // ============================================================
 // ASSIGNMENT RULES (CRM Power Tools)
 // ============================================================
+
+/// Property routing (Google Ads brief, Nov 2026). One row per property: every
+/// new lead resolved to this property is assigned to `ownerId`. The row with
+/// key "other" is the SHARED QUEUE: leads with no property, and leads a
+/// corporate-only property must not take, go to its owner with a routingFlag.
+/// Owner and venue are plain ids (validated when used) so this table never
+/// constrains deleting a user or a venue.
+model LeadProperty {
+  id            String   @id @default(cuid())
+  key           String   @unique // hosa_road | electronic_city | hsr | indiranagar | bellandur | yelahanka | kr_puram | other
+  name          String // display name, e.g. "Veloria Grand Yelahanka"
+  /// Lower-case words that identify the property in a venue label, an ad-set
+  /// name or a form's location answer ("yelahanka", "kr puram", "k r puram").
+  matchTerms    String[]
+  /// Only corporate enquiries go to this property's owner (Bellandur).
+  corporateOnly Boolean  @default(false)
+  ownerId       String? // User.id
+  venueId       String? // Venue.id — filled into the lead's preferred venue when blank
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  campaigns LeadCampaignRoute[]
+}
+
+/// Google Ads campaign id -> property. All campaigns share one lead form, so
+/// the campaign id is the only reliable signal of the property. A row with no
+/// property means "use the form's location answer, else the shared queue"
+/// (the Wedding and Brand campaigns).
+model LeadCampaignRoute {
+  id           String        @id @default(cuid())
+  campaignId   String        @unique // digits, as in the Google Ads URL (campaignId=)
+  campaignName String?
+  propertyKey  String?
+  property     LeadProperty? @relation(fields: [propertyKey], references: [key], onUpdate: Cascade, onDelete: SetNull)
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([propertyKey])
+}
 
 model AssignmentRule {
   id               String   @id @default(cuid())

@@ -693,6 +693,8 @@ export async function updateLead(
         if (bad) return { success: false as const, error: bad };
       }
       updateData.assignedToId = data.assignedToId || null;
+      // A person chose the owner: the shared-queue "reassign" flag is done.
+      if (data.assignedToId) updateData.routingFlag = null;
     }
     if (data.followUpDate !== undefined)
       updateData.followUpDate = data.followUpDate || null;

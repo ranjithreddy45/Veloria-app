@@ -163,6 +163,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, enriched: true }, { status: 200, headers: cors });
   }
 
+  // Honeypot. The embed hides a "company" input that people never see; a bot
+  // that fills every field gets a normal-looking answer and nothing is saved.
+  if (typeof body.company === "string" && body.company.trim()) {
+    return NextResponse.json({ ok: true, leadId: null, lead_id: null }, { status: 201, headers: cors });
+  }
+
   const name = String(body.name ?? "").trim();
   if (!name) return NextResponse.json({ ok: false, error: "Name is required." }, { status: 422, headers: cors });
 
@@ -207,9 +213,12 @@ export async function POST(req: Request) {
   // still worth having.
   const email = readEmail(body);
 
-  const eventType = String(body.eventType ?? "").trim() || undefined;
-  const eventDate = String(body.date ?? "").trim() || undefined;
-  const guestCount = parseGuests(body.guests);
+  // Both spellings: the embed's (eventType / date / guests) and the Google Ads
+  // brief's (event_type / event_date / guest_count).
+  const eventType = String(body.eventType ?? body.event_type ?? "").trim() || undefined;
+  const eventDate = String(body.date ?? body.event_date ?? "").trim() || undefined;
+  const guestsRaw = body.guests ?? body.guest_count;
+  const guestCount = parseGuests(guestsRaw);
   const str = (k: string) => {
     const v = body[k];
     const s = typeof v === "string" ? v.trim() : "";
@@ -220,6 +229,24 @@ export async function POST(req: Request) {
   // list pages show it from the first second rather than after step 2.
   const venueText = str("venue")?.slice(0, 80);
   const venueId = venueText ? await resolveVenueId(venueText) : null;
+
+  // Property (hidden field on a property page, dropdown elsewhere). Routing
+  // resolves and validates it; an unknown value simply routes nowhere.
+  const property = str("property")?.slice(0, 60);
+
+  // Channel. A website lead that arrived from an ad click is an ad lead: any
+  // Google click id makes it GOOGLE_ADS; a Facebook / Instagram utm_source makes
+  // it a Meta lead; anything else stays WEBSITE. The source label stays
+  // "WEBSITE" so titles and notes still say where the form was.
+  const clickId = str("gclid") || str("gbraid") || str("wbraid");
+  const utmSrc = (str("utm_source") || "").toLowerCase();
+  const leadSource = clickId
+    ? "GOOGLE_ADS"
+    : /^(ig|instagram)\b/.test(utmSrc)
+      ? "INSTAGRAM"
+      : /^(fb|facebook|meta)\b/.test(utmSrc)
+        ? "FACEBOOK_ADS"
+        : undefined;
 
   try {
     const res = await captureLeadFromExternal({
@@ -239,10 +266,13 @@ export async function POST(req: Request) {
       // gets a different bucket and is unaffected.
       externalId: `web:${phone.replace(/\D/g, "").slice(-10)}:${(eventType || "").trim().toLowerCase()}:${Math.floor(Date.now() / 60000)}`, // event type in the key: a different enquiry in the same minute must not be swallowed
       source: "WEBSITE",
+      leadSource,
       eventType,
       eventDate,
       guestCount,
       venueId: venueId ?? undefined,
+      property,
+      propertyHint: venueText,
       message: [
         // Consent is EVIDENCE. Store the sentence the visitor actually ticked
         // and when — "consented: true" on its own proves nothing later if a
@@ -254,7 +284,7 @@ export async function POST(req: Request) {
           : null,
         eventType ? `Event: ${eventType}` : null,
         venueText ? `Venue: ${venueText}` : null,
-        body.guests ? `Guests: ${String(body.guests)}` : null,
+        guestsRaw ? `Guests: ${String(guestsRaw)}` : null,
         eventDate ? `Preferred date: ${eventDate}` : null,
         body.page ? `Page: ${String(body.page)}` : null,
       ].filter(Boolean).join(" · ") || undefined,
@@ -320,6 +350,7 @@ export async function POST(req: Request) {
       {
         ok: true,
         leadId: res.leadId,
+        lead_id: res.leadId, // the Google Ads brief's spelling
         enrichToken: res.leadId ? mintEnrichToken(res.leadId) : undefined,
       },
       { status: 201, headers: cors }

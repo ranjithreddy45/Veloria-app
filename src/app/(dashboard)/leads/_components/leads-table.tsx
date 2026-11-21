@@ -113,6 +113,9 @@ export interface LeadWithContact {
   leadQuality?: string;
   description?: string | null;
   preferredVenue?: { id: string; name: string } | null;
+  /** Property routing (Google Ads brief): LeadProperty key + shared-queue flag. */
+  property?: string | null;
+  routingFlag?: string | null;
   attribution?: {
     gadsCampaignId: string | null;
     utmCampaign: string | null;
@@ -130,8 +133,21 @@ export interface LeadWithContact {
 function venueLabel(l: LeadWithContact): string {
   if (l.preferredVenue?.name) return l.preferredVenue.name;
   const m = /(?:Preferred venue|Venue):\s*([^·\n]+)/.exec(l.description ?? "");
-  return m ? m[1].trim().replace(/\s+area$/i, "") : "";
+  if (m) return m[1].trim().replace(/\s+area$/i, "");
+  // Property routing's key ("kr_puram") when nothing more specific is known.
+  if (l.property && l.property !== "other") {
+    return l.property === "hsr" ? "HSR Layout" : l.property === "kr_puram" ? "KR Puram"
+      : l.property.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  }
+  return "";
 }
+
+// Shared-queue flag from property routing: the lead needs reassigning.
+const ROUTING_FLAG_TEXT: Record<string, string> = {
+  NO_PROPERTY: "No property",
+  NOT_CORPORATE: "Not corporate",
+  NO_OWNER: "No owner",
+};
 
 // Campaign label + whether any Google click id was captured — used by the
 // list's Campaign / Click-ID columns and their facets (Change 5).
@@ -571,12 +587,25 @@ const columns: ColumnDef<LeadWithContact>[] = [
     accessorFn: (row) => venueLabel(row),
     cell: ({ row }) => {
       const name = venueLabel(row.original);
-      return name ? (
-        <span className="block max-w-[140px] truncate text-detail text-foreground/90" title={name}>
-          {name}
+      const flag = row.original.routingFlag ? ROUTING_FLAG_TEXT[row.original.routingFlag] ?? row.original.routingFlag : null;
+      return (
+        <span className="block max-w-[160px]">
+          {name ? (
+            <span className="block truncate text-detail text-foreground/90" title={name}>
+              {name}
+            </span>
+          ) : (
+            <span className="text-muted-foreground/60 text-detail">—</span>
+          )}
+          {flag && (
+            <span
+              className="mt-0.5 inline-block rounded bg-amber-500/15 px-1.5 py-px text-[10px] font-semibold text-amber-700 dark:text-amber-300"
+              title="Sent to the shared queue by property routing: reassign to the right owner"
+            >
+              Reassign · {flag}
+            </span>
+          )}
         </span>
-      ) : (
-        <span className="text-muted-foreground/60 text-detail">—</span>
       );
     },
   },
@@ -824,6 +853,12 @@ const leadFacets: FacetDef<LeadWithContact>[] = [
     label: "Venue",
     get: (l) => venueLabel(l) || "Unassigned",
     max: 12,
+  },
+  {
+    key: "routing",
+    label: "Needs reassigning",
+    get: (l) => (l.routingFlag ? ROUTING_FLAG_TEXT[l.routingFlag] ?? l.routingFlag : "No"),
+    max: 4,
   },
   {
     key: "owner",
