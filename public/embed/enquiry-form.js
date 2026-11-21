@@ -19,6 +19,10 @@
  *   data-thanks     success heading
  *   data-theme      "light" (default) or "dark" for placing on a dark hero
  *   data-endpoint   override the API base   (for staging)
+ *   data-property   property key for a property page (hosa_road, electronic_city,
+ *                   hsr, indiranagar, bellandur, yelahanka, kr_puram). Sent as a
+ *                   hidden field. Without it the form shows a required Venue list.
+ *   data-whatsapp   WhatsApp number for the follow-up / fallback (default 918884331096)
  *
  * WHY A SCRIPT AND NOT AN IFRAME: the app sends `X-Frame-Options: SAMEORIGIN`
  * on every route, so an iframe embed is blocked by the browser on any other
@@ -187,6 +191,9 @@
       "box-shadow:0 0 0 1px color-mix(in srgb,var(--vgold) 55%,transparent),0 10px 24px -12px rgba(0,0,0,.5)}",
     S + " .vg-tick svg{width:24px;height:24px;stroke:#fff;stroke-width:2.4;fill:none}",
     S + " .vg-ok .vg-h{font-size:23px}",
+    S + " .vg-wa{display:inline-block;padding:12px 22px;border-radius:999px;background:#1f8f4e;color:#fff!important;font-weight:600;font-size:15px;text-decoration:none}",
+    S + " .vg-wa:hover{filter:brightness(1.08)}",
+    S + " .vg-wa:focus-visible{outline:2px solid var(--vgold);outline-offset:3px}",
     // Honeypot: visually gone, still focusable-free for real users.
     S + " .vg-hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0}",
   ].join("");
@@ -201,6 +208,33 @@
       list.map(function (o) { return '<option value="' + o + '">' + o + "</option>"; }).join("")
     );
   }
+
+  // ---- Property (Google Ads brief, Nov 2026) ----------------------------
+  // Every lead must say which property it is for, so the CRM can give it to
+  // that property's owner. A property page passes data-property and the value
+  // travels as a hidden field; any other page asks.
+  var PROPERTIES = [
+    ["hosa_road", "Hosa Road (Singasandra)"],
+    ["electronic_city", "Electronic City"],
+    ["hsr", "HSR Layout"],
+    ["indiranagar", "Indiranagar"],
+    ["bellandur", "Bellandur (corporate events)"],
+    ["yelahanka", "Yelahanka"],
+    ["kr_puram", "KR Puram"],
+    ["other", "Not sure yet"],
+  ];
+  var FIXED_PROPERTY = (d.property || "").trim();
+  var WA_NUMBER = (d.whatsapp || "918884331096").replace(/\D/g, "");
+  function propertyName(key) {
+    for (var i = 0; i < PROPERTIES.length; i++) if (PROPERTIES[i][0] === key) return PROPERTIES[i][1];
+    return "";
+  }
+  var propertyField = FIXED_PROPERTY
+    ? '<input type="hidden" name="property" value="' + FIXED_PROPERTY.replace(/"/g, "") + '">'
+    : '<div class="vg-row"><label for="vg-prop">Venue</label>' +
+        '<div class="vg-sel"><select id="vg-prop" name="property"><option value="">Select</option>' +
+        PROPERTIES.map(function (p) { return '<option value="' + p[0] + '">' + p[1] + "</option>"; }).join("") +
+        "</select></div></div>";
 
   mount.innerHTML =
     '<form class="vg-card" novalidate>' +
@@ -232,6 +266,7 @@
       // "Preferred date" and "Guests" were removed at the client's request.
       '<div class="vg-row"><label for="vg-event">Occasion</label>' +
         '<div class="vg-sel"><select id="vg-event" name="eventType">' + optionsHtml(EVENTS, "Select") + "</select></div></div>" +
+      propertyField +
 
       // Bots fill every field they can see; a human never sees this one.
       '<div class="vg-hp" aria-hidden="true"><label>Company<input name="company" tabindex="-1" autocomplete="off"></label></div>' +
@@ -281,8 +316,9 @@
       errEl.textContent = "";
     });
   }
-  ["name", "phone", "eventType"].forEach(function (n) {
+  ["name", "phone", "eventType", "property"].forEach(function (n) {
     var el = form[n];
+    if (!el || el.type === "hidden") return;
     // "change" as well as "input": a <select> in Safari fires only change.
     ["input", "change"].forEach(function (evt) {
       el.addEventListener(evt, function () { markBad(el, false); errEl.textContent = ""; });
@@ -330,12 +366,70 @@
     }
   } catch (_) { /* never let attribution break the form */ }
 
+  // The site's own capture script (theveloriagrand.com /js/vg-click.js) keeps
+  // every click id AND utm_* value from the ad landing, with the landing page
+  // and time, for 90 days in a "vg_click" cookie + localStorage. Read it so a
+  // visitor who browses before enquiring still carries the ad click.
+  function storedClick() {
+    try {
+      var raw = readCookie("vg_click");
+      if (!raw && window.localStorage) raw = window.localStorage.getItem("vg_click");
+      var o = raw ? JSON.parse(raw) : null;
+      return o && typeof o === "object" ? o : {};
+    } catch (_) { return {}; }
+  }
+  var STORED = storedClick();
+
   function q(name) {
     var live = param(name);
     if (live) return live;
-    // Click ids (and only click ids) fall back to what we stored on arrival.
-    if (CLICK_PARAMS.indexOf(name) !== -1) return readCookie("vg_" + name);
-    return undefined;
+    // Click ids fall back to the per-id cookie we wrote on arrival.
+    if (CLICK_PARAMS.indexOf(name) !== -1) {
+      var c = readCookie("vg_" + name);
+      if (c) return c;
+    }
+    var s = STORED[name];
+    return typeof s === "string" && s ? s : undefined;
+  }
+
+  // Details handed over by another form on the page (the "check availability"
+  // strip): date, guests, budget and location the visitor already gave.
+  var PREFILL = {};
+  window.addEventListener("veloria:prefill", function (ev) {
+    var x = (ev && ev.detail) || {};
+    PREFILL = x;
+    try {
+      if (x.eventType && form.eventType) {
+        for (var i = 0; i < form.eventType.options.length; i++) {
+          var o = form.eventType.options[i];
+          if (o.value && o.value.toLowerCase() === String(x.eventType).toLowerCase()) { form.eventType.value = o.value; break; }
+        }
+      }
+      if (x.property && form.property && form.property.tagName === "SELECT") {
+        var want = String(x.property).toLowerCase();
+        for (var j = 0; j < PROPERTIES.length; j++) {
+          if (PROPERTIES[j][0] === want || PROPERTIES[j][1].toLowerCase().indexOf(want) === 0 ||
+              want.indexOf(PROPERTIES[j][1].toLowerCase().replace(/ \(.*\)$/, "")) !== -1) {
+            form.property.value = PROPERTIES[j][0]; break;
+          }
+        }
+      }
+      mount.scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(function () { try { form.name.focus({ preventScroll: true }); } catch (_) {} }, 400);
+    } catch (_) {}
+  });
+
+  function waLink(text) {
+    return "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(text);
+  }
+
+  function logFailure(reason) {
+    // The CRM may be the thing that is down, so the failure goes to analytics.
+    try {
+      (window.dataLayer = window.dataLayer || []).push({ event: "enquiry_post_failed", reason: String(reason || "") });
+      if (typeof window.gtag === "function") window.gtag("event", "enquiry_post_failed", { reason: String(reason || "") });
+    } catch (_) {}
+    try { console.error("[Veloria] enquiry could not reach the CRM:", reason); } catch (_) {}
   }
 
   form.addEventListener("submit", function (ev) {
@@ -380,20 +474,22 @@
       form.consent.focus();
       return;
     }
-    // ---- Remaining field ----
+    // ---- Remaining fields ----
     if (!form.eventType.value) {
       errEl.textContent = "Please choose the occasion.";
       markBad(form.eventType, true); form.eventType.focus(); return;
     }
+    if (form.property && !form.property.value) {
+      errEl.textContent = "Please choose a venue.";
+      markBad(form.property, true); form.property.focus(); return;
+    }
+    var propertyKey = form.property ? form.property.value : "";
 
     btn.disabled = true;
     var original = btn.textContent;
     btn.textContent = "Sending…";
 
-    fetch(ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    var payload = JSON.stringify({
         name: name,
         phone: phone,
         eventType: form.eventType.value,
@@ -401,40 +497,101 @@
         consent: form.consent ? !!form.consent.checked : undefined,
         consentText: form.consent ? consentText : undefined,
         page: window.location.href,
-        landing_url: window.location.href,
+        // Where the ad click arrived (stored by the site's vg-click.js), else this page.
+        landing_url: STORED.landing_page || window.location.href,
         referrer: document.referrer || undefined,
         submittedAt: new Date().toISOString(),
         utm_source: q("utm_source"), utm_medium: q("utm_medium"),
         utm_campaign: q("utm_campaign"), utm_term: q("utm_term"), utm_content: q("utm_content"),
         gclid: q("gclid"), gbraid: q("gbraid"), wbraid: q("wbraid"), fbclid: q("fbclid"),
-      }),
-    })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
-      .then(function (res) {
-        if (!res.ok || !res.body || res.body.ok !== true) {
-          throw new Error((res.body && res.body.error) || "Could not send your enquiry.");
-        }
-        mount.innerHTML = successHtml();
+        property: propertyKey || undefined,
+        page_url: window.location.href,
+        // Handed over by the availability strip, if the visitor used it.
+        date: PREFILL.date || undefined,
+        guests: PREFILL.guests || undefined,
+      });
+
+    // One retry on a network error or a server error, then WhatsApp, so the
+    // enquiry is never lost. A 4xx is the visitor's to fix and is shown as is.
+    function post(attempt) {
+      return fetch(ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json" }, body: payload })
+        .then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, ok: r.ok, body: j }; });
+        })
+        .then(function (res) {
+          if (res.status >= 500 && attempt < 2) return post(attempt + 1);
+          return res;
+        }, function (netErr) {
+          if (attempt < 2) return post(attempt + 1);
+          return { status: 0, ok: false, body: {}, netErr: netErr };
+        });
+    }
+
+    post(1).then(function (res) {
+      if (res.ok && res.body && res.body.ok === true) {
+        var leadId = res.body.leadId || res.body.lead_id || "";
+        mount.innerHTML = successHtml(leadId, name, form.eventType.value, propertyKey);
         try {
           window.dispatchEvent(
-            new CustomEvent("veloria:enquiry-submitted", { detail: { leadId: res.body.leadId } })
+            new CustomEvent("veloria:enquiry-submitted", { detail: { leadId: leadId, property: propertyKey } })
           );
         } catch (_) {}
-      })
-      .catch(function (e) {
-        // Never leave the visitor stuck with a dead button.
-        errEl.textContent = e.message || "Something went wrong. Please call us instead.";
-        btn.disabled = false;
-        btn.textContent = original;
-      });
+        return;
+      }
+      if (res.status === 0 || res.status >= 500) {
+        logFailure(res.status === 0 ? (res.netErr && res.netErr.message) || "network" : "HTTP " + res.status);
+        mount.innerHTML = fallbackHtml(name, phone, form.eventType.value, propertyKey);
+        return;
+      }
+      // Never leave the visitor stuck with a dead button.
+      errEl.textContent = (res.body && res.body.error) || "Something went wrong. Please call us instead.";
+      btn.disabled = false;
+      btn.textContent = original;
+    });
   });
 
-  function successHtml() {
+  function esc(t) {
+    return String(t || "").replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function waButton(href, label) {
+    return '<a class="vg-wa" href="' + esc(href) + '" target="_blank" rel="noopener">' + esc(label) + "</a>";
+  }
+
+  function successHtml(leadId, name, eventType, propertyKey) {
+    var ref = leadId ? String(leadId).slice(-8).toUpperCase() : "";
+    var place = propertyName(propertyKey);
+    var text = "Hello Veloria Grand, I have just sent an enquiry" +
+      (eventType ? " for a " + String(eventType).toLowerCase() : "") +
+      (place && propertyKey !== "other" ? " at " + place : "") + "." +
+      (ref ? " Reference: " + ref + "." : "");
     return (
       '<div class="vg-card vg-ok">' +
         '<div class="vg-tick"><svg viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg></div>' +
         '<div class="vg-h">' + (d.thanks || "Thank you — we have your enquiry.") + "</div>" +
         '<div class="vg-sub" style="margin:8px auto 0">Our team will call you back shortly.</div>' +
+        (leadId ? '<div style="margin-top:14px">' + waButton(waLink(text), "Continue on WhatsApp") + "</div>" : "") +
+      "</div>"
+    );
+  }
+
+  // The CRM could not be reached: hand the enquiry to WhatsApp with every
+  // detail already written, so the visitor only has to press send.
+  function fallbackHtml(name, phone, eventType, propertyKey) {
+    var place = propertyName(propertyKey);
+    var text = ["Hello Veloria Grand, I would like to enquire.",
+      "Name: " + name, "Mobile: " + phone,
+      eventType ? "Occasion: " + eventType : "",
+      place && propertyKey !== "other" ? "Venue: " + place : "",
+      PREFILL.date ? "Date: " + PREFILL.date : "",
+      PREFILL.guests ? "Guests: " + PREFILL.guests : ""].filter(Boolean).join("\n");
+    return (
+      '<div class="vg-card vg-ok">' +
+        '<div class="vg-h">Please send this on WhatsApp</div>' +
+        '<div class="vg-sub" style="margin:8px auto 14px">Our enquiry desk did not answer just now. Your details are ready in a WhatsApp message.</div>' +
+        waButton(waLink(text), "Send on WhatsApp") +
       "</div>"
     );
   }
