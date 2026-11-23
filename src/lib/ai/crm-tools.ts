@@ -9,6 +9,7 @@ import { utcDayRange } from "@/lib/sales/slot-util";
 import { findLapsedHoldIds } from "@/lib/holds/release-lapsed-holds";
 import { withoutLapsedHolds } from "@/lib/holds/slot-occupancy";
 import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
+import { scheduleNewLeadAlert } from "@/lib/crm/new-lead-alert";
 import { teamForEventType } from "@/lib/crm/sales-team";
 
 // ============================================================
@@ -1093,6 +1094,8 @@ async function createLeadEnquiryTool(
   });
   // Queue the new lead for CallVibe when auto-push is on. Never throws.
   scheduleAutoPushToCallVibe(contact.id);
+  // This path skips runLeadIntake, so send the new-lead alert here. Never throws.
+  scheduleNewLeadAlert(lead.id);
 
   return JSON.stringify({
     success: true,

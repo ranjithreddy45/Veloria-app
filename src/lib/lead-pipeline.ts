@@ -195,6 +195,15 @@ export async function runLeadIntake(args: {
   } catch (e) {
     console.error("[runLeadIntake] speed-to-lead error:", e);
   }
+  // Tell the configured group (NEW_LEAD_ALERT_EMAILS) a lead has landed. Runs
+  // last so the email can name the rep speed-to-lead just assigned, and runs
+  // detached so the mail server never delays the caller.
+  try {
+    const { scheduleNewLeadAlert } = await import("@/lib/crm/new-lead-alert");
+    scheduleNewLeadAlert(lead.id);
+  } catch (e) {
+    console.error("[runLeadIntake] new-lead alert error:", e);
+  }
 }
 
 // ------------------------------------------------------------
