@@ -13,6 +13,7 @@ import type { ReferralStatus } from "@prisma/client";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
+import { enqueueNewLeadAlert } from "@/lib/crm/new-lead-alert";
 import { notify } from "@/lib/notify";
 import { hasPermission } from "@/lib/permissions";
 import { generateUniqueCode, buildReferralLink } from "@/lib/referral-code";
@@ -366,6 +367,8 @@ export async function processReferral(id: string) {
 
     // Queue the new lead for CallVibe when auto-push is on. Never throws.
     scheduleAutoPushToCallVibe(newContact.id);
+    // This path skips runLeadIntake, so send the new-lead alert here. Never throws.
+    await enqueueNewLeadAlert(lead.id);
 
     // Update referral status and store the converted lead ID
     const updatedReferral = await prisma.referral.update({

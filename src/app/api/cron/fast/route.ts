@@ -11,6 +11,7 @@ import { runSlaWarRoomEscalation } from "@/lib/sla/war-room-escalation";
 import { sendEventDayTaskReminders } from "@/lib/ops/event-reminders";
 import { releaseLapsedHolds } from "@/lib/holds/release-lapsed-holds";
 import { processDueCallVibePushJobs } from "@/lib/integrations/callvibe/push";
+import { processDueLeadAlerts } from "@/lib/crm/new-lead-alert";
 import { drainMetaLeadJobs } from "@/lib/meta/queue";
 import { maybeRunMetaBackfill } from "@/lib/meta/schedule";
 import { claimCronLease, releaseCronLease } from "@/lib/cron/lease";
@@ -136,6 +137,14 @@ async function runFast() {
     results.callvibePush = await processDueCallVibePushJobs({ budgetMs: 45_000 });
   } catch (e) {
     results.callvibePush = `error: ${e instanceof Error ? e.message : "unknown"}`;
+  }
+  try {
+    // New-lead group emails that failed or were cut short (a mail outage, a
+    // restart mid-send) are retried here until they go out. A mail outage leaves
+    // rows waiting — not a lane failure, so only a crash of the sweep counts.
+    results.leadAlerts = await processDueLeadAlerts(20);
+  } catch (e) {
+    results.leadAlerts = `error: ${e instanceof Error ? e.message : "unknown"}`;
   }
 
   // Surface partial failures with a non-2xx so the lane orchestrator

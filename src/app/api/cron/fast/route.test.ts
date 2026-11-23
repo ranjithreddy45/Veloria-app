@@ -16,6 +16,7 @@ const jobs = vi.hoisted(() => ({
   sendEventDayTaskReminders: vi.fn(),
   releaseLapsedHolds: vi.fn(),
   processDueCallVibePushJobs: vi.fn(),
+  processDueLeadAlerts: vi.fn(),
 }));
 
 // The lease always grants in these tests (lease behaviour has its own tests).
@@ -31,6 +32,7 @@ vi.mock("@/lib/sla/war-room-escalation", () => ({ runSlaWarRoomEscalation: jobs.
 vi.mock("@/lib/ops/event-reminders", () => ({ sendEventDayTaskReminders: jobs.sendEventDayTaskReminders }));
 vi.mock("@/lib/holds/release-lapsed-holds", () => ({ releaseLapsedHolds: jobs.releaseLapsedHolds }));
 vi.mock("@/lib/integrations/callvibe/push", () => ({ processDueCallVibePushJobs: jobs.processDueCallVibePushJobs }));
+vi.mock("@/lib/crm/new-lead-alert", () => ({ processDueLeadAlerts: jobs.processDueLeadAlerts }));
 vi.mock("next/server", () => ({
   NextResponse: {
     json: (body: unknown, init?: { status?: number }) => ({ status: init?.status ?? 200, body }),
@@ -72,6 +74,8 @@ describe("fast cron lane", () => {
     expect(res.body.results.lapsedHoldRelease).toEqual(sweep);
     expect(jobs.processDueCallVibePushJobs).toHaveBeenCalledTimes(1);
     expect(res.body.results.callvibePush).toEqual({ ok: true });
+    expect(jobs.processDueLeadAlerts).toHaveBeenCalledTimes(1);
+    expect(res.body.results.leadAlerts).toEqual({ ok: true });
   });
 
   it("a failing release is isolated: every other job still runs, and the lane sees a 500", async () => {

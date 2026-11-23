@@ -4288,6 +4288,30 @@ model CallVibePushJob {
   @@index([contactId, createdAt])
 }
 
+/// The "new lead" group email (NEW_LEAD_ALERT_EMAILS) owed for one lead.
+///
+/// A durable record so an alert is never lost to a mail outage or a worker
+/// restart: written when the lead is created, sent straight away, and retried by
+/// the 5-minute fast cron lane until it goes out. `leadId` is unique, so one
+/// lead can never be alerted twice however many paths or workers touch it.
+/// Deliberately no relation to Lead: additive table, no change to Lead.
+model LeadAlertDelivery {
+  id            String    @id @default(cuid())
+  leadId        String    @unique
+  /// PENDING | SENT | FAILED (FAILED = gave up, or the lead was deleted)
+  status        String    @default("PENDING")
+  attempts      Int       @default(0)
+  nextAttemptAt DateTime  @default(now())
+  /// An attempt in flight; an expired claim means the worker died mid-send.
+  claimedUntil  DateTime?
+  lastError     String?   @db.Text
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status, nextAttemptAt])
+}
+
 model TelephonyConfig {
   id            String            @id @default(cuid())
   provider      TelephonyProvider

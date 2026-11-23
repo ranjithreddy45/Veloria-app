@@ -117,7 +117,7 @@ export async function submitBookingInquiry(
       messageParts.join(" · ") || "Enquiry from Veloria Grand app";
 
     // 1. Store the raw inquiry (visible under Inquiries in the CRM)
-    await prisma.widgetInquiry.create({
+    const inquiry = await prisma.widgetInquiry.create({
       data: {
         name,
         email: input.email?.trim() || `${phone}@noemail.veloria`,
@@ -134,7 +134,7 @@ export async function submitBookingInquiry(
     // 2. Create a real lead in the pipeline (contact + lead + auto-assign
     //    + auto-welcome). Non-fatal if it fails — the inquiry is already saved.
     try {
-      await captureLeadFromExternal({
+      const captured = await captureLeadFromExternal({
         name,
         email: input.email?.trim() || undefined,
         phone,
@@ -154,6 +154,13 @@ export async function submitBookingInquiry(
           landingUrl: input.landingUrl,
         },
       });
+      // It is a lead now: mark the inquiry processed so staff are not offered
+      // "Process" on it, which would create a second lead for the same enquiry.
+      if (captured?.success && captured.leadId) {
+        await prisma.widgetInquiry
+          .update({ where: { id: inquiry.id }, data: { isProcessed: true } })
+          .catch(() => {});
+      }
     } catch (e) {
       console.error("[STOREFRONT_LEAD_CAPTURE_ERROR]", e);
     }
