@@ -167,6 +167,8 @@ export async function processMetaLeadPayload(
     eventType: mapped.eventType ?? undefined,
     eventDate: mapped.eventDate ? mapped.eventDate.toISOString() : undefined,
     venueId: venueId ?? undefined,
+    // The ad set's venue ("Bellandur", "KR Puram") picks the property owner.
+    propertyHint: mapped.venueLabel !== UNASSIGNED_VENUE ? mapped.venueLabel : undefined,
     source: mapped.source === "Instagram Lead Ad" ? "instagram" : "facebook_ads",
     // Markers go in the note at creation: Lead has no tag column, and the note
     // is what the list search reads.

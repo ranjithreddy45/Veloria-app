@@ -1029,6 +1029,12 @@ export const sidebarNavigation: NavItem[] = [
         permissions: ["leads:read"],
       },
       {
+        title: "Property Routing",
+        href: "/settings/property-routing",
+        icon: "Route",
+        permissions: ["settings:read"],
+      },
+      {
         title: "Smart Routing",
         href: "/settings/routing",
         icon: "Route",

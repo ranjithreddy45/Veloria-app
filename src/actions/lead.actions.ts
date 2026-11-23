@@ -243,6 +243,8 @@ export async function getLeads(params?: LeadListFilters & {
           assignedTo: {
             select: { id: true, name: true, email: true },
           },
+          // The list's Venue column.
+          preferredVenue: { select: { id: true, name: true } },
           // Ad attribution for the list's Campaign + Click-ID-present columns.
           attribution: {
             select: {
@@ -691,6 +693,8 @@ export async function updateLead(
         if (bad) return { success: false as const, error: bad };
       }
       updateData.assignedToId = data.assignedToId || null;
+      // A person chose the owner: the shared-queue "reassign" flag is done.
+      if (data.assignedToId) updateData.routingFlag = null;
     }
     if (data.followUpDate !== undefined)
       updateData.followUpDate = data.followUpDate || null;
