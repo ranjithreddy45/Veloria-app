@@ -10,7 +10,22 @@ import nodemailer, { type Transporter } from "nodemailer";
 let _resend: Resend | null = null;
 let _transporter: Transporter | null = null;
 
+function ensureEnvLoaded(): void {
+  if (
+    typeof window === "undefined" &&
+    process.env.NODE_ENV !== "test" &&
+    !process.env.SMTP_USER &&
+    !process.env.RESEND_API_KEY
+  ) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("dotenv").config();
+    } catch {}
+  }
+}
+
 export function isEmailConfigured(): boolean {
+  ensureEnvLoaded();
   if (process.env.RESEND_API_KEY?.trim()) return true;
   const user = process.env.SMTP_USER?.trim() || process.env.GOOGLE_EMAIL?.trim();
   const pass = process.env.SMTP_PASS?.trim() || process.env.GOOGLE_APP_PASSWORD?.trim();
@@ -18,6 +33,7 @@ export function isEmailConfigured(): boolean {
 }
 
 function getTransporter(): Transporter | null {
+  ensureEnvLoaded();
   const user = process.env.SMTP_USER?.trim() || process.env.GOOGLE_EMAIL?.trim();
   const pass = process.env.SMTP_PASS?.trim() || process.env.GOOGLE_APP_PASSWORD?.trim();
   if (!user || !pass) return null;
@@ -35,6 +51,9 @@ function getTransporter(): Transporter | null {
         user,
         pass,
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
   }
   return _transporter;
