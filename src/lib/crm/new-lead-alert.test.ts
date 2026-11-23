@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const db = vi.hoisted(() => ({
-  lead: { findUnique: vi.fn() },
+  lead: { findUnique: vi.fn(), findMany: vi.fn() },
   leadAlertDelivery: {
     upsert: vi.fn(),
     updateMany: vi.fn(),
@@ -243,32 +243,91 @@ describe("durable delivery", () => {
     expect(data.status).toBeUndefined();
   });
 
-  it("gives up after 7 days and tells the admins", async () => {
+  it("a give-up inside one attempt is returned, not reported there", async () => {
     emailMock.sendEmail.mockResolvedValue({ success: false, error: "SMTP refused" });
     db.leadAlertDelivery.findUnique.mockResolvedValue(
       row({ attempts: 170, createdAt: new Date("2026-11-15T09:00:00Z") })
     );
-    expect(await attemptLeadAlertDelivery("d1", NOW)).toBe("failed");
+    expect(await attemptLeadAlertDelivery("d1", NOW)).toBe("gave_up");
     expect(db.leadAlertDelivery.update.mock.calls[0][0].data.status).toBe("FAILED");
-    expect(opsMock.reportSystemFailure).toHaveBeenCalledTimes(1);
-  });
-
-  it("stops quietly for a deleted lead", async () => {
-    db.lead.findUnique.mockResolvedValue({ ...leadRow, deletedAt: new Date() });
-    expect(await attemptLeadAlertDelivery("d1", NOW)).toBe("failed");
     expect(opsMock.reportSystemFailure).not.toHaveBeenCalled();
   });
 
-  it("the sweep retries due rows and stops at its time budget", async () => {
-    db.leadAlertDelivery.findMany.mockResolvedValue([{ id: "d1" }, { id: "d2" }]);
-    expect(await processDueLeadAlerts(20, 45_000)).toEqual({ due: 2, sent: 2, retry: 0, failed: 0, deferred: 0 });
-    vi.clearAllMocks();
-    db.leadAlertDelivery.findMany.mockResolvedValue([{ id: "d1" }, { id: "d2" }]);
-    expect(await processDueLeadAlerts(20, -1)).toEqual({ due: 2, sent: 0, retry: 0, failed: 0, deferred: 2 });
-    expect(emailMock.sendEmail).not.toHaveBeenCalled();
+  it("stops quietly for a deleted lead or a setup problem, without retrying", async () => {
+    db.lead.findUnique.mockResolvedValue({ ...leadRow, deletedAt: new Date() });
+    expect(await attemptLeadAlertDelivery("d1", NOW)).toBe("failed");
+    emailMock.isEmailConfigured.mockReturnValue(false);
+    expect(await attemptLeadAlertDelivery("d1", NOW)).toBe("failed");
+    expect(db.leadAlertDelivery.update.mock.calls.every((c) => c[0].data.status === "FAILED")).toBe(true);
+    expect(opsMock.reportSystemFailure).not.toHaveBeenCalled();
   });
 
-  it("backs off quickly at first, then hourly", () => {
-    expect([1, 2, 3, 4, 5, 6, 7, 50].map(retryDelayMinutes)).toEqual([1, 2, 5, 10, 15, 30, 60, 60]);
+  describe("the 5-minute sweep", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(NOW);
+    });
+    afterEach(() => vi.useRealTimers());
+
+    it("sends recent leads one by one and stops at its time budget", async () => {
+      const recent = new Date(NOW.getTime() - 10 * 60 * 1000);
+      db.leadAlertDelivery.findMany.mockResolvedValue([
+        { id: "d1", createdAt: recent },
+        { id: "d2", createdAt: recent },
+      ]);
+      expect(await processDueLeadAlerts(20, 45_000)).toMatchObject({ due: 2, sent: 2, digested: 0, deferred: 0 });
+      vi.clearAllMocks();
+      db.leadAlertDelivery.findMany.mockResolvedValue([
+        { id: "d1", createdAt: recent },
+        { id: "d2", createdAt: recent },
+      ]);
+      db.leadAlertDelivery.updateMany.mockResolvedValue({ count: 1 });
+      expect(await processDueLeadAlerts(20, -1)).toMatchObject({ due: 2, sent: 0, deferred: 2 });
+      expect(emailMock.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it("sends long-overdue alerts as ONE 'delayed alerts' email, not a burst of 'New lead' emails", async () => {
+      const old = new Date(NOW.getTime() - 26 * 60 * 60 * 1000);
+      db.leadAlertDelivery.findMany.mockResolvedValue([
+        { id: "d1", createdAt: old },
+        { id: "d2", createdAt: old },
+        { id: "d3", createdAt: old },
+      ]);
+      db.leadAlertDelivery.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
+        row({ id: where.id, leadId: `lead-${where.id}`, createdAt: old })
+      );
+      db.lead.findMany.mockResolvedValue([
+        { ...leadRow, id: "lead-d1" },
+        { ...leadRow, id: "lead-d2" },
+        { ...leadRow, id: "lead-d3" },
+      ]);
+      const res = await processDueLeadAlerts(20, 45_000);
+      expect(res).toMatchObject({ due: 3, sent: 0, digested: 3, gaveUp: 0 });
+      expect(emailMock.sendEmail).toHaveBeenCalledTimes(1);
+      const mail = emailMock.sendEmail.mock.calls[0][0];
+      expect(mail.subject).toBe("Delayed lead alerts: 3 leads you may not have seen");
+      expect(mail.to).toHaveLength(5);
+      expect(mail.html).toContain("/leads/lead-d2");
+    });
+
+    it("reports give-ups to the admins once per sweep, however many there are", async () => {
+      const ancient = new Date(NOW.getTime() - 8 * 24 * 60 * 60 * 1000);
+      db.leadAlertDelivery.findMany.mockResolvedValue([
+        { id: "d1", createdAt: ancient },
+        { id: "d2", createdAt: ancient },
+      ]);
+      db.leadAlertDelivery.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
+        row({ id: where.id, createdAt: ancient })
+      );
+      const res = await processDueLeadAlerts(20, 45_000);
+      expect(res.gaveUp).toBe(2);
+      expect(emailMock.sendEmail).not.toHaveBeenCalled();
+      expect(opsMock.reportSystemFailure).toHaveBeenCalledTimes(1);
+      expect(opsMock.reportSystemFailure.mock.calls[0][0].title).toBe("2 new-lead alert emails could not be sent");
+    });
+  });
+
+  it("backs off quickly at first, then hourly, then every 6 hours", () => {
+    expect([1, 2, 3, 4, 5, 6, 7, 24, 25, 50].map(retryDelayMinutes)).toEqual([1, 2, 5, 10, 15, 30, 60, 60, 360, 360]);
   });
 });

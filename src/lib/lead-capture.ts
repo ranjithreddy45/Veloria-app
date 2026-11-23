@@ -1,4 +1,4 @@
-import { notifyLeadsAssigned } from "@/lib/crm/lead-assigned-notify";
+import { scheduleLeadsAssignedNotify } from "@/lib/crm/lead-assigned-notify";
 import { sendLeadWelcomeEmail } from "@/lib/crm/lead-welcome-email";
 import { canonicalPhone } from "@/lib/phone";
 import type { Prisma } from "@prisma/client";
@@ -535,12 +535,43 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       }
     }
 
-    // Evaluate assignment rules to auto-assign
+    // Derive an estimated value: explicit budget, else per-plate × guests.
+    const estimatedValue =
+      data.estimatedValue && data.estimatedValue > 0
+        ? data.estimatedValue
+        : data.perPlateBudget && data.guestCount
+          ? data.perPlateBudget * data.guestCount
+          : null;
+
+    // Calculate lead score — now fed the FULL signal set (budget included).
+    let score = 0;
+    try {
+      score = calculateLeadScore({
+        source: (data.leadSource ?? mapSource(data.source)),
+        guestCount: data.guestCount,
+        eventDate: data.eventDate ? new Date(data.eventDate) : null,
+        estimatedValue,
+        status: "NEW",
+      });
+    } catch {
+      // Scoring is optional
+    }
+
+    // Evaluate assignment rules to auto-assign — with the same lead shape the
+    // rules are written against and that speed-to-lead used to re-check them
+    // with: the LeadSource enum (GOOGLE_ADS, not "google_ads"), status NEW, and
+    // the real score / guests / value. Capture used to pass only the raw source
+    // string, so a Source, Status or numeric rule mis-evaluated here and only
+    // came right when speed-to-lead re-ran the rules afterwards.
     let assignedToId: string | null = null;
     try {
       const assignResult = await evaluateAssignmentRules({
-        source: data.source,
+        source: data.leadSource ?? mapSource(data.source),
         eventType: data.eventType,
+        status: "NEW",
+        score,
+        guestCount: data.guestCount ?? 0,
+        estimatedValue: estimatedValue ?? 0,
       });
       if (assignResult) {
         assignedToId = assignResult;
@@ -563,28 +594,6 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         assignedToId = fallbackOwner;
         ownerIsFallback = true;
       }
-    }
-
-    // Derive an estimated value: explicit budget, else per-plate × guests.
-    const estimatedValue =
-      data.estimatedValue && data.estimatedValue > 0
-        ? data.estimatedValue
-        : data.perPlateBudget && data.guestCount
-          ? data.perPlateBudget * data.guestCount
-          : null;
-
-    // Calculate lead score — now fed the FULL signal set (budget included).
-    let score = 0;
-    try {
-      score = calculateLeadScore({
-        source: (data.leadSource ?? mapSource(data.source)),
-        guestCount: data.guestCount,
-        eventDate: data.eventDate ? new Date(data.eventDate) : null,
-        estimatedValue,
-        status: "NEW",
-      });
-    } catch {
-      // Scoring is optional
     }
 
     // Create the lead — stamp the speed-to-lead SLA clock on capture.
@@ -740,10 +749,14 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       if (assignedToId && !data.historical) {
         // In-app (+ browser push), email and WhatsApp in one place — see
         // lead-assigned-notify. Awaited inside the deferred tail.
-        await notifyLeadsAssigned({
+        // Detached: a slow mail server or WhatsApp API must never delay the
+        // webhook/form response or the customer's own first response below.
+        // Production is a long-lived Node process (pm2), so it completes.
+        scheduleLeadsAssignedNotify({
           leadIds: [lead.id],
           assigneeId: assignedToId,
           assignedById: null,
+          isNew: true,
           // The catch-all owner gets the in-app notice only (see channels).
           ...(ownerIsFallback ? { channels: { email: false, whatsapp: false } } : {}),
         });

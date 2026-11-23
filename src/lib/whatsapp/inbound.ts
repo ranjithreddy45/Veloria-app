@@ -29,7 +29,7 @@ export interface InboundWhatsAppMessage {
 export interface InboundRecordResult {
   /** Contact the message was linked to (existing, or freshly captured as a lead). */
   contactId: string | null;
-  outcome: "STORED" | "DEDUPED" | "LEAD_CAPTURED" | "CAPTURE_FAILED";
+  outcome: "STORED" | "DEDUPED" | "LEAD_CAPTURED" | "CAPTURE_FAILED" | "STAFF_NUMBER";
 }
 
 /** What recordOutboundWhatsAppMessage did. */
@@ -185,6 +185,15 @@ export async function recordInboundWhatsAppMessage(
     console.log(`[WhatsApp inbound] message from ${from} → contact ${contact.id}`);
     return { contactId: contact.id, outcome: "STORED" };
   } else {
+    // One of our own staff replying (e.g. to a "lead assigned to you"
+    // WhatsApp) is not a customer enquiry: never turn it into a lead.
+    const { findStaffByPhone } = await import("@/lib/whatsapp/staff-phone");
+    const staff = await findStaffByPhone(from);
+    if (staff) {
+      console.log(`[WhatsApp inbound] message from a staff number (user ${staff.id}) — not captured as a lead`);
+      return { contactId: null, outcome: "STAFF_NUMBER" };
+    }
+
     // Unknown number → a brand-new inbound lead (WhatsApp is the #1 inbound
     // channel in India; never drop it). Capture creates the contact + lead,
     // scores, assigns, SLA-stamps, and auto-replies.

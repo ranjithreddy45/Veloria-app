@@ -112,6 +112,12 @@ export interface LeadAssignedNotifyArgs {
    * every lead would be pure noise and cost.
    */
   channels?: { email?: boolean; whatsapp?: boolean };
+  /**
+   * A lead that has just arrived (capture, create, first routing) vs an
+   * existing lead changing hands. Only a genuinely new lead is called "new":
+   * reassigning a three-week-old lead must not be announced as a new enquiry.
+   */
+  isNew?: boolean;
 }
 
 export interface LeadAssignedNotifyResult {
@@ -186,6 +192,7 @@ export async function notifyLeadsAssigned(
     const byName = assigner?.name?.trim() || null;
     const byText = byName ?? "the CRM (automatic)";
     const link = single ? appUrl(`/leads/${single.id}`) : appUrl("/leads");
+    const isNew = args.isNew === true;
 
     // Run the three channels independently: one failing never stops another.
     const [inApp, email, whatsapp] = await Promise.all([
@@ -194,10 +201,12 @@ export async function notifyLeadsAssigned(
         userId: assignee.id,
         type: "LEAD_ASSIGNED",
         title: single
-          ? `Lead assigned to you: ${single.name || single.title}`
+          ? `${isNew ? "New lead assigned to you" : "Lead assigned to you"}: ${single.name || single.title}`
           : `${leads.length} leads assigned to you`,
+        // No customer phone number here: this text also appears as a browser
+        // push on a lock screen. The email and WhatsApp carry the number.
         message: single
-          ? `${leadSummary(single)} — assigned by ${byText}.`
+          ? `${leadSummary({ ...single, phone: null })} — assigned by ${byText}.`
           : `Assigned by ${byText}: ${leads
               .slice(0, 5)
               .map((l) => l.name || l.title)
@@ -216,7 +225,7 @@ export async function notifyLeadsAssigned(
         if (!leadAssignedEmailEnabled(assignee.notificationPreferences)) {
           return { sent: false, reason: "Turned off in notification settings" };
         }
-        if (single) return sendLeadAssignedEmail(single.id, assignee.id, { assignedByName: byName });
+        if (single) return sendLeadAssignedEmail(single.id, assignee.id, { assignedByName: byName, isNew });
         const res = await sendEmail({
           to: assignee.email,
           subject: `${leads.length} leads assigned to you${byName ? ` by ${byName}` : ""}`,
@@ -244,7 +253,7 @@ export async function notifyLeadsAssigned(
           // Positional {{1}}..{{5}}; insertion order is the template's order.
           params: {
             "1": waParam((assignee.name ?? "").split(/\s+/)[0] || "there", 40),
-            "2": waParam(single ? "a new lead" : `${leads.length} new leads`, 40),
+            "2": waParam(single ? (isNew ? "a new lead" : "a lead") : `${leads.length} leads`, 40),
             "3": waParam(byText, 60),
             "4": waParam(details, 400),
             "5": link,

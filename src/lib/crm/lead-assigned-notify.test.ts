@@ -57,20 +57,29 @@ describe("notifyLeadsAssigned", () => {
     const bell = m.notifyAwait.mock.calls[0][0];
     expect(bell).toMatchObject({ userId: "rep", type: "LEAD_ASSIGNED", actionUrl: "/leads/l1" });
     expect(bell.title).toBe("Lead assigned to you: Priya Sharma");
+    // no customer phone on a lock-screen push
+    expect(bell.message).not.toContain("+919800000000");
     expect(bell.message).toContain("assigned by Sunitha");
 
-    expect(m.sendLeadAssignedEmail).toHaveBeenCalledWith("l1", "rep", { assignedByName: "Sunitha" });
+    expect(m.sendLeadAssignedEmail).toHaveBeenCalledWith("l1", "rep", { assignedByName: "Sunitha", isNew: false });
 
     const wa = m.sendWhatsApp.mock.calls[0][0];
     expect(wa.to).toBe("+919800000001");
     expect(wa.template).toBe("lead_assigned_staff");
     expect(Object.values(wa.params)).toEqual([
       "Asha",
-      "a new lead",
+      "a lead",
       "Sunitha",
       expect.stringContaining("Priya Sharma · +919800000000 · Wedding on"),
       "https://app.theveloriagrand.com/leads/l1",
     ]);
+  });
+
+  it("a brand-new lead is called new; a reassigned one is not", async () => {
+    await notifyLeadsAssigned({ leadIds: ["l1"], assigneeId: "rep", assignedById: null, isNew: true });
+    expect(m.notifyAwait.mock.calls[0][0].title).toBe("New lead assigned to you: Priya Sharma");
+    expect(m.sendLeadAssignedEmail).toHaveBeenCalledWith("l1", "rep", { assignedByName: null, isNew: true });
+    expect(Object.values(m.sendWhatsApp.mock.calls[0][0].params)[1]).toBe("a new lead");
   });
 
   it("sends nothing when you assign a lead to yourself", async () => {
@@ -100,7 +109,7 @@ describe("notifyLeadsAssigned", () => {
     expect(m.sendEmail.mock.calls[0][0].subject).toBe("4 leads assigned to you by Sunitha");
     expect(m.sendWhatsApp).toHaveBeenCalledTimes(1);
     const p = Object.values(m.sendWhatsApp.mock.calls[0][0].params) as string[];
-    expect(p[1]).toBe("4 new leads");
+    expect(p[1]).toBe("4 leads");
     expect(p[3]).toContain("and 1 more");
     expect(p[4]).toBe("https://app.theveloriagrand.com/leads");
   });

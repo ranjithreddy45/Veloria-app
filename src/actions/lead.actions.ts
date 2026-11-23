@@ -531,13 +531,14 @@ export async function createLead(data: LeadInput & { images?: string[] }) {
         });
 
         // Tell the new owner: app, email and WhatsApp.
-        scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: assignedUserId, assignedById: null });
+        scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: assignedUserId, assignedById: null, isNew: true });
       } else if (leadData.assignedToId) {
         // An owner picked while creating the lead (sends nothing if it is yourself).
         scheduleLeadsAssignedNotify({
           leadIds: [lead.id],
           assigneeId: leadData.assignedToId,
           assignedById: session.user.id as string,
+          isNew: true,
         });
       }
     } catch (e) {

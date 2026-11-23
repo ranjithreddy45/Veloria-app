@@ -142,7 +142,7 @@ export async function runSpeedToLead(
           // Tell the new owner (app, email, WhatsApp) without delaying the
           // customer's first response below.
           const { scheduleLeadsAssignedNotify } = await import("@/lib/crm/lead-assigned-notify");
-          scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: assignedToId, assignedById: null });
+          scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: assignedToId, assignedById: null, isNew: true });
         } catch (e) {
           console.error("[runSpeedToLead] assign persist failed:", e);
         }
@@ -301,8 +301,11 @@ export async function runSpeedToLead(
     if (!result.success) {
       // Surface a failed automated first-response so a human can step in.
       const who = (contact?.firstName || lead.title || "a new lead").trim();
-      const target = assignedToId || (await getSystemUserId());
-      if (target) {
+      // The owner must act on it; the admin keeps sight of failures too (a run
+      // of these usually means the WhatsApp provider itself is down).
+      const admin = await getSystemUserId();
+      const targets = Array.from(new Set([assignedToId, admin].filter(Boolean))) as string[];
+      for (const target of targets) {
         notify({
           userId: target,
           title: "⚡ Auto first-response failed",

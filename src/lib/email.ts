@@ -35,6 +35,12 @@ function getTransporter(): Transporter | null {
         user,
         pass,
       },
+      // Fail fast instead of nodemailer's defaults (2 min to connect, 10 min of
+      // socket silence): a stuck mail server must not hold a request, the
+      // 5-minute cron lane or a retry claim for minutes. Callers retry.
+      connectionTimeout: 15_000,
+      greetingTimeout: 15_000,
+      socketTimeout: 30_000,
     });
   }
   return _transporter;

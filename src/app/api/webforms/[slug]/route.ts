@@ -234,18 +234,19 @@ export async function POST(
       if (contactId && !isSpam) {
         const leadSource = (webform.defaultSource || "WEBSITE") as LeadSource;
 
-        // Resolve assignment: static autoAssignTo, else the rules engine.
+        const score = calculateLeadScore({ source: leadSource, status: "NEW" });
+
+        // Resolve assignment: static autoAssignTo, else the rules engine (fed
+        // the same lead shape speed-to-lead used to re-check rules with).
         let assignedToId: string | null = webform.autoAssignTo || null;
         if (!assignedToId) {
           try {
             assignedToId =
-              (await evaluateAssignmentRules({ source: leadSource })) || null;
+              (await evaluateAssignmentRules({ source: leadSource, status: "NEW", score })) || null;
           } catch {
             /* assignment optional */
           }
         }
-
-        const score = calculateLeadScore({ source: leadSource, status: "NEW" });
 
         const lead = await prisma.lead.create({
           data: {
@@ -264,7 +265,7 @@ export async function POST(
         // The form (or a rule) chose an owner: tell them on every channel.
         // (An unowned lead is routed by speed-to-lead, which notifies too.)
         if (assignedToId) {
-          scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: assignedToId, assignedById: null });
+          scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: assignedToId, assignedById: null, isNew: true });
         }
 
         // First-touch marketing attribution (best-effort; helper swallows
