@@ -78,7 +78,9 @@ const IST_DATETIME = new Intl.DateTimeFormat("en-IN", {
 function cleanNotes(description: string | null | undefined): string {
   if (!description) return "";
   const text = description.replace(/\[ext:[^\]]*\]/g, "").replace(/\s+\n/g, "\n").trim();
-  return text.length > 600 ? `${text.slice(0, 600)}…` : text;
+  // Cut by code points, not UTF-16 units, so an emoji is never split in half.
+  const chars = Array.from(text);
+  return chars.length > 600 ? `${chars.slice(0, 600).join("")}…` : text;
 }
 
 export interface NewLeadAlertData {

@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     // Turn the inquiry into a REAL lead — scored, assigned, SLA-stamped,
     // auto-replied, and auto-enrolled — instead of an inert row.
-    await captureLeadFromExternal({
+    const captured = await captureLeadFromExternal({
       name: data.name,
       email: data.email,
       phone: data.phone || undefined,
@@ -79,6 +79,14 @@ export async function POST(request: NextRequest) {
           }
         : undefined,
     });
+
+    // It is a lead now: mark the inquiry processed so staff are not offered
+    // "Process" on it, which would create a second lead for the same enquiry.
+    if (captured?.success && captured.leadId) {
+      await prisma.widgetInquiry
+        .update({ where: { id: inquiry.id }, data: { isProcessed: true } })
+        .catch(() => {});
+    }
 
     return NextResponse.json(
       {

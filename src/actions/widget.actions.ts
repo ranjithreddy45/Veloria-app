@@ -7,6 +7,7 @@ import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
 import { createLead } from "@/actions/lead.actions";
+import { canonicalPhone } from "@/lib/phone";
 
 // ============================================================
 // Get Widget Inquiries (Paginated + Filters)
@@ -118,6 +119,46 @@ export async function processInquiry(id: string) {
     if (claim.count === 0) {
       // Another concurrent request already claimed/processed this inquiry.
       return { success: false as const, error: "Inquiry already processed" };
+    }
+
+    // Website-widget and customer-app enquiries are turned into a lead the
+    // moment they arrive (captureLeadFromExternal). If that already happened,
+    // link to that lead instead of creating a second one: a duplicate lead is
+    // a second owner, a second SLA clock and a second "new lead" alert email.
+    // (Older rows were left unprocessed by those paths, so this check matters
+    // even after they started marking their inquiries processed.)
+    {
+      const phones = inquiry.phone ? [inquiry.phone, canonicalPhone(inquiry.phone)].filter(Boolean) : [];
+      const realEmail = inquiry.email && !inquiry.email.endsWith("@noemail.veloria") ? inquiry.email : null;
+      const who = [
+        ...(realEmail ? [{ email: { equals: realEmail, mode: "insensitive" as const } }] : []),
+        ...(phones.length ? [{ phone: { in: phones } }] : []),
+      ];
+      const existingLead = who.length
+        ? await prisma.lead.findFirst({
+            where: {
+              deletedAt: null,
+              createdAt: { gte: new Date(inquiry.createdAt.getTime() - 2 * 60 * 1000) },
+              contact: { deletedAt: null, OR: who },
+            },
+            orderBy: { createdAt: "asc" },
+            include: { contact: true },
+          })
+        : null;
+      if (existingLead) {
+        await logActivity({
+          userId: session.user.id as string,
+          action: "processed",
+          entityType: "WidgetInquiry",
+          entityId: id,
+          changes: { contactId: existingLead.contactId, leadId: existingLead.id, linkedExisting: true },
+        });
+        revalidatePath("/inquiries");
+        return {
+          success: true as const,
+          data: serialize({ inquiry: { id }, contact: existingLead.contact, lead: existingLead }),
+        };
+      }
     }
 
     // Split name into firstName / lastName

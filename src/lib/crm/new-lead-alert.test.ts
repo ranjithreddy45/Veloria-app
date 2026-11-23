@@ -138,6 +138,14 @@ describe("sendNewLeadAlert", () => {
     expect(arg.html).toContain("Looking for a hall in Whitefield");
   });
 
+  it("never splits an emoji when trimming a long message", async () => {
+    db.lead.findUnique.mockResolvedValue({ ...leadRow, description: "a".repeat(599) + "😀 and more" });
+    await sendNewLeadAlert("lead-1");
+    const html: string = emailMock.sendEmail.mock.calls[0][0].html;
+    expect(html).toContain("a".repeat(599) + "😀…");
+    expect(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/.test(html)).toBe(false);
+  });
+
   it("does nothing when no recipients are configured", async () => {
     process.env.NEW_LEAD_ALERT_EMAILS = "";
     expect(await sendNewLeadAlert("lead-1")).toEqual({ sent: false, reason: "No alert recipients configured" });
