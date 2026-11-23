@@ -1,9 +1,8 @@
-import { sendLeadAssignedEmail } from "@/lib/crm/lead-assigned-email";
+import { notifyLeadsAssigned } from "@/lib/crm/lead-assigned-notify";
 import { sendLeadWelcomeEmail } from "@/lib/crm/lead-welcome-email";
 import { canonicalPhone } from "@/lib/phone";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { calculateLeadScore } from "@/lib/lead-scoring";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
@@ -731,29 +730,13 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         userId: assignedToId || "system",
       });
 
-      // Notify assigned agent — in-app AND by email.
-      //
-      // notify() only ever wrote an in-app row despite its name, so a lead
-      // landing at 9pm sat unseen until someone opened the CRM. That is the
-      // opposite of what the speed-to-lead SLA on this same lead requires.
-      //
-      // actionUrl now points at the lead itself rather than the list: sending
-      // someone to a list to hunt for the row they were just told about is a
-      // small tax paid on every single notification.
+      // Notify the assigned agent on every channel (app + browser push, email,
+      // WhatsApp): a lead landing at 9pm must not sit unseen until someone
+      // happens to open the CRM — the speed-to-lead SLA on it is 15 minutes.
       if (assignedToId && !data.historical) {
-        notify({
-          userId: assignedToId,
-          title: "New Lead Captured",
-          message: `New ${data.source} lead: ${firstName} ${lastName}`,
-          type: "LEAD_ASSIGNED",
-          actionUrl: `/leads/${lead.id}`,
-        });
-        // Awaited inside the deferred tail, not fire-and-forget: an unawaited
-        // send can be frozen when the serverless invocation ends.
-        const mail = await sendLeadAssignedEmail(lead.id, assignedToId);
-        if (!mail.sent) {
-          console.warn(`[CAPTURE] assignment email not sent: ${mail.reason}`);
-        }
+        // In-app (+ browser push), email and WhatsApp in one place — see
+        // lead-assigned-notify. Awaited inside the deferred tail.
+        await notifyLeadsAssigned({ leadIds: [lead.id], assigneeId: assignedToId, assignedById: null });
       }
 
       // Automated Welcome Email to customer if email is provided

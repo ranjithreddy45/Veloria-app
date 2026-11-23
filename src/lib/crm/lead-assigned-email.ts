@@ -47,7 +47,8 @@ export interface LeadAssignedEmailResult {
  */
 export async function sendLeadAssignedEmail(
   leadId: string,
-  assigneeId: string
+  assigneeId: string,
+  opts: { assignedByName?: string | null } = {}
 ): Promise<LeadAssignedEmailResult> {
   try {
     const [lead, user] = await Promise.all([
@@ -95,6 +96,7 @@ export async function sendLeadAssignedEmail(
         lead.eventDate ? lead.eventDate.toISOString().split("T")[0] : "—",
       ],
       ["Guests", lead.guestCount ? String(lead.guestCount) : "—"],
+      ...(opts.assignedByName ? ([["Assigned by", opts.assignedByName]] as [string, string][]) : []),
     ];
 
     const due = lead.firstContactDue

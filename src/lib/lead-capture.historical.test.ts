@@ -26,8 +26,8 @@ const side = vi.hoisted(() => ({
 
 vi.mock("next/server", () => ({ after: (fn: () => void) => fn() }));
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
-vi.mock("@/lib/notify", () => ({ notify: side.notify }));
-vi.mock("@/lib/crm/lead-assigned-email", () => ({ sendLeadAssignedEmail: side.email }));
+// The owner is told on every channel through one call (app, email, WhatsApp).
+vi.mock("@/lib/crm/lead-assigned-notify", () => ({ notifyLeadsAssigned: side.notify }));
 vi.mock("@/lib/activity-logger", () => ({ logActivity: vi.fn() }));
 vi.mock("@/lib/lead-scoring", () => ({ calculateLeadScore: () => 10 }));
 vi.mock("@/lib/assignment/evaluate", () => ({ evaluateAssignmentRules: vi.fn(async () => "rep-1") }));
@@ -71,7 +71,6 @@ describe("captureLeadFromExternal — past enquiry (historical)", () => {
     expect(lead.salesTeam).toBe("WEDDING"); // and its team
     expect(db.contact.create.mock.calls[0][0].data.createdAt).toEqual(OCT3);
     expect(side.notify).not.toHaveBeenCalled();
-    expect(side.email).not.toHaveBeenCalled();
     expect(side.intake).not.toHaveBeenCalled();
     expect(side.welcome).not.toHaveBeenCalled();
   });
@@ -82,7 +81,7 @@ describe("captureLeadFromExternal — past enquiry (historical)", () => {
     const lead = db.lead.create.mock.calls[0][0].data;
     expect(lead.createdAt).toEqual(at);
     expect(lead.firstContactDue).toEqual(new Date("2099-01-01T00:00:00Z"));
-    expect(side.notify).toHaveBeenCalled();
+    expect(side.notify).toHaveBeenCalledWith({ leadIds: ["lead-1"], assigneeId: "rep-1", assignedById: null });
     expect(side.intake).toHaveBeenCalled();
   });
 

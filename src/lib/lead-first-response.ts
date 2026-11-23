@@ -85,7 +85,16 @@ export async function runSpeedToLead(
     }
 
     // ---- (1) Round-robin auto-assign if still unassigned. ----------------
-    let assignedToId = args.assignedToId ?? lead.assignedToId ?? null;
+    // runLeadIntake passes a lead shape without its owner, so read the current
+    // owner from the database rather than treating every lead as unassigned:
+    // re-running round-robin on an owned lead would hand it to a second rep.
+    let assignedToId =
+      args.assignedToId ??
+      lead.assignedToId ??
+      (
+        await prisma.lead.findUnique({ where: { id: lead.id }, select: { assignedToId: true } })
+      )?.assignedToId ??
+      null;
     let assignedViaRuleId: string | null = null;
 
     if (!assignedToId) {
@@ -125,6 +134,10 @@ export async function runSpeedToLead(
             where: { id: lead.id },
             data: { assignedToId },
           });
+          // Tell the new owner (app, email, WhatsApp) without delaying the
+          // customer's first response below.
+          const { scheduleLeadsAssignedNotify } = await import("@/lib/crm/lead-assigned-notify");
+          scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: assignedToId, assignedById: null });
         } catch (e) {
           console.error("[runSpeedToLead] assign persist failed:", e);
         }
