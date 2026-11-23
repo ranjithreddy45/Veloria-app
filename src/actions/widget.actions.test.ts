@@ -44,7 +44,14 @@ describe("processInquiry", () => {
     expect(createLead).not.toHaveBeenCalled();
     const where = db.lead.findFirst.mock.calls[0][0].where;
     // placeholder email is not used to match; the phone is, in both spellings
-    expect(where.contact.OR).toEqual([{ phone: { in: ["9800000000", "+919800000000"] } }]);
+    expect(where.contact.OR).toEqual([{ phone: { endsWith: "9800000000" } }]);
+    // only the lead this enquiry became: never one created long after it
+    expect(where.createdAt).toEqual({ lte: new Date(inquiry.createdAt.getTime() + 10 * 60 * 1000) });
+    expect(where.OR).toEqual([
+      { createdAt: { gte: new Date(inquiry.createdAt.getTime() - 2 * 60 * 1000) } },
+      { status: { notIn: ["WON", "LOST"] } },
+    ]);
+    expect((res as { data?: { linkedExisting?: boolean } }).data?.linkedExisting).toBe(true);
   });
 
   it("still creates a lead when none exists for that person", async () => {

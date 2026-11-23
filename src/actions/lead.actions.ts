@@ -27,12 +27,12 @@ import {
 import { calculateLeadScore } from "@/lib/lead-scoring";
 import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
-import { notify } from "@/lib/notify";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
 import { runLeadIntake, leadSlaDeadline } from "@/lib/lead-pipeline";
 import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
 import { syncLeadToWhatsAppProvider } from "@/lib/integrations/lead-sync";
 import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
+import { scheduleLeadsAssignedNotify } from "@/lib/crm/lead-assigned-notify";
 import { after } from "next/server";
 import { isSalesTeam, teamForEventType } from "@/lib/crm/sales-team";
 // LeadStatus enum values matching Prisma schema
@@ -530,13 +530,15 @@ export async function createLead(data: LeadInput & { images?: string[] }) {
           data: { assignedToId: assignedUserId },
         });
 
-        // Notify assigned user
-        notify({
-          userId: assignedUserId,
-          type: "LEAD_ASSIGNED",
-          title: "New Lead Auto-Assigned",
-          message: `Lead "${lead.title}" has been automatically assigned to you.`,
-          actionUrl: `/leads/${lead.id}`,
+        // Tell the new owner: app, email and WhatsApp.
+        scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: assignedUserId, assignedById: null, isNew: true });
+      } else if (leadData.assignedToId) {
+        // An owner picked while creating the lead (sends nothing if it is yourself).
+        scheduleLeadsAssignedNotify({
+          leadIds: [lead.id],
+          assigneeId: leadData.assignedToId,
+          assignedById: session.user.id as string,
+          isNew: true,
         });
       }
     } catch (e) {
@@ -760,14 +762,13 @@ export async function updateLead(
       entityId: lead.id,
     });
 
-    // Notify assigned user if lead was re-assigned
-    if (data.assignedToId && lead.assignedTo && data.assignedToId !== session.user.id) {
-      notify({
-        userId: data.assignedToId,
-        type: "LEAD_ASSIGNED",
-        title: "Lead Assigned to You",
-        message: `You've been assigned the lead "${lead.title}".`,
-        actionUrl: `/leads/${lead.id}`,
+    // Tell the new owner when the lead actually changed hands (re-saving a
+    // lead with the same owner used to re-notify them): app, email, WhatsApp.
+    if (data.assignedToId && lead.assignedTo && data.assignedToId !== existing.assignedToId) {
+      scheduleLeadsAssignedNotify({
+        leadIds: [lead.id],
+        assigneeId: data.assignedToId,
+        assignedById: session.user.id as string,
       });
     }
 

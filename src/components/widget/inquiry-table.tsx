@@ -195,7 +195,12 @@ function ActionsCell({ inquiry }: { inquiry: InquiryData }) {
     try {
       const result = await processInquiry(inquiry.id);
       if (result.success) {
-        toast.success("Inquiry processed — Contact and Lead created");
+        const linked = (result.data as { linkedExisting?: boolean } | undefined)?.linkedExisting;
+        toast.success(
+          linked
+            ? "Already a lead — linked to the existing lead, nothing duplicated"
+            : "Inquiry processed — Contact and Lead created"
+        );
         router.refresh();
       } else {
         toast.error(result.error);

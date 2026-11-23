@@ -7,7 +7,6 @@ import { serialize } from "@/lib/utils";
 import { logActivity } from "@/lib/activity-logger";
 import { hasPermission } from "@/lib/permissions";
 import { createLead } from "@/actions/lead.actions";
-import { canonicalPhone } from "@/lib/phone";
 
 // ============================================================
 // Get Widget Inquiries (Paginated + Filters)
@@ -128,20 +127,30 @@ export async function processInquiry(id: string) {
     // (Older rows were left unprocessed by those paths, so this check matters
     // even after they started marking their inquiries processed.)
     {
-      const phones = inquiry.phone ? [inquiry.phone, canonicalPhone(inquiry.phone)].filter(Boolean) : [];
+      // Match the person by real email, or by the last 10 digits of the phone
+      // (numbers are stored as +91…, 91…, 0… or bare).
+      const last10 = (inquiry.phone ?? "").replace(/\D/g, "").slice(-10);
       const realEmail = inquiry.email && !inquiry.email.endsWith("@noemail.veloria") ? inquiry.email : null;
       const who = [
         ...(realEmail ? [{ email: { equals: realEmail, mode: "insensitive" as const } }] : []),
-        ...(phones.length ? [{ phone: { in: phones } }] : []),
+        ...(last10.length === 10 ? [{ phone: { endsWith: last10 } }] : []),
       ];
+      const at = inquiry.createdAt.getTime();
       const existingLead = who.length
         ? await prisma.lead.findFirst({
             where: {
               deletedAt: null,
-              createdAt: { gte: new Date(inquiry.createdAt.getTime() - 2 * 60 * 1000) },
               contact: { deletedAt: null, OR: who },
+              // Only the lead THIS enquiry became: one created around the time it
+              // arrived, or the person's open lead that capture folded it into.
+              // Never a later, unrelated enquiry from the same person.
+              createdAt: { lte: new Date(at + 10 * 60 * 1000) },
+              OR: [
+                { createdAt: { gte: new Date(at - 2 * 60 * 1000) } },
+                { status: { notIn: ["WON", "LOST"] } },
+              ],
             },
-            orderBy: { createdAt: "asc" },
+            orderBy: { createdAt: "desc" },
             include: { contact: true },
           })
         : null;
@@ -156,7 +165,7 @@ export async function processInquiry(id: string) {
         revalidatePath("/inquiries");
         return {
           success: true as const,
-          data: serialize({ inquiry: { id }, contact: existingLead.contact, lead: existingLead }),
+          data: serialize({ inquiry: { id }, contact: existingLead.contact, lead: existingLead, linkedExisting: true }),
         };
       }
     }

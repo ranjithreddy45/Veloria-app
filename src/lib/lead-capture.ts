@@ -1,9 +1,8 @@
-import { sendLeadAssignedEmail } from "@/lib/crm/lead-assigned-email";
+import { scheduleLeadsAssignedNotify } from "@/lib/crm/lead-assigned-notify";
 import { sendLeadWelcomeEmail } from "@/lib/crm/lead-welcome-email";
 import { canonicalPhone } from "@/lib/phone";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { notify } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
 import { calculateLeadScore } from "@/lib/lead-scoring";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
@@ -536,32 +535,6 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       }
     }
 
-    // Evaluate assignment rules to auto-assign
-    let assignedToId: string | null = null;
-    try {
-      const assignResult = await evaluateAssignmentRules({
-        source: data.source,
-        eventType: data.eventType,
-      });
-      if (assignResult) {
-        assignedToId = assignResult;
-      }
-    } catch {
-      // Assignment rules are optional; proceed without assignment
-    }
-
-    // Fallback owner — an inbound lead must NEVER land orphaned. The Leads list
-    // defaults to "My leads" (assignedToId = viewer), so an unassigned lead is
-    // invisible to everyone until someone thinks to switch to "All leads". That
-    // silently hides ad/website leads from the people who need to act on them
-    // (this is exactly why a Google Ads test lead "wasn't coming into the app").
-    // If no assignment rule matched, fall back to the system admin (founder) so
-    // every captured lead surfaces for someone by default.
-    if (!assignedToId) {
-      const fallbackOwner = await getSystemUserId();
-      if (fallbackOwner) assignedToId = fallbackOwner;
-    }
-
     // Derive an estimated value: explicit budget, else per-plate × guests.
     const estimatedValue =
       data.estimatedValue && data.estimatedValue > 0
@@ -582,6 +555,45 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       });
     } catch {
       // Scoring is optional
+    }
+
+    // Evaluate assignment rules to auto-assign — with the same lead shape the
+    // rules are written against and that speed-to-lead used to re-check them
+    // with: the LeadSource enum (GOOGLE_ADS, not "google_ads"), status NEW, and
+    // the real score / guests / value. Capture used to pass only the raw source
+    // string, so a Source, Status or numeric rule mis-evaluated here and only
+    // came right when speed-to-lead re-ran the rules afterwards.
+    let assignedToId: string | null = null;
+    try {
+      const assignResult = await evaluateAssignmentRules({
+        source: data.leadSource ?? mapSource(data.source),
+        eventType: data.eventType,
+        status: "NEW",
+        score,
+        guestCount: data.guestCount ?? 0,
+        estimatedValue: estimatedValue ?? 0,
+      });
+      if (assignResult) {
+        assignedToId = assignResult;
+      }
+    } catch {
+      // Assignment rules are optional; proceed without assignment
+    }
+
+    // Fallback owner — an inbound lead must NEVER land orphaned. The Leads list
+    // defaults to "My leads" (assignedToId = viewer), so an unassigned lead is
+    // invisible to everyone until someone thinks to switch to "All leads". That
+    // silently hides ad/website leads from the people who need to act on them
+    // (this is exactly why a Google Ads test lead "wasn't coming into the app").
+    // If no assignment rule matched, fall back to the system admin (founder) so
+    // every captured lead surfaces for someone by default.
+    let ownerIsFallback = false;
+    if (!assignedToId) {
+      const fallbackOwner = await getSystemUserId();
+      if (fallbackOwner) {
+        assignedToId = fallbackOwner;
+        ownerIsFallback = true;
+      }
     }
 
     // Create the lead — stamp the speed-to-lead SLA clock on capture.
@@ -731,29 +743,23 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         userId: assignedToId || "system",
       });
 
-      // Notify assigned agent — in-app AND by email.
-      //
-      // notify() only ever wrote an in-app row despite its name, so a lead
-      // landing at 9pm sat unseen until someone opened the CRM. That is the
-      // opposite of what the speed-to-lead SLA on this same lead requires.
-      //
-      // actionUrl now points at the lead itself rather than the list: sending
-      // someone to a list to hunt for the row they were just told about is a
-      // small tax paid on every single notification.
+      // Notify the assigned agent on every channel (app + browser push, email,
+      // WhatsApp): a lead landing at 9pm must not sit unseen until someone
+      // happens to open the CRM — the speed-to-lead SLA on it is 15 minutes.
       if (assignedToId && !data.historical) {
-        notify({
-          userId: assignedToId,
-          title: "New Lead Captured",
-          message: `New ${data.source} lead: ${firstName} ${lastName}`,
-          type: "LEAD_ASSIGNED",
-          actionUrl: `/leads/${lead.id}`,
+        // In-app (+ browser push), email and WhatsApp in one place — see
+        // lead-assigned-notify. Awaited inside the deferred tail.
+        // Detached: a slow mail server or WhatsApp API must never delay the
+        // webhook/form response or the customer's own first response below.
+        // Production is a long-lived Node process (pm2), so it completes.
+        scheduleLeadsAssignedNotify({
+          leadIds: [lead.id],
+          assigneeId: assignedToId,
+          assignedById: null,
+          isNew: true,
+          // The catch-all owner gets the in-app notice only (see channels).
+          ...(ownerIsFallback ? { channels: { email: false, whatsapp: false } } : {}),
         });
-        // Awaited inside the deferred tail, not fire-and-forget: an unawaited
-        // send can be frozen when the serverless invocation ends.
-        const mail = await sendLeadAssignedEmail(lead.id, assignedToId);
-        if (!mail.sent) {
-          console.warn(`[CAPTURE] assignment email not sent: ${mail.reason}`);
-        }
       }
 
       // Automated Welcome Email to customer if email is provided

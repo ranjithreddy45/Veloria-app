@@ -189,8 +189,12 @@ export async function processWefluxEvent(payload: AnyRec): Promise<InboundEventS
           where: { OR: [{ phone }, { phone: `+${phone}` }, { phone: `+91${phone}` }] },
           select: { id: true },
         });
+        const { findStaffByPhone } = await import("@/lib/whatsapp/staff-phone");
         if (existing) {
           out.matchedContactId = existing.id;
+        } else if (await findStaffByPhone(phone)) {
+          // A staff member's own number is never a customer lead.
+          out.parseError = "lead.created from a staff number — not captured";
         } else {
           const capture = await captureLeadFromExternal({
             name: str(contactObj?.name ?? m.name ?? payload.name) || phone,

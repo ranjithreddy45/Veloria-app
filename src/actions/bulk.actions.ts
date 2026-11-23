@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { scheduleLeadsAssignedNotify } from "@/lib/crm/lead-assigned-notify";
 import { hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { logActivity } from "@/lib/activity-logger";
@@ -179,6 +180,21 @@ export async function bulkUpdateLeads(
       stampsById = new Map(allowed.map((a) => [a.id, a.stamps]));
     }
 
+    // Leads that will actually change hands, read before the write, so the
+    // new owner is told about those only (not leads they already had).
+    const changingHands = data.assignedToId
+      ? (
+          await prisma.lead.findMany({
+            where: {
+              id: { in: ids },
+              deletedAt: null,
+              OR: [{ assignedToId: null }, { assignedToId: { not: data.assignedToId } }],
+            },
+            select: { id: true },
+          })
+        ).map((l) => l.id)
+      : [];
+
     const result = await prisma.lead.updateMany({
       where: { id: { in: ids } },
       data: {
@@ -186,6 +202,15 @@ export async function bulkUpdateLeads(
         ...(data.source !== undefined && { source: data.source }),
       },
     });
+
+    if (data.assignedToId && changingHands.length > 0) {
+      // One notification per channel for the whole batch (app, email, WhatsApp).
+      scheduleLeadsAssignedNotify({
+        leadIds: changingHands,
+        assigneeId: data.assignedToId,
+        assignedById: session.user.id,
+      });
+    }
 
     // Status (and its once-only timestamps) go on per lead.
     if (data.status !== undefined) {
@@ -245,10 +270,32 @@ export async function bulkAssignLeads(
       return { success: false as const, error: badAssignee };
     }
 
+    // Leads that will actually change hands, read before the write, so the
+    // new owner is told about those only (not leads they already had).
+    const changingHands = (
+      await prisma.lead.findMany({
+        where: {
+          id: { in: parsed.data.ids },
+          deletedAt: null,
+          OR: [{ assignedToId: null }, { assignedToId: { not: parsed.data.assignedToId } }],
+        },
+        select: { id: true },
+      })
+    ).map((l) => l.id);
+
     const result = await prisma.lead.updateMany({
       where: { id: { in: parsed.data.ids } },
       data: { assignedToId: parsed.data.assignedToId },
     });
+
+    if (changingHands.length > 0) {
+      // One notification per channel for the whole batch (app, email, WhatsApp).
+      scheduleLeadsAssignedNotify({
+        leadIds: changingHands,
+        assigneeId: parsed.data.assignedToId,
+        assignedById: session.user.id,
+      });
+    }
 
     await Promise.all(
       parsed.data.ids.map((id) =>
