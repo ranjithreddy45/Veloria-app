@@ -12,6 +12,7 @@ import { recordConsent } from "@/lib/privacy/consent";
 import { CONSENT_TEXT_ENQUIRY } from "@/lib/privacy/consent-text";
 import type { Prisma, LeadSource } from "@prisma/client";
 import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
+import { scheduleLeadsAssignedNotify } from "@/lib/crm/lead-assigned-notify";
 
 // ============================================================
 // Simple In-Memory Rate Limiter
@@ -260,6 +261,11 @@ export async function POST(
         leadId = lead.id;
         // Queue the new lead for CallVibe when auto-push is on. Never throws.
         scheduleAutoPushToCallVibe(contactId);
+        // The form (or a rule) chose an owner: tell them on every channel.
+        // (An unowned lead is routed by speed-to-lead, which notifies too.)
+        if (assignedToId) {
+          scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: assignedToId, assignedById: null });
+        }
 
         // First-touch marketing attribution (best-effort; helper swallows
         // errors). Awaited so the write isn't dropped on a serverless freeze.

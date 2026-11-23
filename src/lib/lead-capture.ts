@@ -556,9 +556,13 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     // (this is exactly why a Google Ads test lead "wasn't coming into the app").
     // If no assignment rule matched, fall back to the system admin (founder) so
     // every captured lead surfaces for someone by default.
+    let ownerIsFallback = false;
     if (!assignedToId) {
       const fallbackOwner = await getSystemUserId();
-      if (fallbackOwner) assignedToId = fallbackOwner;
+      if (fallbackOwner) {
+        assignedToId = fallbackOwner;
+        ownerIsFallback = true;
+      }
     }
 
     // Derive an estimated value: explicit budget, else per-plate × guests.
@@ -736,7 +740,13 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       if (assignedToId && !data.historical) {
         // In-app (+ browser push), email and WhatsApp in one place — see
         // lead-assigned-notify. Awaited inside the deferred tail.
-        await notifyLeadsAssigned({ leadIds: [lead.id], assigneeId: assignedToId, assignedById: null });
+        await notifyLeadsAssigned({
+          leadIds: [lead.id],
+          assigneeId: assignedToId,
+          assignedById: null,
+          // The catch-all owner gets the in-app notice only (see channels).
+          ...(ownerIsFallback ? { channels: { email: false, whatsapp: false } } : {}),
+        });
       }
 
       // Automated Welcome Email to customer if email is provided

@@ -9,6 +9,7 @@ const m = vi.hoisted(() => ({
   sendEmail: vi.fn(),
   sendWhatsApp: vi.fn(),
   sendLeadAssignedEmail: vi.fn(),
+  shouldSend: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
@@ -112,6 +113,32 @@ describe("notifyLeadsAssigned", () => {
     expect(m.sendWhatsApp).not.toHaveBeenCalled();
   });
 
+  it("respects the person's own 'Lead assigned' email setting", async () => {
+    db.user.findUnique.mockImplementation(async ({ where }: { where: { id: string } }) =>
+      where.id === "rep"
+        ? { ...rep, notificationPreferences: [{ key: "lead_assigned", emailEnabled: false, smsEnabled: false }] }
+        : head
+    );
+    const res = await notifyLeadsAssigned({ leadIds: ["l1"], assigneeId: "rep", assignedById: "head" });
+    expect(res.email).toEqual({ sent: false, reason: "Turned off in notification settings" });
+    expect(m.sendLeadAssignedEmail).not.toHaveBeenCalled();
+    expect(m.notifyAwait).toHaveBeenCalledTimes(1);
+    expect(res.whatsapp).toEqual({ sent: true });
+  });
+
+  it("the catch-all owner can be limited to the in-app notice", async () => {
+    const res = await notifyLeadsAssigned({
+      leadIds: ["l1"],
+      assigneeId: "rep",
+      assignedById: null,
+      channels: { email: false, whatsapp: false },
+    });
+    expect(m.notifyAwait).toHaveBeenCalledTimes(1);
+    expect(m.sendLeadAssignedEmail).not.toHaveBeenCalled();
+    expect(m.sendWhatsApp).not.toHaveBeenCalled();
+    expect(res.email?.sent).toBe(false);
+  });
+
   it("one channel failing never stops the others", async () => {
     m.sendLeadAssignedEmail.mockRejectedValue(new Error("SMTP down"));
     m.notifyAwait.mockRejectedValue(new Error("db"));
@@ -133,5 +160,15 @@ describe("WhatsApp-safe text", () => {
     expect(
       leadSummary({ id: "l", title: "T", source: "WEBSITE", eventType: null, eventDate: null, guestCount: null, name: "", phone: null })
     ).toBe("T");
+  });
+});
+
+describe("leadAssignedEmailEnabled", () => {
+  it("is on unless the person saved it off", async () => {
+    const { leadAssignedEmailEnabled } = await import("./lead-assigned-notify");
+    expect(leadAssignedEmailEnabled(null)).toBe(true);
+    expect(leadAssignedEmailEnabled([{ key: "booking_confirmed", emailEnabled: false }])).toBe(true);
+    expect(leadAssignedEmailEnabled([{ key: "lead_assigned", emailEnabled: true }])).toBe(true);
+    expect(leadAssignedEmailEnabled([{ key: "lead_assigned", emailEnabled: false }])).toBe(false);
   });
 });

@@ -37,6 +37,20 @@ function appUrl(path: string): string {
   return `${base}${path}`;
 }
 
+/**
+ * The person's own Settings → Notifications "Lead assigned · Email" switch.
+ * Same rule as notification-settings.actions (on unless they saved it off),
+ * read here directly so this library does not pull in the auth stack.
+ */
+export function leadAssignedEmailEnabled(prefs: unknown): boolean {
+  if (!Array.isArray(prefs)) return true;
+  const row = prefs.find(
+    (p): p is { key: string; emailEnabled?: unknown } =>
+      !!p && typeof p === "object" && (p as { key?: unknown }).key === "lead_assigned"
+  );
+  return row ? Boolean(row.emailEnabled) : true;
+}
+
 function esc(v: string): string {
   return v
     .replace(/&/g, "&amp;")
@@ -90,6 +104,14 @@ export interface LeadAssignedNotifyArgs {
   assigneeId: string;
   /** The person who allocated; null/undefined = the CRM's automatic routing. */
   assignedById?: string | null;
+  /**
+   * Channels to use (default: all). The CRM's catch-all owner (the system
+   * admin a lead falls back to when no rule matches) gets the in-app notice
+   * only: nobody chose them, they own most inbound leads, and they already
+   * receive the new-lead group email — an email + paid WhatsApp template for
+   * every lead would be pure noise and cost.
+   */
+  channels?: { email?: boolean; whatsapp?: boolean };
 }
 
 export interface LeadAssignedNotifyResult {
@@ -116,7 +138,15 @@ export async function notifyLeadsAssigned(
     const [assignee, assigner, leadRows] = await Promise.all([
       prisma.user.findUnique({
         where: { id: args.assigneeId },
-        select: { id: true, name: true, email: true, phone: true, isActive: true, role: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          isActive: true,
+          role: true,
+          notificationPreferences: true,
+        },
       }),
       args.assignedById
         ? prisma.user.findUnique({ where: { id: args.assignedById }, select: { name: true } })
@@ -180,7 +210,12 @@ export async function notifyLeadsAssigned(
 
       // ---- 2. Email ------------------------------------------------------
       (async () => {
+        if (args.channels?.email === false) return { sent: false, reason: "Email not requested" };
         if (!assignee.email) return { sent: false, reason: "No email on the user profile" };
+        // Respect the person's own Settings → Notifications choice (fails open).
+        if (!leadAssignedEmailEnabled(assignee.notificationPreferences)) {
+          return { sent: false, reason: "Turned off in notification settings" };
+        }
         if (single) return sendLeadAssignedEmail(single.id, assignee.id, { assignedByName: byName });
         const res = await sendEmail({
           to: assignee.email,
@@ -192,6 +227,7 @@ export async function notifyLeadsAssigned(
 
       // ---- 3. WhatsApp ---------------------------------------------------
       (async () => {
+        if (args.channels?.whatsapp === false) return { sent: false, reason: "WhatsApp not requested" };
         const template = process.env.LEAD_ASSIGNED_WHATSAPP_TEMPLATE?.trim();
         if (!template) return { sent: false, reason: "No WhatsApp template configured" };
         if (!assignee.phone?.trim()) return { sent: false, reason: "No phone on the user profile" };

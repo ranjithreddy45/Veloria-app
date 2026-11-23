@@ -235,6 +235,18 @@ export async function handleKnownContactAck(
           where: { id: openLead.id },
           data: { assignedToId: routedToId },
         });
+        // Tell the new owner on every channel. Done here, independent of the
+        // acknowledgement logic below, which often returns early. The catch-all
+        // admin fallback gets the in-app notice only.
+        const { scheduleLeadsAssignedNotify } = await import("@/lib/crm/lead-assigned-notify");
+        scheduleLeadsAssignedNotify({
+          leadIds: [openLead.id],
+          assigneeId: routedToId,
+          assignedById: null,
+          ...((scoreBreakdown as { reason?: string } | null)?.reason === "system_admin_fallback"
+            ? { channels: { email: false, whatsapp: false } }
+            : {}),
+        });
       } catch (e) {
         console.error("[known-contact-ack] assign persist error:", e);
       }

@@ -87,7 +87,10 @@ export async function runSpeedToLead(
     // ---- (1) Round-robin auto-assign if still unassigned. ----------------
     // runLeadIntake passes a lead shape without its owner, so read the current
     // owner from the database rather than treating every lead as unassigned:
-    // re-running round-robin on an owned lead would hand it to a second rep.
+    // re-running round-robin on a lead a rep already owns would hand it to a
+    // second rep. A lead parked on the catch-all owner (capture found no rule
+    // and fell back to the system admin) is still open for routing, as before:
+    // the rules get a second look here with the fuller lead shape.
     let assignedToId =
       args.assignedToId ??
       lead.assignedToId ??
@@ -96,8 +99,10 @@ export async function runSpeedToLead(
       )?.assignedToId ??
       null;
     let assignedViaRuleId: string | null = null;
+    const parkedOnFallback =
+      !!assignedToId && !args.assignedToId && assignedToId === (await getSystemUserId());
 
-    if (!assignedToId) {
+    if (!assignedToId || parkedOnFallback) {
       const candidate = await evaluateAssignmentRules({
         id: lead.id,
         source: lead.source ?? "",
@@ -108,7 +113,7 @@ export async function runSpeedToLead(
         estimatedValue:
           lead.estimatedValue != null ? Number(lead.estimatedValue) : 0,
       });
-      if (candidate) {
+      if (candidate && candidate !== assignedToId) {
         assignedToId = candidate;
         // Capture which active LEAD rule produced the assignment (audit only).
         try {

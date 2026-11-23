@@ -85,6 +85,19 @@ describe("captureLeadFromExternal — past enquiry (historical)", () => {
     expect(side.intake).toHaveBeenCalled();
   });
 
+  it("a lead no rule routes falls back to the admin, who gets the in-app notice only", async () => {
+    const { evaluateAssignmentRules } = await import("@/lib/assignment/evaluate");
+    vi.mocked(evaluateAssignmentRules).mockResolvedValueOnce(null);
+    await captureLeadFromExternal({ ...base });
+    expect(db.lead.create.mock.calls[0][0].data.assignedToId).toBe("admin");
+    expect(side.notify).toHaveBeenCalledWith({
+      leadIds: ["lead-1"],
+      assigneeId: "admin",
+      assignedById: null,
+      channels: { email: false, whatsapp: false },
+    });
+  });
+
   it("ignores a future occurredAt", async () => {
     await captureLeadFromExternal({ ...base, occurredAt: new Date(Date.now() + 86_400_000) });
     expect(db.lead.create.mock.calls[0][0].data.createdAt).toBeUndefined();
