@@ -148,6 +148,22 @@ describe("notifyLeadsAssigned", () => {
     expect(res.email?.sent).toBe(false);
   });
 
+  it("a new phone lead rings the bell only: no email, no WhatsApp", async () => {
+    db.lead.findMany.mockResolvedValue([{ ...leadRow("l1"), source: "PHONE_INQUIRY" }]);
+    const res = await notifyLeadsAssigned({ leadIds: ["l1"], assigneeId: "rep", isNew: true });
+    expect(res.inApp).toBe(true);
+    expect(res.email).toEqual({ sent: false, reason: "Phone lead: already spoken to" });
+    expect(res.whatsapp).toEqual({ sent: false, reason: "Phone lead: already spoken to" });
+    expect(m.sendLeadAssignedEmail).not.toHaveBeenCalled();
+    expect(m.sendWhatsApp).not.toHaveBeenCalled();
+  });
+
+  it("a phone lead handed to someone later still reaches them everywhere", async () => {
+    db.lead.findMany.mockResolvedValue([{ ...leadRow("l1"), source: "PHONE_INQUIRY" }]);
+    const res = await notifyLeadsAssigned({ leadIds: ["l1"], assigneeId: "rep", assignedById: "head" });
+    expect(res).toMatchObject({ email: { sent: true }, whatsapp: { sent: true } });
+  });
+
   it("one channel failing never stops the others", async () => {
     m.sendLeadAssignedEmail.mockRejectedValue(new Error("SMTP down"));
     m.notifyAwait.mockRejectedValue(new Error("db"));

@@ -5,6 +5,7 @@ import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { canonicalPhone } from "@/lib/phone";
 import { sendLeadAssignedEmail } from "@/lib/crm/lead-assigned-email";
 import { LEAD_SOURCE_LABELS } from "@/lib/constants";
+import { isPhoneLead } from "@/lib/crm/call-lead";
 
 // ============================================================
 // "A lead has been assigned to you" — on every channel, at once.
@@ -193,6 +194,12 @@ export async function notifyLeadsAssigned(
     const byText = byName ?? "the CRM (automatic)";
     const link = single ? appUrl(`/leads/${single.id}`) : appUrl("/leads");
     const isNew = args.isNew === true;
+    // A new phone lead has already been spoken to: the bell only, no email or
+    // WhatsApp (call-lead.ts). A phone lead handed to someone else later still
+    // reaches them on every channel.
+    const phoneOnly = isNew && leads.every((l) => isPhoneLead(l.source));
+    const emailOn = args.channels?.email !== false && !phoneOnly;
+    const whatsappOn = args.channels?.whatsapp !== false && !phoneOnly;
 
     // Run the three channels independently: one failing never stops another.
     const [inApp, email, whatsapp] = await Promise.all([
@@ -219,7 +226,7 @@ export async function notifyLeadsAssigned(
 
       // ---- 2. Email ------------------------------------------------------
       (async () => {
-        if (args.channels?.email === false) return { sent: false, reason: "Email not requested" };
+        if (!emailOn) return { sent: false, reason: phoneOnly ? "Phone lead: already spoken to" : "Email not requested" };
         if (!assignee.email) return { sent: false, reason: "No email on the user profile" };
         // Respect the person's own Settings → Notifications choice (fails open).
         if (!leadAssignedEmailEnabled(assignee.notificationPreferences)) {
@@ -236,7 +243,7 @@ export async function notifyLeadsAssigned(
 
       // ---- 3. WhatsApp ---------------------------------------------------
       (async () => {
-        if (args.channels?.whatsapp === false) return { sent: false, reason: "WhatsApp not requested" };
+        if (!whatsappOn) return { sent: false, reason: phoneOnly ? "Phone lead: already spoken to" : "WhatsApp not requested" };
         const template = process.env.LEAD_ASSIGNED_WHATSAPP_TEMPLATE?.trim();
         if (!template) return { sent: false, reason: "No WhatsApp template configured" };
         if (!assignee.phone?.trim()) return { sent: false, reason: "No phone on the user profile" };

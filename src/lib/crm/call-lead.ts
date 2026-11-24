@@ -23,3 +23,21 @@ export const CALL_LEAD_SOURCES: ReadonlySet<string> = new Set(["callvibe"]);
 export function isCallLeadSource(source: string | null | undefined): boolean {
   return !!source && CALL_LEAD_SOURCES.has(source.trim().toLowerCase());
 }
+
+// ------------------------------------------------------------
+// No email or WhatsApp for any phone lead (owner, 24 Nov 2026).
+//
+// "These are already called": every Phone Inquiry lead has been on the phone
+// with the team, missed rings included (CallVibe follows those up). So the
+// two staff emails and the WhatsApp ping never go out for a phone lead: the
+// new-lead group email, and the "new lead assigned to you" email + WhatsApp.
+// The in-app bell stays, and a missed ring keeps its first-response clock, so
+// an unanswered caller still surfaces in the app.
+// ------------------------------------------------------------
+
+/** The lead source every phone call lead is stored under. */
+export const PHONE_LEAD_SOURCE = "PHONE_INQUIRY";
+
+export function isPhoneLead(source: string | null | undefined): boolean {
+  return source === PHONE_LEAD_SOURCE;
+}
