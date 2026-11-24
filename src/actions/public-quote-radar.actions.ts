@@ -16,6 +16,9 @@
 
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
+import { auth } from "@/../auth";
+import { isStaffRole } from "@/lib/roles";
+import { sendQuoteOpenedAlert, REOPEN_GAP_MS } from "@/lib/quote-radar/quote-opened-alert";
 import { clientIpOfHeaders } from "@/lib/hr/geo";
 import {
   buildPublicQuoteView,
@@ -126,9 +129,29 @@ export async function recordQuoteView(
       // headers() can throw outside a request scope — degrade gracefully.
     }
 
+    // A rep opening their own link to check it is not the customer: no view
+    // row, no counters, no "opened" alert, and the 24h nudge isn't started.
+    try {
+      const session = await auth();
+      if (isStaffRole(session?.user?.role as string | undefined)) return { recorded: false };
+    } catch {
+      // no session available — treat as a customer view
+    }
+
     const link = await prisma.quoteShareLink.findUnique({
       where: { token: input.token },
-      select: { id: true, status: true, expiresAt: true },
+      select: {
+        id: true,
+        status: true,
+        expiresAt: true,
+        leadId: true,
+        createdById: true,
+        clientName: true,
+        occasion: true,
+        eventDate: true,
+        grandTotal: true,
+        viewCount: true,
+      },
     });
     if (!link || link.status !== "ACTIVE") return { recorded: false };
     if (link.expiresAt && link.expiresAt.getTime() < Date.now()) return { recorded: false };
@@ -169,20 +192,33 @@ export async function recordQuoteView(
         where: { id: link.id },
         data: {
           viewCount: { increment: 1 },
-          // lastViewedAt advances on every human open; bot opens leave it alone.
-          ...(bot ? {} : { lastViewedAt: now }),
         },
       }),
     ]);
 
-    // firstViewedAt must be set ONLY when currently null (first HUMAN open).
-    // Prisma can't express "set if null" inline, so a guarded conditional
-    // updateMany does it atomically (no read-modify-write, concurrency-safe).
+    // Human opens only. Each step is a guarded updateMany, so when several
+    // opens land together exactly one of them wins each condition (no
+    // read-modify-write) and the rep is told once:
+    //   1. first human open  -> set firstViewedAt (+ lastViewedAt), alert "opened"
+    //   2. back after a gap  -> advance lastViewedAt, alert "looking again"
+    //   3. otherwise         -> just advance lastViewedAt
     if (!bot) {
-      await prisma.quoteShareLink.updateMany({
+      const first = await prisma.quoteShareLink.updateMany({
         where: { id: link.id, firstViewedAt: null },
-        data: { firstViewedAt: now },
+        data: { firstViewedAt: now, lastViewedAt: now },
       });
+      let alert: "first" | "again" | null = first.count === 1 ? "first" : null;
+      if (!alert) {
+        const back = await prisma.quoteShareLink.updateMany({
+          where: { id: link.id, lastViewedAt: { lt: new Date(now.getTime() - REOPEN_GAP_MS) } },
+          data: { lastViewedAt: now },
+        });
+        if (back.count === 1) alert = "again";
+        else await prisma.quoteShareLink.update({ where: { id: link.id }, data: { lastViewedAt: now } });
+      }
+      if (alert) {
+        await sendQuoteOpenedAlert({ ...link, viewCount: link.viewCount + 1 }, alert);
+      }
     }
 
     return { recorded: true };

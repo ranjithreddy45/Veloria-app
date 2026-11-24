@@ -17,6 +17,8 @@ import { LeadsViews } from "./_components/leads-views";
 import { LeadsFilterBar } from "./_components/leads-filter-bar";
 import { WorkStrip } from "./_components/work-strip";
 import { LeadsMoreMenu } from "./_components/leads-more-menu";
+import { getStrandedLeads } from "@/actions/stranded-leads.actions";
+import { StrandedLeadsCard } from "@/components/crm/stranded-leads-card";
 
 export const metadata: Metadata = { title: "Leads" };
 // Filters live in the URL, so this page always renders per-request.
@@ -67,7 +69,7 @@ export default async function LeadsPage({
 
   // Ceiling lets the client-side table page through records without the
   // default-50 cutoff, while keeping the payload far lighter than 1000.
-  const [result, statsResult, orgStatsResult, testCountResult, unassignedResult, venuesResult, occasionsResult, session] =
+  const [result, statsResult, orgStatsResult, testCountResult, unassignedResult, venuesResult, occasionsResult, session, stranded] =
     await Promise.all([
       // `?sort=cold` is the follow-up worklist: least-recently-touched first,
       // never-touched at the very top. Anything else falls through to the
@@ -89,6 +91,8 @@ export default async function LeadsPage({
       getVenues({ activeOnly: true }),
       getLeadOccasionOptions(filters),
       auth(),
+      // Leads still owned by deactivated staff (leads:assign only; fails closed).
+      getStrandedLeads(),
     ]);
   const unassignedCount = unassignedResult.success ? unassignedResult.count : 0;
   const orgLeadTotal = orgStatsResult.success ? orgStatsResult.data.total : 0;
@@ -251,6 +255,10 @@ export default async function LeadsPage({
         {/* Standing + next actions, above the filters: the first thing a rep sees
           on the page they live on, rather than eleven pages away. */}
       <WorkStrip />
+
+      {stranded.success && stranded.data.owners.length > 0 && (
+        <StrandedLeadsCard owners={stranded.data.owners} destinations={stranded.data.destinations} />
+      )}
 
       <LeadsFilterBar
         canViewAll={canViewAll}
