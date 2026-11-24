@@ -13,6 +13,7 @@ import { CONSENT_TEXT_ENQUIRY } from "@/lib/privacy/consent-text";
 import type { Prisma, LeadSource } from "@prisma/client";
 import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
 import { scheduleLeadsAssignedNotify } from "@/lib/crm/lead-assigned-notify";
+import { getDefaultLeadOwnerId } from "@/lib/crm/default-lead-owner";
 
 // ============================================================
 // Simple In-Memory Rate Limiter
@@ -247,6 +248,13 @@ export async function POST(
             /* assignment optional */
           }
         }
+        // Nothing routed it: the default lead owner, so it isn't invisible.
+        // (Like lead capture, the catch-all owner gets the in-app notice only.)
+        let ownerIsFallback = false;
+        if (!assignedToId) {
+          assignedToId = await getDefaultLeadOwnerId();
+          ownerIsFallback = !!assignedToId;
+        }
 
         const lead = await prisma.lead.create({
           data: {
@@ -265,7 +273,13 @@ export async function POST(
         // The form (or a rule) chose an owner: tell them on every channel.
         // (An unowned lead is routed by speed-to-lead, which notifies too.)
         if (assignedToId) {
-          scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: assignedToId, assignedById: null, isNew: true });
+          scheduleLeadsAssignedNotify({
+            leadIds: [lead.id],
+            assigneeId: assignedToId,
+            assignedById: null,
+            isNew: true,
+            ...(ownerIsFallback ? { channels: { email: false, whatsapp: false } } : {}),
+          });
         }
 
         // First-touch marketing attribution (best-effort; helper swallows

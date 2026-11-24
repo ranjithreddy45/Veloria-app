@@ -24,6 +24,7 @@ import {
   captureLeadFromExternal,
   getSystemUserId,
 } from "@/lib/lead-capture";
+import { getDefaultLeadOwnerId } from "@/lib/crm/default-lead-owner";
 import { runSpeedToLead } from "@/lib/lead-first-response";
 
 // When no stable provider call id is present (some IVR "missed call" pings
@@ -201,7 +202,7 @@ export async function handleMissedCallRescue(
 
       // Alert the assigned rep that a known customer rang in.
       const target =
-        openLead?.assignedToId || (await getSystemUserId());
+        openLead?.assignedToId || (await getDefaultLeadOwnerId()) || (await getSystemUserId());
       if (target) {
         const who = `${known.firstName} ${known.lastName}`.trim() || callerPhone;
         notify({

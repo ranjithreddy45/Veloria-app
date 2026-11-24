@@ -18,6 +18,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/notify";
+import { getDefaultLeadOwnerId } from "@/lib/crm/default-lead-owner";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
@@ -106,7 +107,7 @@ export async function runSpeedToLead(
       null;
     let assignedViaRuleId: string | null = null;
     const parkedOnFallback =
-      !!assignedToId && !args.assignedToId && assignedToId === (await getSystemUserId());
+      !!assignedToId && !args.assignedToId && assignedToId === (await getDefaultLeadOwnerId());
 
     if (!assignedToId || parkedOnFallback) {
       const candidate = await evaluateAssignmentRules({

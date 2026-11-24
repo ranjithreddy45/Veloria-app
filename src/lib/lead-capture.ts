@@ -1,5 +1,6 @@
 import { scheduleLeadsAssignedNotify } from "@/lib/crm/lead-assigned-notify";
 import { sendLeadWelcomeEmail } from "@/lib/crm/lead-welcome-email";
+import { getDefaultLeadOwnerId } from "@/lib/crm/default-lead-owner";
 import { canonicalPhone } from "@/lib/phone";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -595,11 +596,12 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     // invisible to everyone until someone thinks to switch to "All leads". That
     // silently hides ad/website leads from the people who need to act on them
     // (this is exactly why a Google Ads test lead "wasn't coming into the app").
-    // If no assignment rule matched, fall back to the system admin (founder) so
-    // every captured lead surfaces for someone by default.
+    // If no assignment rule matched, fall back to the default lead owner
+    // (DEFAULT_LEAD_OWNER_EMAIL, see crm/default-lead-owner) so every captured
+    // lead surfaces for someone by default.
     let ownerIsFallback = false;
     if (!assignedToId) {
-      const fallbackOwner = await getSystemUserId();
+      const fallbackOwner = await getDefaultLeadOwnerId();
       if (fallbackOwner) {
         assignedToId = fallbackOwner;
         ownerIsFallback = true;
@@ -817,7 +819,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
                 dueDate: sendAt,
                 priority: "HIGH",
                 status: "TODO",
-                assigneeId: assignedToId || (await getSystemUserId()),
+                assigneeId: assignedToId || (await getDefaultLeadOwnerId()) || (await getSystemUserId()),
                 creatorId: await getSystemUserId(),
               },
             });
