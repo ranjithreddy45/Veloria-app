@@ -150,6 +150,16 @@ interface ExternalLeadData {
   /** Don't send the automatic WhatsApp welcome message for this lead. */
   suppressAutoWelcome?: boolean;
   /**
+   * The lead was made from a phone call the team handled (CallVibe creates one
+   * when a rep talks to, or dials, a number we hold no lead for). Nobody needs
+   * telling: no first-response clock (so no SLA warnings or escalations), no
+   * "lead assigned" notice, no new-lead group email, no staff tasks or notices
+   * from intake workflows, no "auto first-response failed" alert. It still gets
+   * an owner, its team, scoring, and the same customer-facing messages.
+   * See src/lib/crm/call-lead.ts.
+   */
+  fromCall?: boolean;
+  /**
    * A PAST enquiry being imported (a Meta lead-ads backfill), not one arriving
    * now. The lead and any new contact are dated `receivedAt`; there is no
    * speed-to-lead clock (a two-week-old enquiry is not "first reply overdue"
@@ -633,7 +643,9 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         estimatedValue,
         preferredVenueId: data.venueId || null,
         // A past enquiry keeps its real date and starts no speed-to-lead clock.
-        firstContactDue: data.historical ? null : leadSlaDeadline(),
+        // A past enquiry, or one from a call a rep already handled, starts no
+        // speed-to-lead clock.
+        firstContactDue: data.historical || data.fromCall ? null : leadSlaDeadline(),
         ...(enquiryAt ? { createdAt: enquiryAt } : {}),
         contactId: contact.id,
         assignedToId,
@@ -746,7 +758,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       // Notify the assigned agent on every channel (app + browser push, email,
       // WhatsApp): a lead landing at 9pm must not sit unseen until someone
       // happens to open the CRM — the speed-to-lead SLA on it is 15 minutes.
-      if (assignedToId && !data.historical) {
+      if (assignedToId && !data.historical && !data.fromCall) {
         // In-app (+ browser push), email and WhatsApp in one place — see
         // lead-assigned-notify. Awaited inside the deferred tail.
         // Detached: a slow mail server or WhatsApp API must never delay the
@@ -829,6 +841,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           estimatedValue: estimatedValue,
         },
         triggeredByUserId: assignedToId ?? undefined,
+        fromCall: data.fromCall === true,
       });
 
       // Message-intent classification on the first-touch inbound message so a

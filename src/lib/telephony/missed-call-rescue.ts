@@ -224,14 +224,19 @@ export async function handleMissedCallRescue(
     }
 
     // ---- UNKNOWN: mint a scored, SLA-clocked lead + instant WhatsApp. -----
+    // An ANSWERED call (CallVibe sync) means a rep already spoke to them: the
+    // lead is made quietly, with no clock and no staff alerts
+    // (src/lib/crm/call-lead.ts). A missed ring keeps every alert.
+    const answered = (args.rawStatus ?? "").toUpperCase() === "ANSWERED";
     // Pass externalId='call:<id>' for double idempotency protection
     // (captureLeadFromExternal also dedupes on the description marker).
     const capture = await captureLeadFromExternal({
       name: callerPhone,
       phone: callerPhone,
       source: "phone", // → PHONE_INQUIRY via mapSource
-      message: "Missed/inbound call — auto-rescued",
+      message: answered ? "Inbound call (answered) — auto-captured" : "Missed/inbound call — auto-rescued",
       externalId: externalCallId ? `call:${externalCallId}` : undefined,
+      fromCall: answered,
     });
 
     if (!capture.success || !capture.leadId) {
@@ -272,6 +277,7 @@ export async function handleMissedCallRescue(
     if (contactId) {
       const stl = await runSpeedToLead({
         lead: { id: leadId, contactId },
+        quiet: answered,
       });
       whatsappSent = stl.ok && stl.status === "SENT";
       if (!whatsappSent) {
@@ -321,7 +327,7 @@ export async function handleMissedCallRescue(
       // Audit logging must never break the rescue.
     }
 
-    if (!whatsappSent) {
+    if (!whatsappSent && !answered) {
       // Surface a rescued ring whose auto-message didn't land so a human
       // can step in. runSpeedToLead also notifies; this targets the system
       // actor as a backstop when there is no assignee.

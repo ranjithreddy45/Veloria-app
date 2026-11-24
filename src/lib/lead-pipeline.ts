@@ -175,13 +175,20 @@ export async function autoEnrollLeadIntoCadences(lead: LeadLike): Promise<number
 export async function runLeadIntake(args: {
   lead: LeadLike;
   triggeredByUserId?: string;
+  /**
+   * Made from a phone call the team handled (src/lib/crm/call-lead.ts): the
+   * customer-facing steps still run, but nothing alerts staff — no workflow
+   * task or notice, no speed-to-lead notices, no new-lead group email.
+   */
+  fromCall?: boolean;
 }): Promise<void> {
-  const { lead, triggeredByUserId } = args;
+  const { lead, triggeredByUserId, fromCall } = args;
   try {
     await triggerWorkflows("LEAD_CREATED", {
       leadId: lead.id,
       contactId: lead.contactId,
       triggeredByUserId: triggeredByUserId ?? (await getSystemUserId()),
+      ...(fromCall ? { skipStaffActions: true } : {}),
     });
   } catch (e) {
     console.error("[runLeadIntake] workflows error:", e);
@@ -191,7 +198,7 @@ export async function runLeadIntake(args: {
   // Best-effort and self-contained — must never break lead creation.
   try {
     const { runSpeedToLead } = await import("@/lib/lead-first-response");
-    await runSpeedToLead({ lead });
+    await runSpeedToLead({ lead, ...(fromCall ? { quiet: true } : {}) });
   } catch (e) {
     console.error("[runLeadIntake] speed-to-lead error:", e);
   }
@@ -199,6 +206,7 @@ export async function runLeadIntake(args: {
   // last so the email can name the rep speed-to-lead just assigned. Awaiting
   // only writes the delivery record; the send itself runs detached, and the
   // fast cron lane retries it if it fails.
+  if (fromCall) return;
   try {
     const { enqueueNewLeadAlert } = await import("@/lib/crm/new-lead-alert");
     await enqueueNewLeadAlert(lead.id);

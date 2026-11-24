@@ -8,6 +8,7 @@ import { recordConsent } from "@/lib/privacy/consent";
 import { consumeDailyLeadCap } from "../rate-limit";
 import type { PushLead } from "./schema";
 import { identityLockKeys, withIngestLocks } from "./ingest-lock";
+import { isCallLeadSource } from "@/lib/crm/call-lead";
 
 // ============================================================
 // Lead ingestion for the Push API.
@@ -138,6 +139,8 @@ async function ingestLocked(lead: PushLead, ctx: IngestContext): Promise<IngestR
       : undefined,
     // The Push API has already decided this is a new lead under stricter rules.
     skipOpenLeadFold: true,
+    // CallVibe: made from a call a rep handled, so nobody is alerted.
+    fromCall: isCallLeadSource(lead.source),
     // Nobody authorised a WhatsApp message unless consent says so.
     suppressAutoWelcome: lead.consent !== true,
     // Answer once the lead is saved; welcome, workflows and notifications run after.

@@ -34,7 +34,16 @@ export interface WorkflowExecutionContext {
   paymentId?: string;
   /** Optional override for the user to credit for the run (defaults to system). */
   triggeredByUserId?: string;
+  /**
+   * Run only the customer-facing actions (email, WhatsApp, status): skip
+   * CREATE_TASK and SEND_NOTIFICATION. Used for leads made from a call a rep
+   * already handled, where "call this new inquiry within 15 minutes" is noise.
+   */
+  skipStaffActions?: boolean;
 }
+
+/** Workflow actions that only exist to alert staff. */
+const STAFF_ACTIONS = new Set(["CREATE_TASK", "SEND_NOTIFICATION"]);
 
 interface ActionConfig {
   type: string;
@@ -471,6 +480,7 @@ async function runWorkflowActionsInner(
   let failed = 0;
 
   for (const action of actions) {
+    if (baseCtx.skipStaffActions && STAFF_ACTIONS.has(action.type)) continue;
     let result:
       | { ok: true; details: string }
       | { ok: false; error: string };
@@ -524,7 +534,8 @@ async function runWorkflowActionsInner(
     else failed++;
   }
 
-  return { executed: actions.length, succeeded, failed };
+  // Actions actually run (staff-only actions skipped for a call lead don't count).
+  return { executed: succeeded + failed, succeeded, failed };
 }
 
 // ============================================================
