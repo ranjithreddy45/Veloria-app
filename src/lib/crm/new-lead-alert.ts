@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail, isEmailConfigured } from "@/lib/email";
 import { LEAD_SOURCE_LABELS } from "@/lib/constants";
 import { reportSystemFailure } from "@/lib/ops-alert";
+import { isPhoneLead } from "@/lib/crm/call-lead";
 
 // ============================================================
 // "A new lead just came in" — one email to a fixed list of people.
@@ -320,6 +321,9 @@ export async function attemptLeadAlertDelivery(
 export async function enqueueNewLeadAlert(leadId: string): Promise<void> {
   try {
     if (parseAlertRecipients(process.env.NEW_LEAD_ALERT_EMAILS).length === 0) return;
+    // A phone lead has already been spoken to: no group email (call-lead.ts).
+    const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { source: true } });
+    if (lead && isPhoneLead(String(lead.source))) return;
     const row = await prisma.leadAlertDelivery.upsert({
       where: { leadId },
       create: { leadId },

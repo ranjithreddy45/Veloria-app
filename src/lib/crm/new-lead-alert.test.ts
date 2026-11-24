@@ -215,6 +215,13 @@ describe("durable delivery", () => {
     expect(db.leadAlertDelivery.updateMany).not.toHaveBeenCalled();
   });
 
+  it("a phone lead gets no group email: it has already been spoken to", async () => {
+    db.lead.findUnique.mockResolvedValue({ ...leadRow, source: "PHONE_INQUIRY" });
+    await enqueueNewLeadAlert("lead-1");
+    expect(db.leadAlertDelivery.upsert).not.toHaveBeenCalled();
+    expect(emailMock.sendEmail).not.toHaveBeenCalled();
+  });
+
   it("enqueue never throws, even if the database is down", async () => {
     db.leadAlertDelivery.upsert.mockRejectedValue(new Error("db down"));
     await expect(enqueueNewLeadAlert("lead-1")).resolves.toBeUndefined();
