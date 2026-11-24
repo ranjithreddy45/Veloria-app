@@ -90,7 +90,9 @@ export async function resolveAutoMetrics(employeeId: string, role: KraRole, peri
         }),
         [] as { firstRespondedAt: Date | null; firstContactDue: Date | null }[],
       );
-      const responded = leads.filter((l) => l.firstRespondedAt);
+      // Only leads that had a clock: a lead made from a call a rep handled, or
+      // an imported past enquiry, has no first-contact deadline to beat or miss.
+      const responded = leads.filter((l) => l.firstRespondedAt && l.firstContactDue);
       const onTime = responded.filter((l) => l.firstContactDue && l.firstRespondedAt! <= l.firstContactDue);
       m.first_response_sla_pct = responded.length > 0 ? Math.round((onTime.length / responded.length) * 100) : 0;
     }

@@ -200,7 +200,10 @@ async function resolveLead(
   // Nobody we hold a lead for: create one the way a lead push would.
   const parsed = parsePushLead({ source: CALLVIBE_PUSH_SOURCE, phone, name: call.contactName });
   if (!parsed.ok) throw new PushApiError("VALIDATION_ERROR", "Invalid request", parsed.fields);
-  const ingested = await ingestPushLead(parsed.lead, ctx);
+  // Quiet (no staff alerts) only when someone actually handled the call: a rep
+  // dialled out, or the call connected. A missed inbound ring alerts as usual.
+  const handled = call.direction === "outbound" || call.status === "completed";
+  const ingested = await ingestPushLead(parsed.lead, ctx, { fromCall: handled });
   return {
     leadId: ingested.leadId,
     contactId: ingested.contactId,

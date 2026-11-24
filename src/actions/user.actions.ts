@@ -9,6 +9,7 @@ import { randomInt } from "crypto";
 import { hasPermission } from "@/lib/permissions";
 import { logActivity } from "@/lib/activity-logger";
 import { INTERNAL_ROLES } from "@/lib/roles";
+import { openLeadCount } from "@/lib/crm/stranded-leads";
 
 // Roles that may be assigned to internal users via this admin surface.
 // Excludes CLIENT/VENDOR (portal identities, provisioned through other flows).
@@ -399,7 +400,11 @@ export async function toggleUserActive(id: string) {
 
     revalidatePath("/settings/users");
 
-    return { success: true as const };
+    // Their leads don't move by themselves: say how many are left behind so the
+    // admin can move them from the "people who have left" card on this page.
+    const openLeads = user.isActive ? await openLeadCount(id).catch(() => 0) : 0;
+
+    return { success: true as const, openLeads };
   } catch (error) {
     console.error("[TOGGLE_USER_ACTIVE_ERROR]", error);
     return { success: false as const, error: "Failed to update user status" };

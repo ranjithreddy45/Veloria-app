@@ -33,6 +33,7 @@ import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
 import { syncLeadToWhatsAppProvider } from "@/lib/integrations/lead-sync";
 import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
 import { scheduleLeadsAssignedNotify } from "@/lib/crm/lead-assigned-notify";
+import { istDayWindow } from "@/lib/home/ist";
 import { after } from "next/server";
 import { isSalesTeam, teamForEventType } from "@/lib/crm/sales-team";
 // LeadStatus enum values matching Prisma schema
@@ -1091,14 +1092,14 @@ export async function getSalesFollowupQueue(): Promise<
     take: 300,
   });
 
-  const now = new Date();
-  const startToday = new Date(now); startToday.setHours(0, 0, 0, 0);
-  const endToday = new Date(now); endToday.setHours(23, 59, 59, 999);
+  // "Today" is India's day (the server runs on UTC), the same window the
+  // morning follow-up reminder counts, so the page and the reminder agree.
+  const { start: startToday, end: endToday } = istDayWindow(new Date());
   const overdue: typeof leads = [], today: typeof leads = [], upcoming: typeof leads = [];
   for (const l of leads) {
     const t = l.followUpDate!.getTime();
     if (t < startToday.getTime()) overdue.push(l);
-    else if (t <= endToday.getTime()) today.push(l);
+    else if (t < endToday.getTime()) today.push(l);
     else upcoming.push(l);
   }
   return { success: true, data: serialize({ overdue, today, upcoming }) as { overdue: unknown[]; today: unknown[]; upcoming: unknown[] } };

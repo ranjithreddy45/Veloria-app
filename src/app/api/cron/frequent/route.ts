@@ -23,6 +23,7 @@ const JOBS = [
   "sync-callvibe", // pull CallVibe call records (CallVibe cannot push to us)
   "claim-routes", // give in-flight reimbursement claims without an approval chain one (src/lib/hr/claim-workflow.ts)
   "sales-team-sort", // give Unsorted leads their sales team once the event type names one (src/lib/crm/sales-team-db.ts)
+  "follow-up-digest", // from 9 am IST, one notice per rep with follow-ups due today/overdue (src/lib/crm/follow-up-digest.ts)
 ] as const;
 
 export async function GET(request: Request) {

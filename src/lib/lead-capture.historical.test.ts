@@ -135,3 +135,32 @@ describe("captureLeadFromExternal — past enquiry (historical)", () => {
     expect(db.lead.create.mock.calls[0][0].data.source).toBe("INSTAGRAM");
   });
 });
+
+describe("captureLeadFromExternal — a lead made from a phone call (fromCall)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    db.lead.findFirst.mockResolvedValue(null);
+    db.contact.findMany.mockResolvedValue([]);
+    db.contact.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ id: "c1", ...data }));
+    db.lead.create.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ id: "lead-1", status: "NEW", ...data }));
+    db.autoWelcomeConfig.findUnique.mockResolvedValue(null);
+    db.user.findFirst.mockResolvedValue({ id: "admin" });
+  });
+
+  it("starts no response clock and tells no one, but still routes it and runs the customer-side intake", async () => {
+    await captureLeadFromExternal({ name: "", phone: "+919006612345", source: "callvibe", leadSource: "PHONE_INQUIRY", fromCall: true });
+    const lead = db.lead.create.mock.calls[0][0].data;
+    expect(lead.firstContactDue).toBeNull();
+    expect(lead.assignedToId).toBe("rep-1");
+    expect(side.notify).not.toHaveBeenCalled();
+    expect(side.intake).toHaveBeenCalledTimes(1);
+    expect((side.intake.mock.calls[0] as unknown[])[0]).toMatchObject({ fromCall: true });
+  });
+
+  it("any other lead keeps the clock and the owner's notice", async () => {
+    await captureLeadFromExternal({ name: "", phone: "+919006612345", source: "website" });
+    expect(db.lead.create.mock.calls[0][0].data.firstContactDue).toEqual(new Date("2099-01-01T00:00:00Z"));
+    expect(side.notify).toHaveBeenCalled();
+    expect((side.intake.mock.calls[0] as unknown[])[0]).toMatchObject({ fromCall: false });
+  });
+});

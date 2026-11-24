@@ -18,6 +18,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/notify";
+import { getDefaultLeadOwnerId } from "@/lib/crm/default-lead-owner";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
@@ -47,6 +48,12 @@ interface RunSpeedToLeadArgs {
   lead: SpeedToLeadLead;
   /** Current assignee if the caller already knows it (skips re-assign). */
   assignedToId?: string | null;
+  /**
+   * No staff notices (a lead from a call a rep already handled): the lead is
+   * still routed and the customer still gets the first response, but the new
+   * owner isn't told and a failed send raises no alert.
+   */
+  quiet?: boolean;
 }
 
 interface RunSpeedToLeadResult {
@@ -100,7 +107,7 @@ export async function runSpeedToLead(
       null;
     let assignedViaRuleId: string | null = null;
     const parkedOnFallback =
-      !!assignedToId && !args.assignedToId && assignedToId === (await getSystemUserId());
+      !!assignedToId && !args.assignedToId && assignedToId === (await getDefaultLeadOwnerId());
 
     if (!assignedToId || parkedOnFallback) {
       const candidate = await evaluateAssignmentRules({
@@ -141,8 +148,10 @@ export async function runSpeedToLead(
           });
           // Tell the new owner (app, email, WhatsApp) without delaying the
           // customer's first response below.
-          const { scheduleLeadsAssignedNotify } = await import("@/lib/crm/lead-assigned-notify");
-          scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: assignedToId, assignedById: null, isNew: true });
+          if (!args.quiet) {
+            const { scheduleLeadsAssignedNotify } = await import("@/lib/crm/lead-assigned-notify");
+            scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: assignedToId, assignedById: null, isNew: true });
+          }
         } catch (e) {
           console.error("[runSpeedToLead] assign persist failed:", e);
         }
@@ -304,7 +313,9 @@ export async function runSpeedToLead(
       // The owner must act on it; the admin keeps sight of failures too (a run
       // of these usually means the WhatsApp provider itself is down).
       const admin = await getSystemUserId();
-      const targets = Array.from(new Set([assignedToId, admin].filter(Boolean))) as string[];
+      const targets = args.quiet
+        ? []
+        : (Array.from(new Set([assignedToId, admin].filter(Boolean))) as string[]);
       for (const target of targets) {
         notify({
           userId: target,

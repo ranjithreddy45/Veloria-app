@@ -1,5 +1,6 @@
 import { scheduleLeadsAssignedNotify } from "@/lib/crm/lead-assigned-notify";
 import { sendLeadWelcomeEmail } from "@/lib/crm/lead-welcome-email";
+import { getDefaultLeadOwnerId } from "@/lib/crm/default-lead-owner";
 import { canonicalPhone } from "@/lib/phone";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -149,6 +150,16 @@ interface ExternalLeadData {
   inLeadTransaction?: (tx: Prisma.TransactionClient, lead: { id: string; contactId: string; status: string; createdAt: Date }) => Promise<void>;
   /** Don't send the automatic WhatsApp welcome message for this lead. */
   suppressAutoWelcome?: boolean;
+  /**
+   * The lead was made from a phone call the team handled (CallVibe creates one
+   * when a rep talks to, or dials, a number we hold no lead for). Nobody needs
+   * telling: no first-response clock (so no SLA warnings or escalations), no
+   * "lead assigned" notice, no new-lead group email, no staff tasks or notices
+   * from intake workflows, no "auto first-response failed" alert. It still gets
+   * an owner, its team, scoring, and the same customer-facing messages.
+   * See src/lib/crm/call-lead.ts.
+   */
+  fromCall?: boolean;
   /**
    * A PAST enquiry being imported (a Meta lead-ads backfill), not one arriving
    * now. The lead and any new contact are dated `receivedAt`; there is no
@@ -585,11 +596,12 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     // invisible to everyone until someone thinks to switch to "All leads". That
     // silently hides ad/website leads from the people who need to act on them
     // (this is exactly why a Google Ads test lead "wasn't coming into the app").
-    // If no assignment rule matched, fall back to the system admin (founder) so
-    // every captured lead surfaces for someone by default.
+    // If no assignment rule matched, fall back to the default lead owner
+    // (DEFAULT_LEAD_OWNER_EMAIL, see crm/default-lead-owner) so every captured
+    // lead surfaces for someone by default.
     let ownerIsFallback = false;
     if (!assignedToId) {
-      const fallbackOwner = await getSystemUserId();
+      const fallbackOwner = await getDefaultLeadOwnerId();
       if (fallbackOwner) {
         assignedToId = fallbackOwner;
         ownerIsFallback = true;
@@ -633,7 +645,9 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         estimatedValue,
         preferredVenueId: data.venueId || null,
         // A past enquiry keeps its real date and starts no speed-to-lead clock.
-        firstContactDue: data.historical ? null : leadSlaDeadline(),
+        // A past enquiry, or one from a call a rep already handled, starts no
+        // speed-to-lead clock.
+        firstContactDue: data.historical || data.fromCall ? null : leadSlaDeadline(),
         ...(enquiryAt ? { createdAt: enquiryAt } : {}),
         contactId: contact.id,
         assignedToId,
@@ -746,7 +760,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       // Notify the assigned agent on every channel (app + browser push, email,
       // WhatsApp): a lead landing at 9pm must not sit unseen until someone
       // happens to open the CRM — the speed-to-lead SLA on it is 15 minutes.
-      if (assignedToId && !data.historical) {
+      if (assignedToId && !data.historical && !data.fromCall) {
         // In-app (+ browser push), email and WhatsApp in one place — see
         // lead-assigned-notify. Awaited inside the deferred tail.
         // Detached: a slow mail server or WhatsApp API must never delay the
@@ -796,14 +810,16 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           } else {
             // For delayed messages, create a scheduled task
             const sendAt = new Date(Date.now() + welcomeConfig.delayMinutes * 60 * 1000);
-            await prisma.task.create({
+            // (Not for a call lead: a "send the welcome" task is a staff
+            // reminder, and nobody is reminded about a call a rep handled.)
+            if (!data.fromCall) await prisma.task.create({
               data: {
                 title: `Send welcome message to ${firstName} ${lastName}`,
                 description: `Auto-welcome via template: ${welcomeConfig.templateName}`,
                 dueDate: sendAt,
                 priority: "HIGH",
                 status: "TODO",
-                assigneeId: assignedToId || (await getSystemUserId()),
+                assigneeId: assignedToId || (await getDefaultLeadOwnerId()) || (await getSystemUserId()),
                 creatorId: await getSystemUserId(),
               },
             });
@@ -829,12 +845,15 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           estimatedValue: estimatedValue,
         },
         triggeredByUserId: assignedToId ?? undefined,
+        fromCall: data.fromCall === true,
       });
 
       // Message-intent classification on the first-touch inbound message so a
       // brand-new READY_TO_BUY lead also boosts + pings. Best-effort, never blocks.
       // (A past enquiry pings nobody.)
-      if (!data.historical && data.message && data.message.trim().length > 0) {
+      // Not for a call lead either: a READY_TO_BUY result pings the rep, who
+      // has just spoken to them.
+      if (!data.historical && !data.fromCall && data.message && data.message.trim().length > 0) {
         try {
           // Also not awaited: this calls an AI provider to classify the
           // enquiry's intent. Useful, entirely optional, and absolutely not

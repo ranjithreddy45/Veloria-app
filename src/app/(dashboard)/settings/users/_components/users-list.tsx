@@ -275,9 +275,15 @@ export function UsersList({ users }: UsersListProps) {
     try {
       const result = await toggleUserActive(user.id);
       if (result.success) {
-        toast.success(
-          user.isActive ? "User deactivated" : "User activated"
-        );
+        const left = "openLeads" in result ? result.openLeads ?? 0 : 0;
+        if (user.isActive && left > 0) {
+          toast.success("User deactivated", {
+            description: `${left === 1 ? "1 open lead is" : `${left} open leads are`} still with them. Move them from the card at the top of this page.`,
+            duration: 10000,
+          });
+        } else {
+          toast.success(user.isActive ? "User deactivated" : "User activated");
+        }
         router.refresh();
       } else {
         toast.error(result.error);
