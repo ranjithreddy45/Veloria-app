@@ -39,6 +39,12 @@ describe("handleMissedCallRescue", () => {
     expect(m.notify).toHaveBeenCalledTimes(1); // "message failed" backstop to the admin
   });
 
+  it("an IVR provider's 'answered' is not a rep handling the call", async () => {
+    await handleMissedCallRescue({ provider: "KNOWLARITY", externalCallId: "k:4", callerPhone: "+919000000004", rawStatus: "answered" });
+    expect(m.capture).toHaveBeenCalledWith(expect.objectContaining({ fromCall: false }));
+    expect(m.notify).toHaveBeenCalledTimes(1);
+  });
+
   it("an IVR ping with no status is treated as missed", async () => {
     await handleMissedCallRescue({ provider: "EXOTEL", externalCallId: "x:3", callerPhone: "+919000000003" });
     expect(m.capture).toHaveBeenCalledWith(expect.objectContaining({ fromCall: false }));

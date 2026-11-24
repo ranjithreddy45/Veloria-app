@@ -227,7 +227,9 @@ export async function handleMissedCallRescue(
     // An ANSWERED call (CallVibe sync) means a rep already spoke to them: the
     // lead is made quietly, with no clock and no staff alerts
     // (src/lib/crm/call-lead.ts). A missed ring keeps every alert.
-    const answered = (args.rawStatus ?? "").toUpperCase() === "ANSWERED";
+    // CallVibe only: its ANSWERED means a rep took the call. An IVR provider's
+    // "answered" can be the IVR menu picking up, so those keep every alert.
+    const answered = provider === "CALLVIBE" && (args.rawStatus ?? "").toUpperCase() === "ANSWERED";
     // Pass externalId='call:<id>' for double idempotency protection
     // (captureLeadFromExternal also dedupes on the description marker).
     const capture = await captureLeadFromExternal({

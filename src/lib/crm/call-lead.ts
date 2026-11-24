@@ -9,9 +9,12 @@
 // first-response clock, no "lead assigned" notice, no new-lead group email,
 // no "call within 15 minutes" task. Customer-facing messages are unchanged.
 //
-// A call that rang unanswered (missed-call rescue with status MISSED, or an
-// IVR missed-call ping) is NOT a handled call: nobody has spoken to them, so
-// those keep every alert.
+// A call nobody handled keeps every alert: an inbound ring that didn't connect
+// (the call-activity push decides from the call's direction and status), a
+// CallVibe sync ring that wasn't ANSWERED, and any IVR provider's call (its
+// "answered" may be the IVR menu). Leads CallVibe pushes straight to
+// /api/v1/push/leads carry no call status, so those follow the owner's rule:
+// a rep has spoken to them.
 // ============================================================
 
 /** Push API source slugs whose leads come from a phone call the team handled. */

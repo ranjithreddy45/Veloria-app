@@ -808,7 +808,9 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           } else {
             // For delayed messages, create a scheduled task
             const sendAt = new Date(Date.now() + welcomeConfig.delayMinutes * 60 * 1000);
-            await prisma.task.create({
+            // (Not for a call lead: a "send the welcome" task is a staff
+            // reminder, and nobody is reminded about a call a rep handled.)
+            if (!data.fromCall) await prisma.task.create({
               data: {
                 title: `Send welcome message to ${firstName} ${lastName}`,
                 description: `Auto-welcome via template: ${welcomeConfig.templateName}`,
@@ -847,7 +849,9 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
       // Message-intent classification on the first-touch inbound message so a
       // brand-new READY_TO_BUY lead also boosts + pings. Best-effort, never blocks.
       // (A past enquiry pings nobody.)
-      if (!data.historical && data.message && data.message.trim().length > 0) {
+      // Not for a call lead either: a READY_TO_BUY result pings the rep, who
+      // has just spoken to them.
+      if (!data.historical && !data.fromCall && data.message && data.message.trim().length > 0) {
         try {
           // Also not awaited: this calls an AI provider to classify the
           // enquiry's intent. Useful, entirely optional, and absolutely not

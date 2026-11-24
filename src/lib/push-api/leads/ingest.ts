@@ -71,7 +71,16 @@ const MAX_DESCRIPTION_CHARS = 20_000;
  */
 const CAPTURE_SOURCE_ALIAS: Record<string, string> = { meta_ads: "facebook_ads" };
 
-export async function ingestPushLead(lead: PushLead, ctx: IngestContext): Promise<IngestResult> {
+export interface IngestOptions {
+  /**
+   * Whether a NEW lead comes from a call a rep handled (no staff alerts, see
+   * src/lib/crm/call-lead.ts). Defaults to the source slug; the call-activity
+   * push overrides it from the call itself, so a missed inbound ring alerts.
+   */
+  fromCall?: boolean;
+}
+
+export async function ingestPushLead(lead: PushLead, ctx: IngestContext, opts: IngestOptions = {}): Promise<IngestResult> {
   const keys = identityLockKeys({
     lineageId: ctx.lineageId,
     source: lead.source,
@@ -79,10 +88,10 @@ export async function ingestPushLead(lead: PushLead, ctx: IngestContext): Promis
     phone: lead.phone,
     email: lead.email,
   });
-  return withIngestLocks(keys, () => ingestLocked(lead, ctx));
+  return withIngestLocks(keys, () => ingestLocked(lead, ctx, opts));
 }
 
-async function ingestLocked(lead: PushLead, ctx: IngestContext): Promise<IngestResult> {
+async function ingestLocked(lead: PushLead, ctx: IngestContext, opts: IngestOptions): Promise<IngestResult> {
   const [venueId, byRef] = await Promise.all([
     lead.venue ? resolveVenueId(lead.venue) : Promise.resolve(undefined),
     lead.externalId ? findByExternalRef(ctx.lineageId, lead.source, lead.externalId) : Promise.resolve(null),
@@ -140,7 +149,7 @@ async function ingestLocked(lead: PushLead, ctx: IngestContext): Promise<IngestR
     // The Push API has already decided this is a new lead under stricter rules.
     skipOpenLeadFold: true,
     // CallVibe: made from a call a rep handled, so nobody is alerted.
-    fromCall: isCallLeadSource(lead.source),
+    fromCall: opts.fromCall ?? isCallLeadSource(lead.source),
     // Nobody authorised a WhatsApp message unless consent says so.
     suppressAutoWelcome: lead.consent !== true,
     // Answer once the lead is saved; welcome, workflows and notifications run after.
