@@ -1002,7 +1002,7 @@ export const sidebarNavigation: NavItem[] = [
         title: "Notifications",
         href: "/settings/notifications",
         icon: "Bell",
-        permissions: ["sms:read"],
+        permissions: ["dashboard:read"],
       },
       {
         title: "Activity Log",

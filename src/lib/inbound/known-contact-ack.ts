@@ -218,12 +218,27 @@ export async function handleKnownContactAck(
       }
     }
 
-    // (d) Final fallback: system admin (never route to nobody).
+    // (d) Nobody better found: the lead stays with its current owner while
+    // they are still active; an unowned lead (or one whose owner has left)
+    // goes to the default lead owner (crm/default-lead-owner), never to
+    // whichever admin the database returns first.
     if (!routedToId) {
-      const sys = await getSystemUserId();
-      routedToId = sys || null;
-      routingMethod = "DIRECT";
-      scoreBreakdown = { reason: "system_admin_fallback" };
+      const currentOwner = openLead?.assignedToId
+        ? await prisma.user.findUnique({
+            where: { id: openLead.assignedToId },
+            select: { id: true, isActive: true },
+          })
+        : null;
+      if (currentOwner?.isActive) {
+        routedToId = currentOwner.id;
+        routingMethod = "DIRECT";
+        scoreBreakdown = { reason: "kept_current_owner" };
+      } else {
+        const { getDefaultLeadOwnerId } = await import("@/lib/crm/default-lead-owner");
+        routedToId = (await getDefaultLeadOwnerId()) || (await getSystemUserId()) || null;
+        routingMethod = "DIRECT";
+        scoreBreakdown = { reason: "default_owner_fallback" };
+      }
     }
 
     // Persist assignment if it changed on the open lead.
@@ -243,7 +258,7 @@ export async function handleKnownContactAck(
           leadIds: [openLead.id],
           assigneeId: routedToId,
           assignedById: null,
-          ...((scoreBreakdown as { reason?: string } | null)?.reason === "system_admin_fallback"
+          ...((scoreBreakdown as { reason?: string } | null)?.reason === "default_owner_fallback"
             ? { channels: { email: false, whatsapp: false } }
             : {}),
         });

@@ -119,6 +119,8 @@ async function notifyPunch(args: {
           <tr><td style="padding:2px 12px 2px 0;color:#666">Visit type</td><td>${args.visitType}</td></tr>
           <tr><td style="padding:2px 12px 2px 0;color:#666">Status</td><td>${statusLine}</td></tr>
         </table>
+        <p style="margin-top:16px;font-size:12px;color:#888">Don't need these? Turn off "Employee Punch-ins" in
+          <a href="${(process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || "https://app.theveloriagrand.com")}/settings/notifications" style="color:#006742">your notification settings</a>.</p>
       </div>`;
 
     await sendEmail({

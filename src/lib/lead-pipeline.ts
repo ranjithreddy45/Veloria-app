@@ -181,8 +181,10 @@ export async function runLeadIntake(args: {
    * task or notice, no speed-to-lead notices, no new-lead group email.
    */
   fromCall?: boolean;
+  /** The owner is the catch-all default owner (nothing routed the lead). */
+  ownerIsFallback?: boolean;
 }): Promise<void> {
-  const { lead, triggeredByUserId, fromCall } = args;
+  const { lead, triggeredByUserId, fromCall, ownerIsFallback } = args;
   try {
     await triggerWorkflows("LEAD_CREATED", {
       leadId: lead.id,
@@ -198,7 +200,11 @@ export async function runLeadIntake(args: {
   // Best-effort and self-contained — must never break lead creation.
   try {
     const { runSpeedToLead } = await import("@/lib/lead-first-response");
-    await runSpeedToLead({ lead, ...(fromCall ? { quiet: true } : {}) });
+    await runSpeedToLead({
+      lead,
+      ...(fromCall ? { quiet: true } : {}),
+      ...(ownerIsFallback ? { ownerIsFallback: true } : {}),
+    });
   } catch (e) {
     console.error("[runLeadIntake] speed-to-lead error:", e);
   }

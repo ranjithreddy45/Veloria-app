@@ -1278,6 +1278,9 @@ export const ROUTE_PERMISSIONS: { prefix: string; permission: Permission }[] = [
   // More specific first (the lookup sorts by length, but keep readable).
   { prefix: "/admin/draw", permission: "bookings:read" }, // Guest Draw register (managers)
   { prefix: "/settings/users", permission: "users:read" },
+  // Everyone's own notification switches (e.g. Employee Punch-ins): any staff
+  // member can open it; it only reads and writes their own preferences.
+  { prefix: "/settings/notifications", permission: "dashboard:read" },
   { prefix: "/settings/roles", permission: "users:manage-roles" },
   { prefix: "/settings/privacy", permission: "users:manage-roles" }, // DPDP request queue + consent ledger
   { prefix: "/settings/public-quotes", permission: "publicquotes:read" },

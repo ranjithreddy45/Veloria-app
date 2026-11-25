@@ -846,6 +846,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         },
         triggeredByUserId: assignedToId ?? undefined,
         fromCall: data.fromCall === true,
+        ownerIsFallback,
       });
 
       // Message-intent classification on the first-touch inbound message so a

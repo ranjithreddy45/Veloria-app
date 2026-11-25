@@ -37,9 +37,10 @@ export const NOTIFICATION_CATALOG: readonly StoredNotificationPreference[] = [
   { key: "invoice_sent", emailEnabled: true, smsEnabled: false },
   { key: "task_assigned", emailEnabled: true, smsEnabled: false },
   { key: "lead_assigned", emailEnabled: true, smsEnabled: false },
+  { key: "attendance_punch", emailEnabled: true, smsEnabled: false },
 ];
 
-/** The rows a customer may change. task_assigned and lead_assigned are team-only. */
+/** The rows a customer may change. task_assigned, lead_assigned and attendance_punch are team-only. */
 export const CUSTOMER_NOTIFICATION_KEYS = [
   "booking_confirmed",
   "invoice_sent",

@@ -43,6 +43,10 @@ describe("call-activity push: new lead from a call", () => {
     expect(await fromCallFor("outbound", "completed")).toBe(true);
     expect(await fromCallFor("outbound", "no_answer")).toBe(true);
   });
+  it("is quiet when a rep logged the inbound call as a wrong number or a call-back", async () => {
+    expect(await fromCallFor("inbound", "wrong_number")).toBe(true);
+    expect(await fromCallFor("inbound", "callback_requested")).toBe(true);
+  });
   it("alerts as usual for a missed inbound ring", async () => {
     expect(await fromCallFor("inbound", "no_answer")).toBe(false);
     expect(await fromCallFor("inbound", "busy")).toBe(false);
