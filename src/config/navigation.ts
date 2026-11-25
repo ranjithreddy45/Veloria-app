@@ -450,6 +450,10 @@ export const sidebarNavigation: NavItem[] = [
       // Self-service two-factor enrolment. Lives under /me so every staff role
       // can reach it (the /settings tree is settings:read-gated in middleware).
       { title: "Security & 2FA", href: "/me/security", icon: "ShieldCheck", permissions: [] },
+      // Own email switches (e.g. Employee Punch-ins). The route is open to all
+      // staff (dashboard:read override in permissions.ts); the Settings menu
+      // that also lists it is hidden from most roles.
+      { title: "My Notifications", href: "/settings/notifications", icon: "Bell", permissions: [] },
     ],
   },
   // People split into focused sub-modules so the team finds things fast.

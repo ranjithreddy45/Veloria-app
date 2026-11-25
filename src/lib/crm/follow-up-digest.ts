@@ -125,19 +125,19 @@ export async function sendFollowUpDigests(now: Date = new Date()): Promise<Diges
       skipped++;
       continue;
     }
-    const todayLeads =
-      c.today > 0
-        ? await prisma.lead.findMany({
-            where: { ...base, assignedToId: userId, followUpDate: { gte: start, lt: end } },
-            orderBy: [{ followUpDate: "asc" }, { createdAt: "asc" }],
-            take: NAMES_SHOWN,
-            select: { title: true, contact: { select: { firstName: true, lastName: true } } },
-          })
-        : [];
-    const names = todayLeads.map(
-      (l) => `${l.contact?.firstName ?? ""} ${l.contact?.lastName ?? ""}`.trim() || l.title
-    );
     try {
+      const todayLeads =
+        c.today > 0
+          ? await prisma.lead.findMany({
+              where: { ...base, assignedToId: userId, followUpDate: { gte: start, lt: end } },
+              orderBy: [{ followUpDate: "asc" }, { createdAt: "asc" }],
+              take: NAMES_SHOWN,
+              select: { title: true, contact: { select: { firstName: true, lastName: true } } },
+            })
+          : [];
+      const names = todayLeads.map(
+        (l) => `${l.contact?.firstName ?? ""} ${l.contact?.lastName ?? ""}`.trim() || l.title
+      );
       await notifyAwait({
         userId,
         type: "TASK_OVERDUE",
@@ -149,6 +149,14 @@ export async function sendFollowUpDigests(now: Date = new Date()): Promise<Diges
         actionUrl: "/leads/followups",
         metadata: { digestKey: key, kind: DIGEST_KIND, day, today: c.today, overdue: c.overdue },
       });
+      // notifyAwait logs and swallows its own errors (and skips people who
+      // can't receive), so check the notice really landed before keeping the
+      // marker.
+      const landed = await prisma.notification.findFirst({
+        where: { userId, createdAt: { gte: start }, metadata: { path: ["digestKey"], equals: key } },
+        select: { id: true },
+      });
+      if (!landed) throw new Error("digest notice was not written");
     } catch (e) {
       // Not sent: give the marker back so the next hourly run tries again,
       // and carry on with the other reps.

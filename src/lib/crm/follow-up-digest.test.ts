@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const db = vi.hoisted(() => ({
   lead: { groupBy: vi.fn(), findMany: vi.fn() },
-  notification: { findMany: vi.fn() },
+  notification: { findMany: vi.fn(), findFirst: vi.fn() },
   cronLaneLease: { createMany: vi.fn(), deleteMany: vi.fn() },
 }));
 const m = vi.hoisted(() => ({ notifyAwait: vi.fn() }));
@@ -26,6 +26,7 @@ describe("sendFollowUpDigests", () => {
     ]);
     m.notifyAwait.mockResolvedValue(undefined);
     db.cronLaneLease.createMany.mockResolvedValue({ count: 1 });
+    db.notification.findFirst.mockResolvedValue({ id: "n1" });
     db.cronLaneLease.deleteMany.mockResolvedValue({ count: 1 });
   });
 
@@ -47,7 +48,8 @@ describe("sendFollowUpDigests", () => {
     db.lead.groupBy
       .mockResolvedValueOnce([{ assignedToId: "rep1", _count: { _all: 1 } }])
       .mockResolvedValueOnce([]);
-    m.notifyAwait.mockRejectedValueOnce(new Error("db blip"));
+    // notifyAwait swallows its own errors, so the notice just never appears
+    db.notification.findFirst.mockResolvedValueOnce(null);
     const res = await sendFollowUpDigests(TEN_AM_IST);
     expect(res.sent).toBe(0);
     expect(db.cronLaneLease.deleteMany).toHaveBeenCalledWith({ where: { lane: `digest:${digestKey("2026-11-24")}:rep1` } });
