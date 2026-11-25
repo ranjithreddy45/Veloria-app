@@ -3,6 +3,7 @@ import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { canonicalPhone } from "@/lib/phone";
 import { LEAD_SOURCE_LABELS } from "@/lib/constants";
 import { waParam } from "@/lib/crm/lead-assigned-notify";
+import { reportSystemFailure } from "@/lib/ops-alert";
 
 // ============================================================
 // "A new lead just came in" on the managers' WhatsApp.
@@ -12,12 +13,15 @@ import { waParam } from "@/lib/crm/lead-assigned-notify";
 // together with that email (enqueueNewLeadAlert decides "once").
 //
 // A business can only start a WhatsApp chat with an approved template, so this
-// is inert until all three are set:
+// is inert until the new-lead email list (NEW_LEAD_ALERT_EMAILS) is on and:
 //   NEW_LEAD_ALERT_WHATSAPP_TO        who: staff emails (their profile phone is
 //                                     used) and/or phone numbers, comma-separated
 //   NEW_LEAD_ALERT_WHATSAPP_TEMPLATE  the approved template / AiSensy campaign
 //   NEW_LEAD_ALERT_WHATSAPP_LANG      optional, default "en"
 //   NEW_LEAD_ALERT_WHATSAPP_SOURCES   optional, default "WEBSITE,GOOGLE_ADS"
+//
+// A number that fails is tried once more a minute later; if it still fails,
+// the admins get a "Lead alerts" system alert, so a miss is never silent.
 //
 // Template body, five positional values in this order:
 //   New {{1}} lead for Veloria Grand.
@@ -97,7 +101,10 @@ export interface NewLeadWhatsAppResult {
 }
 
 /** Send the alert for one lead to every configured manager. Never throws. */
-export async function sendNewLeadWhatsApp(leadId: string): Promise<NewLeadWhatsAppResult> {
+export async function sendNewLeadWhatsApp(
+  leadId: string,
+  opts: { retryDelayMs?: number } = {}
+): Promise<NewLeadWhatsAppResult> {
   try {
     const template = process.env.NEW_LEAD_ALERT_WHATSAPP_TEMPLATE?.trim();
     if (!template) return { sent: 0, failed: 0, skipped: "No template configured" };
@@ -151,20 +158,41 @@ export async function sendNewLeadWhatsApp(leadId: string): Promise<NewLeadWhatsA
     });
     const language = process.env.NEW_LEAD_ALERT_WHATSAPP_LANG?.trim() || "en";
 
-    let sent = 0;
-    let failed = 0;
-    for (const to of numbers) {
+    const sendTo = async (to: string): Promise<boolean> => {
       try {
         const res = await sendWhatsApp({ to, template, language, params });
-        if (res.success) sent++;
-        else {
-          failed++;
-          console.error("[NEW_LEAD_WHATSAPP] send failed", { leadId, error: res.error });
-        }
+        if (!res.success) console.error("[NEW_LEAD_WHATSAPP] send failed", { leadId, error: res.error });
+        return res.success;
       } catch (e) {
-        failed++;
         console.error("[NEW_LEAD_WHATSAPP] send threw", { leadId, e });
+        return false;
       }
+    };
+
+    let sent = 0;
+    let pending: string[] = [];
+    for (const to of numbers) {
+      if (await sendTo(to)) sent++;
+      else pending.push(to);
+    }
+    // One more try for the numbers that failed (a provider blip).
+    if (pending.length) {
+      await new Promise((r) => setTimeout(r, opts.retryDelayMs ?? 60_000));
+      const still: string[] = [];
+      for (const to of pending) {
+        if (await sendTo(to)) sent++;
+        else still.push(to);
+      }
+      pending = still;
+    }
+    const failed = pending.length;
+    if (failed) {
+      await reportSystemFailure({
+        area: "Lead alerts",
+        title: `New-lead WhatsApp to ${failed} manager${failed === 1 ? "" : "s"} failed`,
+        detail: `The WhatsApp alert for a new ${LEAD_SOURCE_LABELS[String(lead.source)] ?? String(lead.source)} lead failed twice. The email alert is unaffected. Check Settings → Integrations → WhatsApp and the template name.`,
+        actionUrl: `/leads/${lead.id}`,
+      });
     }
     console.log("[NEW_LEAD_WHATSAPP]", { leadId, sent, failed });
     return { sent, failed };

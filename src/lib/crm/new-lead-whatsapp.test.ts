@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const db = vi.hoisted(() => ({ lead: { findUnique: vi.fn() }, user: { findMany: vi.fn() } }));
-const m = vi.hoisted(() => ({ sendWhatsApp: vi.fn() }));
+const m = vi.hoisted(() => ({ sendWhatsApp: vi.fn(), report: vi.fn() }));
+vi.mock("@/lib/ops-alert", () => ({ reportSystemFailure: m.report }));
 vi.mock("@/lib/prisma", () => ({ prisma: db }));
 vi.mock("@/lib/integrations/whatsapp", () => ({ sendWhatsApp: m.sendWhatsApp }));
 vi.mock("@/lib/notify", () => ({ notifyAwait: vi.fn() }));
@@ -66,9 +67,25 @@ describe("sendNewLeadWhatsApp", () => {
     expect(db.lead.findUnique).not.toHaveBeenCalled();
   });
 
-  it("one failed number doesn't stop the others, and it never throws", async () => {
-    m.sendWhatsApp.mockResolvedValueOnce({ success: false, error: "not opted in" });
-    expect(await sendNewLeadWhatsApp("l1")).toEqual({ sent: 1, failed: 1 });
+  it("retries a failed number once, then tells the admins", async () => {
+    // first number fails twice, second number sends
+    m.sendWhatsApp.mockImplementation(async ({ to }: { to: string }) =>
+      to.endsWith("9800000002") ? { success: false, error: "not opted in" } : { success: true }
+    );
+    expect(await sendNewLeadWhatsApp("l1", { retryDelayMs: 0 })).toEqual({ sent: 1, failed: 1 });
+    expect(m.sendWhatsApp).toHaveBeenCalledTimes(3); // 2 first pass + 1 retry
+    expect(m.report).toHaveBeenCalledTimes(1);
+    expect(m.report.mock.calls[0][0]).toMatchObject({ area: "Lead alerts", actionUrl: "/leads/l1" });
+    expect(m.report.mock.calls[0][0].detail).not.toContain("Priya"); // no customer details in admin alerts
+  });
+
+  it("a blip that clears on the retry is not reported", async () => {
+    m.sendWhatsApp.mockResolvedValueOnce({ success: false, error: "502" });
+    expect(await sendNewLeadWhatsApp("l1", { retryDelayMs: 0 })).toEqual({ sent: 2, failed: 0 });
+    expect(m.report).not.toHaveBeenCalled();
+  });
+
+  it("never throws", async () => {
     db.lead.findUnique.mockRejectedValue(new Error("db down"));
     await expect(sendNewLeadWhatsApp("l1")).resolves.toMatchObject({ sent: 0 });
   });
