@@ -324,13 +324,23 @@ export async function enqueueNewLeadAlert(leadId: string): Promise<void> {
     // A phone lead has already been spoken to: no group email (call-lead.ts).
     const lead = await prisma.lead.findUnique({ where: { id: leadId }, select: { source: true } });
     if (lead && isPhoneLead(String(lead.source))) return;
-    const row = await prisma.leadAlertDelivery.upsert({
+    // Insert-if-absent (ON CONFLICT DO NOTHING): a lead already owed (or
+    // sent) an alert never gets a second one, and `created` says whether this
+    // call is the first, so the managers' WhatsApp goes out exactly once.
+    const { count: created } = await prisma.leadAlertDelivery.createMany({
+      data: [{ leadId }],
+      skipDuplicates: true,
+    });
+    if (created === 1) {
+      void import("@/lib/crm/new-lead-whatsapp")
+        .then(({ sendNewLeadWhatsApp }) => sendNewLeadWhatsApp(leadId))
+        .catch((e) => console.error("[NEW_LEAD_ALERT] whatsapp failed", { leadId, e }));
+    }
+    const row = await prisma.leadAlertDelivery.findUnique({
       where: { leadId },
-      create: { leadId },
-      update: {}, // already owed (or sent): never queue a second alert for one lead
       select: { id: true, status: true },
     });
-    if (row.status !== "PENDING") return;
+    if (!row || row.status !== "PENDING") return;
     void attemptLeadAlertDelivery(row.id).catch((e) =>
       console.error("[NEW_LEAD_ALERT] attempt failed", { leadId, e })
     );

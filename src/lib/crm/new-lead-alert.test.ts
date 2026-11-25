@@ -3,13 +3,16 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 const db = vi.hoisted(() => ({
   lead: { findUnique: vi.fn(), findMany: vi.fn() },
   leadAlertDelivery: {
-    upsert: vi.fn(),
+    createMany: vi.fn(),
     updateMany: vi.fn(),
     findUnique: vi.fn(),
     update: vi.fn(),
     findMany: vi.fn(),
   },
 }));
+
+const waMock = vi.hoisted(() => ({ sendNewLeadWhatsApp: vi.fn() }));
+vi.mock("@/lib/crm/new-lead-whatsapp", () => ({ sendNewLeadWhatsApp: waMock.sendNewLeadWhatsApp }));
 
 const opsMock = vi.hoisted(() => ({ reportSystemFailure: vi.fn() }));
 
@@ -203,27 +206,35 @@ describe("durable delivery", () => {
   it("writes no record at all when no recipients are configured", async () => {
     process.env.NEW_LEAD_ALERT_EMAILS = "";
     await enqueueNewLeadAlert("lead-1");
-    expect(db.leadAlertDelivery.upsert).not.toHaveBeenCalled();
+    expect(db.leadAlertDelivery.createMany).not.toHaveBeenCalled();
   });
 
   it("records the alert once per lead and never re-sends one already sent", async () => {
-    db.leadAlertDelivery.upsert.mockResolvedValue({ id: "d1", status: "SENT" });
+    db.leadAlertDelivery.createMany.mockResolvedValue({ count: 0 }); // already owed
+    db.leadAlertDelivery.findUnique.mockResolvedValue(row({ status: "SENT" }));
     await enqueueNewLeadAlert("lead-1");
-    expect(db.leadAlertDelivery.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { leadId: "lead-1" }, update: {} })
-    );
+    expect(db.leadAlertDelivery.createMany).toHaveBeenCalledWith({ data: [{ leadId: "lead-1" }], skipDuplicates: true });
     expect(db.leadAlertDelivery.updateMany).not.toHaveBeenCalled();
+    expect(waMock.sendNewLeadWhatsApp).not.toHaveBeenCalled(); // not the first time
+  });
+
+  it("the first enqueue for a lead also sends the managers' WhatsApp", async () => {
+    db.leadAlertDelivery.createMany.mockResolvedValue({ count: 1 });
+    db.leadAlertDelivery.findUnique.mockResolvedValue(row({ status: "SENT" }));
+    await enqueueNewLeadAlert("lead-1");
+    await vi.waitFor(() => expect(waMock.sendNewLeadWhatsApp).toHaveBeenCalledWith("lead-1"));
   });
 
   it("a phone lead gets no group email: it has already been spoken to", async () => {
     db.lead.findUnique.mockResolvedValue({ ...leadRow, source: "PHONE_INQUIRY" });
     await enqueueNewLeadAlert("lead-1");
-    expect(db.leadAlertDelivery.upsert).not.toHaveBeenCalled();
+    expect(db.leadAlertDelivery.createMany).not.toHaveBeenCalled();
     expect(emailMock.sendEmail).not.toHaveBeenCalled();
+    expect(waMock.sendNewLeadWhatsApp).not.toHaveBeenCalled();
   });
 
   it("enqueue never throws, even if the database is down", async () => {
-    db.leadAlertDelivery.upsert.mockRejectedValue(new Error("db down"));
+    db.leadAlertDelivery.createMany.mockRejectedValue(new Error("db down"));
     await expect(enqueueNewLeadAlert("lead-1")).resolves.toBeUndefined();
   });
 
