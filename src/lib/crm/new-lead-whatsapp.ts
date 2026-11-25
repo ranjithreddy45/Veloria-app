@@ -31,6 +31,10 @@ import { reportSystemFailure } from "@/lib/ops-alert";
 //   Phone: {{4}}
 //
 //   Open in the CRM: {{5}}
+//
+//   Please make sure the lead is called soon.
+//
+// Submitted in AiSensy on 25 Nov 2026 as "new_lead_manager" (Utility, English).
 // ============================================================
 
 export const DEFAULT_WHATSAPP_SOURCES = ["WEBSITE", "GOOGLE_ADS"];
