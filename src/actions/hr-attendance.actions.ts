@@ -14,6 +14,7 @@ import {
 import { isSafeReceiptUrl } from "@/lib/sales/receipt";
 import { FULL_DAY_MINUTES, HALF_DAY_MINUTES } from "@/lib/hr/constants";
 import { sendEmail } from "@/lib/email";
+import { emailPrefEnabled, ATTENDANCE_PUNCH_PREF } from "@/lib/notification-pref";
 
 type Result<T> = { success: true; data: T } | { success: false; error: string };
 
@@ -79,19 +80,28 @@ async function notifyPunch(args: {
     const [manager, hrEmployees] = await Promise.all([
       prisma.employee.findUnique({
         where: { id: args.reportingManagerId },
-        select: { workEmail: true },
+        select: { workEmail: true, user: { select: { notificationPreferences: true } } },
       }),
       prisma.employee.findMany({
         where: { deletedAt: null, workEmail: { not: null }, user: { role: { in: HR_ADMIN_ROLES as UserRole[] } } },
-        select: { workEmail: true },
+        select: { workEmail: true, user: { select: { notificationPreferences: true } } },
       }),
     ]);
-    const to = manager?.workEmail?.trim();
-    if (!to) return; // manager has no work email → skip (best-effort)
-
-    const cc = hrEmployees
+    // Anyone who switched "Employee Punch-ins" off in Settings → Notifications
+    // is left out, as the manager or as a cc.
+    const wants = (e: { user: { notificationPreferences: unknown } | null } | null) =>
+      emailPrefEnabled(e?.user?.notificationPreferences, ATTENDANCE_PUNCH_PREF);
+    const managerEmail = manager?.workEmail?.trim();
+    if (!managerEmail) return; // manager has no work email → skip (best-effort)
+    const hrEmails = hrEmployees
+      .filter(wants)
       .map((e) => e.workEmail?.trim())
-      .filter((e): e is string => !!e && e !== to);
+      .filter((e): e is string => !!e && e !== managerEmail);
+    // The manager is the addressee unless they opted out; then the first HR
+    // admin who still wants it is, and the rest stay on cc.
+    const recipients = Array.from(new Set([...(wants(manager) ? [managerEmail] : []), ...hrEmails]));
+    if (recipients.length === 0) return;
+    const [to, ...cc] = recipients;
 
     const statusLine = args.flagged
       ? `⚠️ Flagged — ${args.flagReason ?? "needs review"}`
