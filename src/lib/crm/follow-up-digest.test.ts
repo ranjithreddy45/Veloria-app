@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const db = vi.hoisted(() => ({
   lead: { groupBy: vi.fn(), findMany: vi.fn() },
-  notification: { findMany: vi.fn() },
+  notification: { findMany: vi.fn(), findFirst: vi.fn() },
+  cronLaneLease: { createMany: vi.fn(), deleteMany: vi.fn() },
 }));
 const m = vi.hoisted(() => ({ notifyAwait: vi.fn() }));
 
@@ -24,6 +25,34 @@ describe("sendFollowUpDigests", () => {
       { title: "Corporate offsite", contact: { firstName: "", lastName: "" } },
     ]);
     m.notifyAwait.mockResolvedValue(undefined);
+    db.cronLaneLease.createMany.mockResolvedValue({ count: 1 });
+    db.notification.findFirst.mockResolvedValue({ id: "n1" });
+    db.cronLaneLease.deleteMany.mockResolvedValue({ count: 1 });
+  });
+
+  it("a rep who deleted today's notice doesn't get it again next hour", async () => {
+    db.lead.groupBy
+      .mockResolvedValueOnce([{ assignedToId: "rep1", _count: { _all: 2 } }])
+      .mockResolvedValueOnce([]);
+    db.cronLaneLease.createMany.mockResolvedValue({ count: 0 }); // marker already there
+    const res = await sendFollowUpDigests(TEN_AM_IST);
+    expect(m.notifyAwait).not.toHaveBeenCalled();
+    expect(res.sent).toBe(0);
+    expect(db.cronLaneLease.createMany.mock.calls[0][0]).toMatchObject({
+      data: [{ lane: `digest:${digestKey("2026-11-24")}:rep1` }],
+      skipDuplicates: true,
+    });
+  });
+
+  it("a failed send gives the marker back so the next run retries", async () => {
+    db.lead.groupBy
+      .mockResolvedValueOnce([{ assignedToId: "rep1", _count: { _all: 1 } }])
+      .mockResolvedValueOnce([]);
+    // notifyAwait swallows its own errors, so the notice just never appears
+    db.notification.findFirst.mockResolvedValueOnce(null);
+    const res = await sendFollowUpDigests(TEN_AM_IST);
+    expect(res.sent).toBe(0);
+    expect(db.cronLaneLease.deleteMany).toHaveBeenCalledWith({ where: { lane: `digest:${digestKey("2026-11-24")}:rep1` } });
   });
 
   it("waits until 9 am India time", async () => {

@@ -109,33 +109,63 @@ export async function sendFollowUpDigests(now: Date = new Date()): Promise<Diges
   );
 
   let sent = 0;
+  let skipped = already.size;
   for (const [userId, c] of counts) {
-    if (already.has(userId)) continue;
-    const todayLeads =
-      c.today > 0
-        ? await prisma.lead.findMany({
-            where: { ...base, assignedToId: userId, followUpDate: { gte: start, lt: end } },
-            orderBy: [{ followUpDate: "asc" }, { createdAt: "asc" }],
-            take: NAMES_SHOWN,
-            select: { title: true, contact: { select: { firstName: true, lastName: true } } },
-          })
-        : [];
-    const names = todayLeads.map(
-      (l) => `${l.contact?.firstName ?? ""} ${l.contact?.lastName ?? ""}`.trim() || l.title
-    );
-    await notifyAwait({
-      userId,
-      type: "TASK_OVERDUE",
-      title: digestTitle(c.today, c.overdue),
-      message:
-        c.today > 0
-          ? digestMessage(names, c.today)
-          : "Nothing is due today, but these leads are waiting on a call back.",
-      actionUrl: "/leads/followups",
-      metadata: { digestKey: key, kind: DIGEST_KIND, day, today: c.today, overdue: c.overdue },
+    // The sent-today marker lives in a row reps can't delete (CronLaneLease,
+    // insert-if-absent), so deleting the notice doesn't bring it back next
+    // hour. The notification check above still covers digests sent before
+    // the marker existed.
+    const marker = `digest:${key}:${userId}`;
+    const { count: claimed } = await prisma.cronLaneLease.createMany({
+      data: [{ lane: marker, leaseUntil: end }],
+      skipDuplicates: true,
     });
+    if (already.has(userId)) continue;
+    if (claimed !== 1) {
+      skipped++;
+      continue;
+    }
+    try {
+      const todayLeads =
+        c.today > 0
+          ? await prisma.lead.findMany({
+              where: { ...base, assignedToId: userId, followUpDate: { gte: start, lt: end } },
+              orderBy: [{ followUpDate: "asc" }, { createdAt: "asc" }],
+              take: NAMES_SHOWN,
+              select: { title: true, contact: { select: { firstName: true, lastName: true } } },
+            })
+          : [];
+      const names = todayLeads.map(
+        (l) => `${l.contact?.firstName ?? ""} ${l.contact?.lastName ?? ""}`.trim() || l.title
+      );
+      await notifyAwait({
+        userId,
+        type: "TASK_OVERDUE",
+        title: digestTitle(c.today, c.overdue),
+        message:
+          c.today > 0
+            ? digestMessage(names, c.today)
+            : "Nothing is due today, but these leads are waiting on a call back.",
+        actionUrl: "/leads/followups",
+        metadata: { digestKey: key, kind: DIGEST_KIND, day, today: c.today, overdue: c.overdue },
+      });
+      // notifyAwait logs and swallows its own errors (and skips people who
+      // can't receive), so check the notice really landed before keeping the
+      // marker.
+      const landed = await prisma.notification.findFirst({
+        where: { userId, createdAt: { gte: start }, metadata: { path: ["digestKey"], equals: key } },
+        select: { id: true },
+      });
+      if (!landed) throw new Error("digest notice was not written");
+    } catch (e) {
+      // Not sent: give the marker back so the next hourly run tries again,
+      // and carry on with the other reps.
+      console.error("[FOLLOW_UP_DIGEST] send failed", { userId, e });
+      await prisma.cronLaneLease.deleteMany({ where: { lane: marker } }).catch(() => undefined);
+      continue;
+    }
     sent++;
   }
 
-  return { day, reps: counts.size, sent, alreadySent: already.size };
+  return { day, reps: counts.size, sent, alreadySent: skipped };
 }

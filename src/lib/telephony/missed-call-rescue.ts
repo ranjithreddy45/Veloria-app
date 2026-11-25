@@ -294,6 +294,13 @@ export async function handleMissedCallRescue(
           select: { whatsappMessageId: true, failReason: true, status: true },
         });
         whatsappMessageId = fr?.whatsappMessageId ?? null;
+        // Capture already ran speed-to-lead inline (the lead was created just
+        // above), so the call here usually answers ALREADY: the first
+        // response's own record says whether the WhatsApp actually went.
+        if (!whatsappSent && stl.status === "ALREADY" && fr?.status === "SENT") {
+          whatsappSent = true;
+          failReason = null;
+        }
         if (!whatsappSent && fr?.failReason) failReason = fr.failReason;
       } catch {
         // best-effort
@@ -334,7 +341,7 @@ export async function handleMissedCallRescue(
       // Surface a rescued ring whose auto-message didn't land so a human
       // can step in. runSpeedToLead also notifies; this targets the system
       // actor as a backstop when there is no assignee.
-      const target = await getSystemUserId();
+      const target = (await getDefaultLeadOwnerId()) || (await getSystemUserId());
       if (target) {
         notify({
           userId: target,

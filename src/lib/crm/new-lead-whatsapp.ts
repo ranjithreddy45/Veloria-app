@@ -20,8 +20,13 @@ import { reportSystemFailure } from "@/lib/ops-alert";
 //   NEW_LEAD_ALERT_WHATSAPP_LANG      optional, default "en"
 //   NEW_LEAD_ALERT_WHATSAPP_SOURCES   optional, default "WEBSITE,GOOGLE_ADS"
 //
-// A number that fails is tried once more a minute later; if it still fails,
-// the admins get a "Lead alerts" system alert, so a miss is never silent.
+// Delivery is tracked per manager in a CronLaneLease row ("wa-lead:<lead>:<n>",
+// insert-if-absent), so each manager gets one message per lead even across
+// the 4 workers. A send that fails is retried once by the 5-minute fast lane
+// (retryDueNewLeadWhatsApps), which also finishes any send a restart cut
+// short; a second failure raises a "Lead alerts" admin alert, so a miss is
+// never silent. A send that timed out may have gone through, so it is never
+// repeated (a duplicate is worse than the email-only alert).
 //
 // Template body, five positional values in this order:
 //   New {{1}} lead for Veloria Grand.
@@ -104,30 +109,126 @@ export interface NewLeadWhatsAppResult {
   skipped?: string;
 }
 
+const MARKER_PREFIX = "wa-lead:";
+const CLAIM_MS = 2 * 60 * 1000;
+const RETRY_AFTER_MS = 60 * 1000;
+const MAX_ATTEMPTS = 2;
+
+function markerLane(leadId: string, to: string): string {
+  return `${MARKER_PREFIX}${leadId}:${to}`;
+}
+
+function parseMarker(lane: string): { leadId: string; to: string } | null {
+  if (!lane.startsWith(MARKER_PREFIX)) return null;
+  const rest = lane.slice(MARKER_PREFIX.length);
+  const i = rest.indexOf(":");
+  return i > 0 ? { leadId: rest.slice(0, i), to: rest.slice(i + 1) } : null;
+}
+
+/** "PENDING:<attempts>" | "SENT" | "UNKNOWN" | "FAILED" */
+function attemptsOf(holder: string | null): number {
+  const m = /^PENDING:(\d+)$/.exec(holder ?? "");
+  return m ? Number(m[1]) : 0;
+}
+
+function isAmbiguous(error: string | undefined): boolean {
+  return /timed out|timeout/i.test(error ?? "");
+}
+
+type LeadForAlert = {
+  id: string;
+  title: string;
+  source: unknown;
+  eventType: string | null;
+  eventDate: Date | null;
+  guestCount: number | null;
+  deletedAt: Date | null;
+  contact: { firstName: string | null; lastName: string | null; phone: string | null } | null;
+};
+
+async function loadLead(leadId: string): Promise<LeadForAlert | null> {
+  return prisma.lead.findUnique({
+    where: { id: leadId },
+    select: {
+      id: true,
+      title: true,
+      source: true,
+      eventType: true,
+      eventDate: true,
+      guestCount: true,
+      deletedAt: true,
+      contact: { select: { firstName: true, lastName: true, phone: true } },
+    },
+  });
+}
+
+function paramsFor(lead: LeadForAlert): Record<string, string> {
+  return newLeadWhatsAppParams({
+    leadId: lead.id,
+    source: String(lead.source),
+    name: `${lead.contact?.firstName ?? ""} ${lead.contact?.lastName ?? ""}`.trim(),
+    title: lead.title,
+    phone: lead.contact?.phone ?? null,
+    eventType: lead.eventType,
+    eventDate: lead.eventDate,
+    guestCount: lead.guestCount,
+  });
+}
+
+/**
+ * One send to one manager whose marker this caller holds; records the
+ * outcome on the marker. Returns "sent" | "retry" | "failed" | "unknown".
+ */
+async function attemptOne(
+  lane: string,
+  to: string,
+  lead: LeadForAlert,
+  template: string,
+  attempt: number
+): Promise<"sent" | "retry" | "failed" | "unknown"> {
+  const language = process.env.NEW_LEAD_ALERT_WHATSAPP_LANG?.trim() || "en";
+  let error: string | undefined;
+  try {
+    const res = await sendWhatsApp({ to, template, language, params: paramsFor(lead) });
+    if (res.success) {
+      await prisma.cronLaneLease.update({ where: { lane }, data: { holder: "SENT" } });
+      return "sent";
+    }
+    error = res.error;
+  } catch (e) {
+    error = e instanceof Error ? e.message : "unknown";
+  }
+  console.error("[NEW_LEAD_WHATSAPP] send failed", { leadId: lead.id, attempt, error });
+  if (isAmbiguous(error)) {
+    await prisma.cronLaneLease.update({ where: { lane }, data: { holder: "UNKNOWN" } });
+    return "unknown";
+  }
+  if (attempt < MAX_ATTEMPTS) {
+    await prisma.cronLaneLease.update({
+      where: { lane },
+      data: { holder: `PENDING:${attempt}`, leaseUntil: new Date(Date.now() + RETRY_AFTER_MS) },
+    });
+    return "retry";
+  }
+  await prisma.cronLaneLease.update({ where: { lane }, data: { holder: "FAILED" } });
+  await reportSystemFailure({
+    area: "Lead alerts",
+    title: "New-lead WhatsApp to a manager failed",
+    detail: `The WhatsApp alert for a new ${LEAD_SOURCE_LABELS[String(lead.source)] ?? String(lead.source)} lead failed twice. The email alert is unaffected. Check Settings → Integrations → WhatsApp and the template name.`,
+    actionUrl: `/leads/${lead.id}`,
+  });
+  return "failed";
+}
+
 /** Send the alert for one lead to every configured manager. Never throws. */
-export async function sendNewLeadWhatsApp(
-  leadId: string,
-  opts: { retryDelayMs?: number } = {}
-): Promise<NewLeadWhatsAppResult> {
+export async function sendNewLeadWhatsApp(leadId: string): Promise<NewLeadWhatsAppResult> {
   try {
     const template = process.env.NEW_LEAD_ALERT_WHATSAPP_TEMPLATE?.trim();
     if (!template) return { sent: 0, failed: 0, skipped: "No template configured" };
     const { emails, phones } = parseWhatsAppRecipients(process.env.NEW_LEAD_ALERT_WHATSAPP_TO);
     if (emails.length === 0 && phones.length === 0) return { sent: 0, failed: 0, skipped: "No recipients configured" };
 
-    const lead = await prisma.lead.findUnique({
-      where: { id: leadId },
-      select: {
-        id: true,
-        title: true,
-        source: true,
-        eventType: true,
-        eventDate: true,
-        guestCount: true,
-        deletedAt: true,
-        contact: { select: { firstName: true, lastName: true, phone: true } },
-      },
-    });
+    const lead = await loadLead(leadId);
     if (!lead || lead.deletedAt) return { sent: 0, failed: 0, skipped: "Lead not found" };
     if (!whatsappAlertSources(process.env.NEW_LEAD_ALERT_WHATSAPP_SOURCES).has(String(lead.source))) {
       return { sent: 0, failed: 0, skipped: "Source not alerted on WhatsApp" };
@@ -150,53 +251,18 @@ export async function sendNewLeadWhatsApp(
     );
     if (numbers.length === 0) return { sent: 0, failed: 0, skipped: "No recipient has a phone number" };
 
-    const params = newLeadWhatsAppParams({
-      leadId: lead.id,
-      source: String(lead.source),
-      name: `${lead.contact?.firstName ?? ""} ${lead.contact?.lastName ?? ""}`.trim(),
-      title: lead.title,
-      phone: lead.contact?.phone ?? null,
-      eventType: lead.eventType,
-      eventDate: lead.eventDate,
-      guestCount: lead.guestCount,
-    });
-    const language = process.env.NEW_LEAD_ALERT_WHATSAPP_LANG?.trim() || "en";
-
-    const sendTo = async (to: string): Promise<boolean> => {
-      try {
-        const res = await sendWhatsApp({ to, template, language, params });
-        if (!res.success) console.error("[NEW_LEAD_WHATSAPP] send failed", { leadId, error: res.error });
-        return res.success;
-      } catch (e) {
-        console.error("[NEW_LEAD_WHATSAPP] send threw", { leadId, e });
-        return false;
-      }
-    };
-
     let sent = 0;
-    let pending: string[] = [];
+    let failed = 0;
     for (const to of numbers) {
-      if (await sendTo(to)) sent++;
-      else pending.push(to);
-    }
-    // One more try for the numbers that failed (a provider blip).
-    if (pending.length) {
-      await new Promise((r) => setTimeout(r, opts.retryDelayMs ?? 60_000));
-      const still: string[] = [];
-      for (const to of pending) {
-        if (await sendTo(to)) sent++;
-        else still.push(to);
-      }
-      pending = still;
-    }
-    const failed = pending.length;
-    if (failed) {
-      await reportSystemFailure({
-        area: "Lead alerts",
-        title: `New-lead WhatsApp to ${failed} manager${failed === 1 ? "" : "s"} failed`,
-        detail: `The WhatsApp alert for a new ${LEAD_SOURCE_LABELS[String(lead.source)] ?? String(lead.source)} lead failed twice. The email alert is unaffected. Check Settings → Integrations → WhatsApp and the template name.`,
-        actionUrl: `/leads/${lead.id}`,
+      const lane = markerLane(lead.id, to);
+      const { count } = await prisma.cronLaneLease.createMany({
+        data: [{ lane, leaseUntil: new Date(Date.now() + CLAIM_MS), holder: "PENDING:0" }],
+        skipDuplicates: true,
       });
+      if (count !== 1) continue; // this manager already has (or is getting) it
+      const out = await attemptOne(lane, to, lead, template, 1);
+      if (out === "sent") sent++;
+      else if (out !== "unknown") failed++;
     }
     console.log("[NEW_LEAD_WHATSAPP]", { leadId, sent, failed });
     return { sent, failed };
@@ -204,4 +270,50 @@ export async function sendNewLeadWhatsApp(
     console.error("[NEW_LEAD_WHATSAPP] failed", { leadId, e });
     return { sent: 0, failed: 0, skipped: e instanceof Error ? e.message : "unknown" };
   }
+}
+
+/**
+ * Fast-lane sweep: retry a failed manager WhatsApp once, and finish any send a
+ * restart cut short (its claim expired while still PENDING). Never throws.
+ */
+export async function retryDueNewLeadWhatsApps(
+  now: Date = new Date()
+): Promise<{ retried: number; sent: number }> {
+  let retried = 0;
+  let sent = 0;
+  try {
+    const template = process.env.NEW_LEAD_ALERT_WHATSAPP_TEMPLATE?.trim();
+    if (!template) return { retried, sent };
+    const due = await prisma.cronLaneLease.findMany({
+      where: {
+        lane: { startsWith: MARKER_PREFIX },
+        holder: { startsWith: "PENDING:" },
+        leaseUntil: { lt: now },
+        updatedAt: { gte: new Date(now.getTime() - 6 * 60 * 60 * 1000) },
+      },
+      take: 20,
+      select: { lane: true, holder: true },
+    });
+    for (const row of due) {
+      const m = parseMarker(row.lane);
+      if (!m) continue;
+      // Claim it (only one sweep wins), then send.
+      const claim = await prisma.cronLaneLease.updateMany({
+        where: { lane: row.lane, holder: row.holder, leaseUntil: { lt: now } },
+        data: { leaseUntil: new Date(now.getTime() + CLAIM_MS) },
+      });
+      if (claim.count !== 1) continue;
+      const lead = await loadLead(m.leadId);
+      if (!lead || lead.deletedAt) {
+        await prisma.cronLaneLease.update({ where: { lane: row.lane }, data: { holder: "FAILED" } });
+        continue;
+      }
+      retried++;
+      const out = await attemptOne(row.lane, m.to, lead, template, attemptsOf(row.holder) + 1);
+      if (out === "sent") sent++;
+    }
+  } catch (e) {
+    console.error("[NEW_LEAD_WHATSAPP] retry sweep failed", e);
+  }
+  return { retried, sent };
 }

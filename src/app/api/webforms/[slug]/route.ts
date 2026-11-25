@@ -299,6 +299,7 @@ export async function POST(
             score: lead.score,
           },
           triggeredByUserId: assignedToId ?? webform.createdById,
+          ownerIsFallback,
         });
       }
     }

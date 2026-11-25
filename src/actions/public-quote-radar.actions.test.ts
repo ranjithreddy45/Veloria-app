@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const db = vi.hoisted(() => ({
   quoteShareLink: { findUnique: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
-  quoteView: { create: vi.fn() },
+  quoteView: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
   lead: { findUnique: vi.fn() },
   user: { findUnique: vi.fn() },
   $transaction: vi.fn(),
@@ -83,6 +83,18 @@ describe("recordQuoteView → quote-opened alert", () => {
     expect(res.recorded).toBe(false);
     expect(db.$transaction).not.toHaveBeenCalled();
     expect(m.notifyAwait).not.toHaveBeenCalled();
+  });
+
+  it("the time-on-page report is not another open: no count, no alert", async () => {
+    db.quoteView.findFirst.mockResolvedValue({ id: "v1" });
+    db.quoteShareLink.updateMany.mockResolvedValue({ count: 1 });
+    const res = await recordQuoteView({ token: TOKEN, durationMs: 9 * 60 * 60 * 1000 });
+    expect(res.recorded).toBe(true);
+    expect(db.$transaction).not.toHaveBeenCalled(); // no new view row, no viewCount increment
+    expect(m.notifyAwait).not.toHaveBeenCalled();
+    expect(db.quoteView.update).toHaveBeenCalledWith({ where: { id: "v1" }, data: { durationMs: 6 * 60 * 60 * 1000 } });
+    // only moves lastViewedAt, never claims a first open
+    expect(db.quoteShareLink.updateMany.mock.calls[0][0].where).toMatchObject({ firstViewedAt: { not: null } });
   });
 
   it("a WhatsApp link preview never alerts", async () => {

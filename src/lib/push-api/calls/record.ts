@@ -10,6 +10,9 @@ import { withIngestLocks } from "../leads/ingest-lock";
 import { parsePushLead } from "../leads/schema";
 import type { CallStatus, PushCall } from "./schema";
 
+/** Call outcomes that mean a rep was on the line with the caller. */
+const SPOKEN_TO_STATUSES: ReadonlySet<string> = new Set(["completed", "wrong_number", "callback_requested"]);
+
 // ============================================================
 // Recording a pushed call against a lead.
 //
@@ -201,8 +204,11 @@ async function resolveLead(
   const parsed = parsePushLead({ source: CALLVIBE_PUSH_SOURCE, phone, name: call.contactName });
   if (!parsed.ok) throw new PushApiError("VALIDATION_ERROR", "Invalid request", parsed.fields);
   // Quiet (no staff alerts) only when someone actually handled the call: a rep
-  // dialled out, or the call connected. A missed inbound ring alerts as usual.
-  const handled = call.direction === "outbound" || call.status === "completed";
+  // dialled out, or a rep spoke to the caller (connected, or logged it as a
+  // wrong number / a call-back). A missed inbound ring (no answer, busy,
+  // voicemail, or no status) alerts as usual.
+  const handled =
+    call.direction === "outbound" || (!!call.status && SPOKEN_TO_STATUSES.has(call.status));
   const ingested = await ingestPushLead(parsed.lead, ctx, { fromCall: handled });
   return {
     leadId: ingested.leadId,

@@ -18,6 +18,7 @@ vi.mock("@/lib/notify", () => ({ notify: m.notify }));
 vi.mock("@/lib/activity-logger", () => ({ logActivity: vi.fn() }));
 vi.mock("@/lib/lead-capture", () => ({ captureLeadFromExternal: m.capture, getSystemUserId: vi.fn(async () => "admin") }));
 vi.mock("@/lib/lead-first-response", () => ({ runSpeedToLead: m.stl }));
+vi.mock("@/lib/crm/default-lead-owner", () => ({ getDefaultLeadOwnerId: vi.fn(async () => "rajitha") }));
 
 import { handleMissedCallRescue } from "./missed-call-rescue";
 
@@ -37,6 +38,19 @@ describe("handleMissedCallRescue", () => {
     expect(m.capture).toHaveBeenCalledWith(expect.objectContaining({ fromCall: false }));
     expect(m.stl).toHaveBeenCalledWith(expect.objectContaining({ quiet: false }));
     expect(m.notify).toHaveBeenCalledTimes(1); // "message failed" backstop to the admin
+  });
+
+  it("a missed ring whose WhatsApp already went out at capture is not reported as failed", async () => {
+    m.stl.mockResolvedValueOnce({ ok: true, status: "ALREADY" } as never);
+    db.leadFirstResponse.findUnique.mockResolvedValueOnce({ status: "SENT", failReason: null, whatsappMessageId: "wamid.1" } as never);
+    await handleMissedCallRescue({ provider: "CALLVIBE", externalCallId: "callvibe:5", callerPhone: "+919000000005", rawStatus: "MISSED" });
+    expect((db.missedCallRescue.create.mock.calls as unknown as Array<[{ data: unknown }]>)[0][0].data).toMatchObject({ whatsappSent: true, failReason: null, whatsappMessageId: "wamid.1" });
+    expect(m.notify).not.toHaveBeenCalled();
+  });
+
+  it("the 'message failed' backstop goes to the default lead owner", async () => {
+    await handleMissedCallRescue({ provider: "CALLVIBE", externalCallId: "callvibe:6", callerPhone: "+919000000006", rawStatus: "MISSED" });
+    expect(m.notify.mock.calls[0][0].userId).toBe("rajitha");
   });
 
   it("an IVR provider's 'answered' is not a rep handling the call", async () => {

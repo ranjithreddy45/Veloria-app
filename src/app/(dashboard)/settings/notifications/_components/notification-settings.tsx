@@ -43,25 +43,16 @@ export function NotificationSettings({
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
 
-  // Load preferences from localStorage on mount (placeholder persistence)
+  // The server copy is the only source of truth (it is what the email
+  // senders read). An older browser-saved copy used to override it here and
+  // could quietly switch an email back on; clear that leftover.
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as NotificationPreference[];
-        // Merge stored with initial to handle new notification types
-        const merged = initialPreferences.map((initial) => {
-          const saved = parsed.find((p) => p.key === initial.key);
-          return saved
-            ? { ...initial, emailEnabled: saved.emailEnabled, smsEnabled: saved.smsEnabled }
-            : initial;
-        });
-        setPreferences(merged);
-      }
+      localStorage.removeItem(STORAGE_KEY);
     } catch {
       // Ignore localStorage errors
     }
-  }, [initialPreferences]);
+  }, []);
 
   const handleToggle = useCallback(
     (key: string, channel: "emailEnabled" | "smsEnabled", value: boolean) => {
@@ -76,10 +67,6 @@ export function NotificationSettings({
   async function handleSave() {
     setSaving(true);
     try {
-      // Persist to localStorage (placeholder for DB)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
-
-      // Also call server action for logging / future DB persistence
       const result = await updateNotificationPreferences(preferences);
 
       if (result.success) {

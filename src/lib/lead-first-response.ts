@@ -18,7 +18,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { notify } from "@/lib/notify";
-import { getDefaultLeadOwnerId } from "@/lib/crm/default-lead-owner";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { formatWhatsAppFailure } from "@/lib/whatsapp/failure-reason";
 import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
@@ -54,6 +53,13 @@ interface RunSpeedToLeadArgs {
    * owner isn't told and a failed send raises no alert.
    */
   quiet?: boolean;
+  /**
+   * The owner on the lead is the catch-all default owner because nothing
+   * routed it at capture. Only then do the rules get a second look here; a
+   * lead given to that same person on purpose (by hand, a rule, a rotation)
+   * keeps its owner.
+   */
+  ownerIsFallback?: boolean;
 }
 
 interface RunSpeedToLeadResult {
@@ -106,8 +112,7 @@ export async function runSpeedToLead(
       )?.assignedToId ??
       null;
     let assignedViaRuleId: string | null = null;
-    const parkedOnFallback =
-      !!assignedToId && !args.assignedToId && assignedToId === (await getDefaultLeadOwnerId());
+    const parkedOnFallback = !!assignedToId && !args.assignedToId && args.ownerIsFallback === true;
 
     if (!assignedToId || parkedOnFallback) {
       const candidate = await evaluateAssignmentRules({

@@ -167,11 +167,38 @@ export async function recordQuoteView(
       ? String(input.viewedQuotationId).slice(0, 64)
       : null;
 
+    const now = new Date();
+
+    // The beacon's second call (tab hidden/closed) reports how long the page
+    // was open. It is not another open: attach the time to this visitor's
+    // open row, note they were looking until now, and stop. Counting it as an
+    // open doubled the view count and could fire "looking at your quote
+    // again" just as the customer left.
+    if (durationMs !== null) {
+      const open = await prisma.quoteView.findFirst({
+        where: {
+          shareLinkId: link.id,
+          ipHash,
+          durationMs: null,
+          viewedAt: { gte: new Date(now.getTime() - 6 * 60 * 60 * 1000 - 60_000) },
+        },
+        orderBy: { viewedAt: "desc" },
+        select: { id: true },
+      });
+      if (open) await prisma.quoteView.update({ where: { id: open.id }, data: { durationMs } });
+      if (!isLikelyBot(ua)) {
+        await prisma.quoteShareLink.updateMany({
+          where: { id: link.id, firstViewedAt: { not: null } },
+          data: { lastViewedAt: now },
+        });
+      }
+      return { recorded: true };
+    }
+
     // Bot/unfurl crawlers (WhatsApp/Slack preview) STILL get a QuoteView row for
     // accurate analytics, but must NOT set firstViewedAt — otherwise the 24h
     // recovery trigger fires on a preview crawl, not a real human open.
     const bot = isLikelyBot(ua);
-    const now = new Date();
 
     // Insert the detail row + roll the counters atomically. The increment +
     // conditional firstViewedAt are done as one transaction so concurrent opens

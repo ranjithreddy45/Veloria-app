@@ -2,7 +2,7 @@
 
 import { auth } from "@/../auth";
 import { prisma } from "@/lib/prisma";
-import { hasPermission } from "@/lib/permissions";
+import { isStaffRole } from "@/lib/roles";
 import { logActivity } from "@/lib/activity-logger";
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
@@ -153,7 +153,7 @@ export async function getNotificationPreferences(): Promise<{
       return { success: false, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role as string, "settings:read")) {
+    if (!isStaffRole(session.user.role as string)) {
       return { success: false, error: "Insufficient permissions" };
     }
 
@@ -186,7 +186,7 @@ export async function updateNotificationPreferences(
       return { success: false, error: "Unauthorized" };
     }
 
-    if (!hasPermission(session.user.role as string, "settings:update")) {
+    if (!isStaffRole(session.user.role as string)) {
       return { success: false, error: "Insufficient permissions" };
     }
 
