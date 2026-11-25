@@ -106,6 +106,13 @@ const DEFAULT_PREFERENCES: NotificationPreference[] = [
     emailEnabled: true,
     smsEnabled: false,
   },
+  {
+    key: "attendance_punch",
+    label: "Employee Punch-ins",
+    description: "When someone who reports to you punches in (HR admins are copied on every punch-in).",
+    emailEnabled: true,
+    smsEnabled: false,
+  },
 ];
 
 // ============================================================
