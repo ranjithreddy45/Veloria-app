@@ -19,6 +19,7 @@
 // ============================================================
 
 import { randomBytes } from "crypto";
+import { areaFromVenueName } from "@/lib/crm/areas";
 import { prisma } from "@/lib/prisma";
 import { notifyAwait } from "@/lib/notify";
 import { logActivity } from "@/lib/activity-logger";
@@ -78,9 +79,13 @@ function newToken(): string {
  */
 async function resolveHostRep(input: CreateSiteVisitInput): Promise<string | null> {
   try {
+    const venueName = input.venueId
+      ? ((await prisma.venue.findUnique({ where: { id: input.venueId }, select: { name: true } }))?.name ?? null)
+      : null;
     const assigned = await evaluateAssignmentRules({
       source: "website",
       eventType: input.eventType ?? undefined,
+      area: areaFromVenueName(venueName) ?? "",
     });
     if (assigned) return assigned;
   } catch {

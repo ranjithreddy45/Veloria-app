@@ -44,6 +44,8 @@ type LeadLike = {
   guestCount?: number | null;
   score?: number | null;
   estimatedValue?: number | string | null;
+  /** crm/areas key, for area-based assignment rules. */
+  area?: string | null;
 };
 
 interface AutoEnrollCriterion {

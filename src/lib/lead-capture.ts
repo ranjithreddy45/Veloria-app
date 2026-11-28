@@ -1,6 +1,7 @@
 import { scheduleLeadsAssignedNotify } from "@/lib/crm/lead-assigned-notify";
 import { sendLeadWelcomeEmail } from "@/lib/crm/lead-welcome-email";
 import { getDefaultLeadOwnerId } from "@/lib/crm/default-lead-owner";
+import { resolveLeadArea } from "@/lib/crm/areas";
 import { canonicalPhone } from "@/lib/phone";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -123,6 +124,8 @@ interface ExternalLeadData {
   estimatedValue?: number; // budget — feeds scoring
   perPlateBudget?: number; // ×guestCount estimates value when no budget given
   venueId?: string; // preferred venue
+  /** Where in Bengaluru, if the caller knows it (a key or label from crm/areas). Otherwise read from the form answers. */
+  area?: string;
   customFields?: Record<string, unknown>;
   /** First-touch marketing attribution (utm/gclid/fbclid/referrer) — best-effort. */
   attribution?: AttributionInput;
@@ -451,6 +454,15 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
     // fields, and return that lead. A closed lead does NOT block — a past
     // customer enquiring for a new event correctly gets a fresh lead.
     // ------------------------------------------------------------------
+    // Where in Bengaluru (crm/areas): an explicit value, the customer's own
+    // form answer, their preferred venue, or an area named in the enquiry.
+    const venueName = data.venueId
+      ? ((await prisma.venue
+          .findUnique({ where: { id: data.venueId }, select: { name: true } })
+          .catch(() => null))?.name ?? null)
+      : null;
+    const areaInfo = resolveLeadArea({ given: data.area, venueName, text: data.message });
+
     if (isExistingContact && !data.skipOpenLeadFold) {
       const receivedAt = data.historical?.receivedAt;
       const openLead = await prisma.lead.findFirst({
@@ -515,6 +527,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
                 (data.eventDate ? new Date(data.eventDate) : undefined),
               guestCount: openLead.guestCount ?? data.guestCount ?? undefined,
               preferredVenueId: openLead.preferredVenueId ?? data.venueId ?? undefined,
+              ...(!openLead.area && areaInfo.area ? { area: areaInfo.area, areaSource: areaInfo.source } : {}),
               // An event type filled in here also sorts the lead into its team,
               // unless a person already placed it.
               ...(filledEventType && !openLead.salesTeam && !openLead.salesTeamManual
@@ -583,6 +596,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         score,
         guestCount: data.guestCount ?? 0,
         estimatedValue: estimatedValue ?? 0,
+        area: areaInfo.area ?? "",
       });
       if (assignResult) {
         assignedToId = assignResult;
@@ -644,6 +658,8 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
         guestCount: data.guestCount || null,
         estimatedValue,
         preferredVenueId: data.venueId || null,
+        area: areaInfo.area,
+        areaSource: areaInfo.source,
         // A past enquiry keeps its real date and starts no speed-to-lead clock.
         // A past enquiry, or one from a call a rep already handled, starts no
         // speed-to-lead clock.
@@ -843,6 +859,7 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
           guestCount: lead.guestCount,
           score: lead.score,
           estimatedValue: estimatedValue,
+          area: areaInfo.area,
         },
         triggeredByUserId: assignedToId ?? undefined,
         fromCall: data.fromCall === true,

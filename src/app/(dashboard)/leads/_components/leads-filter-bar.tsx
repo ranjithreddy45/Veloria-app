@@ -55,6 +55,7 @@ import {
 import { ViewTabs } from "@/components/ui/view-tabs";
 import { ENQUIRY_SOURCE_OPTIONS } from "@/lib/enquiry-source";
 import { salesTeamLabel } from "@/lib/crm/sales-team";
+import { areaFilterOptions } from "@/lib/crm/areas";
 import { TeamSwitcher } from "@/components/crm/team-switcher";
 import { CommitDateInput } from "@/components/ui/commit-date-input";
 
@@ -64,6 +65,8 @@ const ANY_STATUS = "ALL";
 const ANY_VENUE = "ALL";
 const ANY_OCCASION = "__any_occasion";
 const UNASSIGNED_VENUE = "UNASSIGNED";
+const ANY_AREA = "__any_area";
+const AREA_OPTIONS = areaFilterOptions();
 // Marketing-channel sentinels. "NONE" is a real, meaningful selection — contacts
 // whose channel was never recorded — not the absence of a filter.
 const ANY_CHANNEL = "ALL";
@@ -85,6 +88,7 @@ const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
 const FILTER_KEYS = [
   "status",
   "venue",
+  "area",
   "eventFrom",
   "eventTo",
   "createdFrom",
@@ -139,6 +143,7 @@ export function LeadsFilterBar({
 
   const status = sp.get("status") ?? ANY_STATUS;
   const venue = sp.get("venue") ?? ANY_VENUE;
+  const area = sp.get("area") ?? ANY_AREA;
   const eventFrom = sp.get("eventFrom") ?? "";
   const eventTo = sp.get("eventTo") ?? "";
   const coldFirst = sp.get("sort") === "cold";
@@ -227,6 +232,24 @@ export function LeadsFilterBar({
           {venues.map((v) => (
             <SelectItem key={v.id} value={v.id}>
               {v.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Area (where in Bengaluru): a whole zone, one area, or not known yet */}
+      <Select
+        value={area}
+        onValueChange={(v) => push({ area: v === ANY_AREA ? null : v })}
+      >
+        <SelectTrigger className="h-9 w-full" aria-label="Filter by area">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={ANY_AREA}>All areas</SelectItem>
+          {AREA_OPTIONS.map((o) => (
+            <SelectItem key={o.value} value={o.value}>
+              {o.label}
             </SelectItem>
           ))}
         </SelectContent>

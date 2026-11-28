@@ -155,6 +155,7 @@ export async function handleKnownContactAck(
         status: true,
         eventType: true,
         assignedToId: true,
+        area: true,
       },
     });
 
@@ -207,6 +208,7 @@ export async function handleKnownContactAck(
           guestCount: 0,
           score: 0,
           estimatedValue: 0,
+          area: openLead?.area ?? "",
         });
         if (candidate) {
           routedToId = candidate;

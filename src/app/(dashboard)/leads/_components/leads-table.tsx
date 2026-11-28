@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { areaLabel } from "@/lib/crm/areas";
 import { useSearchParams } from "next/navigation";
 import { type ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
@@ -88,6 +89,8 @@ export interface LeadWithContact {
   eventType: string | null;
   /** WEDDING | CORPORATE | SOCIAL; null = Unsorted. */
   salesTeam?: string | null;
+  /** Where in Bengaluru (crm/areas key). */
+  area?: string | null;
   eventDate: Date | string | null;
   guestCount: number | null;
   createdAt: Date | string;
@@ -555,6 +558,20 @@ const columns: ColumnDef<LeadWithContact>[] = [
     cell: ({ row }) => <LeadSourcePill source={row.getValue<string>("source")} size="xs" />,
   },
   {
+    // Where in Bengaluru (crm/areas). Blank until the form, venue or a rep says.
+    id: "area",
+    accessorFn: (row) => areaLabel(row.area) ?? "",
+    header: "Area",
+    cell: ({ row }) => {
+      const label = areaLabel(row.original.area);
+      return label ? (
+        <span className="whitespace-nowrap text-meta">{label}</span>
+      ) : (
+        <span className="text-meta text-muted-foreground">—</span>
+      );
+    },
+  },
+  {
     accessorKey: "eventDate",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Event" />
@@ -874,6 +891,7 @@ function ExportButton({ ids }: { ids?: string[] }) {
         team: searchParams.get("team") ?? undefined,
         status: searchParams.get("status") ?? undefined,
         venueId: searchParams.get("venue") ?? undefined,
+        area: searchParams.get("area") ?? undefined,
         eventFrom: searchParams.get("eventFrom") ?? undefined,
         eventTo: searchParams.get("eventTo") ?? undefined,
         createdFrom: searchParams.get("createdFrom") ?? undefined,

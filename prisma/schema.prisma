@@ -736,6 +736,11 @@ model Lead {
   contactId         String
   contact           Contact            @relation(fields: [contactId], references: [id])
   preferredVenueId  String?
+  /// Where in Bengaluru the customer wants the event: a key from
+  /// src/lib/crm/areas.ts (LEAD_AREAS), or null = not known yet.
+  area              String?
+  /// How area was decided: given | form | venue | text | manual | none.
+  areaSource        String?
   preferredVenue    Venue?             @relation("LeadPreferredVenue", fields: [preferredVenueId], references: [id])
   assignedToId      String?
   assignedTo        User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
@@ -788,6 +793,7 @@ model Lead {
   salesTeamManual  Boolean   @default(false)
   @@index([salesTeam])
   @@index([preferredVenueId]) // venue portal: leads per venue
+  @@index([area])
   @@index([status])
   @@index([assignedToId])
   @@index([source])

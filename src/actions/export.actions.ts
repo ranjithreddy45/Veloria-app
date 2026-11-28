@@ -4,6 +4,7 @@ import { withOccasionValues } from "@/lib/crm/occasion-values";
 import { auth } from "@/../auth";
 import { phoneForExport } from "@/lib/phone";
 import { buildLeadListWhere, type LeadListFilters } from "@/lib/crm/lead-filters";
+import { areaLabel } from "@/lib/crm/areas";
 import { hasPermission } from "@/lib/permissions";
 import { isCollectibleInvoice } from "@/lib/finance/issued-invoices";
 import { prisma } from "@/lib/prisma";
@@ -339,6 +340,7 @@ export async function exportLeads(filters?: LeadListFilters & { ids?: string[] }
       // "leads export" useless for the one thing an exported lead list is for.
       "Phone",
       "Hall / Property",
+      "Area",
       "Status",
       "Source",
       "Lead Quality",
@@ -381,6 +383,7 @@ export async function exportLeads(filters?: LeadListFilters & { ids?: string[] }
         // Google Sheets and every plain CSV parser.
         phoneForExport(l.contact.phone),
         l.preferredVenue?.name || "",
+        areaLabel(l.area) || "",
         l.status,
         l.source,
         String(l.leadQuality || "UNREVIEWED").replace(/_/g, " "),

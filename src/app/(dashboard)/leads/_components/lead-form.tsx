@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LEAD_AREAS } from "@/lib/crm/areas";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -53,6 +54,8 @@ import {
   CommandList,
 } from "@/components/ui/command";
 
+const NO_AREA = "__no_area__";
+
 // ============================================================
 // LeadForm Props
 // ============================================================
@@ -67,6 +70,7 @@ interface LeadData {
   guestCount: number | null;
   estimatedValue: number | null;
   preferredVenueId: string | null;
+  area?: string | null;
   assignedToId?: string | null;
   slot: string | null;
   vegNonVeg: string | null;
@@ -114,6 +118,7 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
       guestCount: lead?.guestCount ?? null,
       estimatedValue: lead?.estimatedValue ?? null,
       preferredVenueId: lead?.preferredVenueId ?? "",
+      area: lead?.area ?? "",
       assignedToId: lead?.assignedToId ?? "",
       slot: (lead?.slot ?? "") as LeadInput["slot"],
       vegNonVeg: (lead?.vegNonVeg ?? "") as LeadInput["vegNonVeg"],
@@ -444,6 +449,36 @@ export function LeadForm({ contacts, venues = [], users = [], lead }: LeadFormPr
                       {venues.map((v) => (
                         <SelectItem key={v.id} value={v.id}>
                           {v.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Area — where in Bengaluru; new leads are allocated by it */}
+            <FormField
+              control={form.control}
+              name="area"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Area</FormLabel>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === NO_AREA ? "" : v)}
+                    value={field.value || NO_AREA}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Not known" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={NO_AREA}>Not known</SelectItem>
+                      {LEAD_AREAS.map((a) => (
+                        <SelectItem key={a.key} value={a.key}>
+                          {a.label}
                         </SelectItem>
                       ))}
                     </SelectContent>

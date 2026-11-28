@@ -3,6 +3,7 @@ import { sendEmail, isEmailConfigured } from "@/lib/email";
 import { LEAD_SOURCE_LABELS } from "@/lib/constants";
 import { reportSystemFailure } from "@/lib/ops-alert";
 import { isPhoneLead } from "@/lib/crm/call-lead";
+import { areaLabel } from "@/lib/crm/areas";
 
 // ============================================================
 // "A new lead just came in" — one email to a fixed list of people.
@@ -95,6 +96,8 @@ export interface NewLeadAlertData {
   eventDate: Date | null;
   guestCount: number | null;
   venue: string | null;
+  /** Where in Bengaluru, as a label (crm/areas); optional for older callers. */
+  area?: string | null;
   assignedTo: string | null;
   receivedAt: Date;
   notes: string;
@@ -112,6 +115,7 @@ export function buildNewLeadAlert(d: NewLeadAlertData): { subject: string; html:
     ["Event date", d.eventDate ? IST_DATE.format(d.eventDate) : "—"],
     ["Guests", d.guestCount ? String(d.guestCount) : "—"],
     ["Venue", d.venue || "—"],
+    ["Area", d.area || "—"],
     ["Source", sourceLabel],
     ["Assigned to", d.assignedTo || "Not assigned yet"],
     ["Received", `${IST_DATETIME.format(d.receivedAt)} IST`],
@@ -185,6 +189,7 @@ export async function sendNewLeadAlert(
         createdAt: true,
         deletedAt: true,
         preferredVenue: { select: { name: true } },
+        area: true,
         assignedTo: { select: { name: true } },
         contact: { select: { firstName: true, lastName: true, phone: true, email: true } },
       },
@@ -202,6 +207,7 @@ export async function sendNewLeadAlert(
       eventDate: lead.eventDate,
       guestCount: lead.guestCount,
       venue: lead.preferredVenue?.name ?? null,
+      area: areaLabel(lead.area),
       assignedTo: lead.assignedTo?.name ?? null,
       receivedAt: lead.createdAt,
       notes: cleanNotes(lead.description),
@@ -403,6 +409,7 @@ async function loadAlertData(leadIds: string[]): Promise<NewLeadAlertData[]> {
       guestCount: true,
       createdAt: true,
       preferredVenue: { select: { name: true } },
+      area: true,
       assignedTo: { select: { name: true } },
       contact: { select: { firstName: true, lastName: true, phone: true, email: true } },
     },
@@ -418,6 +425,7 @@ async function loadAlertData(leadIds: string[]): Promise<NewLeadAlertData[]> {
     eventDate: lead.eventDate,
     guestCount: lead.guestCount,
     venue: lead.preferredVenue?.name ?? null,
+    area: areaLabel(lead.area),
     assignedTo: lead.assignedTo?.name ?? null,
     receivedAt: lead.createdAt,
     notes: cleanNotes(lead.description),

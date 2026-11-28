@@ -14,6 +14,7 @@ import type { Prisma, LeadSource } from "@prisma/client";
 import { scheduleAutoPushToCallVibe } from "@/lib/integrations/callvibe/push";
 import { scheduleLeadsAssignedNotify } from "@/lib/crm/lead-assigned-notify";
 import { getDefaultLeadOwnerId } from "@/lib/crm/default-lead-owner";
+import { resolveLeadArea } from "@/lib/crm/areas";
 
 // ============================================================
 // Simple In-Memory Rate Limiter
@@ -237,13 +238,21 @@ export async function POST(
 
         const score = calculateLeadScore({ source: leadSource, status: "NEW" });
 
+        // Where in Bengaluru: an area / location / venue field on the form,
+        // else an area named in any answer (crm/areas).
+        const formText = Object.entries(formData)
+          .filter(([, v]) => typeof v === "string" && v.trim())
+          .map(([k, v]) => `${k.replace(/[_-]+/g, " ")}: ${String(v).replace(/[\r\n]+/g, " ")}`)
+          .join("\n");
+        const areaInfo = resolveLeadArea({ text: formText });
+
         // Resolve assignment: static autoAssignTo, else the rules engine (fed
         // the same lead shape speed-to-lead used to re-check rules with).
         let assignedToId: string | null = webform.autoAssignTo || null;
         if (!assignedToId) {
           try {
             assignedToId =
-              (await evaluateAssignmentRules({ source: leadSource, status: "NEW", score })) || null;
+              (await evaluateAssignmentRules({ source: leadSource, status: "NEW", score, area: areaInfo.area ?? "" })) || null;
           } catch {
             /* assignment optional */
           }
@@ -263,6 +272,8 @@ export async function POST(
             contactId,
             createdById: webform.createdById,
             score,
+            area: areaInfo.area,
+            areaSource: areaInfo.source,
             firstContactDue: leadSlaDeadline(),
             ...(assignedToId ? { assignedToId } : {}),
           },
@@ -297,6 +308,7 @@ export async function POST(
             source: lead.source,
             status: lead.status,
             score: lead.score,
+            area: lead.area,
           },
           triggeredByUserId: assignedToId ?? webform.createdById,
           ownerIsFallback,

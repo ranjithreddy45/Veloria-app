@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { sendWhatsApp } from "@/lib/integrations/whatsapp";
 import { canonicalPhone } from "@/lib/phone";
 import { LEAD_SOURCE_LABELS } from "@/lib/constants";
+import { areaLabel } from "@/lib/crm/areas";
 import { waParam } from "@/lib/crm/lead-assigned-notify";
 import { reportSystemFailure } from "@/lib/ops-alert";
 
@@ -86,11 +87,14 @@ export function newLeadWhatsAppParams(d: {
   eventType: string | null;
   eventDate: Date | null;
   guestCount: number | null;
+  area?: string | null;
 }): Record<string, string> {
+  // The approved template has no Area line, so the area rides in the Event line.
   const event = [
     d.eventType,
     d.eventDate ? fmtDate(d.eventDate) : null,
     d.guestCount ? `${d.guestCount} guests` : null,
+    areaLabel(d.area),
   ]
     .filter(Boolean)
     .join(", ");
@@ -142,6 +146,7 @@ type LeadForAlert = {
   eventType: string | null;
   eventDate: Date | null;
   guestCount: number | null;
+  area: string | null;
   deletedAt: Date | null;
   contact: { firstName: string | null; lastName: string | null; phone: string | null } | null;
 };
@@ -156,6 +161,7 @@ async function loadLead(leadId: string): Promise<LeadForAlert | null> {
       eventType: true,
       eventDate: true,
       guestCount: true,
+      area: true,
       deletedAt: true,
       contact: { select: { firstName: true, lastName: true, phone: true } },
     },
@@ -172,6 +178,7 @@ function paramsFor(lead: LeadForAlert): Record<string, string> {
     eventType: lead.eventType,
     eventDate: lead.eventDate,
     guestCount: lead.guestCount,
+    area: lead.area,
   });
 }
 
