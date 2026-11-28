@@ -1,4 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { resolveLeadArea } from "@/lib/crm/areas";
+import { getDefaultLeadOwnerId } from "@/lib/crm/default-lead-owner";
+import { evaluateAssignmentRules } from "@/lib/assignment/evaluate";
+import { scheduleLeadsAssignedNotify } from "@/lib/crm/lead-assigned-notify";
 
 // ============================================================
 // Adding step-2 detail to a lead the landing form already created.
@@ -73,6 +77,13 @@ export async function enrichLandingLead(leadId: string, input: EnrichInput): Pro
       guestCount: true,
       preferredVenueId: true,
       description: true,
+      area: true,
+      areaSource: true,
+      assignedToId: true,
+      lastTouchedAt: true,
+      source: true,
+      status: true,
+      score: true,
       contactId: true,
       contact: { select: { id: true, email: true } },
     },
@@ -116,8 +127,49 @@ export async function enrichLandingLead(leadId: string, input: EnrichInput): Pro
     leadData.description = `${lead.description ? lead.description + "\n" : ""}Preferred venue: ${venueText}`;
   }
 
+  // Where in Bengaluru (crm/areas). Step 1 had no venue, so the area is first
+  // known here. Never over a person's choice.
+  let newArea: string | null = null;
+  if (!lead.area && lead.areaSource !== "manual" && venueText) {
+    const venueName = preferredVenueId
+      ? ((await prisma.venue.findUnique({ where: { id: preferredVenueId }, select: { name: true } }))?.name ?? null)
+      : null;
+    const r = resolveLeadArea({ given: venueText, venueName });
+    if (r.area) {
+      newArea = r.area;
+      leadData.area = r.area;
+      leadData.areaSource = r.source;
+    }
+  }
+
   if (Object.keys(leadData).length > 0) {
     await prisma.lead.update({ where: { id: lead.id }, data: leadData });
+  }
+
+  // Step 1 routed the lead before its area was known, so it usually sits with
+  // the default owner. If an AREA rule now matches, hand it over — only while
+  // nobody has worked it yet and it is still with the default owner.
+  if (newArea && !lead.lastTouchedAt && lead.assignedToId) {
+    try {
+      const fallback = await getDefaultLeadOwnerId();
+      if (fallback && lead.assignedToId === fallback) {
+        const pick = await evaluateAssignmentRules(
+          { id: lead.id, source: lead.source, status: lead.status, score: lead.score ?? 0, eventType: eventType ?? lead.eventType ?? "", area: newArea },
+          { onlyField: "area" }
+        );
+        if (pick && pick !== lead.assignedToId) {
+          const moved = await prisma.lead.updateMany({
+            where: { id: lead.id, assignedToId: lead.assignedToId, lastTouchedAt: null },
+            data: { assignedToId: pick },
+          });
+          if (moved.count === 1) {
+            scheduleLeadsAssignedNotify({ leadIds: [lead.id], assigneeId: pick, assignedById: null, isNew: true });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[enrichLandingLead] area routing failed", e);
+    }
   }
 
   // The contact's email, same blanks-only rule. A person who typed an address

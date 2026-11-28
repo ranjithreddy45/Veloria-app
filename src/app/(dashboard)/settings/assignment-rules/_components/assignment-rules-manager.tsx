@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { LEAD_AREAS, areaLabel } from "@/lib/crm/areas";
 import {
   PlusIcon,
   TrashIcon,
@@ -116,8 +117,9 @@ export function AssignmentRulesManager() {
       conditions: [
         {
           field: formConditionField,
-          operator: formConditionOperator as "equals" | "contains" | "in" | "gt" | "lt" | "gte" | "lte" | "notIn",
-          value: formConditionValue.includes(",")
+          // An area is one exact key: "contains" would let South match South-East.
+          operator: (formConditionField === "area" ? "equals" : formConditionOperator) as "equals" | "contains" | "in" | "gt" | "lt" | "gte" | "lte" | "notIn",
+          value: formConditionField !== "area" && formConditionValue.includes(",")
             ? formConditionValue.split(",").map((v) => v.trim())
             : formConditionValue.trim(),
         },
@@ -251,9 +253,13 @@ export function AssignmentRulesManager() {
                                 {OPERATOR_LABEL[c.operator] ?? c.operator}
                               </span>{" "}
                               <span className="numeric font-medium text-foreground">
-                                {Array.isArray(c.value)
-                                  ? c.value.join(", ")
-                                  : String(c.value)}
+                                {c.field === "area"
+                                  ? (Array.isArray(c.value) ? c.value : [c.value])
+                                      .map((v) => areaLabel(String(v)) ?? String(v))
+                                      .join(", ")
+                                  : Array.isArray(c.value)
+                                    ? c.value.join(", ")
+                                    : String(c.value)}
                               </span>
                             </span>
                           </React.Fragment>
@@ -374,7 +380,16 @@ export function AssignmentRulesManager() {
             <div className="space-y-2">
               <Label>Condition</Label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <Select value={formConditionField} onValueChange={setFormConditionField}>
+                <Select
+                  value={formConditionField}
+                  onValueChange={(v) => {
+                    setFormConditionField(v);
+                    if (v === "area") {
+                      setFormConditionOperator("equals");
+                      setFormConditionValue("");
+                    }
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -383,9 +398,14 @@ export function AssignmentRulesManager() {
                     <SelectItem value="eventType">Event Type</SelectItem>
                     <SelectItem value="status">Status</SelectItem>
                     <SelectItem value="score">Score</SelectItem>
+                    <SelectItem value="area">Area</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={formConditionOperator} onValueChange={setFormConditionOperator}>
+                <Select
+                  value={formConditionField === "area" ? "equals" : formConditionOperator}
+                  onValueChange={setFormConditionOperator}
+                  disabled={formConditionField === "area"}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -397,11 +417,28 @@ export function AssignmentRulesManager() {
                     <SelectItem value="lt">Less than</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input
-                  value={formConditionValue}
-                  onChange={(e) => setFormConditionValue(e.target.value)}
-                  placeholder="Value"
-                />
+                {formConditionField === "area" ? (
+                  // Area keys aren't typeable: pick one. "In" with several
+                  // areas = make one rule per area (same person).
+                  <Select value={formConditionValue} onValueChange={setFormConditionValue}>
+                    <SelectTrigger aria-label="Area">
+                      <SelectValue placeholder="Choose an area" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LEAD_AREAS.map((a) => (
+                        <SelectItem key={a.key} value={a.key}>
+                          {a.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={formConditionValue}
+                    onChange={(e) => setFormConditionValue(e.target.value)}
+                    placeholder="Value"
+                  />
+                )}
               </div>
             </div>
           </div>

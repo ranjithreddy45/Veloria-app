@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/../auth";
+import { isLeadArea, resolveLeadArea } from "@/lib/crm/areas";
 import { buildOccasionOptions } from "@/lib/crm/occasion";
 import { withOccasionValues } from "@/lib/crm/occasion-values";
 import { buildLeadListWhere, canSeeAllLeads, canViewLead, type LeadListFilters, type LeadScope } from "@/lib/crm/lead-filters";
@@ -45,6 +46,17 @@ const ASSIGNABLE_ROLES = ["SALES_EXEC", "SALES_HEAD", "EVENT_COORDINATOR", "ADMI
 
 /** Active users a lead may be assigned to — powers the inline Assign control
  *  on the leads list. Gated on leads:read (names only, no contact details). */
+
+/** A new lead's area: the one picked on the form, else read from its venue / notes. */
+async function areaForNewLead(d: { area?: string; preferredVenueId?: string; description?: string | null }) {
+  if (d.area && isLeadArea(d.area)) return { area: d.area, areaSource: "manual" };
+  const venueName = d.preferredVenueId
+    ? ((await prisma.venue.findUnique({ where: { id: d.preferredVenueId }, select: { name: true } }))?.name ?? null)
+    : null;
+  const r = resolveLeadArea({ venueName, text: d.description ?? null });
+  return { area: r.area, areaSource: r.source };
+}
+
 export async function getAssignableUsers(): Promise<
   { success: true; data: { id: string; name: string | null; role: string }[] } | { success: false; error: string }
 > {
@@ -488,6 +500,7 @@ export async function createLead(data: LeadInput & { images?: string[] }) {
         guestCount: leadData.guestCount || null,
         estimatedValue: leadData.estimatedValue || null,
         preferredVenueId: leadData.preferredVenueId || null,
+        ...(await areaForNewLead(leadData)),
         slot: leadData.slot || null,
         vegNonVeg: leadData.vegNonVeg || null,
         perPlateBudget: leadData.perPlateBudget || null,
@@ -523,6 +536,7 @@ export async function createLead(data: LeadInput & { images?: string[] }) {
             eventType: lead.eventType ?? undefined,
             status: lead.status,
             score: lead.score,
+            area: lead.area ?? "",
           });
 
       if (assignedUserId) {
@@ -562,6 +576,7 @@ export async function createLead(data: LeadInput & { images?: string[] }) {
             guestCount: lead.guestCount,
             score: lead.score,
             estimatedValue: leadData.estimatedValue ?? null,
+            area: lead.area,
           },
           triggeredByUserId: session.user.id as string,
         });
@@ -679,6 +694,13 @@ export async function updateLead(
       updateData.estimatedValue = data.estimatedValue || null;
     if (data.preferredVenueId !== undefined)
       updateData.preferredVenueId = data.preferredVenueId || null;
+    if (data.area !== undefined && (data.area || null) !== (existing.area ?? null)) {
+      // A person changing (or clearing) the area always wins over detection.
+      // Only an actual change counts: the edit form re-sends every field.
+      if (data.area && !isLeadArea(data.area)) return { success: false, error: "Unknown area" };
+      updateData.area = data.area || null;
+      updateData.areaSource = "manual";
+    }
     if (data.slot !== undefined) updateData.slot = data.slot || null;
     if (data.vegNonVeg !== undefined)
       updateData.vegNonVeg = data.vegNonVeg || null;

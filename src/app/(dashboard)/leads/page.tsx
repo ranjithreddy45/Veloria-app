@@ -56,6 +56,7 @@ export default async function LeadsPage({
     team: first(sp.team),
     status: first(sp.status),
     venueId: first(sp.venue),
+    area: first(sp.area),
     eventFrom: first(sp.eventFrom),
     eventTo: first(sp.eventTo),
     createdFrom: first(sp.createdFrom),
@@ -113,6 +114,7 @@ export default async function LeadsPage({
   const filtersActive = Boolean(
     statusFilter ||
       filters.venueId ||
+      filters.area ||
       filters.eventFrom ||
       filters.eventTo ||
       filters.createdFrom ||
@@ -300,6 +302,7 @@ export default async function LeadsPage({
                             Object.entries({
                               status: filters.status,
                               venue: filters.venueId,
+                              area: filters.area,
                               eventFrom: filters.eventFrom,
                               eventTo: filters.eventTo,
                               createdFrom: filters.createdFrom,

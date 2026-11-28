@@ -67,6 +67,8 @@ export const leadSchema = z.object({
     .nullable(),
   // Venue-specific inquiry fields (spec §3.1)
   preferredVenueId: z.string().optional().or(z.literal("")),
+  /** Where in Bengaluru: a key from crm/areas (LEAD_AREAS), "" = not known. */
+  area: z.string().max(40).optional().or(z.literal("")),
   assignedToId: z.string().optional().or(z.literal("")),
   slot: z.enum(["Lunch", "Dinner"]).optional().or(z.literal("")),
   // Preferred food option (kept as a string so existing values never break).

@@ -136,6 +136,8 @@ async function ingestLocked(lead: PushLead, ctx: IngestContext, opts: IngestOpti
     guestCount: lead.guestCount,
     estimatedValue: lead.budget,
     venueId,
+    // A venue we don't hold may still name an area ("Hebbal", "near Bellandur").
+    ...(lead.venue && !venueId ? { area: lead.venue } : {}),
     attribution: attributionFor(lead),
     consent: lead.consent
       ? {

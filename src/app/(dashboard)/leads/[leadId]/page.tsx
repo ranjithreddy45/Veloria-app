@@ -364,6 +364,7 @@ export default async function LeadDetailPage({ params }: LeadDetailPageProps) {
                 leadId={lead.id}
                 assignedToId={lead.assignedToId ?? null}
                 followUpDate={lead.followUpDate ?? null}
+                area={lead.area ?? null}
                 users={users}
               />
 

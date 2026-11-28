@@ -3,6 +3,7 @@ import { isEnquirySource } from "@/lib/enquiry-source";
 import { OCCASION_NONE } from "@/lib/crm/occasion";
 import { resolveBdRange, istDateStr } from "@/lib/acq/analytics-range";
 import { isSalesTeam, UNSORTED } from "@/lib/crm/sales-team";
+import { areaFilterKeys } from "@/lib/crm/areas";
 
 // ============================================================
 // ONE definition of "which leads match these filters".
@@ -89,6 +90,8 @@ export interface LeadListFilters {
   occasionValues?: string[];
   /** Hall/Property (preferred venue). "UNASSIGNED" → leads with no venue. */
   venueId?: string;
+  /** Area (crm/areas): one area key, "ZALL_<zone>" for a whole zone, or "NONE". */
+  area?: string;
   scope?: LeadScope;
 }
 
@@ -292,6 +295,11 @@ export function buildLeadListWhere(
   } else if (venueId) {
     where.preferredVenueId = venueId;
   }
+
+  // Area (where in Bengaluru). An unknown value is ignored, like the enums.
+  const areaKeys = areaFilterKeys(filters?.area);
+  if (areaKeys === null) where.area = null;
+  else if (areaKeys) where.area = { in: areaKeys };
 
   return { where, scope, canViewAll, viewerTeam: team, teamFilter };
 }

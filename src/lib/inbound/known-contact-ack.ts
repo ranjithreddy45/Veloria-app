@@ -207,6 +207,8 @@ export async function handleKnownContactAck(
           guestCount: 0,
           score: 0,
           estimatedValue: 0,
+          // No area on purpose: area rules allocate NEW leads; a WhatsApp
+          // reply must not move an existing lead to another rep by area.
         });
         if (candidate) {
           routedToId = candidate;

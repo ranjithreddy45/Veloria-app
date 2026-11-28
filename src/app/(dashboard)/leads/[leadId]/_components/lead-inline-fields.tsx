@@ -12,7 +12,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { CalendarIcon, Loader2Icon, UserIcon, ClockIcon } from "lucide-react";
+import { CalendarIcon, Loader2Icon, UserIcon, ClockIcon, MapPinIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { updateLead } from "@/actions/lead.actions";
@@ -31,14 +31,18 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { LEAD_AREAS } from "@/lib/crm/areas";
 
 const UNASSIGNED = "__unassigned__";
+const NO_AREA = "__no_area__";
 
 interface LeadInlineFieldsProps {
   leadId: string;
   assignedToId: string | null;
   followUpDate: string | Date | null;
   users: { id: string; name: string | null }[];
+  /** Where in Bengaluru (crm/areas key), or null. */
+  area?: string | null;
 }
 
 export function LeadInlineFields({
@@ -46,8 +50,29 @@ export function LeadInlineFields({
   assignedToId,
   followUpDate,
   users,
+  area = null,
 }: LeadInlineFieldsProps) {
   const router = useRouter();
+  const [savingArea, setSavingArea] = React.useState(false);
+
+  async function saveArea(value: string) {
+    const next = value === NO_AREA ? "" : value;
+    if (next === (area ?? "")) return;
+    setSavingArea(true);
+    try {
+      const result = await updateLead(leadId, { area: next });
+      if (result.success) {
+        toast.success(next ? "Area updated" : "Area cleared");
+        router.refresh();
+      } else {
+        toast.error(result.error);
+      }
+    } catch {
+      toast.error("Failed to update area");
+    } finally {
+      setSavingArea(false);
+    }
+  }
   const [savingAssignee, setSavingAssignee] = React.useState(false);
   const [savingFollowUp, setSavingFollowUp] = React.useState(false);
 
@@ -109,6 +134,27 @@ export function LeadInlineFields({
               {users.map((u) => (
                 <SelectItem key={u.id} value={u.id}>
                   {u.name ?? "Unnamed"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Area — where in Bengaluru; drives area-based allocation */}
+      <div className="flex items-start gap-3">
+        <MapPinIcon className="text-muted-foreground mt-2 size-4" />
+        <div className="min-w-0 flex-1">
+          <p className="text-muted-foreground text-xs">Area</p>
+          <Select value={area ?? NO_AREA} onValueChange={saveArea} disabled={savingArea}>
+            <SelectTrigger className="mt-1 h-8 w-full" aria-label="Area">
+              <SelectValue placeholder="Not known" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_AREA}>Not known</SelectItem>
+              {LEAD_AREAS.map((a) => (
+                <SelectItem key={a.key} value={a.key}>
+                  {a.label}
                 </SelectItem>
               ))}
             </SelectContent>

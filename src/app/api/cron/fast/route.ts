@@ -13,6 +13,7 @@ import { releaseLapsedHolds } from "@/lib/holds/release-lapsed-holds";
 import { processDueCallVibePushJobs } from "@/lib/integrations/callvibe/push";
 import { processDueLeadAlerts } from "@/lib/crm/new-lead-alert";
 import { retryDueNewLeadWhatsApps } from "@/lib/crm/new-lead-whatsapp";
+import { backfillLeadAreas } from "@/lib/crm/area-backfill";
 import { drainMetaLeadJobs } from "@/lib/meta/queue";
 import { maybeRunMetaBackfill } from "@/lib/meta/schedule";
 import { claimCronLease, releaseCronLease } from "@/lib/cron/lease";
@@ -150,6 +151,13 @@ async function runFast() {
   // Managers' WhatsApp for new website / Google leads: one retry, and any send
   // a restart cut short. Never throws.
   results.leadWhatsApp = await retryDueNewLeadWhatsApps();
+  try {
+    // One-time fill of Lead.area on older leads (crm/area-backfill); a no-op
+    // once every lead has been read.
+    results.leadAreas = await backfillLeadAreas(500);
+  } catch (e) {
+    results.leadAreas = `error: ${e instanceof Error ? e.message : "unknown"}`;
+  }
 
   // Surface partial failures with a non-2xx so the lane orchestrator
   // (runCronLane) counts it as failed and alerts admins — otherwise a broken

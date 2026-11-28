@@ -41,6 +41,7 @@ interface SpeedToLeadLead {
   guestCount?: number | null;
   score?: number | null;
   estimatedValue?: number | string | null;
+  area?: string | null;
 }
 
 interface RunSpeedToLeadArgs {
@@ -124,6 +125,10 @@ export async function runSpeedToLead(
         score: lead.score ?? 0,
         estimatedValue:
           lead.estimatedValue != null ? Number(lead.estimatedValue) : 0,
+        area:
+          lead.area ??
+          (await prisma.lead.findUnique({ where: { id: lead.id }, select: { area: true } }))?.area ??
+          "",
       });
       if (candidate && candidate !== assignedToId) {
         assignedToId = candidate;

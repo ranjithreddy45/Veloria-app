@@ -33,6 +33,8 @@ vi.mock("@/lib/ops/event-reminders", () => ({ sendEventDayTaskReminders: jobs.se
 vi.mock("@/lib/holds/release-lapsed-holds", () => ({ releaseLapsedHolds: jobs.releaseLapsedHolds }));
 vi.mock("@/lib/integrations/callvibe/push", () => ({ processDueCallVibePushJobs: jobs.processDueCallVibePushJobs }));
 vi.mock("@/lib/crm/new-lead-alert", () => ({ processDueLeadAlerts: jobs.processDueLeadAlerts }));
+vi.mock("@/lib/crm/new-lead-whatsapp", () => ({ retryDueNewLeadWhatsApps: vi.fn(async () => ({ retried: 0, sent: 0 })) }));
+vi.mock("@/lib/crm/area-backfill", () => ({ backfillLeadAreas: vi.fn(async () => ({ scanned: 0, filled: 0 })) }));
 vi.mock("next/server", () => ({
   NextResponse: {
     json: (body: unknown, init?: { status?: number }) => ({ status: init?.status ?? 200, body }),
