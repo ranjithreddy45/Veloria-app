@@ -117,8 +117,9 @@ export function AssignmentRulesManager() {
       conditions: [
         {
           field: formConditionField,
-          operator: formConditionOperator as "equals" | "contains" | "in" | "gt" | "lt" | "gte" | "lte" | "notIn",
-          value: formConditionValue.includes(",")
+          // An area is one exact key: "contains" would let South match South-East.
+          operator: (formConditionField === "area" ? "equals" : formConditionOperator) as "equals" | "contains" | "in" | "gt" | "lt" | "gte" | "lte" | "notIn",
+          value: formConditionField !== "area" && formConditionValue.includes(",")
             ? formConditionValue.split(",").map((v) => v.trim())
             : formConditionValue.trim(),
         },
@@ -400,7 +401,11 @@ export function AssignmentRulesManager() {
                     <SelectItem value="area">Area</SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={formConditionOperator} onValueChange={setFormConditionOperator}>
+                <Select
+                  value={formConditionField === "area" ? "equals" : formConditionOperator}
+                  onValueChange={setFormConditionOperator}
+                  disabled={formConditionField === "area"}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

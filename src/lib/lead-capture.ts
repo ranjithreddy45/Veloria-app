@@ -527,7 +527,10 @@ export async function captureLeadFromExternal(data: ExternalLeadData) {
                 (data.eventDate ? new Date(data.eventDate) : undefined),
               guestCount: openLead.guestCount ?? data.guestCount ?? undefined,
               preferredVenueId: openLead.preferredVenueId ?? data.venueId ?? undefined,
-              ...(!openLead.area && areaInfo.area ? { area: areaInfo.area, areaSource: areaInfo.source } : {}),
+              // Fill a missing area, but never undo a person's choice (incl. clearing it).
+              ...(!openLead.area && openLead.areaSource !== "manual" && areaInfo.area
+                ? { area: areaInfo.area, areaSource: areaInfo.source }
+                : {}),
               // An event type filled in here also sorts the lead into its team,
               // unless a person already placed it.
               ...(filledEventType && !openLead.salesTeam && !openLead.salesTeamManual

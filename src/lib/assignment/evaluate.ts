@@ -63,7 +63,13 @@ async function pickRoundRobinAssignee(rule: {
 }
 
 export async function evaluateAssignmentRules(
-  leadData: Record<string, unknown>
+  leadData: Record<string, unknown>,
+  /**
+   * onlyField: consider only rules that test this field, and skip team
+   * routing. Used to apply AREA rules once the area becomes known after the
+   * lead was routed (the website form's second step).
+   */
+  opts: { onlyField?: string } = {}
 ): Promise<string | null> {
   try {
     // ---- Sales team first ------------------------------------------------
@@ -74,7 +80,7 @@ export async function evaluateAssignmentRules(
     const team =
       (typeof leadData.salesTeam === "string" ? leadData.salesTeam : null) ??
       teamForEventType(typeof leadData.eventType === "string" ? leadData.eventType : null);
-    if (team) {
+    if (team && !opts.onlyField) {
       const teamPick = await pickTeamAssignee(team);
       if (teamPick && (await isAssignableUser(teamPick))) return teamPick;
     }
@@ -86,6 +92,7 @@ export async function evaluateAssignmentRules(
 
     for (const rule of rules) {
       const conditions = rule.conditions as unknown as AssignmentRuleCondition[];
+      if (opts.onlyField && !conditions.some((c) => c.field === opts.onlyField)) continue;
       let allMatch = true;
 
       for (const condition of conditions) {
@@ -101,20 +108,21 @@ export async function evaluateAssignmentRules(
               allMatch = false;
             break;
           case "in":
-            if (Array.isArray(condValue) && !condValue.includes(String(fieldValue)))
+            // A single value saved under "In" is one-item list, not "match all".
+            if (!(Array.isArray(condValue) ? condValue.map(String) : [String(condValue)]).includes(String(fieldValue)))
               allMatch = false;
             break;
           case "gt":
-            if (Number(fieldValue) <= Number(condValue)) allMatch = false;
+            if (!(Number(fieldValue) > Number(condValue))) allMatch = false;
             break;
           case "gte":
-            if (Number(fieldValue) < Number(condValue)) allMatch = false;
+            if (!(Number(fieldValue) >= Number(condValue))) allMatch = false;
             break;
           case "lt":
-            if (Number(fieldValue) >= Number(condValue)) allMatch = false;
+            if (!(Number(fieldValue) < Number(condValue))) allMatch = false;
             break;
           case "lte":
-            if (Number(fieldValue) > Number(condValue)) allMatch = false;
+            if (!(Number(fieldValue) <= Number(condValue))) allMatch = false;
             break;
           default:
             allMatch = false;

@@ -694,8 +694,9 @@ export async function updateLead(
       updateData.estimatedValue = data.estimatedValue || null;
     if (data.preferredVenueId !== undefined)
       updateData.preferredVenueId = data.preferredVenueId || null;
-    if (data.area !== undefined) {
-      // A person setting (or clearing) the area always wins over detection.
+    if (data.area !== undefined && (data.area || null) !== (existing.area ?? null)) {
+      // A person changing (or clearing) the area always wins over detection.
+      // Only an actual change counts: the edit form re-sends every field.
       if (data.area && !isLeadArea(data.area)) return { success: false, error: "Unknown area" };
       updateData.area = data.area || null;
       updateData.areaSource = "manual";

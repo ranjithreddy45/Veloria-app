@@ -108,10 +108,32 @@ const ANY_RE = /^(any|anywhere|any area|any location|anything|no preference|not 
 // The label is matched case-insensitively; the answer runs to the next
 // "label:" pair, a newline, a "|" or "," list break, or the end.
 const LABELLED_RE =
-  /(?:preferred\s+)?(?:area|location|locality|venue)(?:\s+in\s+bengaluru|\s+in\s+bangalore)?\s*\??\s*[:=]\s*([^\n|;·\[]{1,80})/gi;
+  /(?:preferred[\s_]+)?(area|location|locality|venue)(?:[\s_]+in[\s_]+bengaluru|[\s_]+in[\s_]+bangalore)?\s*\??\s*[:=]\s*([^\n|;·\[]{1,80})/gi;
 
-/** An answer that only names the city says nothing about the area. */
-const CITY_ONLY_RE = /^(bengaluru|bangalore|blr|bengaluru city|bangalore city)\.?$/i;
+/**
+ * An answer that only names the city says nothing about the area
+ * ("Bengaluru", "Bangalore, Karnataka", "Bangalore 560037").
+ */
+function isCityOnly(answer: string): boolean {
+  const rest = answer
+    .toLowerCase()
+    .replace(/\b(bengaluru|bangalore|blr|city|urban|karnataka|india)\b/g, " ")
+    .replace(/[\d\s,.\-()]+/g, "");
+  return rest.length === 0;
+}
+
+/**
+ * One answer, cleaned: Meta sends option values machine-shaped
+ * ("east_(indiranagar,_whitefield)"), and the answer stops at the next
+ * "word:" label on the same line.
+ */
+function answerOf(raw: string): string {
+  return raw
+    .replace(/_/g, " ")
+    .replace(/\s[a-z ?]{2,40}\s*[:=].*$/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
 
 /**
  * The area a customer gave in their own form answers, if they answered an
@@ -121,12 +143,18 @@ const CITY_ONLY_RE = /^(bengaluru|bangalore|blr|bengaluru city|bangalore city)\.
  */
 export function areaFromFormAnswers(text: string | null | undefined): string | null {
   if (!text) return null;
+  // The customer's own area / location answer beats a "Venue:" line, which in
+  // a Meta lead is the ad set's venue, not something the customer chose.
+  const matches = [...text.matchAll(LABELLED_RE)];
+  const areaAnswers = matches.filter((m) => m[1].toLowerCase() !== "venue");
+  const use = areaAnswers.some((m) => answerOf(m[2]) && !isCityOnly(answerOf(m[2])))
+    ? areaAnswers
+    : matches.filter((m) => m[1].toLowerCase() === "venue");
   const found = new Set<string>();
   let answered = false;
-  for (const m of text.matchAll(LABELLED_RE)) {
-    // Stop the answer at the next "word:" label on the same line.
-    const answer = m[1].replace(/\s[a-z_ ?]{2,40}\s*[:=].*$/i, "").trim();
-    if (!answer || CITY_ONLY_RE.test(answer)) continue;
+  for (const m of use) {
+    const answer = answerOf(m[2]);
+    if (!answer || isCityOnly(answer)) continue;
     answered = true;
     const zone = zoneOfAnswer(answer);
     if (zone) {

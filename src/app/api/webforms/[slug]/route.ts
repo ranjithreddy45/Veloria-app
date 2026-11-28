@@ -241,7 +241,8 @@ export async function POST(
         // Where in Bengaluru: an area / location / venue field on the form,
         // else an area named in any answer (crm/areas).
         const formText = Object.entries(formData)
-          .filter(([, v]) => typeof v === "string" && v.trim())
+          // Identity fields can contain place names ("ravi.hebbal@…"): skip them.
+          .filter(([k, v]) => typeof v === "string" && v.trim() && !/e-?mail|phone|mobile|whatsapp|name/i.test(k))
           .map(([k, v]) => `${k.replace(/[_-]+/g, " ")}: ${String(v).replace(/[\r\n]+/g, " ")}`)
           .join("\n");
         const areaInfo = resolveLeadArea({ text: formText });

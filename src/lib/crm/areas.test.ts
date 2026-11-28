@@ -21,6 +21,24 @@ describe("areaFromFormAnswers", () => {
     expect(areaFromFormAnswers("Area: haveli mohalla  Kolar")).toBe("OTHER");
     expect(areaFromFormAnswers("Preferred area: any")).toBe("OTHER");
   });
+  it("Meta's raw option values (underscores) still map to the right zone", () => {
+    expect(areaFromFormAnswers("preferred area in bengaluru?: east_(indiranagar,_whitefield,_marathahalli)")).toBe("ZONE_EAST");
+    expect(areaFromFormAnswers("preferred area in bengaluru?: north_(yelahanka,_hebbal,_kammanahalli)")).toBe("ZONE_NORTH");
+    expect(areaFromFormAnswers("preferred area in bengaluru?: south-east_(koramangala,_hsr_layout,_electronic_city)")).toBe("ZONE_SOUTH_EAST");
+    expect(areaFromFormAnswers("preferred area in bengaluru?: south_(jp_nagar,_jayanagar,_banashankari)")).toBe("ZONE_SOUTH");
+    expect(areaFromFormAnswers("preferred_area_in_bengaluru?: west_(rajajinagar,_vijayanagar)")).toBe("ZONE_WEST");
+  });
+  it("the customer's area answer beats the ad set's Venue: line", () => {
+    const meta = "Facebook Lead Ad · Venue: Bellandur · Campaign: X · preferred area in bengaluru?: East (Indiranagar, Whitefield, Marathahalli)";
+    expect(areaFromFormAnswers(meta)).toBe("ZONE_EAST");
+    expect(resolveLeadArea({ text: meta, venueName: "Veloria Grand Blossom  - Bellandur" })).toEqual({ area: "ZONE_EAST", source: "form" });
+    // a venue inside the zone they picked is still the more precise answer
+    expect(resolveLeadArea({ text: meta, venueName: "Veloria Grand — Indiranagar (ZIP)" })).toEqual({ area: "INDIRANAGAR", source: "venue" });
+  });
+  it("city-and-state or pincode answers say nothing", () => {
+    expect(areaFromFormAnswers("Location: Bengaluru, Karnataka")).toBeNull();
+    expect(areaFromFormAnswers("Area: Bangalore 560037")).toBeNull();
+  });
   it("two different areas decide nothing", () => {
     expect(areaFromFormAnswers("Area: Hebbal or Bellandur")).toBeNull();
   });

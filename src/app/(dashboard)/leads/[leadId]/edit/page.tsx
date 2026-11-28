@@ -77,6 +77,7 @@ export default async function EditLeadPage({ params }: EditLeadPageProps) {
             guestCount: lead.guestCount,
             estimatedValue: lead.estimatedValue ? Number(lead.estimatedValue) : null,
             preferredVenueId: lead.preferredVenueId ?? null,
+            area: lead.area ?? null,
             assignedToId: lead.assignedToId ?? null,
             slot: lead.slot ?? null,
             vegNonVeg: lead.vegNonVeg ?? null,
